@@ -1,0 +1,1450 @@
+/* 全局樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+}
+
+body {
+    background-color: #f7f7f7;
+    color: #333;
+    line-height: 1.6;
+}
+
+#app {
+    max-width: 500px;
+    margin: 0 auto;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    min-height: 100vh;
+}
+
+/* 頭部樣式 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #0e6f3d;
+    color: white;
+    padding: 10px 15px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header h1 {
+    font-size: 18px;
+    font-weight: normal;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.balance {
+    margin-right: 15px;
+    font-weight: bold;
+    position: relative;
+    padding-left: 20px;
+}
+
+.balance::before {
+    content: '¥';
+    position: absolute;
+    left: 0;
+    top: 1px;
+    font-size: 14px;
+    color: #ffcc00;
+}
+
+.menu-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.history-button, .record-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+/* 結果區域樣式 */
+.result-section {
+    background-color: #0a0a0a;  /* 將背景改為更深的黑色 */
+    color: white;
+    padding: 15px;
+    border-bottom: 3px solid #0e6f3d;  /* 添加綠色邊框強調 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);  /* 增加陰影效果 */
+}
+
+.period-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    background-color: rgba(255, 255, 255, 0.1);  /* 半透明背景 */
+    padding: 8px 12px;
+    border-radius: 5px;
+}
+
+.period-number {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffcc00;  /* 醒目的黃色 */
+}
+
+.period-status {
+    color: #ff6b6b;  /* 更醒目的紅色 */
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 0 0 2px rgba(255, 0, 0, 0.5);  /* 文字陰影效果 */
+}
+
+.race-result {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);  /* 輕微背景 */
+    border-radius: 8px;
+}
+
+.number-ball {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);  /* 添加陰影效果 */
+    transition: transform 0.2s;  /* 添加過渡效果 */
+}
+
+.number-ball:hover {
+    transform: scale(1.1);  /* 懸停時球體放大 */
+}
+
+/* 數字球顏色 */
+.color-1 {
+    background-color: #ffcc00;
+    color: #000;
+}
+.color-2 {
+    background-color: #1e90ff;
+    color: #fff;
+}
+.color-3 {
+    background-color: #696969;
+    color: #fff;
+}
+.color-4 {
+    background-color: #ff7f00;
+    color: #fff;
+}
+.color-5 {
+    background-color: #00bfff;
+    color: #fff;
+}
+.color-6 {
+    background-color: #7a4eb4;
+    color: #fff;
+}
+.color-7 {
+    background-color: #a9a9a9;
+    color: #fff;
+}
+.color-8 {
+    background-color: #ff0000;
+    color: #fff;
+}
+.color-9 {
+    background-color: #8b0000;
+    color: #fff;
+}
+.color-10 {
+    background-color: #00ff00;
+    color: #000;
+}
+
+.result-labels {
+    display: flex;
+    justify-content: space-between;
+}
+
+.result-labels .label {
+    width: 38px;  /* 調整為與球體大小一致 */
+    text-align: center;
+    font-size: 13px;
+    color: #ffcc99;  /* 更溫暖的顏色 */
+    font-weight: bold;
+}
+
+/* 倒計時區域 */
+.countdown-section {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    background: linear-gradient(to right, #f5f5f5, #fff);
+}
+
+.period-countdown {
+    font-size: 14px;
+}
+
+.bet-countdown {
+    color: #ff6b6b;
+    font-weight: bold;
+}
+
+.sound-button {
+    background-color: #ff9800;
+    border: none;
+    padding: 5px 10px;
+    color: white;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sound-button i {
+    margin-right: 5px;
+}
+
+/* 投注選項區域 */
+.betting-tabs {
+    border-bottom: 1px solid #eee;
+}
+
+.tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0 5px;
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #eee;
+}
+
+.tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    position: relative;
+}
+
+.tab.active {
+    color: #0e6f3d;
+    font-weight: bold;
+}
+
+.tab.active:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #0e6f3d;
+}
+
+.tab-content {
+    padding: 15px;
+}
+
+.betting-group {
+    margin-bottom: 20px;
+}
+
+.group-title {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.betting-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    width: calc(25% - 8px);
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #f9f9f9;
+    transition: all 0.2s ease;
+}
+
+.option.selected {
+    background-color: #e7f4eb;
+    border-color: #0e6f3d;
+    color: #0e6f3d;
+    font-weight: bold;
+    box-shadow: 0 0 5px rgba(14, 111, 61, 0.3);
+    transform: translateY(-2px);
+    transition: all 0.2s;
+}
+
+.option:active {
+    background-color: #e7f4eb;
+}
+
+.odds {
+    color: #ff6b6b;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.betting-options.numbers {
+    justify-content: flex-start;
+}
+
+.betting-options.numbers .option {
+    width: calc(20% - 8px);
+}
+
+.betting-options.sum-values {
+    justify-content: flex-start;
+}
+
+.betting-options.sum-values .option {
+    width: calc(16.66% - 8px);
+}
+
+/* 位置選擇器樣式 */
+.position-selector {
+    margin-bottom: 15px;
+}
+
+.position-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.checkbox-wrapper label {
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.position-tab {
+    padding: 8px 12px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.position-tab.active {
+    background-color: #0e6f3d;
+    color: white;
+    border-color: #0e6f3d;
+}
+
+.ball-option {
+    position: relative;
+}
+
+.ball-option .number {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.property-option {
+    background-color: #f9f9f9;
+    transition: all 0.2s;
+}
+
+.property-option.selected {
+    background-color: #e7f4eb;
+    border-color: #0e6f3d;
+    color: #0e6f3d;
+    transform: scale(1.05);
+}
+
+.betting-options.properties {
+    justify-content: flex-start;
+}
+
+.betting-options.properties .option {
+    width: calc(16.66% - 8px);
+    padding: 12px 0;
+}
+
+/* 添加骰子籌碼樣式 */
+.bet-chips {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.chip {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s;
+}
+
+.chip:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.chip-5 {
+    background: linear-gradient(135deg, #ff5722, #e91e63);
+}
+
+.chip-10 {
+    background: linear-gradient(135deg, #2196F3, #3f51b5);
+}
+
+.chip-50 {
+    background: linear-gradient(135deg, #4CAF50, #009688);
+}
+
+.chip-100 {
+    background: linear-gradient(135deg, #FFC107, #FF9800);
+}
+
+.chip-500 {
+    background: linear-gradient(135deg, #607D8B, #455A64);
+}
+
+/* 投注操作區域 */
+.betting-actions {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    padding: 15px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.bet-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.bet-count {
+    color: #666;
+    font-size: 14px;
+}
+
+.clear-button {
+    background: none;
+    border: none;
+    color: #0e6f3d;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.bet-amount {
+    margin-bottom: 15px;
+}
+
+.amount-input {
+    margin-bottom: 10px;
+}
+
+.amount-input input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.quick-amounts {
+    display: flex;
+    justify-content: space-between;
+}
+
+.quick-amounts button {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 5px 0;
+    width: calc(25% - 5px);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-amounts button:hover {
+    background-color: #e7f4eb;
+    border-color: #0e6f3d;
+    color: #0e6f3d;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #0e6f3d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:hover {
+    background-color: #0d5f34;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 8px rgba(0, 0, 0, 0.2);
+}
+
+.submit-button:active {
+    background-color: #0b5a30;
+    transform: translateY(1px);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 已選下注列表 */
+.selected-bets-list {
+    margin-bottom: 15px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.selected-bets-header {
+    display: grid;
+    grid-template-columns: 30% 40% 30%;
+    background-color: #f5f5f5;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+}
+
+.selected-bet-item {
+    display: grid;
+    grid-template-columns: 30% 40% 30%;
+    padding: 10px;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+}
+
+.selected-bet-item:last-child {
+    border-bottom: none;
+}
+
+.selected-bet-type {
+    color: #666;
+}
+
+.selected-bet-detail {
+    font-weight: bold;
+}
+
+.selected-bet-profit {
+    text-align: right;
+    color: #f44336;
+    font-weight: bold;
+}
+
+.selected-bets-summary {
+    background-color: #f9f9f9;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+    border-top: 1px solid #eee;
+}
+
+.selected-bets-summary div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.selected-bets-summary span {
+    font-weight: bold;
+    color: #f44336;
+}
+
+/* 派彩記錄頁面樣式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.bet-records {
+    width: 90%;
+    max-width: 450px;
+    max-height: 80vh;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #0e6f3d;
+    color: white;
+}
+
+.record-header .title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.record-tabs {
+    display: flex;
+    border-bottom: 1px solid #eee;
+}
+
+.record-tabs .tab {
+    padding: 12px 15px;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+}
+
+.record-tabs .tab.active {
+    color: #0e6f3d;
+    font-weight: bold;
+    border-bottom: 2px solid #0e6f3d;
+}
+
+.record-list {
+    padding: 10px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.record-item {
+    border: 1px solid #eee;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+}
+
+.record-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.record-top .period {
+    font-weight: bold;
+}
+
+.status {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.status.ongoing {
+    color: #0e6f3d;
+}
+
+.status.win {
+    color: #f44336;
+}
+
+.status.lose {
+    color: #888;
+}
+
+.record-content {
+    margin-bottom: 8px;
+}
+
+.bet-type {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.record-bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #888;
+}
+
+.bet-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.bet-amount span:last-child {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.no-records {
+    padding: 40px;
+    text-align: center;
+    color: #888;
+}
+
+.record-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* 開獎歷史組件樣式 */
+.draw-history {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #0e6f3d;
+    color: white;
+}
+
+.history-header .title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.history-header .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.draw-type-tabs {
+    border-bottom: 1px solid #eee;
+}
+
+.draw-type-tabs .tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.draw-type-tabs .tab {
+    padding: 12px 15px;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.draw-type-tabs .tab.active {
+    color: #0e6f3d;
+    font-weight: bold;
+}
+
+.draw-type-tabs .tab.active:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #0e6f3d;
+}
+
+/* 日期選擇器 */
+.date-selector {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.current-date {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.current-date i {
+    margin-left: 10px;
+    color: #0e6f3d;
+}
+
+.date-picker {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 320px;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    padding: 10px;
+}
+
+.picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.picker-header button {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.month-year {
+    font-weight: bold;
+}
+
+.month-year span {
+    color: #0e6f3d;
+    cursor: pointer;
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.weekday {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+}
+
+.days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.day {
+    text-align: center;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.day.other-month {
+    color: #ccc;
+}
+
+.day.selected {
+    background-color: #0e6f3d;
+    color: white;
+}
+
+.day:hover:not(.selected) {
+    background-color: #f0f0f0;
+}
+
+.picker-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.picker-actions button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background-color: #f0f0f0;
+    margin-right: 10px;
+}
+
+.confirm-btn {
+    background-color: #0e6f3d;
+    color: white;
+}
+
+/* 歷史記錄列表 */
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.history-item {
+    border: 1px solid #eee;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.period-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #eee;
+}
+
+.period {
+    font-weight: bold;
+}
+
+.time {
+    color: #999;
+}
+
+.result-balls {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px;
+    flex-wrap: wrap;
+}
+
+.result-indicators {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px;
+    flex-wrap: wrap;
+}
+
+.indicator {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 3px;
+    color: white;
+}
+
+.indicator.big, .big {
+    background-color: #f44336;
+}
+
+.indicator.small, .small {
+    background-color: #2196F3;
+}
+
+.indicator.odd, .odd {
+    background-color: #f44336;
+}
+
+.indicator.even, .even {
+    background-color: #2196F3;
+}
+
+.special-values {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    align-items: center;
+}
+
+.sum-value {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.dragon-tiger {
+    font-weight: bold;
+}
+
+.dragon {
+    color: #f44336;
+}
+
+.tiger {
+    color: #1976D2;
+}
+
+.load-more {
+    text-align: center;
+    padding: 15px;
+    color: #0e6f3d;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.no-records {
+    padding: 30px;
+    text-align: center;
+    color: #999;
+}
+
+/* 添加長龍提示樣式 - 從爬蟲獲取的網站特性 */
+.trend-indicator {
+    display: flex;
+    align-items: center;
+    background-color: #fff8f8;
+    padding: 10px 15px;
+    margin: 10px 15px;
+    border-radius: 5px;
+    border-left: 4px solid #f44336;
+    font-size: 13px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.trend-indicator .trend-icon {
+    margin-right: 10px;
+    font-size: 16px;
+    color: #f44336;
+}
+
+.trend-count {
+    font-weight: bold;
+    color: #f44336;
+    font-size: 15px;
+    margin: 0 5px;
+}
+
+/* 添加統計面板樣式 - 模仿爬蟲獲取網站的統計區域 */
+.stats-panel {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin: 15px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.stats-title {
+    font-weight: bold;
+    color: #0e6f3d;
+}
+
+.stats-toggle {
+    color: #0e6f3d;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.stats-content {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    padding: 5px;
+    transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.stat-count {
+    color: #ff6b6b;
+    font-size: 12px;
+}
+
+/* 添加熱門投注樣式 - 從爬蟲網站獲取的熱門投注區域 */
+.hot-bets {
+    margin: 10px 15px;
+    background-color: #fff8f8;
+    border: 1px solid #ffecec;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.hot-bets-title {
+    color: #f44336;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.hot-bets-title i {
+    margin-right: 5px;
+}
+
+.hot-bets-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.hot-bet-tag {
+    background-color: #fff;
+    border: 1px solid #ffcdd2;
+    border-radius: 15px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: #f44336;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hot-bet-tag:hover {
+    background-color: #ffcdd2;
+    transform: translateY(-2px);
+}
+
+.hot-bet-count {
+    background-color: #f44336;
+    color: white;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+}
+
+/* 登入狀態樣式 - 模仿爬蟲獲取的網站用戶狀態區域 */
+.user-status {
+    background-color: #f5f5f5;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.username {
+    font-weight: bold;
+    font-size: 14px;
+    color: #0e6f3d;
+}
+
+.user-stats {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.daily-profit {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.daily-profit.positive {
+    color: #4caf50;
+}
+
+.account-actions {
+    display: flex;
+}
+
+.account-actions button {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 3px;
+    background-color: #0e6f3d;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* 自定義投注金額輸入區域 - 根據爬蟲獲取的網站優化 */
+.custom-chip-input {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.custom-chip-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px 0 0 5px;
+    font-size: 14px;
+}
+
+.custom-chip-input button {
+    background-color: #0e6f3d;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-chip-input button:hover {
+    background-color: #0d5f34;
+}
+
+/* 歷史記錄 - 短期趨勢顯示 */
+.recent-trends {
+    display: flex;
+    padding: 10px 15px;
+    overflow-x: auto;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.recent-trends::-webkit-scrollbar {
+    height: 4px;
+}
+
+.recent-trends::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 2px;
+}
+
+.trend-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 5px;
+    min-width: 30px;
+}
+
+.trend-column .title {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.trend-balls {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mini-ball {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 登入彈窗樣式 - 根據爬蟲網站補充 */
+.login-modal, .register-modal {
+    width: 90%;
+    max-width: 320px;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.login-header, .register-header {
+    background-color: #0e6f3d;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.login-form, .register-form {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.login-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.login-button, .register-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.login-button {
+    background-color: #0e6f3d;
+    color: white;
+}
+
+.register-button {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.login-button:hover {
+    background-color: #0d5f34;
+}
+
+.register-button:hover {
+    background-color: #e0e0e0;
+}
+
+/* 特殊效果 - 閃爍動畫 */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.blinking {
+    animation: blink 1.5s infinite;
+}
+
+/* 通知效果 */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 2000;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.notification.show {
+    opacity: 1;
+}
+
+/* 手機端適配優化 */
+@media (max-width: 480px) {
+    .betting-options .option {
+        width: calc(33.33% - 7px);
+    }
+    
+    .betting-options.numbers .option {
+        width: calc(25% - 8px);
+    }
+    
+    .quick-amounts button {
+        font-size: 12px;
+    }
+    
+    .stats-content {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

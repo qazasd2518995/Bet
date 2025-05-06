@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極速賽車 - 每分鐘開獎遊戲</title>
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- 先引入 Vue -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- 然後引入組件 -->
+    <script src="./src/components/BetRecords.js"></script>
+    <script src="./src/components/DrawHistory.js"></script>
+    <script>
+        // 登入檢查，如果用戶未登入，則重定向到登入頁面
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</head>
+<body>
+    <div id="app">
+        <!-- 頂部導航欄 -->
+        <header class="header">
+            <div class="header-left">
+                <h1>波場賽車({{ countdownDisplay }})</h1>
+            </div>
+            <div class="header-right">
+                <span class="balance">{{ formatMoney(userBalance) }}</span>
+                <button class="history-button" @click="showHistory = true">
+                    <i class="fas fa-history"></i>
+                </button>
+                <button class="record-button" @click="showRecords = true">
+                    <i class="fas fa-file-alt"></i>
+                </button>
+                <button class="menu-button"><i class="fas fa-bars"></i></button>
+            </div>
+        </header>
+
+        <!-- 用戶狀態區域 - 修改後的登出功能 -->
+        <div class="user-status">
+            <div class="user-info">
+                <div class="username">{{ username || sessionStorage.getItem('username') || '遊客用戶' }}</div>
+                <div class="user-stats">
+                    <span>今日投注: {{ dailyBetCount }}</span>
+                    <span>今日盈虧: <span :class="['daily-profit', dailyProfit > 0 ? 'positive' : '']">{{ formatMoney(dailyProfit) }}</span></span>
+                </div>
+            </div>
+            <div class="account-actions">
+                <button @click="logout">登出</button>
+            </div>
+        </div>
+
+        <!-- 開獎結果區域 -->
+        <section class="result-section">
+            <div class="period-info">
+                <span class="period-number">{{ currentPeriod }}期</span>
+                <span class="period-status">{{ gameStatus === 'betting' ? '開盤結果' : '開獎中...' }}</span>
+            </div>
+            
+            <div class="race-result">
+                <div v-for="(number, index) in lastResults" :key="index" 
+                     :class="['number-ball', `color-${number}`]">
+                    {{ number }}
+                </div>
+            </div>
+            
+            <div class="result-labels">
+                <div v-for="(label, index) in resultLabels" :key="index" class="label">{{ label }}</div>
+            </div>
+        </section>
+
+        <!-- 倒計時和期數區域 -->
+        <section class="countdown-section">
+            <div class="period-countdown">
+                <div class="period-number">{{ nextPeriod }}期</div>
+                <div class="bet-countdown">投注中 {{ formatTime(countdownSeconds) }}</div>
+            </div>
+            <div class="audio-control">
+                <button class="sound-button"><i class="fas fa-volume-up"></i> 聲源駿譙</button>
+            </div>
+        </section>
+
+        <!-- 短期趨勢顯示區域 - 根據爬蟲網站添加 -->
+        <div class="recent-trends">
+            <div class="trend-column" v-for="position in 10" :key="position">
+                <div class="title">{{ position }}名</div>
+                <div class="trend-balls">
+                    <div v-for="(record, index) in recentResults.slice(0, 5)" :key="index"
+                         :class="['mini-ball', `color-${record.result[position-1]}`]">
+                        {{ record.result[position-1] }}
+                    </div>
+                </div>
+            </div>
+            <div class="trend-column">
+                <div class="title">和值</div>
+                <div class="trend-balls">
+                    <div v-for="(record, index) in recentResults.slice(0, 5)" :key="index"
+                         :class="['mini-ball', getSumClass(record.result[0] + record.result[1])]">
+                        {{ record.result[0] + record.result[1] }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計面板區域 - 根據爬蟲網站添加 -->
+        <div class="stats-panel" v-if="showStats">
+            <div class="stats-header">
+                <div class="stats-title">號碼冷熱統計</div>
+                <div class="stats-toggle" @click="showStats = !showStats">收起</div>
+            </div>
+            <div class="stats-content">
+                <div class="stat-item" v-for="num in 10" :key="num">
+                    <div class="stat-number">{{ num }}</div>
+                    <div class="stat-count">{{ getNumberFrequency(num) }}次</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 熱門投注區域 - 根據爬蟲網站添加 -->
+        <div class="hot-bets">
+            <div class="hot-bets-title">
+                <i class="fas fa-fire"></i> 熱門投注
+            </div>
+            <div class="hot-bets-content">
+                <div class="hot-bet-tag" v-for="(bet, index) in hotBets" :key="index" @click="addHotBet(bet)">
+                    {{ bet.label }}
+                    <div class="hot-bet-count">{{ bet.count }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 長龍提示區域 - 根據爬蟲網站添加 -->
+        <div class="trend-indicator" v-if="longestStreak.count > 3">
+            <i class="fas fa-long-arrow-alt-right trend-icon"></i>
+            <div>
+                {{ longestStreak.name }} 已連續出現 <span class="trend-count">{{ longestStreak.count }}</span> 期
+            </div>
+        </div>
+
+        <!-- 投注選項區域 -->
+        <section class="betting-tabs">
+            <div class="tabs">
+                <div class="tab" :class="{ active: activeTab === 'combined' }" @click="activeTab = 'combined'">兩面</div>
+                <div class="tab" :class="{ active: activeTab === 'positions' }" @click="activeTab = 'positions'">位置</div>
+                <div class="tab" :class="{ active: activeTab === 'number1to5' }" @click="activeTab = 'number1to5'">單號1~5</div>
+                <div class="tab" :class="{ active: activeTab === 'number6to10' }" @click="activeTab = 'number6to10'">單號6~10</div>
+                <div class="tab" :class="{ active: activeTab === 'dragonTiger' }" @click="activeTab = 'dragonTiger'">冠亞和</div>
+            </div>
+            
+            <!-- 兩面玩法區域 -->
+            <div class="tab-content" v-if="activeTab === 'combined'">
+                <div class="betting-group">
+                    <div class="group-title">冠亞和</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('sumValue', 'big') }" @click="selectBet('sumValue', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.big) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('sumValue', 'small') }" @click="selectBet('sumValue', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.small) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('sumValue', 'odd') }" @click="selectBet('sumValue', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.odd) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('sumValue', 'even') }" @click="selectBet('sumValue', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.even) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">冠軍</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('champion', 'big') }" @click="selectBet('champion', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.champion.big) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('champion', 'small') }" @click="selectBet('champion', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.champion.small) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('champion', 'odd') }" @click="selectBet('champion', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.champion.odd) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('champion', 'even') }" @click="selectBet('champion', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.champion.even) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">亞軍</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'big') }" @click="selectBet('runnerup', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.runnerup.big) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'small') }" @click="selectBet('runnerup', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.runnerup.small) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'odd') }" @click="selectBet('runnerup', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.runnerup.odd) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'even') }" @click="selectBet('runnerup', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.runnerup.even) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第三名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('third', 'big') }" @click="selectBet('third', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.third ? odds.third.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('third', 'small') }" @click="selectBet('third', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.third ? odds.third.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('third', 'odd') }" @click="selectBet('third', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.third ? odds.third.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('third', 'even') }" @click="selectBet('third', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.third ? odds.third.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第四名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('fourth', 'big') }" @click="selectBet('fourth', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.fourth ? odds.fourth.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('fourth', 'small') }" @click="selectBet('fourth', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.fourth ? odds.fourth.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('fourth', 'odd') }" @click="selectBet('fourth', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.fourth ? odds.fourth.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('fourth', 'even') }" @click="selectBet('fourth', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.fourth ? odds.fourth.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第五名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('fifth', 'big') }" @click="selectBet('fifth', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.fifth ? odds.fifth.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('fifth', 'small') }" @click="selectBet('fifth', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.fifth ? odds.fifth.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('fifth', 'odd') }" @click="selectBet('fifth', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.fifth ? odds.fifth.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('fifth', 'even') }" @click="selectBet('fifth', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.fifth ? odds.fifth.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第六名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('sixth', 'big') }" @click="selectBet('sixth', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.sixth ? odds.sixth.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('sixth', 'small') }" @click="selectBet('sixth', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.sixth ? odds.sixth.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('sixth', 'odd') }" @click="selectBet('sixth', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.sixth ? odds.sixth.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('sixth', 'even') }" @click="selectBet('sixth', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.sixth ? odds.sixth.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第七名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('seventh', 'big') }" @click="selectBet('seventh', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.seventh ? odds.seventh.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('seventh', 'small') }" @click="selectBet('seventh', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.seventh ? odds.seventh.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('seventh', 'odd') }" @click="selectBet('seventh', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.seventh ? odds.seventh.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('seventh', 'even') }" @click="selectBet('seventh', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.seventh ? odds.seventh.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第八名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('eighth', 'big') }" @click="selectBet('eighth', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.eighth ? odds.eighth.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('eighth', 'small') }" @click="selectBet('eighth', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.eighth ? odds.eighth.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('eighth', 'odd') }" @click="selectBet('eighth', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.eighth ? odds.eighth.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('eighth', 'even') }" @click="selectBet('eighth', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.eighth ? odds.eighth.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第九名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('ninth', 'big') }" @click="selectBet('ninth', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.ninth ? odds.ninth.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('ninth', 'small') }" @click="selectBet('ninth', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.ninth ? odds.ninth.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('ninth', 'odd') }" @click="selectBet('ninth', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.ninth ? odds.ninth.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('ninth', 'even') }" @click="selectBet('ninth', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.ninth ? odds.ninth.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">第十名</div>
+                    <div class="betting-options">
+                        <div class="option" :class="{ selected: isSelected('tenth', 'big') }" @click="selectBet('tenth', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.tenth ? odds.tenth.big : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('tenth', 'small') }" @click="selectBet('tenth', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.tenth ? odds.tenth.small : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('tenth', 'odd') }" @click="selectBet('tenth', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.tenth ? odds.tenth.odd : 1.9) }}</span>
+                        </div>
+                        <div class="option" :class="{ selected: isSelected('tenth', 'even') }" @click="selectBet('tenth', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.tenth ? odds.tenth.even : 1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 位置選擇區域 -->
+            <div class="tab-content" v-if="activeTab === 'positions'">
+                <div class="position-selector">
+                    <div class="position-tabs">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="selectAll" v-model="selectAllPositions">
+                            <label for="selectAll">全選</label>
+                        </div>
+                        <div 
+                            v-for="position in positions" 
+                            :key="position.value" 
+                            class="position-tab" 
+                            :class="{ active: selectedPosition === position.value }"
+                            @click="selectedPosition = position.value"
+                        >
+                            {{ position.label }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">球號</div>
+                    <div class="betting-options numbers">
+                        <div 
+                            v-for="num in 10" 
+                            :key="num" 
+                            class="option ball-option" 
+                            :class="{ selected: isSelectedPositionNumber(num) }"
+                            @click="selectPositionNumber(num)"
+                        >
+                            <span class="number">{{ num }}</span>
+                            <span class="odds">{{ formatOdds(9.59) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">玩法</div>
+                    <div class="betting-options properties">
+                        <div 
+                            class="option property-option" 
+                            :class="{ selected: isSelectedProperty('big') }"
+                            @click="selectProperty('big')"
+                        >
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                        </div>
+                        <div 
+                            class="option property-option" 
+                            :class="{ selected: isSelectedProperty('small') }"
+                            @click="selectProperty('small')"
+                        >
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                        </div>
+                        <div 
+                            class="option property-option" 
+                            :class="{ selected: isSelectedProperty('odd') }"
+                            @click="selectProperty('odd')"
+                        >
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                        </div>
+                        <div 
+                            class="option property-option" 
+                            :class="{ selected: isSelectedProperty('even') }"
+                            @click="selectProperty('even')"
+                        >
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                        </div>
+                        <div 
+                            class="option property-option" 
+                            :class="{ selected: isSelectedProperty('dragon') }"
+                            @click="selectProperty('dragon')"
+                        >
+                            <span>龍</span>
+                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                        </div>
+                        <div 
+                            class="option property-option" 
+                            :class="{ selected: isSelectedProperty('tiger') }"
+                            @click="selectProperty('tiger')"
+                        >
+                            <span>虎</span>
+                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 冠亞和值區域 -->
+            <div class="tab-content" v-if="activeTab === 'dragonTiger'">
+                <div class="betting-group">
+                    <div class="group-title">冠亞和值</div>
+                    <div class="betting-options sum-values">
+                        <div class="option" v-for="num in 17" :key="num+2" @click="selectBet('sumValue', String(num+2))">
+                            <span>{{ num + 2 }}</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue[String(num+2)] || 0) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="betting-group">
+                    <div class="group-title">龍虎</div>
+                    <div class="betting-options">
+                        <div class="option" @click="selectBet('dragonTiger', 'dragon')">
+                            <span>龍</span>
+                            <span class="odds">{{ formatOdds(odds.dragonTiger) }}</span>
+                        </div>
+                        <div class="option" @click="selectBet('dragonTiger', 'tiger')">
+                            <span>虎</span>
+                            <span class="odds">{{ formatOdds(odds.dragonTiger) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 單號1-5區域 -->
+            <div class="tab-content" v-if="activeTab === 'number1to5'">
+                <div v-for="position in 5" :key="position" class="betting-group">
+                    <div class="group-title">第{{ position }}名</div>
+                    <div class="betting-options numbers">
+                        <div v-for="num in 10" :key="num" class="option" 
+                             @click="selectBet('number', String(num), position)">
+                            <span>{{ num }}</span>
+                            <span class="odds">{{ formatOdds(odds.number['first']) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 單號6-10區域 -->
+            <div class="tab-content" v-if="activeTab === 'number6to10'">
+                <div v-for="position in 5" :key="position+5" class="betting-group">
+                    <div class="group-title">第{{ position + 5 }}名</div>
+                    <div class="betting-options numbers">
+                        <div v-for="num in 10" :key="num" class="option" 
+                             @click="selectBet('number', String(num), position + 5)">
+                            <span>{{ num }}</span>
+                            <span class="odds">{{ formatOdds(odds.number['first']) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 投注信息和操作區域 -->
+        <section class="betting-actions">
+            <div class="bet-info">
+                <div class="bet-count">已選：{{ selectedBets.length }}注</div>
+                <button class="clear-button" @click="clearBets">清除</button>
+            </div>
+            
+            <!-- 已選下注列表 -->
+            <div class="selected-bets-list" v-if="selectedBets.length > 0">
+                <div class="selected-bets-header">
+                    <span>投注類型</span>
+                    <span>注單明細</span>
+                    <span>可能獲利</span>
+                </div>
+                <div class="selected-bet-item" v-for="bet in selectedBets" :key="bet.id">
+                    <div class="selected-bet-type">{{ getBetTypeLabel(bet) }}</div>
+                    <div class="selected-bet-detail">{{ getBetValueLabel(bet) }}</div>
+                    <div class="selected-bet-profit">
+                        <span v-if="betAmount">{{ formatMoney(calculatePotentialProfit(bet)) }}</span>
+                        <span v-else>--</span>
+                    </div>
+                </div>
+                <div class="selected-bets-summary">
+                    <div>總投注金額: <span>{{ betAmount ? formatMoney(betAmount * selectedBets.length) : '--' }}</span></div>
+                    <div>可能總獲利: <span>{{ betAmount ? formatMoney(calculateTotalPotentialProfit()) : '--' }}</span></div>
+                </div>
+            </div>
+            
+            <!-- 自定義籌碼輸入 - 根據爬蟲網站添加 -->
+            <div class="bet-chips">
+                <div class="chip chip-5" @click="betAmount = 5">5</div>
+                <div class="chip chip-10" @click="betAmount = 10">10</div>
+                <div class="chip chip-50" @click="betAmount = 50">50</div>
+                <div class="chip chip-100" @click="betAmount = 100">100</div>
+                <div class="chip chip-500" @click="betAmount = 500">500</div>
+            </div>
+            
+            <div class="custom-chip-input">
+                <input type="number" v-model="customChip" placeholder="自定義籌碼">
+                <button @click="addCustomChip">確定</button>
+            </div>
+            
+            <div class="bet-amount">
+                <div class="amount-input">
+                    <input type="number" v-model="betAmount" placeholder="輸入金額">
+                </div>
+                <div class="quick-amounts">
+                    <button @click="betAmount = 100">100</button>
+                    <button @click="betAmount = 500">500</button>
+                    <button @click="betAmount = 1000">1000</button>
+                    <button @click="betAmount = 5000">5000</button>
+                </div>
+            </div>
+            
+            <div class="submit-bet">
+                <button class="submit-button" @click="submitBets">下注</button>
+            </div>
+        </section>
+        
+        <!-- 派彩記錄彈窗 -->
+        <div class="modal" v-if="showRecords">
+            <bet-records 
+                :records="betRecords" 
+                @close="showRecords = false"
+            ></bet-records>
+        </div>
+
+        <!-- 開獎歷史彈窗 -->
+        <div class="modal" v-if="showHistory">
+            <draw-history
+                @close="showHistory = false"
+            ></draw-history>
+        </div>
+        
+        <!-- 登入彈窗 - 根據爬蟲網站添加 -->
+        <div class="modal" v-if="showLoginModal">
+            <div class="login-modal">
+                <div class="login-header">
+                    <h3>用戶登入</h3>
+                    <button class="close-btn" @click="showLoginModal = false">×</button>
+                </div>
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="username">用戶名</label>
+                        <input type="text" id="username" v-model="loginForm.username" placeholder="請輸入用戶名">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密碼</label>
+                        <input type="password" id="password" v-model="loginForm.password" placeholder="請輸入密碼">
+                    </div>
+                    <div class="login-actions">
+                        <button class="login-button" @click="login">登入</button>
+                        <button class="register-button" @click="showRegisterModal = true; showLoginModal = false">註冊賬號</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 註冊彈窗 - 根據爬蟲網站添加 -->
+        <div class="modal" v-if="showRegisterModal">
+            <div class="register-modal">
+                <div class="register-header">
+                    <h3>用戶註冊</h3>
+                    <button class="close-btn" @click="showRegisterModal = false">×</button>
+                </div>
+                <div class="register-form">
+                    <div class="form-group">
+                        <label for="reg-username">用戶名</label>
+                        <input type="text" id="reg-username" v-model="registerForm.username" placeholder="請輸入用戶名">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">密碼</label>
+                        <input type="password" id="reg-password" v-model="registerForm.password" placeholder="請輸入密碼">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-confirm">確認密碼</label>
+                        <input type="password" id="reg-confirm" v-model="registerForm.confirmPassword" placeholder="請再次輸入密碼">
+                    </div>
+                    <div class="login-actions">
+                        <button class="register-button" @click="register">註冊</button>
+                        <button class="login-button" @click="showLoginModal = true; showRegisterModal = false">返回登入</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改 Vue 實例，添加登出方法 -->
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                // ...existing data...
+                username: sessionStorage.getItem('username') || '',
+                // ...existing code...
+            },
+            methods: {
+                // ...existing methods...
+                
+                // 登出方法
+                logout() {
+                    // 清除登入狀態
+                    sessionStorage.removeItem('isLoggedIn');
+                    sessionStorage.removeItem('username');
+                    // 重定向到登入頁面
+                    window.location.href = 'login.html';
+                },
+                
+                // ...existing methods...
+            }
+        });
+    </script>
+    <!-- 最後引入主要腳本 -->
+    <script src="./src/scripts/main.js"></script>
+</body>
+</html>
