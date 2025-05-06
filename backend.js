@@ -15,11 +15,11 @@ app.use(cors({
 app.use(express.json());
 
 // 提供靜態文件 - 這使得前端文件可以被訪問
-app.use(express.static(path.join(__dirname, 'frontend')));
+app.use(express.static(path.join(__dirname, 'deploy/frontend')));
 
 // 所有路由都導向 index.html (SPA 設置)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+  res.sendFile(path.join(__dirname, 'deploy/frontend', 'index.html'));
 });
 
 // 存儲遊戲數據
