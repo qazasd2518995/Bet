@@ -1,0 +1,26 @@
+{
+  "name": "bet",
+  "version": "1.0.0",
+  "main": "backend.js",
+  "scripts": {
+    "start": "node backend.js",
+    "dev": "nodemon backend.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "極速賽車遊戲網站",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "fs-extra": "^11.3.0",
+    "path": "^0.12.7",
+    "puppeteer": "^24.8.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
