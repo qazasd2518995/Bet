@@ -4,6 +4,7 @@
   "main": "backend.js",
   "scripts": {
     "start": "node backend.js",
+    "build": "echo '確認前端文件存在...' && node -e \"if(require('fs').existsSync('./frontend')) console.log('前端目錄已確認'); else console.error('找不到前端目錄!');\"",
     "dev": "nodemon backend.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
