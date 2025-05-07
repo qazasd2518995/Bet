@@ -11,10 +11,8 @@ function checkLogin() {
 }
 
 // API 設置
-// 根據環境自動選擇 API 基礎 URL
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:3002/api'  // 本地開發環境
-    : `${window.location.protocol}//${window.location.hostname}/api`;  // 生產環境
+// 使用相對路徑，不再硬編碼本地開發環境
+const API_BASE_URL = '/api';  // 在所有環境中使用相對路徑
 
 // 通用API請求函數
 async function apiRequest(endpoint, method = 'GET', data = null) {

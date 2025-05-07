@@ -13,8 +13,16 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3002;
 
+// 代理後端URL
+const AGENT_API_URL = process.env.NODE_ENV === 'production'
+  ? 'https://bet-agent.onrender.com/api/agent'
+  : 'http://localhost:3003/api/agent';
+
 // 跨域設置 - 允許前端訪問
 app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://bet-game.onrender.com', 'https://bet-agent.onrender.com'] 
+    : ['http://localhost:3002', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -91,7 +99,7 @@ async function initializeUserData(username) {
   
   try {
     // 從代理系統獲取會員資料
-    const response = await fetch(`http://localhost:3003/api/agent/member-balance?username=${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -346,7 +354,7 @@ function settleBets() {
           console.log(`嘗試向代理系統同步用戶 ${username} 的餘額變更...`);
           
           // 向代理系統發送餘額更新請求
-          const response = await fetch('http://localhost:3003/api/agent/update-member-balance', {
+          const response = await fetch(`${AGENT_API_URL}/update-member-balance`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -414,7 +422,7 @@ app.get('/api/balance', async (req, res) => {
   try {
     // 向代理系統查詢餘額
     console.log('向代理系統發送查詢餘額請求:', username);
-    const response = await fetch(`http://localhost:3003/api/agent/member-balance?username=${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -505,7 +513,7 @@ app.post('/api/login', async (req, res) => {
   try {
     // 向代理系統發送驗證請求
     console.log('正在向代理系統發送驗證請求...');
-    const response = await fetch('http://localhost:3003/api/agent/verify-member', {
+    const response = await fetch(`${AGENT_API_URL}/verify-member`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -679,7 +687,7 @@ app.post('/api/bet', async (req, res) => {
   
   try {
     // 向代理系統發送餘額更新請求
-    const updateResponse = await fetch('http://localhost:3003/api/agent/update-member-balance', {
+    const updateResponse = await fetch(`${AGENT_API_URL}/update-member-balance`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

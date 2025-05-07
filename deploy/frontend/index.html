@@ -810,7 +810,8 @@
                     window.location.href = 'login.html';
                 },
                 updateGameData() {
-                    fetch('http://localhost:3002/api/game-data')
+                    console.log('開始獲取遊戲數據...');
+                    fetch('/api/game-data')
                         .then(response => response.json())
                         .then(data => {
                             this.countdownSeconds = data.gameData.countdownSeconds;
@@ -841,10 +842,8 @@
                         });
                 },
                 updateBalance() {
-                    // 獲取用戶餘額
-                    if (!this.username) return;
-                    
-                    fetch(`http://localhost:3002/api/balance?username=${this.username}`)
+                    console.log('開始刷新餘額...');
+                    fetch(`/api/balance?username=${this.username}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
@@ -904,7 +903,7 @@
                     }
 
                     const promises = this.selectedBets.map(bet => {
-                        return fetch('http://localhost:3002/api/bet', {
+                        return fetch('/api/bet', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -939,7 +938,7 @@
                         });
                 },
                 updateBetHistory() {
-                    fetch(`http://localhost:3002/api/bet-history?username=${this.username}`)
+                    fetch(`/api/bet-history?username=${this.username}`)
                         .then(response => response.json())
                         .then(data => {
                             // 檢查是否有新結算的注單
@@ -1236,7 +1235,8 @@
                     }, 60000);
                 },
                 updateHistoryRecords() {
-                    fetch('http://localhost:3002/api/history')
+                    console.log('獲取開獎歷史...');
+                    fetch('/api/history')
                         .then(response => response.json())
                         .then(data => {
                             // 更新歷史記錄

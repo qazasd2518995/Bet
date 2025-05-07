@@ -1,10 +1,8 @@
 // filepath: /Users/justin/Desktop/Bet/agent/frontend/js/main.js
 // 代理管理系統前端 JavaScript 檔案
 
-// API 基礎 URL
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:3003/api/agent' // 本地開發環境
-    : `${window.location.protocol}//${window.location.hostname}/api/agent`; // 生產環境
+// API 基礎 URL - 使用相對路徑
+const API_BASE_URL = '/api/agent'; // 在所有環境中使用相對路徑
 
 // Vue 應用實例
 const app = new Vue({
