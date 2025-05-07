@@ -1,9 +1,21 @@
 services:
   - type: web
-    name: bet-app
+    name: bet-game
     env: node
     buildCommand: npm install
     startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    
+  - type: web
+    name: bet-agent
+    env: node
+    buildCommand: npm install
+    startCommand: npm run start:agent
     envVars:
       - key: NODE_ENV
         value: production
