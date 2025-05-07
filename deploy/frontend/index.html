@@ -30,7 +30,7 @@
                 <h1>波場賽車({{ countdownDisplay }})</h1>
             </div>
             <div class="header-right">
-                <span class="balance">{{ formatMoney(userBalance) }}</span>
+                <span class="balance" :class="{ 'balance-flash': balanceChanged }">{{ formatMoney(userBalance) }}</span>
                 <button class="history-button" @click="showHistory = true">
                     <i class="fas fa-history"></i>
                 </button>
@@ -85,26 +85,11 @@
             </div>
         </section>
 
-        <!-- 短期趨勢顯示區域 - 根據爬蟲網站添加 -->
-        <div class="recent-trends">
-            <div class="trend-column" v-for="position in 10" :key="position">
-                <div class="title">{{ position }}名</div>
-                <div class="trend-balls">
-                    <div v-for="(record, index) in recentResults.slice(0, 5)" :key="index"
-                         :class="['mini-ball', `color-${record.result[position-1]}`]">
-                        {{ record.result[position-1] }}
-                    </div>
-                </div>
-            </div>
-            <div class="trend-column">
-                <div class="title">和值</div>
-                <div class="trend-balls">
-                    <div v-for="(record, index) in recentResults.slice(0, 5)" :key="index"
-                         :class="['mini-ball', getSumClass(record.result[0] + record.result[1])]">
-                        {{ record.result[0] + record.result[1] }}
-                    </div>
-                </div>
-            </div>
+        <!-- 點擊查看更多開獎結果按鈕 -->
+        <div class="view-history">
+            <button class="view-history-button" @click="showHistory = true">
+                查看更多開獎結果
+            </button>
         </div>
 
         <!-- 統計面板區域 - 根據爬蟲網站添加 -->
@@ -401,10 +386,6 @@
             <div class="tab-content" v-if="activeTab === 'positions'">
                 <div class="position-selector">
                     <div class="position-tabs">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="selectAll" v-model="selectAllPositions">
-                            <label for="selectAll">全選</label>
-                        </div>
                         <div 
                             v-for="position in positions" 
                             :key="position.value" 
@@ -493,9 +474,11 @@
                 <div class="betting-group">
                     <div class="group-title">冠亞和值</div>
                     <div class="betting-options sum-values">
-                        <div class="option" v-for="num in 17" :key="num+2" @click="selectBet('sumValue', String(num+2))">
-                            <span>{{ num + 2 }}</span>
-                            <span class="odds">{{ formatOdds(odds.sumValue[String(num+2)] || 0) }}</span>
+                        <div class="option" v-for="num in 17" :key="num+2" 
+                             :class="{ selected: isSelected('sumValue', String(num+2)) }"
+                             @click="selectBet('sumValue', String(num+2))">
+                            <span class="sum-value-number">{{ num + 2 }}</span>
+                            <span class="odds">{{ formatOdds(getSumValueOdds(num+2)) }}</span>
                         </div>
                     </div>
                 </div>
@@ -503,11 +486,13 @@
                 <div class="betting-group">
                     <div class="group-title">龍虎</div>
                     <div class="betting-options">
-                        <div class="option" @click="selectBet('dragonTiger', 'dragon')">
+                        <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon') }"
+                             @click="selectBet('dragonTiger', 'dragon')">
                             <span>龍</span>
                             <span class="odds">{{ formatOdds(odds.dragonTiger) }}</span>
                         </div>
-                        <div class="option" @click="selectBet('dragonTiger', 'tiger')">
+                        <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger') }"
+                             @click="selectBet('dragonTiger', 'tiger')">
                             <span>虎</span>
                             <span class="odds">{{ formatOdds(odds.dragonTiger) }}</span>
                         </div>
@@ -572,35 +557,20 @@
                 </div>
             </div>
             
-            <!-- 自定義籌碼輸入 - 根據爬蟲網站添加 -->
-            <div class="bet-chips">
-                <div class="chip chip-5" @click="betAmount = 5">5</div>
-                <div class="chip chip-10" @click="betAmount = 10">10</div>
-                <div class="chip chip-50" @click="betAmount = 50">50</div>
-                <div class="chip chip-100" @click="betAmount = 100">100</div>
-                <div class="chip chip-500" @click="betAmount = 500">500</div>
+            <!-- 自定義籌碼輸入 -->
+            <div class="bet-chips" v-if="selectedBets.length > 0">
+                <div class="chip chip-5" @click="setBetAmount(5)">5</div>
+                <div class="chip chip-10" @click="setBetAmount(10)">10</div>
+                <div class="chip chip-50" @click="setBetAmount(50)">50</div>
+                <div class="chip chip-100" @click="setBetAmount(100)">100</div>
+                <div class="chip chip-500" @click="setBetAmount(500)">500</div>
             </div>
             
-            <div class="custom-chip-input">
-                <input type="number" v-model="customChip" placeholder="自定義籌碼">
-                <button @click="addCustomChip">確定</button>
-            </div>
-            
-            <div class="bet-amount">
-                <div class="amount-input">
-                    <input type="number" v-model="betAmount" placeholder="輸入金額">
-                </div>
-                <div class="quick-amounts">
-                    <button @click="betAmount = 100">100</button>
-                    <button @click="betAmount = 500">500</button>
-                    <button @click="betAmount = 1000">1000</button>
-                    <button @click="betAmount = 5000">5000</button>
-                </div>
-            </div>
-            
-            <div class="submit-bet">
-                <button class="submit-button" @click="submitBets">下注</button>
-            </div>
+            <!-- 下注按鈕 -->
+            <button class="bet-button" @click="placeBets" :disabled="!selectedBets.length || !betAmount"
+                    style="background-color: #ffcc00; color: #000; font-weight: bold; border-radius: 8px; padding: 12px 20px; border: none; cursor: pointer; font-size: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                確認下注
+            </button>
         </section>
         
         <!-- 派彩記錄彈窗 -->
@@ -676,23 +646,631 @@
         new Vue({
             el: '#app',
             data: {
-                // ...existing data...
-                username: sessionStorage.getItem('username') || '',
-                // ...existing code...
+                countdownSeconds: 60,
+                userBalance: 0,
+                previousBalance: 0,
+                balanceChanged: false,
+                username: '',
+                currentPeriod: '',
+                lastResult: [],
+                betAmount: 0,
+                selectedBetType: null,
+                selectedValue: null,
+                selectedPosition: null,
+                betHistory: [],
+                betRecords: [],
+                isLoggedIn: false,
+                dailyBetCount: 0,
+                dailyProfit: 0,
+                gameStatus: 'betting',
+                nextPeriod: '',
+                lastResults: [],
+                resultLabels: [],
+                recentResults: [],
+                showHistory: false,
+                showRecords: false,
+                showStats: false,
+                activeTab: 'combined',
+                selectedBets: [],
+                customChip: '',
+                selectAllPositions: false,
+                positions: [
+                    { value: 1, label: '冠軍' },
+                    { value: 2, label: '亞軍' },
+                    { value: 3, label: '第三名' },
+                    { value: 4, label: '第四名' },
+                    { value: 5, label: '第五名' },
+                    { value: 6, label: '第六名' },
+                    { value: 7, label: '第七名' },
+                    { value: 8, label: '第八名' },
+                    { value: 9, label: '第九名' },
+                    { value: 10, label: '第十名' }
+                ],
+                selectedPositionNumbers: [],
+                odds: {
+                    sumValue: {
+                        '3': 40, '4': 40, '5': 20, '6': 20, '7': 13, '8': 13,
+                        '9': 10, '10': 10, '11': 8, '12': 8, '13': 8, '14': 8, 
+                        '15': 8, '16': 8, '17': 10, '18': 10, '19': 13, 
+                        big: 1.98, small: 1.98, odd: 1.98, even: 1.98
+                    },
+                    champion: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    runnerup: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    third: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    fourth: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    fifth: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    sixth: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    seventh: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    eighth: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    ninth: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    tenth: { big: 1.98, small: 1.98, odd: 1.98, even: 1.98 },
+                    dragonTiger: 1.98,
+                    number: {
+                        first: 9.59,
+                        second: 9.59,
+                        third: 9.59,
+                        fourth: 9.59,
+                        fifth: 9.59,
+                        sixth: 9.59,
+                        seventh: 9.59,
+                        eighth: 9.59,
+                        ninth: 9.59,
+                        tenth: 9.59
+                    }
+                },
+                hotBets: [],
+                longestStreak: { count: 0, name: '' },
+                showLoginModal: false,
+                showRegisterModal: false,
+                loginForm: {
+                    username: '',
+                    password: ''
+                },
+                registerForm: {
+                    username: '',
+                    password: '',
+                    confirmPassword: ''
+                }
+            },
+            created() {
+                // 初始化 sessionStorage
+                if (typeof window.sessionStorage === 'undefined') {
+                    window.sessionStorage = {
+                        getItem: function(key) { return null; },
+                        setItem: function(key, value) {},
+                        removeItem: function(key) {}
+                    };
+                }
+                this.checkLoginStatus();
+            },
+            computed: {
+                countdownDisplay() {
+                    const minutes = Math.floor(this.countdownSeconds / 60);
+                    const seconds = this.countdownSeconds % 60;
+                    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
             },
             methods: {
-                // ...existing methods...
-                
-                // 登出方法
+                formatMoney(amount) {
+                    if (amount === null || amount === undefined) {
+                        return '0';
+                    }
+                    return amount.toLocaleString('zh-TW', {
+                        style: 'currency',
+                        currency: 'TWD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                },
+                formatTime(seconds) {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                },
+                formatOdds(odds) {
+                    return odds ? odds.toFixed(2) : '0.00';
+                },
+                isSelected(betType, value) {
+                    return this.selectedBetType === betType && this.selectedValue === value;
+                },
+                selectBet(betType, value, position = null) {
+                    const bet = {
+                        type: betType,
+                        value: value,
+                        position: position,
+                        amount: this.betAmount
+                    };
+
+                    const existingBetIndex = this.selectedBets.findIndex(b => 
+                        b.type === betType && 
+                        b.value === value && 
+                        b.position === position
+                    );
+
+                    if (existingBetIndex === -1) {
+                        this.selectedBets.push(bet);
+                    } else {
+                        this.selectedBets.splice(existingBetIndex, 1);
+                    }
+                },
+                checkLoginStatus() {
+                    const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+                    if (isLoggedIn) {
+                        this.username = sessionStorage.getItem('username');
+                        this.userBalance = parseInt(sessionStorage.getItem('balance') || '0');
+                        this.isLoggedIn = true;
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                },
                 logout() {
-                    // 清除登入狀態
                     sessionStorage.removeItem('isLoggedIn');
                     sessionStorage.removeItem('username');
-                    // 重定向到登入頁面
+                    sessionStorage.removeItem('balance');
                     window.location.href = 'login.html';
                 },
+                updateGameData() {
+                    fetch('http://localhost:3002/api/game-data')
+                        .then(response => response.json())
+                        .then(data => {
+                            this.countdownSeconds = data.gameData.countdownSeconds;
+                            this.currentPeriod = data.gameData.currentPeriod;
+                            this.lastResult = data.gameData.lastResult;
+                            this.lastResults = data.gameData.lastResult;
+                            
+                            this.nextPeriod = (parseInt(data.gameData.currentPeriod) + 1).toString();
+                            
+                            const previousStatus = this.gameStatus;
+                            this.gameStatus = data.gameData.status;
+                            
+                            if (previousStatus === 'drawing' && this.gameStatus === 'betting') {
+                                console.log('開獎完成，更新餘額和注單');
+                                this.updateBalance();
+                                this.updateBetHistory();
+                                this.updateHistoryRecords();
+                            } else if (previousStatus === 'betting' && this.gameStatus === 'drawing') {
+                                console.log('開始開獎，等待結果');
+                                
+                                this.playSound('draw');
+                            }
+                            
+                            this.updateCountdownDisplay();
+                        })
+                        .catch(error => {
+                            console.error('獲取遊戲數據失敗:', error);
+                        });
+                },
+                updateBalance() {
+                    // 獲取用戶餘額
+                    if (!this.username) return;
+                    
+                    fetch(`http://localhost:3002/api/balance?username=${this.username}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // 檢查餘額是否有變化
+                                this.previousBalance = this.userBalance;
+                                this.userBalance = data.balance;
+                                
+                                // 顯示餘額變化提示
+                                if (this.previousBalance !== 0 && this.userBalance !== this.previousBalance) {
+                                    this.balanceChanged = true;
+                                    const change = this.userBalance - this.previousBalance;
+                                    
+                                    // 添加餘額變化動畫
+                                    const balanceElement = document.querySelector('.balance');
+                                    if (balanceElement) {
+                                        const changeElement = document.createElement('div');
+                                        changeElement.className = `balance-change ${change > 0 ? 'increase' : 'decrease'}`;
+                                        changeElement.innerText = `${change > 0 ? '+' : ''}${change.toFixed(2)}`;
+                                        balanceElement.appendChild(changeElement);
+                                        
+                                        // 3秒後移除元素
+                                        setTimeout(() => {
+                                            balanceElement.removeChild(changeElement);
+                                        }, 3000);
+                                    }
+                                    
+                                    // 閃爍效果結束後重置
+                                    setTimeout(() => {
+                                        this.balanceChanged = false;
+                                    }, 2000);
+                                }
+                                
+                                console.log('餘額更新成功：', this.userBalance, '來源：', data.source);
+                            } else {
+                                console.error('獲取餘額失敗:', data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取餘額失敗:', error);
+                        });
+                },
+                placeBets() {
+                    if (this.selectedBets.length === 0) {
+                        alert('請選擇至少一個投注項目');
+                        return;
+                    }
+
+                    if (!this.betAmount) {
+                        alert('請選擇下注金額');
+                        return;
+                    }
+
+                    const username = sessionStorage.getItem('username');
+                    if (!username) {
+                        alert('請先登入');
+                        return;
+                    }
+
+                    const promises = this.selectedBets.map(bet => {
+                        return fetch('http://localhost:3002/api/bet', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                username: username,
+                                betType: bet.type,
+                                value: bet.value,
+                                position: bet.position,
+                                amount: this.betAmount
+                            })
+                        }).then(response => response.json());
+                    });
+
+                    Promise.all(promises)
+                        .then(results => {
+                            const allSuccess = results.every(result => result.success);
+                            if (allSuccess) {
+                                alert('下注成功');
+                                this.userBalance = results[0].balance;
+                                sessionStorage.setItem('balance', results[0].balance);
+                                this.selectedBets = [];
+                                this.updateBetHistory();
+                            } else {
+                                const errorMessage = results.find(r => !r.success)?.message || '下注失敗';
+                                alert(errorMessage);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('下注失敗:', error);
+                            alert('下注失敗，請稍後再試');
+                        });
+                },
+                updateBetHistory() {
+                    fetch(`http://localhost:3002/api/bet-history?username=${this.username}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // 檢查是否有新結算的注單
+                            const hadSettledBets = this.checkForNewSettlements(this.betHistory, data);
+                            
+                            // 更新注單歷史
+                            this.betHistory = data;
+                            this.betRecords = data;
+                            
+                            // 如果有新結算的注單，再次更新餘額
+                            if (hadSettledBets) {
+                                console.log('檢測到新結算的注單，更新餘額');
+                                this.updateBalance();
+                            }
+                            
+                            // 更新今日統計
+                            this.updateDailyStats();
+                        })
+                        .catch(error => {
+                            console.error('獲取注單歷史失敗:', error);
+                        });
+                },
                 
-                // ...existing methods...
+                // 檢查是否有新結算的注單
+                checkForNewSettlements(oldBets, newBets) {
+                    // 如果沒有舊注單，則不需要比較
+                    if (!oldBets || oldBets.length === 0) {
+                        return false;
+                    }
+                    
+                    // 創建舊注單的映射，鍵為注單ID，值為settled狀態
+                    const oldBetsMap = {};
+                    oldBets.forEach(bet => {
+                        oldBetsMap[bet.id] = bet.settled;
+                    });
+                    
+                    // 檢查新注單中是否有任何注單從未結算變為已結算
+                    let hasNewSettlements = false;
+                    newBets.forEach(bet => {
+                        // 如果這個注單在舊注單中是未結算，但現在是已結算
+                        if (oldBetsMap[bet.id] === false && bet.settled === true) {
+                            hasNewSettlements = true;
+                        }
+                    });
+                    
+                    return hasNewSettlements;
+                },
+                addCustomChip() {
+                    const amount = parseInt(this.customChip);
+                    if (isNaN(amount) || amount <= 0) {
+                        alert('請輸入有效的金額');
+                        return;
+                    }
+                    this.betAmount = amount;
+                    this.customChip = '';
+                },
+                getBetTypeLabel(bet) {
+                    const typeMap = {
+                        'sumValue': '冠亞和',
+                        'champion': '冠軍',
+                        'runnerup': '亞軍',
+                        'third': '第三名',
+                        'fourth': '第四名',
+                        'fifth': '第五名',
+                        'sixth': '第六名',
+                        'seventh': '第七名',
+                        'eighth': '第八名',
+                        'ninth': '第九名',
+                        'tenth': '第十名',
+                        'dragonTiger': '龍虎',
+                        'number': '單號'
+                    };
+                    return typeMap[bet.type] || bet.type;
+                },
+                getBetValueLabel(bet) {
+                    const valueMap = {
+                        'big': '大',
+                        'small': '小',
+                        'odd': '單',
+                        'even': '雙',
+                        'dragon': '龍',
+                        'tiger': '虎'
+                    };
+                    
+                    if (bet.type === 'number') {
+                        return `第${bet.position}名 ${bet.value}號`;
+                    }
+                    
+                    return valueMap[bet.value] || bet.value;
+                },
+                calculatePotentialProfit(bet) {
+                    let odds = 0;
+                    if (bet.type === 'number') {
+                        odds = this.odds.number[this.positionToKey(bet.position)] || 9.9;
+                    } else if (bet.type === 'dragonTiger') {
+                        odds = this.odds.dragonTiger;
+                    } else {
+                        odds = this.odds[bet.type]?.[bet.value] || 1.98;
+                    }
+                    return this.betAmount * odds;
+                },
+                calculateTotalPotentialProfit() {
+                    return this.selectedBets.reduce((total, bet) => {
+                        return total + this.calculatePotentialProfit(bet);
+                    }, 0);
+                },
+                clearBets() {
+                    this.selectedBets = [];
+                },
+                selectPositionNumber(num) {
+                    if (!this.selectedPosition) {
+                        alert('請先選擇位置');
+                        return;
+                    }
+
+                    const bet = {
+                        type: 'number',
+                        position: this.selectedPosition,
+                        value: String(num),
+                        amount: this.betAmount
+                    };
+
+                    const existingBetIndex = this.selectedBets.findIndex(b => 
+                        b.type === 'number' && 
+                        b.position === this.selectedPosition && 
+                        b.value === String(num)
+                    );
+
+                    if (existingBetIndex === -1) {
+                        this.selectedBets.push(bet);
+                    } else {
+                        this.selectedBets.splice(existingBetIndex, 1);
+                    }
+                },
+                isSelectedPositionNumber(num) {
+                    return this.selectedBets.some(bet => 
+                        bet.type === 'number' && 
+                        bet.position === this.selectedPosition && 
+                        bet.value === String(num)
+                    );
+                },
+                selectProperty(property) {
+                    if (!this.selectedPosition) {
+                        alert('請先選擇位置');
+                        return;
+                    }
+                    
+                    const bet = {
+                        type: 'position',
+                        position: this.selectedPosition,
+                        property: property,
+                        odds: this.getPropertyOdds(property)
+                    };
+                    
+                    const existingBetIndex = this.selectedBets.findIndex(b => 
+                        b.type === 'position' && 
+                        b.position === this.selectedPosition && 
+                        b.property === property
+                    );
+                    
+                    if (existingBetIndex === -1) {
+                        this.selectedBets.push(bet);
+                    } else {
+                        this.selectedBets.splice(existingBetIndex, 1);
+                    }
+                },
+                isSelectedProperty(property) {
+                    return this.selectedBets.some(bet => 
+                        bet.type === 'position' && 
+                        bet.position === this.selectedPosition && 
+                        bet.property === property
+                    );
+                },
+                getPropertyOdds(property) {
+                    const baseOdds = {
+                        big: 1.98,
+                        small: 1.98,
+                        odd: 1.98,
+                        even: 1.98,
+                        dragon: 1.98,
+                        tiger: 1.98
+                    };
+                    return baseOdds[property] || 1.98;
+                },
+                getSumClass(sum) {
+                    if (sum > 11) {
+                        return 'big';
+                    } else if (sum <= 11) {
+                        return 'small';
+                    }
+                    return '';
+                },
+                getSumLabel(sum) {
+                    let labels = [];
+                    
+                    // 大小
+                    if (sum > 11) {
+                        labels.push('大');
+                    } else {
+                        labels.push('小');
+                    }
+                    
+                    // 單雙
+                    if (sum % 2 === 1) {
+                        labels.push('單');
+                    } else {
+                        labels.push('雙');
+                    }
+                    
+                    return labels.join('/');
+                },
+                getSumValueOdds(value) {
+                    return this.odds.sumValue[String(value)] || 0;
+                },
+                setBetAmount(amount) {
+                    this.betAmount = amount;
+                    this.selectedBets.forEach(bet => {
+                        bet.amount = amount;
+                    });
+                },
+                positionToKey(position) {
+                    const positionMap = {
+                        1: 'first',
+                        2: 'second',
+                        3: 'third',
+                        4: 'fourth',
+                        5: 'fifth'
+                    };
+                    return positionMap[position] || 'first';
+                },
+                updateDailyStats() {
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0];
+                    
+                    const todayBets = this.betHistory.filter(bet => {
+                        const betDate = new Date(bet.time);
+                        return betDate.toISOString().split('T')[0] === todayStr;
+                    });
+                    
+                    this.dailyBetCount = todayBets.length;
+                    
+                    this.dailyProfit = todayBets.reduce((profit, bet) => {
+                        if (bet.settled) {
+                            if (bet.win) {
+                                return profit + (bet.winAmount || 0) - bet.amount;
+                            } else {
+                                return profit - bet.amount;
+                            }
+                        }
+                        return profit;
+                    }, 0);
+                },
+                showBalanceChangeAnimation(amount, isIncrease) {
+                    const floatingText = document.createElement('div');
+                    floatingText.classList.add('balance-change');
+                    
+                    if (isIncrease) {
+                        floatingText.classList.add('increase');
+                        floatingText.textContent = '+' + this.formatMoney(amount);
+                    } else {
+                        floatingText.classList.add('decrease');
+                        floatingText.textContent = '-' + this.formatMoney(amount);
+                    }
+                    
+                    const balanceEl = document.querySelector('.balance');
+                    if (balanceEl) {
+                        balanceEl.appendChild(floatingText);
+                        
+                        setTimeout(() => {
+                            floatingText.remove();
+                        }, 3000);
+                    }
+                },
+                // 啟動所有定時更新任務
+                startUpdateTimers() {
+                    // 遊戲狀態和倒計時更新(1秒更新一次)
+                    setInterval(() => {
+                        this.updateGameData();
+                    }, 1000);
+                    
+                    // 餘額定時更新(5秒更新一次)
+                    setInterval(() => {
+                        this.updateBalance();
+                    }, 5000);
+                    
+                    // 注單歷史定時更新(10秒更新一次)
+                    setInterval(() => {
+                        this.updateBetHistory();
+                    }, 10000);
+                    
+                    // 每分鐘更新今日統計
+                    setInterval(() => {
+                        this.updateDailyStats();
+                    }, 60000);
+                },
+                updateHistoryRecords() {
+                    fetch('http://localhost:3002/api/history')
+                        .then(response => response.json())
+                        .then(data => {
+                            // 更新歷史記錄
+                            this.recentResults = data;
+                            
+                            // 生成結果標籤（1-10名）
+                            if (this.resultLabels.length === 0) {
+                                this.resultLabels = Array.from({ length: 10 }, (_, i) => `${i + 1}名`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取開獎歷史記錄失敗:', error);
+                        });
+                },
+                updateCountdownDisplay() {
+                    const countdownDisplay = document.querySelector('.countdown-section .period-countdown .bet-countdown');
+                    if (countdownDisplay) {
+                        countdownDisplay.textContent = this.formatTime(this.countdownSeconds);
+                    }
+                },
+                playSound(sound) {
+                    const audio = new Audio(`./src/sounds/${sound}.mp3`);
+                    audio.play();
+                }
+            },
+            mounted() {
+                this.checkLoginStatus();
+                this.updateGameData();
+                this.updateBetHistory();
+                this.updateDailyStats();
+                this.updateHistoryRecords();
+                
+                // 定時更新任務
+                this.startUpdateTimers();
             }
         });
     </script>

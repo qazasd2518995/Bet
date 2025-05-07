@@ -209,19 +209,53 @@
                 return;
             }
 
-            // 模擬登入成功 (實際環境中應該發送請求到後端驗證)
-            // 在現有的 backend.js 中添加登入 API 端點
-            // 這裡先使用模擬數據
-            if (username === "zbc111" && password === "password") {
-                // 儲存登入狀態到 sessionStorage
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('username', username);
-                
-                // 導向到主頁
-                window.location.href = 'index.html';
-            } else {
-                alert('帳號或密碼錯誤');
-            }
+            console.log('開始登入請求...'); // 添加日誌
+
+            // 發送登入請求到後端
+            fetch('http://localhost:3002/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => {
+                console.log('登入回應狀態:', response.status); // 添加日誌
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('登入回應數據:', data); // 添加日誌
+                if (data.success) {
+                    console.log('登入成功，準備跳轉...'); // 添加日誌
+                    // 儲存登入狀態到 sessionStorage
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('username', username);
+                    sessionStorage.setItem('balance', data.balance);
+                    
+                    // 導向到主頁
+                    window.location.href = 'index.html';
+                } else {
+                    console.log('登入失敗:', data.message); // 添加日誌
+                    alert(data.message || '帳號或密碼錯誤');
+                    // 重新產生驗證碼
+                    currentCaptcha = generateCaptcha();
+                    captchaImage.textContent = currentCaptcha;
+                }
+            })
+            .catch(error => {
+                console.error('登入錯誤:', error); // 添加錯誤日誌
+                alert('登入失敗，請稍後再試');
+                // 重新產生驗證碼
+                currentCaptcha = generateCaptcha();
+                captchaImage.textContent = currentCaptcha;
+            });
         });
     </script>
 </body>

@@ -67,7 +67,7 @@ Vue.component('bet-records', {
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+      return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
     }
   },
   
