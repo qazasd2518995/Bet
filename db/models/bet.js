@@ -88,6 +88,39 @@ const BetModel = {
       console.error('獲取用戶今日注單統計出錯:', error);
       throw error;
     }
+  },
+  
+  // 獲取最近幾期的已結算注單
+  async getRecentSettledBets(periods = 10) {
+    try {
+      // 首先獲取最近几期的期數
+      const periodRows = await db.any(`
+        SELECT DISTINCT period FROM bet_history
+        WHERE settled = true
+        ORDER BY period DESC
+        LIMIT $1
+      `, [periods]);
+      
+      if (periodRows.length === 0) {
+        return [];
+      }
+      
+      const periodList = periodRows.map(row => row.period);
+      
+      // 獲取這些期數的所有已結算注單
+      const values = periodList;
+      const placeholders = periodList.map((_, i) => `$${i+1}`).join(',');
+      const betRows = await db.any(`
+        SELECT * FROM bet_history
+        WHERE period IN (${placeholders}) AND settled = true
+        ORDER BY period DESC
+      `, values);
+      
+      return betRows;
+    } catch (error) {
+      console.error('獲取最近已結算注單出錯:', error);
+      return [];
+    }
   }
 };
 
