@@ -1,5 +1,6 @@
 // filepath: /Users/justin/Desktop/Bet/agent/frontend/js/main.js
 // 代理管理系統前端 JavaScript 檔案
+// 最後更新：2025-05-08
 
 // API 基礎 URL - 使用相對路徑
 const API_BASE_URL = '/api/agent'; // 在所有環境中使用相對路徑
