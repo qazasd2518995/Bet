@@ -194,10 +194,21 @@ const AgentModel = {
   // 獲取代理下級
   async findByParentId(parentId, level = null, status = null, page = 1, limit = 20) {
     try {
+      console.log(`查詢代理下級: parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
+      
+      // 驗證參數
+      if (parentId && parentId !== '') {
+        const parentExists = await db.oneOrNone('SELECT id FROM agents WHERE id = $1', [parentId]);
+        if (!parentExists) {
+          console.log(`查詢代理下級: 父級代理ID ${parentId} 不存在`);
+          return [];
+        }
+      }
+      
       let query = 'SELECT * FROM agents WHERE 1=1';
       const params = [];
       
-      if (parentId) {
+      if (parentId && parentId !== '') {
         query += ' AND parent_id = $' + (params.length + 1);
         params.push(parentId);
       }
@@ -219,10 +230,15 @@ const AgentModel = {
       query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
       params.push(limit, offset);
       
-      return await db.any(query, params);
+      console.log(`查詢代理下級: 執行SQL查詢: ${query.replace(/\$\d+/g, '?')}`);
+      
+      const agents = await db.any(query, params);
+      console.log(`查詢代理下級: 找到 ${agents.length} 位代理`);
+      
+      return agents;
     } catch (error) {
       console.error('查詢代理下級出錯:', error);
-      throw error;
+      return []; // 出錯時返回空數組而不是拋出異常
     }
   },
   
@@ -319,6 +335,15 @@ const MemberModel = {
   // 獲取代理的會員
   async findByAgentId(agentId, status = null, page = 1, limit = 20) {
     try {
+      // 首先驗證代理ID是否存在
+      const agentExists = await db.oneOrNone('SELECT id FROM agents WHERE id = $1', [agentId]);
+      if (!agentExists) {
+        console.log(`查詢代理會員: 代理ID ${agentId} 不存在`);
+        return [];
+      }
+      
+      console.log(`查詢代理會員: 代理ID=${agentId}, 狀態=${status}, 頁碼=${page}, 每頁數量=${limit}`);
+      
       let query = 'SELECT * FROM members WHERE agent_id = $1';
       const params = [agentId];
       
@@ -334,10 +359,15 @@ const MemberModel = {
       query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
       params.push(limit, offset);
       
-      return await db.any(query, params);
+      console.log(`查詢代理會員: 執行SQL查詢: ${query.replace(/\$\d+/g, '?')}`);
+      
+      const members = await db.any(query, params);
+      console.log(`查詢代理會員: 找到 ${members.length} 位會員`);
+      
+      return members;
     } catch (error) {
       console.error('查詢代理會員出錯:', error);
-      throw error;
+      return []; // 出錯時返回空數組而不是拋出異常
     }
   },
   
@@ -509,26 +539,49 @@ const TransactionModel = {
   // 獲取代理的今日交易統計
   async getAgentTodayStats(agentId) {
     try {
-      // 直接使用SQL查詢，避免對MemberModel的依賴
+      // 首先檢查代理是否存在
+      const agentExists = await db.oneOrNone('SELECT id FROM agents WHERE id = $1', [agentId]);
+      if (!agentExists) {
+        console.log(`獲取交易統計: 代理ID ${agentId} 不存在`);
+        return { totalAmount: 0, totalCount: 0 };
+      }
+      
+      // 獲取代理下的所有會員ID
+      const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [agentId]);
+      if (!members || members.length === 0) {
+        console.log(`獲取交易統計: 代理ID ${agentId} 下無會員`);
+        return { totalAmount: 0, totalCount: 0 };
+      }
+      
+      const memberIds = members.map(m => m.id);
+      
+      // 獲取今日時間
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const stats = await db.one(`
-        SELECT 
-          COALESCE(SUM(ABS(t.amount)), 0) as total_amount, 
-          COUNT(*) as total_count 
-        FROM transactions t
-        JOIN members m ON t.user_id = m.id AND t.user_type = 'member'
-        WHERE m.agent_id = $1 AND t.created_at >= $2
-      `, [agentId, today]);
-      
-      return {
-        totalAmount: parseFloat(stats.total_amount),
-        totalCount: parseInt(stats.total_count)
-      };
+      // 使用簡單的查詢而非JOIN，以提高穩定性
+      try {
+        const stats = await db.one(`
+          SELECT 
+            COALESCE(SUM(ABS(amount)), 0) as total_amount, 
+            COUNT(*) as total_count 
+          FROM transactions 
+          WHERE user_type = 'member' 
+            AND user_id IN ($1:csv) 
+            AND created_at >= $2
+        `, [memberIds, today]);
+        
+        return {
+          totalAmount: parseFloat(stats.total_amount) || 0,
+          totalCount: parseInt(stats.total_count) || 0
+        };
+      } catch (queryError) {
+        console.error('交易統計查詢錯誤:', queryError);
+        return { totalAmount: 0, totalCount: 0 };
+      }
     } catch (error) {
       console.error('獲取代理今日交易統計出錯:', error);
-      return { totalAmount: 0, totalCount: 0 }; // 错误时返回默认值而不是抛出异常
+      return { totalAmount: 0, totalCount: 0 }; // 出錯時返回默認值
     }
   }
 };
@@ -645,39 +698,64 @@ app.get(`${API_PREFIX}/stats`, async (req, res) => {
   const { agentId } = req.query;
   
   try {
+    console.log(`獲取代理統計: 代理ID=${agentId}`);
+    
     if (!agentId) {
+      console.log('獲取代理統計: 未提供代理ID');
       return res.json({
         success: false,
         message: '請提供代理ID'
       });
     }
     
-    // 獲取代理信息
+    // 獲取代理信息，添加更多日誌和錯誤處理
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
+      console.log(`獲取代理統計: 代理ID ${agentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
     
-    // 獲取該代理下的會員數
-    const memberCount = await db.one(`
-      SELECT COUNT(*) as count FROM members WHERE agent_id = $1
-    `, [agentId]);
+    console.log(`獲取代理統計: 找到代理 ${agent.username}`);
     
-    // 獲取今日交易統計
-    const transactionStats = await TransactionModel.getAgentTodayStats(agentId);
-    
-    res.json({
-      success: true,
-      stats: {
-        totalMembers: parseInt(memberCount.count),
-        totalAmount: transactionStats.totalAmount,
-        totalTransactions: transactionStats.totalCount,
-        commission: agent.commission_balance
-      }
-    });
+    try {
+      // 獲取該代理下的會員數
+      const memberCountResult = await db.oneOrNone(`
+        SELECT COUNT(*) as count FROM members WHERE agent_id = $1
+      `, [agentId]);
+      
+      const memberCount = memberCountResult ? parseInt(memberCountResult.count) : 0;
+      console.log(`獲取代理統計: 代理 ${agent.username} 下有 ${memberCount} 位會員`);
+      
+      // 獲取今日交易統計
+      const transactionStats = await TransactionModel.getAgentTodayStats(agentId);
+      console.log(`獲取代理統計: 代理 ${agent.username} 今日交易額 ${transactionStats.totalAmount}`);
+      
+      res.json({
+        success: true,
+        stats: {
+          totalMembers: memberCount,
+          totalAmount: transactionStats.totalAmount,
+          totalTransactions: transactionStats.totalCount,
+          commission: agent.commission_balance || 0
+        }
+      });
+    } catch (innerError) {
+      console.error('獲取代理統計內部錯誤:', innerError);
+      // 即使內部查詢出錯，仍然返回部分數據
+      res.json({
+        success: true,
+        stats: {
+          totalMembers: 0,
+          totalAmount: 0,
+          totalTransactions: 0,
+          commission: agent.commission_balance || 0
+        },
+        message: '獲取部分統計數據時出錯'
+      });
+    }
   } catch (error) {
     console.error('獲取代理統計出錯:', error);
     res.status(500).json({
@@ -692,27 +770,59 @@ app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
   const { parentId, level, status, page = 1, limit = 20 } = req.query;
   
   try {
-    // 獲取下級代理
-    const agents = await AgentModel.findByParentId(
-      parentId || null, 
-      level, 
-      status, 
-      parseInt(page), 
-      parseInt(limit)
-    );
+    console.log(`獲取下級代理API: 接收請求 parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
     
-    // 獲取總數
-    let total = agents.length;
-    if (agents.length === parseInt(limit)) {
-      // 這只是一個近似值，實際應用中應該進行準確的計數查詢
-      total = parseInt(limit) * (parseInt(page) + 1);
+    try {
+      // 獲取下級代理
+      const agents = await AgentModel.findByParentId(
+        parentId || null, 
+        level, 
+        status, 
+        parseInt(page), 
+        parseInt(limit)
+      );
+      
+      console.log(`獲取下級代理API: 成功找到 ${agents.length} 位代理`);
+      
+      // 獲取總數，使用更可靠的方法
+      let totalQuery = 'SELECT COUNT(*) as count FROM agents WHERE 1=1';
+      const totalParams = [];
+      
+      if (parentId && parentId !== '') {
+        totalQuery += ' AND parent_id = $' + (totalParams.length + 1);
+        totalParams.push(parentId);
+      }
+      
+      if (level && level !== '-1') {
+        totalQuery += ' AND level = $' + (totalParams.length + 1);
+        totalParams.push(level);
+      }
+      
+      if (status && status !== '-1') {
+        totalQuery += ' AND status = $' + (totalParams.length + 1);
+        totalParams.push(status);
+      }
+      
+      const totalCount = await db.oneOrNone(totalQuery, totalParams);
+      const total = totalCount ? parseInt(totalCount.count) : 0;
+      
+      console.log(`獲取下級代理API: 總共 ${total} 位代理`);
+      
+      res.json({
+        success: true,
+        agents,
+        total
+      });
+    } catch (innerError) {
+      console.error('獲取下級代理內部查詢出錯:', innerError);
+      // 即使出錯也返回一個空列表而不是500錯誤
+      res.json({
+        success: true,
+        agents: [],
+        total: 0,
+        message: '獲取代理列表時發生錯誤'
+      });
     }
-    
-    res.json({
-      success: true,
-      agents,
-      total
-    });
   } catch (error) {
     console.error('獲取下級代理出錯:', error);
     res.status(500).json({
@@ -795,33 +905,68 @@ app.get(`${API_PREFIX}/members`, async (req, res) => {
   const { agentId, status, page = 1, limit = 20 } = req.query;
   
   try {
+    console.log(`獲取代理會員API: 接收請求 agentId=${agentId}, status=${status}, page=${page}, limit=${limit}`);
+    
     if (!agentId) {
+      console.log('獲取代理會員API: 未提供代理ID');
       return res.json({
         success: false,
         message: '請提供代理ID'
       });
     }
     
-    // 獲取會員
-    const members = await MemberModel.findByAgentId(
-      agentId, 
-      status, 
-      parseInt(page), 
-      parseInt(limit)
-    );
-    
-    // 獲取總數
-    let total = members.length;
-    if (members.length === parseInt(limit)) {
-      // 這只是一個近似值，實際應用中應該進行準確的計數查詢
-      total = parseInt(limit) * (parseInt(page) + 1);
+    // 驗證代理是否存在
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      console.log(`獲取代理會員API: 代理ID ${agentId} 不存在`);
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
     }
     
-    res.json({
-      success: true,
-      members,
-      total
-    });
+    console.log(`獲取代理會員API: 找到代理 ${agent.username}`);
+    
+    try {
+      // 獲取會員
+      const members = await MemberModel.findByAgentId(
+        agentId, 
+        status, 
+        parseInt(page), 
+        parseInt(limit)
+      );
+      
+      console.log(`獲取代理會員API: 成功找到 ${members.length} 位會員`);
+      
+      // 獲取總數，使用更可靠的方法
+      let totalQuery = 'SELECT COUNT(*) as count FROM members WHERE agent_id = $1';
+      const totalParams = [agentId];
+      
+      if (status && status !== '-1') {
+        totalQuery += ' AND status = $2';
+        totalParams.push(status);
+      }
+      
+      const totalCount = await db.oneOrNone(totalQuery, totalParams);
+      const total = totalCount ? parseInt(totalCount.count) : 0;
+      
+      console.log(`獲取代理會員API: 總共 ${total} 位會員`);
+      
+      res.json({
+        success: true,
+        members,
+        total
+      });
+    } catch (innerError) {
+      console.error('獲取會員列表內部查詢出錯:', innerError);
+      // 即使出錯也返回一個空列表而不是500錯誤
+      res.json({
+        success: true,
+        members: [],
+        total: 0,
+        message: '獲取會員列表時發生錯誤'
+      });
+    }
   } catch (error) {
     console.error('獲取會員出錯:', error);
     res.status(500).json({
