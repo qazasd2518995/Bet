@@ -256,19 +256,30 @@ const app = new Vue({
                 });
                 
                 if (response.data.success) {
-                    const { stats } = response.data;
+                    // 使用data屬性而非stats屬性
+                    const data = response.data.data;
+                    
+                    if (!data) {
+                        console.error('獲取儀表板數據錯誤: 返回數據格式異常', response.data);
+                        this.showMessage('獲取數據失敗，數據格式異常', 'error');
+                        return;
+                    }
                     
                     this.dashboardData = {
                         totalAgents: this.user.level === 0 ? 10 : 0,  // 非總代理無下級代理
-                        totalMembers: stats.totalMembers,
-                        todayTransactions: stats.totalAmount,
-                        monthlyCommission: stats.commission
+                        totalMembers: data.memberCount || 0,
+                        todayTransactions: (data.totalDeposit || 0) + (data.totalWithdraw || 0),
+                        monthlyCommission: data.totalRevenue || 0
                     };
                     
                     // 初始化交易圖表
                     this.$nextTick(() => {
                         this.initTransactionChart();
                     });
+                } else {
+                    // 處理成功但返回失敗的情況
+                    console.error('獲取儀表板數據錯誤: API返回失敗', response.data);
+                    this.showMessage(response.data.message || '獲取數據失敗，請稍後再試', 'error');
                 }
             } catch (error) {
                 console.error('獲取儀表板數據錯誤:', error);
