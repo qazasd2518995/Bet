@@ -1,0 +1,155 @@
+/* 極速賽車遊戲響應式設計 */
+
+/* 基礎媒體查詢設定 */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+/* 手機版設計 (預設) */
+body {
+  --game-container-width: 100%;
+  --game-container-max-width: 500px;
+  --game-content-padding: 10px;
+}
+
+.game-container {
+  width: var(--game-container-width);
+  max-width: var(--game-container-max-width);
+  margin: 0 auto;
+  padding: var(--game-content-padding);
+}
+
+/* 號碼球樣式 - 手機版 */
+.number-ball {
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  line-height: 30px;
+}
+
+/* 下注區域 - 手機版 */
+.betting-area {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 歷史記錄區域 - 手機版 */
+.history-container {
+  margin-top: 20px;
+}
+
+/* 平板/小型桌面設備 (768px 以上) */
+@media screen and (min-width: 768px) {
+  body {
+    --game-container-max-width: 720px;
+    --game-content-padding: 15px;
+  }
+  
+  .number-ball {
+    width: 35px;
+    height: 35px;
+    font-size: 18px;
+    line-height: 35px;
+  }
+}
+
+/* 桌面設備 (1024px 以上) */
+@media screen and (min-width: 1024px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+  
+  body {
+    --game-container-width: 90%;
+    --game-container-max-width: 1200px;
+    --game-content-padding: 20px;
+  }
+  
+  /* 號碼球樣式 - 桌面版 */
+  .number-ball {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    line-height: 40px;
+  }
+  
+  /* 下注區域 - 桌面版 */
+  .betting-area {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .bet-options {
+    width: 65%;
+  }
+  
+  .bet-sidebar {
+    width: 33%;
+  }
+  
+  /* 賽車軌道 - 桌面版寬畫面比例 */
+  .race-track {
+    height: 300px;  /* 桌面版更高的賽車軌道 */
+    aspect-ratio: 16/9;  /* 寬螢幕比例 */
+    margin: 0 auto;
+  }
+  
+  /* 歷史記錄區域 - 桌面版 */
+  .history-container {
+    display: flex;
+    margin-top: 30px;
+  }
+  
+  .draw-history {
+    width: 40%;
+    margin-right: 20px;
+  }
+  
+  .bet-records {
+    width: 60%;
+  }
+}
+
+/* 大型桌面設備 (1440px 以上) */
+@media screen and (min-width: 1440px) {
+  body {
+    --game-container-max-width: 1400px;
+    --game-content-padding: 30px;
+  }
+  
+  .number-ball {
+    width: 45px;
+    height: 45px;
+    font-size: 22px;
+    line-height: 45px;
+  }
+  
+  .race-track {
+    height: 350px;
+  }
+}
+
+/* 設備檢測腳本將動態添加以下類別之一到 body 元素上 */
+body.device-mobile .desktop-only {
+  display: none !important;
+}
+
+body.device-mobile .mobile-only {
+  display: block !important;
+}
+
+body.device-desktop .desktop-only {
+  display: block !important;
+}
+
+body.device-desktop .mobile-only {
+  display: none !important;
+} 
