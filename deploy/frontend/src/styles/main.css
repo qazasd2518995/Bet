@@ -643,53 +643,32 @@ body {
     color: #f44336;
 }
 
-/* 派彩記錄頁面樣式 */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
+/* 投注記錄彈窗樣式 */
 .bet-records {
     width: 90%;
-    max-width: 450px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
     position: relative;
-    padding: 20px;
-    max-height: 80vh;
-    overflow-y: auto;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .record-header {
+    background-color: #47824A;
+    color: white;
+    padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    background-color: #0e6f3d;
-    color: white;
 }
 
 .record-header .title {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
 }
 
-.close-btn {
+.record-header .close-btn {
     background: none;
     border: none;
     color: white;
@@ -703,102 +682,142 @@ body {
 }
 
 .record-tabs .tab {
-    padding: 12px 15px;
     flex: 1;
     text-align: center;
+    padding: 12px;
     cursor: pointer;
+    border-bottom: 3px solid transparent;
+    color: #555;
+    font-weight: bold;
 }
 
 .record-tabs .tab.active {
-    color: #0e6f3d;
-    font-weight: bold;
-    border-bottom: 2px solid #0e6f3d;
+    color: #47824A;
+    border-bottom-color: #47824A;
 }
 
 .record-list {
-    padding: 10px;
+    max-height: 60vh;
     overflow-y: auto;
-    flex: 1;
+    padding: 10px;
 }
 
 .record-item {
     background-color: #f9f9f9;
-    border-radius: 10px;
-    margin-bottom: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
     padding: 12px;
-    border-left: 4px solid #0e6f3d;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-left: 5px solid #47824A;
 }
 
-.record-item:hover {
-    transform: translateX(5px);
-}
-
-.status.win {
-    background-color: #4caf50;
-    color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-weight: bold;
-}
-
-.status.lose {
-    background-color: #f44336;
-    color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-weight: bold;
-}
-
-.status.ongoing {
-    background-color: #2196f3;
-    color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-weight: bold;
-}
-
-.record-content {
-    margin-bottom: 8px;
-}
-
-.bet-type {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.record-bottom {
+.record-top {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: #888;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
 }
 
-.bet-amount {
+.record-top .period {
+    font-weight: bold;
+    color: #333;
+}
+
+.record-top .status {
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 14px;
+}
+
+.record-top .status.ongoing {
+    background-color: #4a90e2;
+    color: white;
+}
+
+.record-top .status.win {
+    background-color: #47bf74;
+    color: white;
+}
+
+.record-top .status.lose {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* 投注資訊區域樣式 */
+.record-bet-info {
+    margin-bottom: 10px;
+    padding: 5px 0;
+}
+
+.bet-detail-row {
+    display: flex;
+    margin-bottom: 5px;
+    align-items: center;
+}
+
+.bet-label {
+    width: 80px;
+    color: #666;
+    font-size: 14px;
+}
+
+.bet-value {
+    color: #333;
+    font-weight: 500;
+    flex: 1;
+}
+
+/* 底部資訊樣式 */
+.record-bottom {
+    border-top: 1px solid #eee;
+    padding-top: 10px;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    gap: 8px;
 }
 
-.bet-amount span:last-child {
-    color: #f44336;
+.bet-time-info {
+    display: flex;
+    align-items: center;
+    color: #777;
+    font-size: 13px;
+}
+
+.time-value {
+    margin-left: 5px;
+}
+
+.bet-amount-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.amount-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.amount-label {
+    color: #555;
+}
+
+.amount-value {
     font-weight: bold;
+    color: #333;
+}
+
+.win-amount .amount-value {
+    color: #e67e22;
 }
 
 .no-records {
-    padding: 40px;
     text-align: center;
-    color: #888;
-}
-
-.record-button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 16px;
-    margin-right: 10px;
-    cursor: pointer;
+    padding: 30px;
+    color: #999;
 }
 
 /* 開獎歷史組件樣式 */
@@ -1091,12 +1110,6 @@ body {
     cursor: pointer;
     border-radius: 5px;
     margin-top: 10px;
-}
-
-.no-records {
-    padding: 30px;
-    text-align: center;
-    color: #999;
 }
 
 /* 添加長龍提示樣式 - 從爬蟲獲取的網站特性 */

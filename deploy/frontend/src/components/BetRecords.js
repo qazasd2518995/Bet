@@ -100,7 +100,7 @@ Vue.component('bet-records', {
         ? h('div', { class: 'record-list' }, 
             this.filteredRecords.map(bet => 
               h('div', { class: 'record-item', key: bet.id }, [
-                // 頂部信息
+                // 頂部信息：期數和狀態
                 h('div', { class: 'record-top' }, [
                   h('div', { class: 'period' }, `${bet.period}期`),
                   h('div', { 
@@ -108,20 +108,41 @@ Vue.component('bet-records', {
                   }, this.getBetStatus(bet))
                 ]),
                 
-                // 內容區域
-                h('div', { class: 'record-content' }, [
-                  h('div', { class: 'bet-type' }, this.getBetTypeDesc(bet)),
-                  h('div', { class: 'bet-value' }, this.getBetValueDesc(bet))
+                // 投注資訊區域：投注類型和選項
+                h('div', { class: 'record-bet-info' }, [
+                  h('div', { class: 'bet-detail-row' }, [
+                    h('span', { class: 'bet-label' }, '投注類型:'),
+                    h('span', { class: 'bet-value' }, this.getBetTypeDesc(bet)),
+                  ]),
+                  h('div', { class: 'bet-detail-row' }, [
+                    h('span', { class: 'bet-label' }, '投注選項:'),
+                    h('span', { class: 'bet-value' }, this.getBetValueDesc(bet)),
+                  ]),
+                  bet.odds ? h('div', { class: 'bet-detail-row' }, [
+                    h('span', { class: 'bet-label' }, '賠率:'),
+                    h('span', { class: 'bet-value' }, bet.odds),
+                  ]) : null
                 ]),
                 
-                // 底部信息
+                // 底部信息：金額和時間
                 h('div', { class: 'record-bottom' }, [
-                  h('div', { class: 'bet-time' }, this.formatTime(bet.time)),
-                  h('div', { class: 'bet-amount' }, [
-                    h('span', {}, `下注金額: $${bet.amount ? bet.amount : 0}`),
-                    bet.settled && bet.win && bet.winAmount
-                      ? h('span', {}, `派彩: $${bet.winAmount}`)
-                      : null
+                  // 時間信息
+                  h('div', { class: 'bet-time-info' }, [
+                    h('span', { class: 'bet-label' }, '下注時間:'),
+                    h('span', { class: 'time-value' }, this.formatTime(bet.time))
+                  ]),
+                  
+                  // 金額信息
+                  h('div', { class: 'bet-amount-info' }, [
+                    h('div', { class: 'amount-row' }, [
+                      h('span', { class: 'amount-label' }, '下注金額:'),
+                      h('span', { class: 'amount-value' }, `$${bet.amount}`)
+                    ]),
+                    bet.settled && bet.win && bet.winAmount ? 
+                      h('div', { class: 'amount-row win-amount' }, [
+                        h('span', { class: 'amount-label' }, '派彩金額:'),
+                        h('span', { class: 'amount-value' }, `$${bet.winAmount}`)
+                      ]) : null
                   ])
                 ])
               ])
