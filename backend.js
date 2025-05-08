@@ -114,28 +114,57 @@ app.get('/api/init-db', async (req, res) => {
 let odds = {
   // 冠亞和值賠率
   sumValue: {
-    '3': 40, '4': 40, '5': 20, '6': 20, '7': 13, '8': 13,
-    '9': 10, '10': 10, '11': 8, '12': 8, '13': 8, '14': 8, 
-    '15': 8, '16': 8, '17': 10, '18': 10, '19': 13, 
-    big: 1.98, small: 1.98, odd: 1.98, even: 1.98 // 大小單雙
+    '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
+    '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
+    '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96 // 大小單雙
   },
   // 單車號碼賠率
   number: {
-    first: 9.9,  // 冠軍號碼
-    second: 9.9, // 亞軍號碼
-    third: 9.9,  // 第三名
-    fourth: 9.9, // 第四名
-    fifth: 9.9   // 第五名
+    first: 9.59,  // 冠軍號碼
+    second: 9.59, // 亞軍號碼
+    third: 9.59,  // 第三名
+    fourth: 9.59, // 第四名
+    fifth: 9.59,  // 第五名
+    sixth: 9.59,  // 第六名
+    seventh: 9.59,// 第七名
+    eighth: 9.59, // 第八名
+    ninth: 9.59,  // 第九名
+    tenth: 9.59   // 第十名
   },
   // 冠亞軍單雙大小賠率
   champion: {
-    big: 1.98, small: 1.98, odd: 1.98, even: 1.98
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
   },
   runnerup: {
-    big: 1.98, small: 1.98, odd: 1.98, even: 1.98
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  third: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  fourth: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  fifth: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  sixth: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  seventh: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  eighth: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  ninth: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+  },
+  tenth: {
+    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
   },
   // 龍虎賠率
-  dragonTiger: 1.98
+  dragonTiger: 1.96
 };
 
 // 初始化一個特定用戶的本地資料
