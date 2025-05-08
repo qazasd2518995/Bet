@@ -564,6 +564,11 @@
                 <div class="chip chip-50" @click="setBetAmount(50)">50</div>
                 <div class="chip chip-100" @click="setBetAmount(100)">100</div>
                 <div class="chip chip-500" @click="setBetAmount(500)">500</div>
+                <!-- 自訂金額輸入 -->
+                <div class="custom-chip-input">
+                    <input type="number" v-model="customAmount" placeholder="自訂金額" min="1">
+                    <button @click="setCustomAmount">確定</button>
+                </div>
             </div>
             
             <!-- 下注按鈕 -->
@@ -654,6 +659,7 @@
                 currentPeriod: '',
                 lastResult: [],
                 betAmount: 0,
+                customAmount: '',
                 selectedBetType: null,
                 selectedValue: null,
                 selectedPosition: null,
@@ -672,7 +678,6 @@
                 showStats: false,
                 activeTab: 'combined',
                 selectedBets: [],
-                customChip: '',
                 selectAllPositions: false,
                 positions: [
                     { value: 1, label: '冠軍' },
@@ -1158,6 +1163,15 @@
                     this.selectedBets.forEach(bet => {
                         bet.amount = amount;
                     });
+                },
+                setCustomAmount() {
+                    if (this.customAmount && !isNaN(this.customAmount) && this.customAmount > 0) {
+                        const amount = parseFloat(this.customAmount);
+                        this.setBetAmount(amount);
+                        this.customAmount = ''; // 清空輸入框
+                    } else {
+                        alert('請輸入有效的下注金額');
+                    }
                 },
                 positionToKey(position) {
                     const positionMap = {
