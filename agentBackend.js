@@ -469,7 +469,7 @@ const NoticeModel = {
   }
 };
 
-// 交易模型
+// 模型: 交易
 const TransactionModel = {
   // 創建交易記錄
   async create(transactionData) {
@@ -509,27 +509,18 @@ const TransactionModel = {
   // 獲取代理的今日交易統計
   async getAgentTodayStats(agentId) {
     try {
-      // 獲取該代理下所有會員
-      const members = await MemberModel.findByAgentId(agentId);
-      const memberIds = members.map(m => m.id);
-      
-      if (memberIds.length === 0) {
-        return { totalAmount: 0, totalCount: 0 };
-      }
-      
-      // 獲取今日交易總額
+      // 直接使用SQL查詢，避免對MemberModel的依賴
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       const stats = await db.one(`
         SELECT 
-          COALESCE(SUM(ABS(amount)), 0) as total_amount, 
+          COALESCE(SUM(ABS(t.amount)), 0) as total_amount, 
           COUNT(*) as total_count 
-        FROM transactions 
-        WHERE user_type = 'member' 
-          AND user_id IN ($1:csv) 
-          AND created_at >= $2
-      `, [memberIds, today]);
+        FROM transactions t
+        JOIN members m ON t.user_id = m.id AND t.user_type = 'member'
+        WHERE m.agent_id = $1 AND t.created_at >= $2
+      `, [agentId, today]);
       
       return {
         totalAmount: parseFloat(stats.total_amount),
@@ -537,7 +528,7 @@ const TransactionModel = {
       };
     } catch (error) {
       console.error('獲取代理今日交易統計出錯:', error);
-      throw error;
+      return { totalAmount: 0, totalCount: 0 }; // 错误时返回默认值而不是抛出异常
     }
   }
 };
@@ -670,112 +661,25 @@ app.get(`${API_PREFIX}/stats`, async (req, res) => {
       });
     }
     
-    // 獲取今日交易統計
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const transactionStats = await db.one(`
-      SELECT COALESCE(SUM(ABS(amount)), 0) as total_amount, COUNT(*) as count 
-      FROM transactions 
-      WHERE user_type = 'member' AND 
-            EXISTS(SELECT 1 FROM members WHERE id = user_id AND agent_id = $1) AND
-            created_at >= $2
-    `, [agentId, today]);
-    
-    // 獲取會員數量
+    // 獲取該代理下的會員數
     const memberCount = await db.one(`
       SELECT COUNT(*) as count FROM members WHERE agent_id = $1
     `, [agentId]);
+    
+    // 獲取今日交易統計
+    const transactionStats = await TransactionModel.getAgentTodayStats(agentId);
     
     res.json({
       success: true,
       stats: {
         totalMembers: parseInt(memberCount.count),
-        totalAmount: parseFloat(transactionStats.total_amount),
-        totalTransactions: parseInt(transactionStats.count),
+        totalAmount: transactionStats.totalAmount,
+        totalTransactions: transactionStats.totalCount,
         commission: agent.commission_balance
       }
     });
   } catch (error) {
     console.error('獲取代理統計出錯:', error);
-    res.status(500).json({
-      success: false,
-      message: '系統錯誤，請稍後再試'
-    });
-  }
-});
-
-// 新增獲取儀表板統計數據的API
-app.get('/api/stats', async (req, res) => {
-  try {
-    // 獲取所有代理
-    const agents = await db.one('SELECT COUNT(*) AS count FROM agents');
-    
-    // 獲取所有會員
-    const members = await db.one('SELECT COUNT(*) AS count FROM members');
-    
-    // 獲取今日交易總額
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const transactions = await db.one(`
-      SELECT COALESCE(SUM(ABS(amount)), 0) as total_amount, COUNT(*) as count 
-      FROM transactions 
-      WHERE created_at >= $1
-    `, [today]);
-    
-    // 獲取總佣金
-    const commission = await db.one(`
-      SELECT COALESCE(SUM(commission_balance), 0) as total 
-      FROM agents
-    `);
-    
-    res.json({
-      success: true,
-      stats: {
-        totalAgents: parseInt(agents.count),
-        totalMembers: parseInt(members.count),
-        totalAmount: parseFloat(transactions.total_amount),
-        totalTransactions: parseInt(transactions.count),
-        totalCommission: parseFloat(commission.total)
-      }
-    });
-  } catch (error) {
-    console.error('獲取儀表板統計數據出錯:', error);
-    res.status(500).json({
-      success: false,
-      message: '系統錯誤，請稍後再試'
-    });
-  }
-});
-
-// 修復成員列表API
-app.get('/api/members', async (req, res) => {
-  const { page = 1, limit = 20 } = req.query;
-  
-  try {
-    // 獲取所有會員
-    const query = `
-      SELECT m.*, a.username as agent_username 
-      FROM members m
-      LEFT JOIN agents a ON m.agent_id = a.id
-      ORDER BY m.created_at DESC
-      LIMIT $1 OFFSET $2
-    `;
-    
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const members = await db.any(query, [limit, offset]);
-    
-    // 獲取總數
-    const totalCount = await db.one('SELECT COUNT(*) as count FROM members');
-    
-    res.json({
-      success: true,
-      members,
-      total: parseInt(totalCount.count)
-    });
-  } catch (error) {
-    console.error('獲取會員列表出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
@@ -1143,6 +1047,84 @@ app.get(`${API_PREFIX}/notices`, async (req, res) => {
     });
   } catch (error) {
     console.error('獲取公告出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 添加系統級別的儀表板API - 使用適當的API前綴
+app.get('/api/dashboard/stats', async (req, res) => {
+  try {
+    // 獲取所有代理
+    const agents = await db.one('SELECT COUNT(*) AS count FROM agents');
+    
+    // 獲取所有會員
+    const members = await db.one('SELECT COUNT(*) AS count FROM members');
+    
+    // 獲取今日交易總額
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const transactions = await db.one(`
+      SELECT COALESCE(SUM(ABS(amount)), 0) as total_amount, COUNT(*) as count 
+      FROM transactions 
+      WHERE created_at >= $1
+    `, [today]);
+    
+    // 獲取總佣金
+    const commission = await db.one(`
+      SELECT COALESCE(SUM(commission_balance), 0) as total 
+      FROM agents
+    `);
+    
+    res.json({
+      success: true,
+      stats: {
+        totalAgents: parseInt(agents.count),
+        totalMembers: parseInt(members.count),
+        totalAmount: parseFloat(transactions.total_amount),
+        totalTransactions: parseInt(transactions.count),
+        totalCommission: parseFloat(commission.total)
+      }
+    });
+  } catch (error) {
+    console.error('獲取儀表板統計數據出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 添加系統級別的會員列表API - 使用適當的API前綴
+app.get('/api/dashboard/members', async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  
+  try {
+    // 獲取所有會員
+    const query = `
+      SELECT m.*, a.username as agent_username 
+      FROM members m
+      LEFT JOIN agents a ON m.agent_id = a.id
+      ORDER BY m.created_at DESC
+      LIMIT $1 OFFSET $2
+    `;
+    
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const members = await db.any(query, [limit, offset]);
+    
+    // 獲取總數
+    const totalCount = await db.one('SELECT COUNT(*) as count FROM members');
+    
+    res.json({
+      success: true,
+      members,
+      total: parseInt(totalCount.count)
+    });
+  } catch (error) {
+    console.error('獲取會員列表出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
