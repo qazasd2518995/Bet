@@ -97,7 +97,19 @@ const app = new Vue({
             username: '',
             password: '',
             confirmPassword: ''
-        }
+        },
+        
+        // 會員餘額調整相關
+        showAdjustBalanceModal: false,
+        balanceAdjustData: {
+            username: '',
+            id: '',
+            currentBalance: 0,
+            adjustType: 'increment',
+            amount: 0,
+            comment: ''
+        },
+        adjustBalanceModal: null,
     },
     
     // 頁面載入時自動執行
@@ -566,6 +578,14 @@ const app = new Vue({
             this.loading = true;
             
             try {
+                console.log('獲取會員列表，參數:', {
+                    agentId: this.user.id,
+                    status: this.memberFilters.status,
+                    keyword: this.memberFilters.keyword,
+                    page: this.memberPagination.currentPage,
+                    limit: this.memberPagination.limit
+                });
+                
                 const response = await axios.get(`${API_BASE_URL}/members`, {
                     params: {
                         agentId: this.user.id,
@@ -576,12 +596,25 @@ const app = new Vue({
                     }
                 });
                 
+                console.log('會員列表API響應:', response.data);
+                
                 if (response.data.success) {
-                    this.members = response.data.members;
-                    
-                    // 計算總頁數
-                    const total = response.data.total;
-                    this.memberPagination.totalPages = Math.ceil(total / this.memberPagination.limit);
+                    // 使用data.list屬性而非members屬性
+                    if (response.data.data && response.data.data.list) {
+                        this.members = response.data.data.list;
+                        
+                        // 計算總頁數
+                        const total = response.data.data.total || 0;
+                        this.memberPagination.totalPages = Math.ceil(total / this.memberPagination.limit);
+                        
+                        console.log(`成功獲取 ${this.members.length} 位會員，總計 ${total} 位`);
+                    } else {
+                        console.error('會員列表數據格式異常:', response.data);
+                        this.members = [];
+                        this.memberPagination.totalPages = 1;
+                    }
+                } else {
+                    this.showMessage(response.data.message || '獲取會員列表失敗', 'error');
                 }
             } catch (error) {
                 console.error('獲取會員列表錯誤:', error);
@@ -746,7 +779,106 @@ const app = new Vue({
             } else {
                 alert(message);
             }
-        }
+        },
+        
+        // 顯示會員餘額調整模態框
+        adjustMemberBalance(member) {
+            console.log('調整會員餘額:', member);
+            
+            // 初始化資料
+            this.balanceAdjustData = {
+                username: member.username,
+                id: member.id,
+                currentBalance: parseFloat(member.balance) || 0,
+                adjustType: 'increment',
+                amount: 0,
+                comment: ''
+            };
+            
+            this.showAdjustBalanceModal = true;
+            this.$nextTick(() => {
+                // 確保模態框元素已經被渲染到DOM後再初始化和顯示
+                const modalEl = document.getElementById('adjustBalanceModal');
+                if (modalEl) {
+                    this.adjustBalanceModal = new bootstrap.Modal(modalEl);
+                    this.adjustBalanceModal.show();
+                } else {
+                    console.error('找不到餘額調整模態框元素');
+                    this.showMessage('系統錯誤，請稍後再試', 'error');
+                }
+            });
+        },
+        
+        // 隱藏會員餘額調整模態框
+        hideAdjustBalanceModal() {
+            if (this.adjustBalanceModal) {
+                this.adjustBalanceModal.hide();
+            }
+            this.showAdjustBalanceModal = false;
+        },
+        
+        // 提交會員餘額調整
+        async submitBalanceAdjustment() {
+            const { id, username, adjustType, amount, currentBalance, comment } = this.balanceAdjustData;
+            
+            if (!amount || amount <= 0) {
+                return this.showMessage('請輸入有效的金額', 'error');
+            }
+            
+            // 確認提交
+            if (!confirm(`確定要${adjustType === 'increment' ? '增加' : (adjustType === 'decrement' ? '減少' : '設置')}會員 ${username} 的餘額?`)) {
+                return;
+            }
+            
+            this.loading = true;
+            
+            try {
+                let apiUrl, apiData;
+                
+                // 根據調整類型選擇不同的API和參數
+                if (adjustType === 'set') {
+                    apiUrl = `${API_BASE_URL}/set-member-balance`;
+                    apiData = {
+                        username,
+                        balance: parseFloat(amount)
+                    };
+                } else {
+                    apiUrl = `${API_BASE_URL}/update-member-balance`;
+                    let adjustAmount = parseFloat(amount);
+                    
+                    // 如果是減少餘額，轉換為負數
+                    if (adjustType === 'decrement') {
+                        adjustAmount = -adjustAmount;
+                    }
+                    
+                    apiData = {
+                        username,
+                        amount: adjustAmount,
+                        type: 'adjustment',
+                        comment: comment || '管理員手動調整'
+                    };
+                }
+                
+                console.log('提交餘額調整:', apiData);
+                
+                const response = await axios.post(apiUrl, apiData);
+                
+                if (response.data.success) {
+                    this.showMessage('會員餘額調整成功', 'success');
+                    this.hideAdjustBalanceModal();
+                    
+                    // 重新獲取會員列表以更新餘額
+                    await this.fetchMembers();
+                } else {
+                    this.showMessage(response.data.message || '調整餘額失敗', 'error');
+                }
+            } catch (error) {
+                console.error('調整會員餘額錯誤:', error);
+                this.showMessage(error.response?.data?.message || '調整餘額失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
     },
     
     // 計算屬性

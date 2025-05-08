@@ -51,6 +51,30 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 新增重啟遊戲循環端點 - 用於手動重啟遊戲循環
+app.get('/api/restart-game-cycle', async (req, res) => {
+  try {
+    console.log('手動重啟遊戲循環...');
+    
+    // 重啟遊戲循環
+    await startGameCycle();
+    
+    res.json({ 
+      success: true, 
+      message: '遊戲循環已重啟',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('重啟遊戲循環失敗:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '重啟遊戲循環失敗', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // 新增數據庫初始化端點 - 用於手動觸發數據庫初始化
 app.get('/api/init-db', async (req, res) => {
   try {
@@ -214,23 +238,64 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// 存儲遊戲循環的計時器ID
+let gameLoopInterval = null;
+let drawingTimeoutId = null;
+
 // 模擬遊戲循環
 async function startGameCycle() {
   try {
+    // 如果已經有一個遊戲循環在運行，先清除它
+    if (gameLoopInterval) {
+      console.log('清除現有遊戲循環...');
+      clearInterval(gameLoopInterval);
+      gameLoopInterval = null;
+    }
+    
+    // 如果有開獎過程在進行，也清除它
+    if (drawingTimeoutId) {
+      console.log('清除未完成的開獎過程...');
+      clearTimeout(drawingTimeoutId);
+      drawingTimeoutId = null;
+    }
+    
     // 初始化遊戲狀態
     let gameState = await GameModel.getCurrentState();
     if (!gameState) {
       // 如果不存在，創建初始遊戲狀態
       gameState = await GameModel.updateState({
-        current_period: 202505051077,
+        current_period: 202505081001, // 更新為今天的日期+期數
         countdown_seconds: 60,
         last_result: [4, 2, 7, 9, 8, 10, 6, 3, 5, 1],
         status: 'betting'
       });
+      console.log('創建初始遊戲狀態成功');
+    } else {
+      // 如果是重啟，且狀態為drawing，重設為betting
+      if (gameState.status === 'drawing') {
+        console.log('遊戲之前卡在開獎狀態，重設為投注狀態');
+        
+        // 生成新結果
+        const newResult = generateRaceResult();
+        const current_period = parseInt(gameState.current_period) + 1;
+        
+        await GameModel.updateState({
+          current_period,
+          countdown_seconds: 60,
+          last_result: newResult,
+          status: 'betting'
+        });
+        
+        // 更新遊戲狀態
+        gameState = await GameModel.getCurrentState();
+        console.log(`重設後的遊戲狀態: 期數=${gameState.current_period}, 狀態=${gameState.status}`);
+      }
     }
     
+    console.log(`啟動遊戲循環: 當前期數=${gameState.current_period}, 狀態=${gameState.status}`);
+    
     // 每秒更新一次遊戲狀態
-    setInterval(async () => {
+    gameLoopInterval = setInterval(async () => {
       try {
         // 獲取最新遊戲狀態
         gameState = await GameModel.getCurrentState();
@@ -264,8 +329,11 @@ async function startGameCycle() {
             });
             
             // 模擬開獎過程(3秒後產生結果)
-            setTimeout(async () => {
+            drawingTimeoutId = setTimeout(async () => {
               try {
+                // 清除timeoutId
+                drawingTimeoutId = null;
+                
                 // 隨機產生新的遊戲結果(1-10的不重複隨機數)
                 const newResult = generateRaceResult();
                 
@@ -297,8 +365,11 @@ async function startGameCycle() {
         console.error('遊戲循環出錯:', error);
       }
     }, 1000);
+    
+    return { success: true, message: '遊戲循環已啟動' };
   } catch (error) {
     console.error('啟動遊戲循環出錯:', error);
+    throw error;
   }
 }
 
