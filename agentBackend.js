@@ -6,7 +6,10 @@ import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
-import pgp from 'pg-promise';
+// 使用優化過的數據庫配置
+import db from './db/config.js';
+// 導入基本數據庫初始化函數
+import initDatabaseBase from './db/init.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -16,11 +19,6 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3003; // 使用不同於主遊戲系統的端口
-
-// 初始化數據庫連接
-const pgInstance = pgp();
-const databaseUrl = process.env.DATABASE_URL || 'postgres://localhost:5432/bet_game';
-const db = pgInstance(databaseUrl);
 
 // 跨域設置
 app.use(cors({
@@ -49,11 +47,15 @@ app.get('/api/health', (req, res) => {
 // 代理API路由前綴
 const API_PREFIX = '/api/agent';
 
-// 初始化數據庫結構
+// 初始化代理系統數據庫
 async function initDatabase() {
   try {
     console.log('初始化代理系統數據庫...');
     
+    // 首先調用基本數據庫初始化函數，確保共用表已創建
+    await initDatabaseBase();
+    
+    // 代理系統特有的表
     // 創建代理表
     await db.none(`
       CREATE TABLE IF NOT EXISTS agents (
@@ -110,7 +112,7 @@ async function initDatabase() {
       )
     `);
     
-    console.log('初始化代理系統數據庫完成');
+    console.log('初始化代理系統數據庫表結構完成');
     
     // 檢查是否已有總代理
     const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
@@ -139,8 +141,10 @@ async function initDatabase() {
       console.log('創建預設測試會員成功');
     }
     
+    console.log('初始化代理系統數據庫完成');
   } catch (error) {
     console.error('初始化數據庫時出錯:', error);
+    // 出錯時不結束進程，讓系統仍能啟動，方便調試
   }
 }
 
