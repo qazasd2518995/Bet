@@ -642,54 +642,93 @@ const TransactionModel = {
         };
       }
       
+      // 獲取代理下的所有會員ID
+      const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [parsedAgentId]);
+      if (!members || members.length === 0) {
+        console.log(`獲取代理統計: 代理ID ${parsedAgentId} 下無會員`);
+        return {
+          totalDeposit: 0,
+          totalWithdraw: 0,
+          totalRevenue: 0,
+          memberCount: 0,
+          activeMembers: 0
+        };
+      }
+      
+      const memberIds = members.map(m => m.id);
+      console.log(`獲取代理統計: 代理 ${parsedAgentId} 下有 ${memberIds.length} 位會員`);
+      
       // 獲取今日日期
       const today = new Date().toISOString().split('T')[0];
       console.log(`獲取代理統計: 查詢日期=${today}`);
       
-      // 計算今日充值總額
-      const depositResult = await db.oneOrNone(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE agent_id = $1 AND type = $2 AND DATE(created_at) = $3',
-        [parsedAgentId, 'deposit', today]
-      );
-      const totalDeposit = parseFloat(depositResult ? depositResult.total : 0);
-      
-      // 計算今日提現總額
-      const withdrawResult = await db.oneOrNone(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE agent_id = $1 AND type = $2 AND DATE(created_at) = $3',
-        [parsedAgentId, 'withdraw', today]
-      );
-      const totalWithdraw = parseFloat(withdrawResult ? withdrawResult.total : 0);
-      
-      // 計算今日收入總額
-      const revenueResult = await db.oneOrNone(
-        'SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE agent_id = $1 AND type = $2 AND DATE(created_at) = $3',
-        [parsedAgentId, 'revenue', today]
-      );
-      const totalRevenue = parseFloat(revenueResult ? revenueResult.total : 0);
-      
-      // 獲取會員總數
-      const memberCountResult = await db.oneOrNone(
-        'SELECT COUNT(*) as count FROM members WHERE agent_id = $1',
-        [parsedAgentId]
-      );
-      const memberCount = parseInt(memberCountResult ? memberCountResult.count : 0);
-      
-      // 獲取活躍會員數
-      const activeMembersResult = await db.oneOrNone(
-        'SELECT COUNT(DISTINCT member_id) as count FROM transactions WHERE agent_id = $1 AND DATE(created_at) = $2',
-        [parsedAgentId, today]
-      );
-      const activeMembers = parseInt(activeMembersResult ? activeMembersResult.count : 0);
-      
-      console.log(`獲取代理統計: 成功獲取 ID=${parsedAgentId} 的統計數據`);
-      
-      return {
-        totalDeposit,
-        totalWithdraw,
-        totalRevenue,
-        memberCount,
-        activeMembers
-      };
+      // 計算今日充值總額 - 使用正確的列名user_type和user_id
+      try {
+        const depositResult = await db.oneOrNone(`
+          SELECT COALESCE(SUM(amount), 0) as total 
+          FROM transactions 
+          WHERE user_type = 'member' 
+            AND user_id IN ($1:csv) 
+            AND type = $2 
+            AND DATE(created_at) = $3
+        `, [memberIds, 'deposit', today]);
+        
+        const totalDeposit = parseFloat(depositResult ? depositResult.total : 0);
+        
+        // 計算今日提現總額
+        const withdrawResult = await db.oneOrNone(`
+          SELECT COALESCE(SUM(amount), 0) as total 
+          FROM transactions 
+          WHERE user_type = 'member' 
+            AND user_id IN ($1:csv) 
+            AND type = $2 
+            AND DATE(created_at) = $3
+        `, [memberIds, 'withdraw', today]);
+        
+        const totalWithdraw = parseFloat(withdrawResult ? withdrawResult.total : 0);
+        
+        // 計算今日收入總額
+        const revenueResult = await db.oneOrNone(`
+          SELECT COALESCE(SUM(amount), 0) as total 
+          FROM transactions 
+          WHERE user_type = 'member' 
+            AND user_id IN ($1:csv) 
+            AND type = $2 
+            AND DATE(created_at) = $3
+        `, [memberIds, 'revenue', today]);
+        
+        const totalRevenue = parseFloat(revenueResult ? revenueResult.total : 0);
+        
+        // 獲取活躍會員數 - 使用正確的列名
+        const activeMembersResult = await db.oneOrNone(`
+          SELECT COUNT(DISTINCT user_id) as count 
+          FROM transactions 
+          WHERE user_type = 'member' 
+            AND user_id IN ($1:csv) 
+            AND DATE(created_at) = $2
+        `, [memberIds, today]);
+        
+        const activeMembers = parseInt(activeMembersResult ? activeMembersResult.count : 0);
+        
+        console.log(`獲取代理統計: 成功獲取 ID=${parsedAgentId} 的統計數據`);
+        
+        return {
+          totalDeposit,
+          totalWithdraw,
+          totalRevenue,
+          memberCount: memberIds.length,
+          activeMembers
+        };
+      } catch (queryError) {
+        console.error('獲取代理統計 - 查詢錯誤:', queryError);
+        return {
+          totalDeposit: 0,
+          totalWithdraw: 0,
+          totalRevenue: 0,
+          memberCount: memberIds.length,
+          activeMembers: 0
+        };
+      }
     } catch (error) {
       console.error('獲取代理統計出錯:', error);
       // 出錯時返回默認值
