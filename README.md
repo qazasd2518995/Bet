@@ -8,6 +8,16 @@
 - `agentBackend.js`: 代理管理系統後端
 - `deploy/frontend/`: 遊戲前端文件
 - `agent/frontend/`: 代理管理系統前端文件
+- `db/`: 數據庫模型和配置
+
+## 數據庫
+
+系統使用PostgreSQL數據庫來保存數據，確保即使服務重啟也能保持數據持久化：
+
+- 用戶數據（會員資料、餘額）
+- 下注記錄
+- 遊戲結果歷史
+- 代理信息
 
 ## 在本地運行
 
@@ -37,26 +47,86 @@ npm run dev:all
 
 ## 在Render部署
 
-### 方法一：直接部署GitHub倉庫
+### 前置準備
+
+1. 註冊 [Render](https://render.com/) 帳號
+2. 將本專案推送到您的GitHub倉庫
+3. 在Render中連接GitHub帳號
+
+### 使用Blueprint自動部署
+
+Render Blueprint是一種通過`render.yaml`文件一次部署多個服務的方式。
 
 1. 登入 [Render](https://render.com/)
-2. 點擊 "New" > "Web Service"
-3. 連接此GitHub倉庫
-4. 使用以下設置：
-   - **Name**: bet-app（或自定義名稱）
-   - **Environment**: Node
-   - **Build Command**: npm install
-   - **Start Command**: npm start
+2. 點擊頂部導航的 "New"，選擇 "Blueprint"
+3. 選擇包含本專案的GitHub倉庫
+4. Render將自動掃描`render.yaml`文件並顯示將要創建的服務
+5. 點擊 "Apply" 完成部署，Render會自動：
+   - 創建PostgreSQL數據庫
+   - 部署遊戲後端服務
+   - 部署代理後端服務
+
+### 手動部署各個服務
+
+如果Blueprint選項不可用，可以分別部署各個服務：
+
+#### 1. 創建PostgreSQL數據庫
+
+1. 在Render控制台點擊 "New" > "PostgreSQL"
+2. 填寫以下信息：
+   - **Name**: `bet-db`
+   - **Database**: `bet_game`
+   - **User**: 自動生成
+   - **Region**: 選擇最近的地區
    - **Plan**: Free
+3. 點擊 "Create Database"
+4. 保存顯示的數據庫連接信息
+
+#### 2. 部署遊戲後端
+
+1. 在Render控制台點擊 "New" > "Web Service"
+2. 連接此GitHub倉庫
+3. 填寫以下信息：
+   - **Name**: `bet-game`
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Plan**: Free
+4. 添加環境變量：
+   - `NODE_ENV`: `production`
+   - `DATABASE_URL`: 之前創建的PostgreSQL數據庫URL
 5. 點擊 "Create Web Service"
 
-### 方法二：使用render.yaml（已配置）
+#### 3. 部署代理後端
 
-1. 登入 [Render](https://render.com/)
-2. 點擊 "New" > "Blueprint"
-3. 連接此GitHub倉庫
-4. Render會自動使用倉庫中的`render.yaml`文件來配置服務
-5. 點擊 "Apply" 完成部署
+1. 在Render控制台點擊 "New" > "Web Service"
+2. 連接此GitHub倉庫
+3. 填寫以下信息：
+   - **Name**: `bet-agent`
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run start:agent`
+   - **Plan**: Free
+4. 添加環境變量：
+   - `NODE_ENV`: `production`
+   - `DATABASE_URL`: 之前創建的PostgreSQL數據庫URL
+5. 點擊 "Create Web Service"
+
+## 數據持久化
+
+- 系統使用PostgreSQL保存所有重要數據
+- 即使Render服務休眠或重啟，數據也會保持完整
+- Render的免費PostgreSQL提供1GB存儲空間，足夠一般使用場景
+
+## 默認帳號
+
+### 代理系統
+- 帳號: `admin`
+- 密碼: `adminpwd`
+
+### 玩家帳號
+- 帳號: `aaa`
+- 密碼: `aaapwd`
 
 ## 代理後端部署
 

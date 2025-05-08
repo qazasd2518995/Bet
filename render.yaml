@@ -7,6 +7,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bet-db
+          property: connectionString
     plan: free
     healthCheckPath: /api/health
     autoDeploy: true
@@ -19,6 +23,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bet-db
+          property: connectionString
     plan: free
     healthCheckPath: /api/health
-    autoDeploy: true 
+    autoDeploy: true
+
+databases:
+  - name: bet-db
+    plan: free 
