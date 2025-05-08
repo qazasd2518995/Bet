@@ -51,6 +51,41 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 新增數據庫初始化端點 - 用於手動觸發數據庫初始化
+app.get('/api/init-db', async (req, res) => {
+  try {
+    console.log('手動觸發數據庫初始化...');
+    await initDatabase();
+    
+    // 初始化遊戲狀態
+    const gameState = await GameModel.getCurrentState();
+    if (!gameState) {
+      // 如果不存在，創建初始遊戲狀態
+      await GameModel.updateState({
+        current_period: 202505051077,
+        countdown_seconds: 60,
+        last_result: [4, 2, 7, 9, 8, 10, 6, 3, 5, 1],
+        status: 'betting'
+      });
+      console.log('創建初始遊戲狀態成功');
+    }
+    
+    res.json({ 
+      success: true, 
+      message: '數據庫初始化成功',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('數據庫手動初始化失敗:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '數據庫初始化失敗', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // 賠率數據 - 根據極速賽車實際賠率設置
 let odds = {
   // 冠亞和值賠率

@@ -44,6 +44,27 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 新增數據庫初始化端點 - 用於手動觸發數據庫初始化
+app.get('/api/init-db', async (req, res) => {
+  try {
+    console.log('手動觸發數據庫初始化...');
+    await initDatabase();
+    res.json({ 
+      success: true, 
+      message: '數據庫初始化成功',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('數據庫手動初始化失敗:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '數據庫初始化失敗', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // 代理API路由前綴
 const API_PREFIX = '/api/agent';
 
