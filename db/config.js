@@ -6,8 +6,8 @@ import os from 'os';
 // 載入環境變量
 dotenv.config();
 
-// 獲取當前系統用戶名
-const username = os.userInfo().username;
+// 檢測是否在Render環境中
+const isRenderEnvironment = process.env.RENDER || process.env.RENDER_EXTERNAL_URL || process.env.NODE_ENV === 'production';
 
 // 初始化pg-promise，添加錯誤處理
 const pgInstance = pgp({
@@ -22,14 +22,25 @@ const pgInstance = pgp({
   }
 });
 
-// 如果存在環境變量，使用它，否則使用本地配置
+// 獲取當前系統用戶名
+const username = os.userInfo().username;
+
+// 如果存在環境變量或在Render環境中，使用DATABASE_URL環境變量
 let databaseUrl;
 
 if (process.env.DATABASE_URL) {
   databaseUrl = process.env.DATABASE_URL;
-  console.log('使用環境變量數據庫連接');
+  console.log('使用環境變量數據庫連接:', process.env.DATABASE_URL);
+} else if (isRenderEnvironment) {
+  // 如果在Render環境但沒有環境變量，拋出明顯的錯誤
+  const errorMsg = 'Render環境未設置DATABASE_URL環境變量!';
+  console.error(errorMsg);
+  // 創建一個特殊的連接物件，它將始終拋出相同的錯誤
+  databaseUrl = {
+    connect: () => Promise.reject(new Error(errorMsg))
+  };
 } else {
-  // 使用與測試成功的配置相同的連接參數
+  // 本地開發環境
   databaseUrl = {
     host: 'localhost',
     port: 5432,
@@ -43,6 +54,11 @@ if (process.env.DATABASE_URL) {
   };
   console.log('使用本地配置數據庫連接:', JSON.stringify(databaseUrl, null, 2));
 }
+
+// 重要：輸出所有環境變量名稱以進行調試
+console.log('環境變量列表 (僅名稱):', Object.keys(process.env).join(', '));
+console.log('是否為Render環境:', isRenderEnvironment);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 // 創建數據庫連接
 const db = pgInstance(databaseUrl);
