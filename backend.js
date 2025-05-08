@@ -424,7 +424,7 @@ function generateRaceResult() {
 // 控制參數 - 決定殺大賠小策略的強度和平衡
 const CONTROL_PARAMS = {
   // 下注額判定閾值（超過此值視為大額下注）
-  thresholdAmount: 200,
+  thresholdAmount: 3000,
   
   // 權重調整系數 (較大的值表示更強的干預)
   adjustmentFactor: 0.7,
