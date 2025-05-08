@@ -138,29 +138,31 @@ Vue.component('game-interface', {
         </div>
       </div>
       
-      <!-- 歷史記錄區域 - 響應式佈局 -->
-      <div class="history-container">
+      <!-- 顯示/隱藏歷史記錄控制按鈕 - 現在放在頂部 -->
+      <div class="history-buttons">
+        <button @click="toggleHistory" class="history-control-btn">
+          {{ showHistory ? '關閉開獎歷史' : '開獎歷史' }}
+        </button>
+        <button @click="toggleBetRecords" class="history-control-btn">
+          {{ showBetRecords ? '關閉住單資訊' : '住單資訊' }}
+        </button>
+      </div>
+      
+      <!-- 歷史記錄區域 - 浮動覆蓋顯示 -->
+      <div class="modal-overlay" v-if="showHistory || showBetRecords" @click="closeAllModals"></div>
+      
+      <div class="history-modal" v-if="showHistory">
         <draw-history 
-          v-if="showHistory" 
           :initialDate="new Date()" 
           @close="showHistory = false">
         </draw-history>
-        
+      </div>
+      
+      <div class="history-modal" v-if="showBetRecords">
         <bet-records 
-          v-if="showBetRecords" 
           :userId="userId" 
           @close="showBetRecords = false">
         </bet-records>
-      </div>
-      
-      <!-- 顯示/隱藏歷史記錄控制按鈕 - 僅在移動設備上顯示 -->
-      <div class="mobile-only history-controls">
-        <button @click="toggleHistory" class="history-control-btn">
-          {{ showHistory ? '隱藏開獎歷史' : '顯示開獎歷史' }}
-        </button>
-        <button @click="toggleBetRecords" class="history-control-btn">
-          {{ showBetRecords ? '隱藏投注記錄' : '顯示投注記錄' }}
-        </button>
       </div>
     </div>
   `,
@@ -174,8 +176,8 @@ Vue.component('game-interface', {
       currentResult: [1, 3, 5, 7, 9, 2, 4, 6, 8, 0], // 當前開獎結果
       currentBets: [], // 當前投注清單
       userId: 'user123', // 用戶ID
-      showHistory: true, // 是否顯示開獎歷史
-      showBetRecords: true, // 是否顯示投注記錄
+      showHistory: false, // 是否顯示開獎歷史
+      showBetRecords: false, // 是否顯示投注記錄
       // 賠率表 - 通常從伺服器加載
       odds: {
         number: [9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8],
@@ -338,18 +340,22 @@ Vue.component('game-interface', {
     
     // 切換開獎歷史顯示
     toggleHistory() {
-      if (!this.isDesktop) {
-        this.showHistory = !this.showHistory;
-        if (this.showHistory) this.showBetRecords = false;
-      }
+      this.showHistory = !this.showHistory;
+      // 確保不會同時顯示兩個模態窗口
+      if (this.showHistory) this.showBetRecords = false;
     },
     
     // 切換投注記錄顯示
     toggleBetRecords() {
-      if (!this.isDesktop) {
-        this.showBetRecords = !this.showBetRecords;
-        if (this.showBetRecords) this.showHistory = false;
-      }
+      this.showBetRecords = !this.showBetRecords;
+      // 確保不會同時顯示兩個模態窗口
+      if (this.showBetRecords) this.showHistory = false;
+    },
+    
+    // 關閉所有模態窗口
+    closeAllModals() {
+      this.showHistory = false;
+      this.showBetRecords = false;
     }
   }
 }); 

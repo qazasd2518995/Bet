@@ -355,4 +355,90 @@
   background-color: #383737;
   border-color: #5c5c5c;
   color: hsla(0,0%,100%,.75);
+}
+
+/* 歷史記錄按鈕樣式 */
+.history-buttons {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px;
+  gap: 10px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+.history-control-btn {
+  background-color: #0e6f3d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.history-control-btn:hover {
+  background-color: #0a5a30;
+}
+
+/* 模態覆蓋層 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+/* 歷史模態窗口 */
+.history-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  z-index: 101;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.draw-history, .bet-records {
+  width: 100%;
+  height: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background-color: white;
+}
+
+/* 確保歷史記錄標題始終可見 */
+.history-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* 在較小屏幕上調整樣式 */
+@media (max-width: 768px) {
+  .history-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .history-buttons {
+    top: 5px;
+    right: 5px;
+  }
+  
+  .history-control-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
 } 
