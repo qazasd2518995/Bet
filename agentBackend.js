@@ -816,13 +816,16 @@ app.get(`${API_PREFIX}/stats`, async (req, res) => {
   try {
     console.log('獲取儀表板統計API: 接收請求', req.query);
     
-    // 檢查登錄狀態
-    if (!req.session.agentId) {
-      console.log('獲取儀表板統計API: 未登錄');
-      return res.status(403).json({ success: false, message: '請先登錄' });
-    }
+    // 直接從查詢參數獲取agentId
+    const { agentId } = req.query;
     
-    const agentId = req.session.agentId;
+    if (!agentId) {
+      console.log('獲取儀表板統計API: 未提供agentId');
+      return res.json({
+        success: false,
+        message: '請提供代理ID'
+      });
+    }
     
     try {
       // 獲取代理統計數據
@@ -858,14 +861,16 @@ app.get(`${API_PREFIX}/members`, async (req, res) => {
   try {
     console.log('獲取會員列表API: 接收請求', req.query);
     
-    // 檢查登錄狀態
-    if (!req.session.agentId) {
-      console.log('獲取會員列表API: 未登錄');
-      return res.status(403).json({ success: false, message: '請先登錄' });
-    }
+    // 直接從查詢參數獲取agentId
+    const { agentId, status = '-1', page = 1, limit = 20 } = req.query;
     
-    const agentId = req.session.agentId;
-    const { status = '-1', page = 1, limit = 20 } = req.query;
+    if (!agentId) {
+      console.log('獲取會員列表API: 未提供agentId');
+      return res.json({
+        success: false,
+        message: '請提供代理ID'
+      });
+    }
     
     try {
       // 獲取會員列表
@@ -909,14 +914,8 @@ app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
   try {
     console.log('獲取下級代理API: 接收請求', req.query);
     
-    // 檢查登錄狀態
-    if (!req.session.agentId) {
-      console.log('獲取下級代理API: 未登錄');
-      return res.status(403).json({ success: false, message: '請先登錄' });
-    }
-    
-    const parentId = req.query.parentId || req.session.agentId;
-    const { level = '-1', status = '-1', page = 1, limit = 20 } = req.query;
+    // 直接從查詢參數獲取
+    const { parentId = '', level = '-1', status = '-1', page = 1, limit = 20 } = req.query;
     
     console.log(`獲取下級代理API: 接收請求 parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
     
