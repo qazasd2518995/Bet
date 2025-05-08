@@ -670,23 +670,112 @@ app.get(`${API_PREFIX}/stats`, async (req, res) => {
       });
     }
     
-    // 獲取代理統計
-    const agentStats = await AgentModel.getStats(agentId);
-    
     // 獲取今日交易統計
-    const transactionStats = await TransactionModel.getAgentTodayStats(agentId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const transactionStats = await db.one(`
+      SELECT COALESCE(SUM(ABS(amount)), 0) as total_amount, COUNT(*) as count 
+      FROM transactions 
+      WHERE user_type = 'member' AND 
+            EXISTS(SELECT 1 FROM members WHERE id = user_id AND agent_id = $1) AND
+            created_at >= $2
+    `, [agentId, today]);
+    
+    // 獲取會員數量
+    const memberCount = await db.one(`
+      SELECT COUNT(*) as count FROM members WHERE agent_id = $1
+    `, [agentId]);
     
     res.json({
       success: true,
       stats: {
-        totalMembers: agentStats.memberCount,
-        totalAmount: transactionStats.totalAmount,
-        totalTransactions: transactionStats.totalCount,
+        totalMembers: parseInt(memberCount.count),
+        totalAmount: parseFloat(transactionStats.total_amount),
+        totalTransactions: parseInt(transactionStats.count),
         commission: agent.commission_balance
       }
     });
   } catch (error) {
     console.error('獲取代理統計出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增獲取儀表板統計數據的API
+app.get('/api/stats', async (req, res) => {
+  try {
+    // 獲取所有代理
+    const agents = await db.one('SELECT COUNT(*) AS count FROM agents');
+    
+    // 獲取所有會員
+    const members = await db.one('SELECT COUNT(*) AS count FROM members');
+    
+    // 獲取今日交易總額
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const transactions = await db.one(`
+      SELECT COALESCE(SUM(ABS(amount)), 0) as total_amount, COUNT(*) as count 
+      FROM transactions 
+      WHERE created_at >= $1
+    `, [today]);
+    
+    // 獲取總佣金
+    const commission = await db.one(`
+      SELECT COALESCE(SUM(commission_balance), 0) as total 
+      FROM agents
+    `);
+    
+    res.json({
+      success: true,
+      stats: {
+        totalAgents: parseInt(agents.count),
+        totalMembers: parseInt(members.count),
+        totalAmount: parseFloat(transactions.total_amount),
+        totalTransactions: parseInt(transactions.count),
+        totalCommission: parseFloat(commission.total)
+      }
+    });
+  } catch (error) {
+    console.error('獲取儀表板統計數據出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 修復成員列表API
+app.get('/api/members', async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  
+  try {
+    // 獲取所有會員
+    const query = `
+      SELECT m.*, a.username as agent_username 
+      FROM members m
+      LEFT JOIN agents a ON m.agent_id = a.id
+      ORDER BY m.created_at DESC
+      LIMIT $1 OFFSET $2
+    `;
+    
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const members = await db.any(query, [limit, offset]);
+    
+    // 獲取總數
+    const totalCount = await db.one('SELECT COUNT(*) as count FROM members');
+    
+    res.json({
+      success: true,
+      members,
+      total: parseInt(totalCount.count)
+    });
+  } catch (error) {
+    console.error('獲取會員列表出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
@@ -859,15 +948,18 @@ app.put(`${API_PREFIX}/update-member-status`, async (req, res) => {
   }
 });
 
-// 會員登入驗證
+// 修復會員驗證端點
 app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
   const { username, password } = req.body;
+  
+  console.log('收到會員驗證請求:', { username, password: '***' });
   
   try {
     // 查詢會員
     const member = await MemberModel.findByUsername(username);
     
     if (!member) {
+      console.log(`會員 ${username} 不存在`);
       return res.json({
         success: false,
         message: '會員不存在'
@@ -876,6 +968,7 @@ app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
     
     // 檢查密碼
     if (member.password !== password) {
+      console.log(`會員 ${username} 密碼錯誤`);
       return res.json({
         success: false,
         message: '密碼錯誤'
@@ -884,11 +977,17 @@ app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
     
     // 檢查狀態
     if (member.status !== 1) {
+      console.log(`會員 ${username} 帳號已被禁用`);
       return res.json({
         success: false,
-        message: '會員帳號已被禁用'
+        message: '帳號已被禁用'
       });
     }
+    
+    // 獲取會員的代理
+    const agent = await AgentModel.findById(member.agent_id);
+    
+    console.log(`會員 ${username} 驗證成功`);
     
     res.json({
       success: true,
@@ -896,7 +995,11 @@ app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
         id: member.id,
         username: member.username,
         balance: member.balance,
-        status: member.status
+        status: member.status,
+        agent: agent ? {
+          id: agent.id,
+          username: agent.username
+        } : null
       }
     });
   } catch (error) {
