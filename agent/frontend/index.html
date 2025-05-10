@@ -716,46 +716,40 @@
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-striped">
+                                <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
                                             <th>期數</th>
+                                            <th>開獎號碼</th>
                                             <th>開獎時間</th>
-                                            <th>開獎結果</th>
-                                            <th>大小/單雙</th>
-                                            <th>冠亞和</th>
+                                            <th>冠亞軍</th>
                                             <th>龍虎</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="record in drawRecords" :key="record.period">
                                             <td>{{ record.period }}</td>
-                                            <td>{{ formatDate(record.time) }}</td>
                                             <td>
-                                                <div class="d-flex gap-1">
-                                                    <span v-for="(num, numIndex) in record.result" :key="numIndex" 
-                                                        class="draw-ball" :class="`ball-${num === 10 ? 10 : num}`">
-                                                        {{ num }}
+                                                <div class="d-flex">
+                                                    <span v-for="(num, index) in record.result || []" :key="index" 
+                                                          class="number-ball mx-1" 
+                                                          :class="{'bg-danger text-white': index === 0, 'bg-primary text-white': index === 9}">
+                                                        {{ num || '-' }}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div>冠軍: {{ record.result[0] > 5 ? '大' : '小' }} {{ record.result[0] % 2 === 0 ? '雙' : '單' }}</div>
-                                                <div>亞軍: {{ record.result[1] > 5 ? '大' : '小' }} {{ record.result[1] % 2 === 0 ? '雙' : '單' }}</div>
+                                            <td>{{ record.time ? formatDate(record.time) : 'N/A' }}</td>
+                                            <td v-if="record && record.result && record.result.length >= 2">
+                                                <div>冠: {{ record.result[0] > 5 ? '大' : '小' }} {{ record.result[0] % 2 === 0 ? '雙' : '單' }}</div>
+                                                <div>亞: {{ record.result[1] > 5 ? '大' : '小' }} {{ record.result[1] % 2 === 0 ? '雙' : '單' }}</div>
                                             </td>
+                                            <td v-else><span>-</span></td>
                                             <td>
-                                                {{ record.result[0] + record.result[1] }}
-                                                <span :class="{'text-danger': (record.result[0] + record.result[1]) > 11, 'text-primary': (record.result[0] + record.result[1]) <= 11}">
-                                                    ({{ (record.result[0] + record.result[1]) > 11 ? '大' : '小' }})
+                                                <span v-if="record && record.result && record.result.length >= 10" 
+                                                      :class="{'text-danger': record.result[0] > record.result[9], 'text-primary': record.result[0] < record.result[9]}">
+                                                    {{ getDragonTigerResult(record).value }}
                                                 </span>
-                                                <span :class="{'text-danger': (record.result[0] + record.result[1]) % 2 === 1, 'text-primary': (record.result[0] + record.result[1]) % 2 === 0}">
-                                                    ({{ (record.result[0] + record.result[1]) % 2 === 0 ? '雙' : '單' }})
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span :class="{'text-danger': record.result[0] > record.result[9], 'text-primary': record.result[0] < record.result[9]}">
-                                                    {{ record.result[0] > record.result[9] ? '龍' : '虎' }}
-                                                </span>
+                                                <span v-else>-</span>
                                             </td>
                                         </tr>
                                     </tbody>

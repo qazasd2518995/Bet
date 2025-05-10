@@ -22,6 +22,26 @@ async function safeApiCall(apiFunction, fallbackData = null, errorMessage = '操
     }
 }
 
+// 添加安全渲染輔助方法，防止undefined錯誤
+function safeAccess(obj, path, defaultValue = '') {
+    try {
+        const keys = path.split('.');
+        let current = obj;
+        
+        for (const key of keys) {
+            if (current === undefined || current === null) {
+                return defaultValue;
+            }
+            current = current[key];
+        }
+        
+        return current !== undefined && current !== null ? current : defaultValue;
+    } catch (e) {
+        console.error('安全存取錯誤:', e);
+        return defaultValue;
+    }
+}
+
 // Vue 應用實例
 const app = new Vue({
     el: '#app',
@@ -1087,13 +1107,23 @@ const app = new Vue({
                         
                         return await response.json();
                     },
-                    // 默認開獎記錄
+                    // 默認開獎記錄 - 確保結構與API一致
                     {
                         records: [
-                            { id: 1, period: '20250508001', numbers: [3, 5, 7, 8, 2, 1, 9, 10, 4, 6], createdAt: new Date().toISOString() },
-                            { id: 2, period: '20250508002', numbers: [8, 1, 4, 7, 3, 5, 10, 9, 2, 6], createdAt: new Date().toISOString() }
+                            { 
+                                period: "20250510001", 
+                                result: [3, 5, 7, 8, 2, 1, 9, 10, 4, 6], 
+                                time: new Date().toISOString() 
+                            },
+                            { 
+                                period: "20250510002", 
+                                result: [8, 1, 4, 7, 3, 5, 10, 9, 2, 6], 
+                                time: new Date().toISOString() 
+                            }
                         ],
-                        totalPages: 1
+                        totalPages: 1,
+                        currentPage: 1,
+                        totalRecords: 2
                     },
                     '獲取開獎記錄失敗'
                 );
@@ -1264,6 +1294,19 @@ const app = new Vue({
             };
             
             return positionMap[position] || position;
+        },
+        
+        // 安全獲取龍虎結果
+        getDragonTigerResult(record) {
+            if (!record || !record.result || !Array.isArray(record.result) || record.result.length < 10) {
+                return { isDragon: false, value: '數據錯誤' };
+            }
+            
+            const isDragon = record.result[0] > record.result[9];
+            return { 
+                isDragon: isDragon,
+                value: isDragon ? '龍' : '虎'
+            };
         },
     },
     

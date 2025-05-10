@@ -114,3 +114,104 @@
     background-position: right calc(0.375em + 0.1875rem) center;
     background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
 }
+
+/* 添加開獎球樣式 */
+.draw-ball {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    margin: 0 2px;
+}
+
+/* 新增開獎號碼球樣式 */
+.number-ball {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    color: #333;
+    font-weight: bold;
+    margin: 0 1px;
+    border: 1px solid #ccc;
+    font-size: 12px;
+}
+
+.number-ball.bg-danger {
+    border-color: #dc3545;
+}
+
+.number-ball.bg-primary {
+    border-color: #0d6efd;
+}
+
+/* 修改顏色與遊戲端實際顯示一致 */
+.ball-1 { background-color: #f8c300; }  /* 黃色 */
+.ball-2 { background-color: #0074d9; }  /* 藍色 */
+.ball-3 { background-color: #2ecc40; }  /* 綠色 */
+.ball-4 { background-color: #ff4136; }  /* 紅色 */
+.ball-5 { background-color: #b10dc9; }  /* 紫色 */
+.ball-6 { background-color: #ff851b; }  /* 橙色 */
+.ball-7 { background-color: #aaaaaa; }  /* 灰色 */
+.ball-8 { background-color: #395144; }  /* 深綠色 */
+.ball-9 { background-color: #3d1766; }  /* 深紫色 */
+.ball-10 { background-color: #000000; } /* 黑色 */
+.ball-0 { background-color: #000000; }  /* 黑色（用於10號球） */
+
+/* 投注類型標籤 */
+.bet-type-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.9em;
+    font-weight: bold;
+    border-radius: 0.25rem;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+}
+
+.bet-number { background-color: #17a2b8; color: white; } /* 號碼投注 */
+.bet-bs { background-color: #6c757d; color: white; }     /* 大小投注 */
+.bet-oe { background-color: #fd7e14; color: white; }     /* 單雙投注 */
+.bet-dt { background-color: #20c997; color: white; }     /* 龍虎投注 */
+.bet-sum { background-color: #6f42c1; color: white; }    /* 冠亞和投注 */
+
+/* 統計表格強調 */
+.stats-card {
+    transition: all 0.3s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* 投注記錄表格行樣式 */
+.bet-row-win {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.bet-row-lose {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+/* 移動適配 */
+@media (max-width: 768px) {
+    .draw-ball, .number-ball {
+        width: 25px;
+        height: 25px;
+        font-size: 0.8em;
+    }
+    
+    .bet-type-badge {
+        font-size: 0.8em;
+        padding: 0.2em 0.5em;
+    }
+}
