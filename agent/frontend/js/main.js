@@ -32,6 +32,7 @@ const app = new Vue({
         
         // 當前活動分頁
         activeTab: 'dashboard',
+        transactionTab: 'deposit',
         
         // 儀表板數據
         dashboardData: {
@@ -102,31 +103,82 @@ const app = new Vue({
         // 會員餘額調整相關
         showAdjustBalanceModal: false,
         balanceAdjustData: {
-            username: '',
-            id: '',
+            memberId: null,
+            memberUsername: '',
+            agentId: null,
             currentBalance: 0,
-            adjustType: 'increment',
             amount: 0,
-            comment: ''
+            description: ''
         },
+        transferType: 'deposit', // 轉移類型，默認為存入
+        transferAmount: 0, // 轉移金額，始終為正數
+        agentCurrentBalance: 0, // 當前代理餘額
         adjustBalanceModal: null,
+        
+        // 點數轉移記錄
+        pointTransfers: [],
+        
+        // 開獎記錄相關
+        drawRecords: [],
+        drawFilters: {
+            period: '',
+            date: ''
+        },
+        drawPagination: {
+            currentPage: 1,
+            totalPages: 1,
+            limit: 20
+        },
+        
+        // 添加下注記錄相關
+        bets: [],
+        betFilters: {
+            member: '',
+            date: '',
+            period: ''
+        },
+        betPagination: {
+            currentPage: 1,
+            totalPages: 1,
+            limit: 20
+        },
+        betStats: {
+            totalBets: 0,
+            totalAmount: 0,
+            totalProfit: 0
+        },
     },
     
     // 頁面載入時自動執行
-    mounted() {
-        // 檢查是否已登入
-        this.checkAuth();
+    async mounted() {
+        console.log('Vue應用已掛載');
         
-        // 如果已登入，獲取初始數據
+        // 檢查登入狀態
+        await this.checkAuth();
+        
+        // 獲取代理自身額度
+        if (this.isLoggedIn && this.user && this.user.id) {
+            try {
+                const response = await fetch(`/api/agent/agent-balance?agentId=${this.user.id}`);
+                const data = await response.json();
+                if (data.success) {
+                    this.user.balance = data.balance;
+                    console.log('代理當前額度:', this.user.balance);
+                }
+            } catch (error) {
+                console.error('獲取代理額度出錯:', error);
+            }
+        }
+        
+        // 如果已登入，初始化儀表板和圖表
         if (this.isLoggedIn) {
-            this.fetchDashboardData();
+            await this.fetchDashboardData();
+            this.initTransactionChart();
             this.fetchNotices();
         }
         
         // 初始化模態框
-        this.$nextTick(() => {
-            this.initModals();
-        });
+        this.initModals();
     },
     
     methods: {
@@ -185,7 +237,7 @@ const app = new Vue({
         },
         
         // 檢查身份驗證狀態
-        checkAuth() {
+        async checkAuth() {
             const token = localStorage.getItem('agent_token');
             const user = JSON.parse(localStorage.getItem('agent_user') || '{}');
             
@@ -223,8 +275,8 @@ const app = new Vue({
                     this.isLoggedIn = true;
                     
                     // 獲取初始數據
-                    this.fetchDashboardData();
-                    this.fetchNotices();
+                    await this.fetchDashboardData();
+                    await this.fetchNotices();
                     
                     this.showMessage('登入成功', 'success');
                 } else {
@@ -699,48 +751,60 @@ const app = new Vue({
         },
         
         // 切換會員狀態
-        async toggleMemberStatus(member) {
-            const newStatus = member.status === 1 ? 0 : 1;
-            const statusText = newStatus === 1 ? '啟用' : '停用';
-            
-            if (!confirm(`確定要${statusText}會員 ${member.username} 嗎？`)) {
-                return;
-            }
-            
+        async toggleMemberStatus(memberId, status) {
             try {
-                const response = await axios.put(`${API_BASE_URL}/update-member-status`, {
-                    id: member.id,
-                    status: newStatus
+                const newStatus = status === 1 ? 0 : 1;
+                const statusText = newStatus === 1 ? '啟用' : '停用';
+                
+                if (!confirm(`確定要${statusText}此會員嗎？`)) {
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/toggle-member-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        memberId,
+                        status: newStatus
+                    })
                 });
                 
-                if (response.data.success) {
-                    member.status = newStatus;
-                    this.showMessage(`已成功${statusText}會員`, 'success');
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.showMessage(`會員${statusText}成功`);
+                    this.fetchMembers();
                 } else {
-                    this.showMessage(response.data.message || `${statusText}會員失敗`, 'error');
+                    this.showMessage(`會員${statusText}失敗: ${result.message}`, 'error');
                 }
             } catch (error) {
-                this.showMessage(`${statusText}會員失敗`, 'error');
                 console.error('切換會員狀態錯誤:', error);
+                this.showMessage('操作失敗，請稍後再試', 'error');
             }
         },
         
-        // 分頁切換
+        // 切換頁面
         async changePage(page, type) {
+            if (page < 1) return;
+            
             if (type === 'agents') {
-                if (page < 1 || page > this.agentPagination.totalPages) {
-                    return;
-                }
-                
+                if (page > this.agentPagination.totalPages) return;
                 this.agentPagination.currentPage = page;
                 await this.fetchAgents();
             } else if (type === 'members') {
-                if (page < 1 || page > this.memberPagination.totalPages) {
-                    return;
-                }
-                
+                if (page > this.memberPagination.totalPages) return;
                 this.memberPagination.currentPage = page;
                 await this.fetchMembers();
+            } else if (type === 'draw') {
+                if (page > this.drawPagination.totalPages) return;
+                this.drawPagination.currentPage = page;
+                await this.loadDrawHistory();
+            } else if (type === 'bets') {
+                if (page > this.betPagination.totalPages) return;
+                this.betPagination.currentPage = page;
+                await this.fetchBets();
             }
         },
         
@@ -781,32 +845,31 @@ const app = new Vue({
             }
         },
         
-        // 顯示會員餘額調整模態框
+        // 調整會員餘額
         adjustMemberBalance(member) {
-            console.log('調整會員餘額:', member);
-            
-            // 初始化資料
+            // 清空之前的表單數據
             this.balanceAdjustData = {
-                username: member.username,
-                id: member.id,
+                memberId: member.id,
+                memberUsername: member.username,
+                agentId: this.user.id, // 使用當前代理ID
                 currentBalance: parseFloat(member.balance) || 0,
-                adjustType: 'increment',
                 amount: 0,
-                comment: ''
+                description: ''
             };
             
+            // 重置轉移類型和金額
+            this.transferType = 'deposit';
+            this.transferAmount = 0;
+            this.agentCurrentBalance = parseFloat(this.user.balance) || 0;
+            
             this.showAdjustBalanceModal = true;
-            this.$nextTick(() => {
-                // 確保模態框元素已經被渲染到DOM後再初始化和顯示
-                const modalEl = document.getElementById('adjustBalanceModal');
-                if (modalEl) {
-                    this.adjustBalanceModal = new bootstrap.Modal(modalEl);
-                    this.adjustBalanceModal.show();
-                } else {
-                    console.error('找不到餘額調整模態框元素');
-                    this.showMessage('系統錯誤，請稍後再試', 'error');
-                }
-            });
+            
+            // 初始化模態框
+            const modalEl = document.getElementById('adjustBalanceModal');
+            if (modalEl) {
+                this.adjustBalanceModal = new bootstrap.Modal(modalEl);
+                this.adjustBalanceModal.show();
+            }
         },
         
         // 隱藏會員餘額調整模態框
@@ -817,73 +880,321 @@ const app = new Vue({
             this.showAdjustBalanceModal = false;
         },
         
-        // 提交會員餘額調整
+        // 提交餘額調整
         async submitBalanceAdjustment() {
-            const { id, username, adjustType, amount, currentBalance, comment } = this.balanceAdjustData;
-            
-            if (!amount || amount <= 0) {
-                return this.showMessage('請輸入有效的金額', 'error');
-            }
-            
-            // 確認提交
-            if (!confirm(`確定要${adjustType === 'increment' ? '增加' : (adjustType === 'decrement' ? '減少' : '設置')}會員 ${username} 的餘額?`)) {
+            // 檢查餘額調整金額是否為零
+            if (parseFloat(this.transferAmount) <= 0) {
+                alert('請輸入大於零的轉移金額');
                 return;
             }
             
-            this.loading = true;
+            // 根據轉移類型設置金額的正負號
+            const finalAmount = this.transferType === 'deposit' ? 
+                parseFloat(this.transferAmount) : 
+                -parseFloat(this.transferAmount);
             
             try {
-                let apiUrl, apiData;
+                // 獲取代理的餘額
+                const agentResponse = await fetch(`/api/agent/agent-balance?agentId=${this.balanceAdjustData.agentId}`);
+                const agentData = await agentResponse.json();
                 
-                // 根據調整類型選擇不同的API和參數
-                if (adjustType === 'set') {
-                    apiUrl = `${API_BASE_URL}/set-member-balance`;
-                    apiData = {
-                        username,
-                        balance: parseFloat(amount)
-                    };
-                } else {
-                    apiUrl = `${API_BASE_URL}/update-member-balance`;
-                    let adjustAmount = parseFloat(amount);
-                    
-                    // 如果是減少餘額，轉換為負數
-                    if (adjustType === 'decrement') {
-                        adjustAmount = -adjustAmount;
-                    }
-                    
-                    apiData = {
-                        username,
-                        amount: adjustAmount,
-                        type: 'adjustment',
-                        comment: comment || '管理員手動調整'
-                    };
+                if (!agentData.success) {
+                    alert(`獲取代理餘額失敗: ${agentData.message}`);
+                    return;
                 }
                 
-                console.log('提交餘額調整:', apiData);
+                this.agentCurrentBalance = parseFloat(agentData.balance);
                 
-                const response = await axios.post(apiUrl, apiData);
+                // 檢查代理餘額是否足夠（如果是從代理轉移點數到會員）
+                if (this.transferType === 'deposit' && 
+                    this.agentCurrentBalance < parseFloat(this.transferAmount)) {
+                    alert(`代理餘額不足，當前餘額: ${this.formatMoney(this.agentCurrentBalance)}`);
+                    return;
+                }
                 
-                if (response.data.success) {
-                    this.showMessage('會員餘額調整成功', 'success');
+                // 檢查會員餘額是否足夠（如果是從會員提領點數到代理）
+                if (this.transferType === 'withdraw' && 
+                    this.balanceAdjustData.currentBalance < parseFloat(this.transferAmount)) {
+                    alert(`會員餘額不足，當前餘額: ${this.formatMoney(this.balanceAdjustData.currentBalance)}`);
+                    return;
+                }
+                
+                // 發送點數轉移請求
+                const response = await fetch('/api/agent/update-member-balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        agentId: this.balanceAdjustData.agentId,
+                        username: this.balanceAdjustData.memberUsername,
+                        amount: finalAmount,
+                        description: this.balanceAdjustData.description || 
+                                   (this.transferType === 'deposit' ? 
+                                    '代理存入點數給會員' : '會員提領點數給代理')
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('點數轉移成功');
                     this.hideAdjustBalanceModal();
-                    
-                    // 重新獲取會員列表以更新餘額
-                    await this.fetchMembers();
+                    // 更新代理餘額
+                    this.user.balance = result.agentBalance;
+                    // 重新載入會員清單
+                    this.fetchMembers();
                 } else {
-                    this.showMessage(response.data.message || '調整餘額失敗', 'error');
+                    alert(`點數轉移失敗: ${result.message}`);
                 }
             } catch (error) {
-                console.error('調整會員餘額錯誤:', error);
-                this.showMessage(error.response?.data?.message || '調整餘額失敗，請稍後再試', 'error');
+                console.error('點數轉移出錯:', error);
+                alert('系統錯誤，請稍後再試');
+            }
+        },
+        
+        // 加載點數轉移記錄
+        async loadPointTransfers() {
+            try {
+                const response = await fetch(`/api/agent/point-transfers?userType=agent&userId=${this.user.id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.pointTransfers = data.transfers;
+                } else {
+                    console.error('載入點數轉移記錄失敗:', data.message);
+                }
+            } catch (error) {
+                console.error('載入點數轉移記錄出錯:', error);
+            }
+        },
+        
+        // 格式化點數轉移類型
+        formatTransferType(transfer) {
+            if (transfer.from_type === 'agent' && transfer.to_type === 'member') {
+                return '轉出給會員';
+            } else if (transfer.from_type === 'member' && transfer.to_type === 'agent') {
+                return '會員轉入';
+            } else {
+                return '其他轉移';
+            }
+        },
+        
+        // 格式化轉移方向的中文顯示
+        formatTransferDirection(transfer) {
+            let fromType = transfer.from_type === 'agent' ? '代理' : '會員';
+            let toType = transfer.to_type === 'agent' ? '代理' : '會員';
+            
+            return `${fromType} (${transfer.from_id}) → ${toType} (${transfer.to_id})`;
+        },
+        
+        // 計算轉移後會員餘額
+        calculateFinalMemberBalance() {
+            const currentBalance = parseFloat(this.balanceAdjustData.currentBalance) || 0;
+            const amount = parseFloat(this.transferAmount) || 0;
+            
+            if (this.transferType === 'deposit') {
+                return currentBalance + amount;
+            } else {
+                return currentBalance - amount;
+            }
+        },
+        
+        // 計算轉移後代理餘額
+        calculateFinalAgentBalance() {
+            const currentBalance = this.agentCurrentBalance || 0;
+            const amount = parseFloat(this.transferAmount) || 0;
+            
+            if (this.transferType === 'deposit') {
+                return currentBalance - amount;
+            } else {
+                return currentBalance + amount;
+            }
+        },
+        
+        // 載入開獎記錄
+        async loadDrawHistory() {
+            try {
+                this.loading = true;
+                const response = await fetch(`${API_BASE_URL}/draw-history?page=${this.drawPagination.currentPage}&limit=${this.drawPagination.limit}&period=${this.drawFilters.period || ''}&date=${this.drawFilters.date || ''}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.drawRecords = result.records || [];
+                    // 更新總頁數（使用後端返回的總頁數）
+                    if (result.totalPages) {
+                        this.drawPagination.totalPages = result.totalPages;
+                    } else {
+                        this.drawPagination.totalPages = Math.ceil(this.drawRecords.length / this.drawPagination.limit) || 1;
+                    }
+                } else {
+                    this.showMessage(result.message || '獲取開獎記錄失敗', 'error');
+                    this.drawRecords = [];
+                }
+            } catch (error) {
+                console.error('獲取開獎記錄出錯:', error);
+                this.showMessage('系統錯誤，請稍後再試', 'error');
+                this.drawRecords = [];
             } finally {
                 this.loading = false;
             }
+        },
+        
+        // 搜索開獎記錄
+        async searchDrawHistory() {
+            this.drawPagination.currentPage = 1;
+            await this.loadDrawHistory();
+        },
+        
+        // 搜索今日開獎記錄
+        async searchTodayDrawHistory() {
+            this.drawPagination.currentPage = 1;
+            // 獲取今天的日期，並格式化為 YYYY-MM-DD 格式
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            this.drawFilters.date = `${year}-${month}-${day}`;
+            this.drawFilters.period = ''; // 清除期數篩選
+            await this.loadDrawHistory();
+        },
+        
+        // 產生分頁範圍
+        getPageRange(currentPage, totalPages) {
+            const range = [];
+            const maxVisible = 5; // 最多顯示幾個頁碼
+            
+            let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+            
+            for (let i = start; i <= end; i++) {
+                range.push(i);
+            }
+            
+            return range;
+        },
+        
+        // 搜索下注記錄
+        async searchBets() {
+            this.betPagination.currentPage = 1;
+            await this.fetchBets();
+        },
+        
+        // 獲取下注記錄
+        async fetchBets() {
+            this.loading = true;
+            try {
+                // 構建查詢參數
+                const params = new URLSearchParams();
+                params.append('page', this.betPagination.currentPage);
+                params.append('limit', this.betPagination.limit);
+                
+                if (this.betFilters.member) {
+                    params.append('username', this.betFilters.member);
+                }
+                
+                if (this.betFilters.date) {
+                    params.append('date', this.betFilters.date);
+                }
+                
+                if (this.betFilters.period) {
+                    params.append('period', this.betFilters.period);
+                }
+                
+                // 添加代理ID參數，確保只查看自己的下線會員
+                params.append('agentId', this.user.id);
+                
+                const response = await fetch(`${API_BASE_URL}/bets?${params.toString()}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.bets = data.bets;
+                    this.betPagination.totalPages = Math.ceil(data.total / this.betPagination.limit) || 1;
+                    this.betStats = data.stats || {
+                        totalBets: 0,
+                        totalAmount: 0,
+                        totalProfit: 0
+                    };
+                } else {
+                    this.showMessage(data.message || '獲取下注記錄失敗', 'error');
+                }
+            } catch (error) {
+                console.error('獲取下注記錄失敗:', error);
+                this.showMessage('獲取下注記錄失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 格式化投注類型
+        formatBetType(type) {
+            const betTypeMap = {
+                'champion_number': '冠軍號碼',
+                'champion_bs': '冠軍大小',
+                'champion_oe': '冠軍單雙',
+                'runnerup_number': '亞軍號碼',
+                'runnerup_bs': '亞軍大小',
+                'runnerup_oe': '亞軍單雙',
+                'sum_value': '冠亞和值',
+                'sum_bs': '冠亞和大小',
+                'sum_oe': '冠亞和單雙',
+                'dragon_tiger': '龍虎'
+            };
+            
+            return betTypeMap[type] || type;
+        },
+        
+        // 格式化投注位置
+        formatPosition(position) {
+            const positionMap = {
+                'first': '冠軍',
+                'second': '亞軍',
+                'third': '第三名',
+                'fourth': '第四名',
+                'fifth': '第五名',
+                'sixth': '第六名',
+                'seventh': '第七名',
+                'eighth': '第八名',
+                'ninth': '第九名',
+                'tenth': '第十名',
+                'champion': '冠軍',
+                'runnerup': '亞軍',
+                'sum': '冠亞和',
+                'dragon_tiger': '龍虎'
+            };
+            
+            return positionMap[position] || position;
         },
     },
     
     // 計算屬性
     computed: {
         // 可根據需求添加更多計算屬性
+        
+        // 檢查轉移是否有效
+        isValidTransfer() {
+            if (parseFloat(this.transferAmount) <= 0) {
+                return false;
+            }
+            
+            if (this.transferType === 'deposit') {
+                return this.agentCurrentBalance >= parseFloat(this.transferAmount);
+            } else if (this.transferType === 'withdraw') {
+                return this.balanceAdjustData.currentBalance >= parseFloat(this.transferAmount);
+            }
+            
+            return false;
+        }
     },
     
     // 監聽屬性
@@ -898,6 +1209,21 @@ const app = new Vue({
                 this.fetchNotices();
             } else if (newTab === 'members' && (oldTab !== 'members' || this.members.length === 0)) {
                 this.fetchMembers();
+            } else if (newTab === 'transactions') {
+                if (this.transactionTab === 'transfers') {
+                    this.loadPointTransfers();
+                }
+            } else if (newTab === 'draw') {
+                this.loadDrawHistory();
+            } else if (newTab === 'stats' && oldTab !== 'stats') {
+                this.fetchBets();
+            }
+        },
+        
+        // 監聽交易記錄標籤變化
+        transactionTab(newTab) {
+            if (newTab === 'transfers') {
+                this.loadPointTransfers();
             }
         }
     }
