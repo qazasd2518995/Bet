@@ -7,10 +7,10 @@ let API_BASE_URL;
 
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     // 本地開發環境
-    API_BASE_URL = '/api';
+    API_BASE_URL = '/api/agent';
 } else {
     // Render 生產環境 - 不使用端口號，讓Render處理路由
-    API_BASE_URL = 'https://bet-agent.onrender.com/api';
+    API_BASE_URL = 'https://bet-agent.onrender.com/api/agent';
 }
 
 // 添加調試信息
@@ -187,7 +187,7 @@ const app = new Vue({
             // 獲取代理自身額度
             if (this.isLoggedIn && this.user && this.user.id) {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/agents/balance?agentId=${this.user.id}`);
+                    const response = await fetch(`${API_BASE_URL}/balance?id=${this.user.id}`);
                     if (!response.ok) {
                         console.error('獲取代理額度HTTP錯誤:', response.status);
                         throw new Error(`HTTP錯誤: ${response.status}`);
@@ -301,7 +301,7 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.post(`${API_BASE_URL}/agents/login`, this.loginForm);
+                const response = await axios.post(`${API_BASE_URL}/login`, this.loginForm);
                 
                 if (response.data.success) {
                     // 保存用戶資訊和 token
@@ -358,8 +358,8 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.get(`${API_BASE_URL}/agents/stats`, {
-                    params: { agentId: this.user.id }
+                const response = await axios.get(`${API_BASE_URL}/stats`, {
+                    params: { id: this.user.id }
                 });
                 
                 if (response.data.success) {
@@ -453,9 +453,11 @@ const app = new Vue({
         // 檢查API狀態
         async checkApiStatus() {
             try {
-                console.log('開始API連接測試，使用URL:', `${API_BASE_URL}/health`);
+                // 使用根路徑的health端點
+                const healthUrl = 'https://bet-agent.onrender.com/api/health';
+                console.log('開始API連接測試，使用URL:', healthUrl);
                 
-                const response = await fetch(`${API_BASE_URL}/health`, {
+                const response = await fetch(healthUrl, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -556,7 +558,7 @@ const app = new Vue({
                 if (this.agentFilters.keyword) params.append('keyword', this.agentFilters.keyword);
                 params.append('parentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/agents?${params.toString()}`;
+                const url = `${API_BASE_URL}/sub-agents?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
