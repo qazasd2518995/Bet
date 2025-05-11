@@ -9,8 +9,8 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     // 本地開發環境
     API_BASE_URL = '/api/agent';
 } else {
-    // Render 生產環境 - 使用完整URL含端口10000
-    API_BASE_URL = 'https://bet-agent.onrender.com:10000/api';
+    // Render 生產環境 - 不使用端口號，讓Render處理路由
+    API_BASE_URL = 'https://bet-agent.onrender.com/api';
 }
 
 // 添加調試信息
