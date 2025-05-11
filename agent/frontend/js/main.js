@@ -5,7 +5,7 @@
 // API 基礎 URL - 根據部署環境自動調整
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
     ? '/api/agent'  // 本地開發環境
-    : '/api/agent'; // 生產環境 (Render)
+    : '/api';       // 生產環境 (Render) - 移除額外的 /agent 前綴
 
 // 添加調試信息來確認 API URL
 console.log('當前API基礎URL:', API_BASE_URL, '主機名:', window.location.hostname);
@@ -13,12 +13,22 @@ console.log('當前API基礎URL:', API_BASE_URL, '主機名:', window.location.h
 // API請求統一處理函數
 async function safeApiCall(apiFunction, fallbackData = null, errorMessage = '操作失敗') {
     try {
-        return await apiFunction();
+        const result = await apiFunction();
+        if (!result.success && !result.status) {
+            console.error(`API響應錯誤: ${errorMessage}`, result);
+            throw new Error('API響應格式錯誤');
+        }
+        return result;
     } catch (error) {
         console.error(`API請求錯誤: ${errorMessage}`, error);
-        // 顯示較友好的錯誤訊息，但不阻礙使用者體驗
-        // alert(`${errorMessage}，將顯示模擬數據`);
-        return { success: false, data: fallbackData, message: errorMessage };
+        
+        // 在生產環境中，顯示友好的錯誤訊息給用戶
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            alert(`${errorMessage}，請稍後再試或聯繫管理員`);
+        }
+        
+        // 不使用模擬數據，而是直接拋出錯誤
+        throw error;
     }
 }
 
@@ -190,36 +200,38 @@ const app = new Vue({
     async mounted() {
         console.log('Vue應用已掛載');
         
-        // 檢查登入狀態
-        await this.checkAuth();
-        
-        // 獲取代理自身額度
-        if (this.isLoggedIn && this.user && this.user.id) {
-            const result = await safeApiCall(
-                async () => {
+        try {
+            // 檢查登入狀態
+            await this.checkAuth();
+            
+            // 獲取代理自身額度
+            if (this.isLoggedIn && this.user && this.user.id) {
+                try {
                     const response = await fetch(`${API_BASE_URL}/agent-balance?agentId=${this.user.id}`);
                     if (!response.ok) throw new Error(`HTTP錯誤: ${response.status}`);
-                    return await response.json();
-                },
-                { balance: 100000 }, // 默認數據
-                '獲取代理額度失敗'
-            );
-            
-            if (result.success) {
-                this.user.balance = result.balance;
-                console.log('代理當前額度:', this.user.balance);
-            } else {
-                // 使用默認數據
-                this.user.balance = result.data.balance;
-                console.log('使用模擬代理額度:', this.user.balance);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.user.balance = data.balance;
+                        console.log('代理當前額度:', this.user.balance);
+                    } else {
+                        console.error('獲取代理額度失敗:', data.message);
+                        alert('獲取代理額度失敗: ' + (data.message || '未知錯誤'));
+                    }
+                } catch (error) {
+                    console.error('獲取代理額度出錯:', error);
+                    alert('獲取代理額度失敗，請檢查網絡連接或聯繫管理員');
+                }
             }
-        }
-        
-        // 如果已登入，初始化儀表板和圖表
-        if (this.isLoggedIn) {
-            await this.fetchDashboardData();
-            this.initTransactionChart();
-            this.fetchNotices();
+            
+            // 如果已登入，初始化儀表板和圖表
+            if (this.isLoggedIn) {
+                await this.fetchDashboardData();
+                this.initTransactionChart();
+                this.fetchNotices();
+            }
+        } catch (error) {
+            console.error('Vue掛載期間出錯:', error);
         }
         
         // 初始化模態框
@@ -292,7 +304,9 @@ const app = new Vue({
                 
                 // 設置 axios 身份驗證頭
                 axios.defaults.headers.common['Authorization'] = token;
+                return true;
             }
+            return false;
         },
         
         // 登入方法
@@ -358,47 +372,45 @@ const app = new Vue({
         
         // 獲取儀表板數據
         async fetchDashboardData() {
-            const result = await safeApiCall(
-                async () => {
-                    const response = await axios.get(`${API_BASE_URL}/stats`, {
-                        params: { agentId: this.user.id }
+            this.loading = true;
+            
+            try {
+                const response = await axios.get(`${API_BASE_URL}/stats`, {
+                    params: { agentId: this.user.id }
+                });
+                
+                if (response.data.success) {
+                    // 使用data屬性而非stats屬性
+                    const data = response.data.data;
+                    
+                    if (!data) {
+                        console.error('獲取儀表板數據錯誤: 返回數據格式異常', response.data);
+                        this.showMessage('獲取數據失敗，數據格式異常', 'error');
+                        return;
+                    }
+                    
+                    this.dashboardData = {
+                        totalAgents: this.user.level === 0 ? (data.agentCount || 10) : 0,
+                        totalMembers: data.memberCount || 0,
+                        todayTransactions: (data.totalDeposit || 0) + (data.totalWithdraw || 0),
+                        monthlyCommission: data.totalRevenue || 0
+                    };
+                    
+                    // 初始化交易圖表
+                    this.$nextTick(() => {
+                        this.initTransactionChart();
                     });
-                    return response.data;
-                },
-                // 默認數據
-                { 
-                    memberCount: 50,
-                    totalDeposit: 50000, 
-                    totalWithdraw: 30000,
-                    totalRevenue: 10000
-                },
-                '獲取儀表板數據失敗'
-            );
-            
-            if (result.success && result.data) {
-                const data = result.data;
-                this.dashboardData = {
-                    totalAgents: this.user.level === 0 ? 10 : 0,
-                    totalMembers: data.memberCount || 0,
-                    todayTransactions: (data.totalDeposit || 0) + (data.totalWithdraw || 0),
-                    monthlyCommission: data.totalRevenue || 0
-                };
-            } else {
-                // 使用默認數據
-                const fallbackData = result.data;
-                this.dashboardData = {
-                    totalAgents: this.user.level === 0 ? 10 : 0,
-                    totalMembers: fallbackData.memberCount || 0,
-                    todayTransactions: (fallbackData.totalDeposit || 0) + (fallbackData.totalWithdraw || 0),
-                    monthlyCommission: fallbackData.totalRevenue || 0
-                };
-                console.log('使用模擬儀表板數據');
+                } else {
+                    // 處理成功但返回失敗的情況
+                    console.error('獲取儀表板數據錯誤: API返回失敗', response.data);
+                    this.showMessage(response.data.message || '獲取數據失敗，請稍後再試', 'error');
+                }
+            } catch (error) {
+                console.error('獲取儀表板數據錯誤:', error);
+                this.showMessage('獲取數據失敗，請檢查網絡連接', 'error');
+            } finally {
+                this.loading = false;
             }
-            
-            // 初始化交易圖表
-            this.$nextTick(() => {
-                this.initTransactionChart();
-            });
         },
         
         // 初始化交易趨勢圖表
@@ -457,25 +469,18 @@ const app = new Vue({
         
         // 獲取系統公告
         async fetchNotices() {
-            const result = await safeApiCall(
-                async () => {
-                    const response = await axios.get(`${API_BASE_URL}/notices`);
-                    return response.data;
-                },
-                // 默認公告數據
-                [
-                    { id: 1, title: '系統維護通知', content: '系統將於2025年5月20日進行維護升級，期間服務可能不穩定。', createdAt: new Date().toISOString() },
-                    { id: 2, title: '佣金調整公告', content: '從2025年6月起，佣金比例將調整為最高25%，請各代理留意。', createdAt: new Date().toISOString() }
-                ],
-                '獲取系統公告失敗'
-            );
-            
-            if (result.success) {
-                this.notices = result.notices;
-            } else {
-                // 使用默認數據
-                this.notices = result.data;
-                console.log('使用模擬系統公告數據');
+            try {
+                const response = await axios.get(`${API_BASE_URL}/notices`);
+                
+                if (response.data.success) {
+                    this.notices = response.data.notices;
+                } else {
+                    console.error('獲取系統公告失敗:', response.data.message);
+                    this.showMessage('獲取系統公告失敗', 'error');
+                }
+            } catch (error) {
+                console.error('獲取系統公告錯誤:', error);
+                this.showMessage('獲取系統公告失敗，請檢查網絡連接', 'error');
             }
         },
         
@@ -489,44 +494,38 @@ const app = new Vue({
         async fetchAgents() {
             this.loading = true;
             
-            const result = await safeApiCall(
-                async () => {
-                    const response = await axios.get(`${API_BASE_URL}/sub-agents`, {
-                        params: {
-                            parentId: this.user.level === 0 ? '' : this.user.id,
-                            level: this.agentFilters.level,
-                            status: this.agentFilters.status,
-                            keyword: this.agentFilters.keyword,
-                            page: this.agentPagination.currentPage,
-                            limit: this.agentPagination.limit
-                        }
-                    });
-                    return response.data;
-                },
-                // 默認代理數據
-                { 
-                    agents: [
-                        { id: 101, username: '測試代理1', level: 1, status: 1, balance: 50000, commission_rate: 0.2, createdAt: new Date().toISOString() },
-                        { id: 102, username: '測試代理2', level: 1, status: 1, balance: 30000, commission_rate: 0.2, createdAt: new Date().toISOString() }
-                    ],
-                    total: 2
-                },
-                '獲取代理列表失敗'
-            );
-            
-            this.loading = false;
-            
-            if (result.success) {
-                this.agents = result.agents;
+            try {
+                const response = await axios.get(`${API_BASE_URL}/sub-agents`, {
+                    params: {
+                        parentId: this.user.level === 0 ? '' : this.user.id,
+                        level: this.agentFilters.level,
+                        status: this.agentFilters.status,
+                        keyword: this.agentFilters.keyword,
+                        page: this.agentPagination.currentPage,
+                        limit: this.agentPagination.limit
+                    }
+                });
                 
-                // 計算總頁數
-                const total = result.total;
-                this.agentPagination.totalPages = Math.ceil(total / this.agentPagination.limit);
-            } else {
-                // 使用默認數據
-                this.agents = result.data.agents;
-                this.agentPagination.totalPages = Math.ceil(result.data.total / this.agentPagination.limit);
-                console.log('使用模擬代理列表數據');
+                if (response.data.success) {
+                    // 檢查數據結構，兼容不同的API返回格式
+                    if (response.data.agents) {
+                        this.agents = response.data.agents;
+                        this.agentPagination.totalPages = Math.ceil(response.data.total / this.agentPagination.limit);
+                    } else if (response.data.data && response.data.data.list) {
+                        this.agents = response.data.data.list;
+                        this.agentPagination.totalPages = Math.ceil(response.data.data.total / this.agentPagination.limit);
+                    } else {
+                        console.error('代理數據格式異常:', response.data);
+                        this.showMessage('獲取代理列表失敗，數據格式異常', 'error');
+                    }
+                } else {
+                    this.showMessage(response.data.message || '獲取代理列表失敗', 'error');
+                }
+            } catch (error) {
+                console.error('獲取代理列表錯誤:', error);
+                this.showMessage('獲取代理列表失敗，請檢查網絡連接', 'error');
+            } finally {
+                this.loading = false;
             }
         },
         
@@ -735,17 +734,24 @@ const app = new Vue({
                         this.memberPagination.totalPages = Math.ceil(total / this.memberPagination.limit);
                         
                         console.log(`成功獲取 ${this.members.length} 位會員，總計 ${total} 位`);
+                    } else if (response.data.members) {
+                        // 兼容另一種API返回格式
+                        this.members = response.data.members;
+                        const total = response.data.total || this.members.length;
+                        this.memberPagination.totalPages = Math.ceil(total / this.memberPagination.limit);
+                        console.log(`成功獲取 ${this.members.length} 位會員，總計 ${total} 位`);
                     } else {
                         console.error('會員列表數據格式異常:', response.data);
                         this.members = [];
                         this.memberPagination.totalPages = 1;
+                        this.showMessage('獲取會員列表失敗，數據格式異常', 'error');
                     }
                 } else {
                     this.showMessage(response.data.message || '獲取會員列表失敗', 'error');
                 }
             } catch (error) {
                 console.error('獲取會員列表錯誤:', error);
-                this.showMessage('獲取會員列表失敗', 'error');
+                this.showMessage('獲取會員列表失敗，請檢查網絡連接', 'error');
             } finally {
                 this.loading = false;
             }
@@ -1089,44 +1095,21 @@ const app = new Vue({
         
         // 載入開獎記錄
         async loadDrawHistory() {
+            this.loading = true;
+            
             try {
-                this.loading = true;
+                const response = await fetch(`${API_BASE_URL}/draw-history?page=${this.drawPagination.currentPage}&limit=${this.drawPagination.limit}&period=${this.drawFilters.period || ''}&date=${this.drawFilters.date || ''}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
                 
-                const result = await safeApiCall(
-                    async () => {
-                        const response = await fetch(`${API_BASE_URL}/draw-history?page=${this.drawPagination.currentPage}&limit=${this.drawPagination.limit}&period=${this.drawFilters.period || ''}&date=${this.drawFilters.date || ''}`, {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error(`HTTP錯誤 ${response.status}`);
-                        }
-                        
-                        return await response.json();
-                    },
-                    // 默認開獎記錄 - 確保結構與API一致
-                    {
-                        records: [
-                            { 
-                                period: "20250510001", 
-                                result: [3, 5, 7, 8, 2, 1, 9, 10, 4, 6], 
-                                time: new Date().toISOString() 
-                            },
-                            { 
-                                period: "20250510002", 
-                                result: [8, 1, 4, 7, 3, 5, 10, 9, 2, 6], 
-                                time: new Date().toISOString() 
-                            }
-                        ],
-                        totalPages: 1,
-                        currentPage: 1,
-                        totalRecords: 2
-                    },
-                    '獲取開獎記錄失敗'
-                );
+                if (!response.ok) {
+                    throw new Error(`HTTP錯誤 ${response.status}`);
+                }
+                
+                const result = await response.json();
                 
                 if (result.success) {
                     this.drawRecords = result.records || [];
@@ -1137,11 +1120,13 @@ const app = new Vue({
                         this.drawPagination.totalPages = Math.ceil(this.drawRecords.length / this.drawPagination.limit) || 1;
                     }
                 } else {
-                    // 使用默認數據
-                    this.drawRecords = result.data.records;
-                    this.drawPagination.totalPages = result.data.totalPages || 1;
-                    console.log('使用模擬開獎記錄數據');
+                    this.showMessage(result.message || '獲取開獎記錄失敗', 'error');
+                    this.drawRecords = [];
                 }
+            } catch (error) {
+                console.error('獲取開獎記錄出錯:', error);
+                this.showMessage('獲取開獎記錄失敗，請檢查網絡連接', 'error');
+                this.drawRecords = [];
             } finally {
                 this.loading = false;
             }
@@ -1195,64 +1180,51 @@ const app = new Vue({
         async fetchBets() {
             this.loading = true;
             
-            const result = await safeApiCall(
-                async () => {
-                    // 構建查詢參數
-                    const params = new URLSearchParams();
-                    params.append('page', this.betPagination.currentPage);
-                    params.append('limit', this.betPagination.limit);
-                    
-                    if (this.betFilters.member) {
-                        params.append('username', this.betFilters.member);
-                    }
-                    
-                    if (this.betFilters.date) {
-                        params.append('date', this.betFilters.date);
-                    }
-                    
-                    if (this.betFilters.period) {
-                        params.append('period', this.betFilters.period);
-                    }
-                    
-                    // 添加代理ID參數，確保只查看自己的下線會員
-                    params.append('agentId', this.user.id);
-                    
-                    const response = await fetch(`${API_BASE_URL}/bets?${params.toString()}`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP錯誤 ${response.status}`);
-                    }
-                    
-                    return await response.json();
-                },
-                // 默認下注記錄
-                {
-                    bets: [
-                        { id: 1, username: 'test_user1', period: '20250508001', bet_type: 'champion_number', position: 'first', selection: '3', amount: 100, payout: 950, createdAt: new Date().toISOString() },
-                        { id: 2, username: 'test_user2', period: '20250508001', bet_type: 'sum_bs', position: 'sum', selection: 'big', amount: 200, payout: 380, createdAt: new Date().toISOString() }
-                    ],
-                    total: 2,
-                    stats: { totalBets: 2, totalAmount: 300, totalProfit: 70 }
-                },
-                '獲取下注記錄失敗'
-            );
-            
-            this.loading = false;
-            
-            if (result.success) {
-                this.bets = result.bets;
-                this.betPagination.totalPages = Math.ceil(result.total / this.betPagination.limit) || 1;
-                this.betStats = result.stats || {
-                    totalBets: 0,
-                    totalAmount: 0,
-                    totalProfit: 0
-                };
-            } else {
-                // 使用默認數據
-                this.bets = result.data.bets;
-                this.betPagination.totalPages = Math.ceil(result.data.total / this.betPagination.limit) || 1;
-                this.betStats = result.data.stats;
-                console.log('使用模擬下注記錄數據');
+            try {
+                // 構建查詢參數
+                const params = new URLSearchParams();
+                params.append('page', this.betPagination.currentPage);
+                params.append('limit', this.betPagination.limit);
+                
+                if (this.betFilters.member) {
+                    params.append('username', this.betFilters.member);
+                }
+                
+                if (this.betFilters.date) {
+                    params.append('date', this.betFilters.date);
+                }
+                
+                if (this.betFilters.period) {
+                    params.append('period', this.betFilters.period);
+                }
+                
+                // 添加代理ID參數，確保只查看自己的下線會員
+                params.append('agentId', this.user.id);
+                
+                const response = await fetch(`${API_BASE_URL}/bets?${params.toString()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP錯誤 ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.bets = data.bets;
+                    this.betPagination.totalPages = Math.ceil(data.total / this.betPagination.limit) || 1;
+                    this.betStats = data.stats || {
+                        totalBets: 0,
+                        totalAmount: 0,
+                        totalProfit: 0
+                    };
+                } else {
+                    this.showMessage(data.message || '獲取下注記錄失敗', 'error');
+                }
+            } catch (error) {
+                console.error('獲取下注記錄失敗:', error);
+                this.showMessage('獲取下注記錄失敗，請檢查網絡連接', 'error');
+            } finally {
+                this.loading = false;
             }
         },
         
