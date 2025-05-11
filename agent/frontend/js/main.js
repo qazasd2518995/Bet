@@ -187,7 +187,9 @@ const app = new Vue({
             // 獲取代理自身額度
             if (this.isLoggedIn && this.user && this.user.id) {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/balance?id=${this.user.id}`);
+                    // 測試不同可能的API路徑格式
+                    console.log('嘗試獲取代理餘額，代理ID:', this.user.id);
+                    const response = await fetch(`${API_BASE_URL}/agent-balance?agentId=${this.user.id}`);
                     if (!response.ok) {
                         console.error('獲取代理額度HTTP錯誤:', response.status);
                         throw new Error(`HTTP錯誤: ${response.status}`);
@@ -358,8 +360,9 @@ const app = new Vue({
             this.loading = true;
             
             try {
+                console.log('嘗試獲取儀表板數據，代理ID:', this.user.id);
                 const response = await axios.get(`${API_BASE_URL}/stats`, {
-                    params: { id: this.user.id }
+                    params: { agentId: this.user.id }
                 });
                 
                 if (response.data.success) {
