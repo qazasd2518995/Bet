@@ -7,7 +7,7 @@ let API_BASE_URL;
 
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     // 本地開發環境
-    API_BASE_URL = '/api/agent';
+    API_BASE_URL = '/api';
 } else {
     // Render 生產環境 - 不使用端口號，讓Render處理路由
     API_BASE_URL = 'https://bet-agent.onrender.com/api';
@@ -187,7 +187,7 @@ const app = new Vue({
             // 獲取代理自身額度
             if (this.isLoggedIn && this.user && this.user.id) {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/agent-balance?agentId=${this.user.id}`);
+                    const response = await fetch(`${API_BASE_URL}/agent/balance?id=${this.user.id}`);
                     if (!response.ok) {
                         console.error('獲取代理額度HTTP錯誤:', response.status);
                         throw new Error(`HTTP錯誤: ${response.status}`);
@@ -301,7 +301,7 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.post(`${API_BASE_URL}/login`, this.loginForm);
+                const response = await axios.post(`${API_BASE_URL}/agent/login`, this.loginForm);
                 
                 if (response.data.success) {
                     // 保存用戶資訊和 token
@@ -358,8 +358,8 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.get(`${API_BASE_URL}/stats`, {
-                    params: { agentId: this.user.id }
+                const response = await axios.get(`${API_BASE_URL}/agent/stats`, {
+                    params: { id: this.user.id }
                 });
                 
                 if (response.data.success) {
@@ -524,7 +524,7 @@ const app = new Vue({
         async fetchNotices() {
             try {
                 console.log('獲取系統公告...');
-                const response = await fetch(`${API_BASE_URL}/notices`);
+                const response = await fetch(`${API_BASE_URL}/system/notices`);
                 
                 if (!response.ok) {
                     console.error('獲取系統公告失敗:', response.status);
@@ -554,8 +554,9 @@ const app = new Vue({
                 if (this.agentFilters.level !== '-1') params.append('level', this.agentFilters.level);
                 if (this.agentFilters.status !== '-1') params.append('status', this.agentFilters.status);
                 if (this.agentFilters.keyword) params.append('keyword', this.agentFilters.keyword);
+                params.append('parentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/agents?${params.toString()}`;
+                const url = `${API_BASE_URL}/agent/list?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -591,7 +592,7 @@ const app = new Vue({
                 if (this.memberFilters.keyword) params.append('keyword', this.memberFilters.keyword);
                 params.append('agentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/members?${params.toString()}`;
+                const url = `${API_BASE_URL}/member/list?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -658,7 +659,7 @@ const app = new Vue({
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
                 params.append('agentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/bets?${params.toString()}`;
+                const url = `${API_BASE_URL}/bet/records?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -698,7 +699,7 @@ const app = new Vue({
             this.loading = true;
             try {
                 console.log('加載開獎歷史...');
-                const url = `${API_BASE_URL}/draw-history`;
+                const url = `${API_BASE_URL}/game/draw-history`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -733,7 +734,7 @@ const app = new Vue({
                 if (this.drawFilters.period) params.append('period', this.drawFilters.period);
                 if (this.drawFilters.date) params.append('date', this.drawFilters.date);
                 
-                const url = `${API_BASE_URL}/draw-history?${params.toString()}`;
+                const url = `${API_BASE_URL}/game/draw-history?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -874,6 +875,31 @@ const app = new Vue({
                 2: '二級代理'
             };
             return levels[level] || `${level}級代理`;
+        },
+        
+        // 提交餘額調整
+        async submitBalanceAdjustment() {
+            if (!this.balanceAdjustData.memberId || !this.balanceAdjustData.currentBalance || !this.transferAmount || !this.transferType) {
+                return this.showMessage('請填寫完整餘額調整資料', 'error');
+            }
+            
+            this.loading = true;
+            
+            try {
+                const response = await axios.post(`${API_BASE_URL}/adjust-balance`, this.balanceAdjustData);
+                
+                if (response.data.success) {
+                    this.showMessage('餘額調整成功', 'success');
+                    await this.fetchDashboardData();
+                } else {
+                    this.showMessage(response.data.message || '餘額調整失敗', 'error');
+                }
+            } catch (error) {
+                console.error('提交餘額調整錯誤:', error);
+                this.showMessage(error.response?.data?.message || '餘額調整失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
         }
     },
     
