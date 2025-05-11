@@ -187,7 +187,7 @@ const app = new Vue({
             // 獲取代理自身額度
             if (this.isLoggedIn && this.user && this.user.id) {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/agent/balance?id=${this.user.id}`);
+                    const response = await fetch(`${API_BASE_URL}/agents/balance?agentId=${this.user.id}`);
                     if (!response.ok) {
                         console.error('獲取代理額度HTTP錯誤:', response.status);
                         throw new Error(`HTTP錯誤: ${response.status}`);
@@ -301,7 +301,7 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.post(`${API_BASE_URL}/agent/login`, this.loginForm);
+                const response = await axios.post(`${API_BASE_URL}/agents/login`, this.loginForm);
                 
                 if (response.data.success) {
                     // 保存用戶資訊和 token
@@ -358,8 +358,8 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.get(`${API_BASE_URL}/agent/stats`, {
-                    params: { id: this.user.id }
+                const response = await axios.get(`${API_BASE_URL}/agents/stats`, {
+                    params: { agentId: this.user.id }
                 });
                 
                 if (response.data.success) {
@@ -524,7 +524,7 @@ const app = new Vue({
         async fetchNotices() {
             try {
                 console.log('獲取系統公告...');
-                const response = await fetch(`${API_BASE_URL}/system/notices`);
+                const response = await fetch(`${API_BASE_URL}/notices`);
                 
                 if (!response.ok) {
                     console.error('獲取系統公告失敗:', response.status);
@@ -556,7 +556,7 @@ const app = new Vue({
                 if (this.agentFilters.keyword) params.append('keyword', this.agentFilters.keyword);
                 params.append('parentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/agent/list?${params.toString()}`;
+                const url = `${API_BASE_URL}/agents?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -592,7 +592,7 @@ const app = new Vue({
                 if (this.memberFilters.keyword) params.append('keyword', this.memberFilters.keyword);
                 params.append('agentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/member/list?${params.toString()}`;
+                const url = `${API_BASE_URL}/members?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -659,7 +659,7 @@ const app = new Vue({
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
                 params.append('agentId', this.user.id);
                 
-                const url = `${API_BASE_URL}/bet/records?${params.toString()}`;
+                const url = `${API_BASE_URL}/bets?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -699,7 +699,7 @@ const app = new Vue({
             this.loading = true;
             try {
                 console.log('加載開獎歷史...');
-                const url = `${API_BASE_URL}/game/draw-history`;
+                const url = `${API_BASE_URL}/history`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -734,7 +734,7 @@ const app = new Vue({
                 if (this.drawFilters.period) params.append('period', this.drawFilters.period);
                 if (this.drawFilters.date) params.append('date', this.drawFilters.date);
                 
-                const url = `${API_BASE_URL}/game/draw-history?${params.toString()}`;
+                const url = `${API_BASE_URL}/history?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
