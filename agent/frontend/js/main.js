@@ -28,6 +28,9 @@ const API_CONFIG = {
 const app = new Vue({
     el: '#app',
     data: {
+        // 將API_BASE_URL添加到Vue實例的data中，使模板可以訪問
+        API_BASE_URL: API_BASE_URL,
+        
         // 身份驗證狀態
         isLoggedIn: false,
         loading: false,
@@ -516,6 +519,362 @@ const app = new Vue({
             const date = new Date(dateString);
             return date.toLocaleDateString('zh-TW');
         },
+        
+        // 獲取系統公告
+        async fetchNotices() {
+            try {
+                console.log('獲取系統公告...');
+                const response = await fetch(`${API_BASE_URL}/notices`);
+                
+                if (!response.ok) {
+                    console.error('獲取系統公告失敗:', response.status);
+                    this.notices = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && Array.isArray(data.notices)) {
+                    this.notices = data.notices;
+                } else {
+                    console.error('系統公告數據格式錯誤:', data);
+                    this.notices = [];
+                }
+            } catch (error) {
+                console.error('獲取系統公告錯誤:', error);
+                this.notices = [];
+            }
+        },
+        
+        // 搜索代理
+        async searchAgents() {
+            this.loading = true;
+            try {
+                console.log('搜索代理...');
+                const params = new URLSearchParams();
+                if (this.agentFilters.level !== '-1') params.append('level', this.agentFilters.level);
+                if (this.agentFilters.status !== '-1') params.append('status', this.agentFilters.status);
+                if (this.agentFilters.keyword) params.append('keyword', this.agentFilters.keyword);
+                
+                const url = `${API_BASE_URL}/agents?${params.toString()}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('搜索代理失敗:', response.status);
+                    this.agents = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.data) {
+                    this.agents = data.data.list || [];
+                    this.agentPagination.totalPages = Math.ceil(data.data.total / this.agentPagination.limit);
+                    this.agentPagination.currentPage = data.data.page || 1;
+                } else {
+                    console.error('代理數據格式錯誤:', data);
+                    this.agents = [];
+                }
+            } catch (error) {
+                console.error('搜索代理錯誤:', error);
+                this.agents = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 搜索會員
+        async searchMembers() {
+            this.loading = true;
+            try {
+                console.log('搜索會員...');
+                const params = new URLSearchParams();
+                if (this.memberFilters.status !== '-1') params.append('status', this.memberFilters.status);
+                if (this.memberFilters.keyword) params.append('keyword', this.memberFilters.keyword);
+                params.append('agentId', this.user.id);
+                
+                const url = `${API_BASE_URL}/members?${params.toString()}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('搜索會員失敗:', response.status);
+                    this.members = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.data) {
+                    this.members = data.data.list || [];
+                    this.memberPagination.totalPages = Math.ceil(data.data.total / this.memberPagination.limit);
+                    this.memberPagination.currentPage = data.data.page || 1;
+                } else {
+                    console.error('會員數據格式錯誤:', data);
+                    this.members = [];
+                }
+            } catch (error) {
+                console.error('搜索會員錯誤:', error);
+                this.members = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 隱藏餘額調整模態框
+        hideAdjustBalanceModal() {
+            if (this.adjustBalanceModal) {
+                this.adjustBalanceModal.hide();
+            }
+            this.showAdjustBalanceModal = false;
+        },
+        
+        // 計算最終會員餘額
+        calculateFinalMemberBalance() {
+            const currentBalance = parseFloat(this.balanceAdjustData.currentBalance) || 0;
+            const amount = parseFloat(this.transferAmount) || 0;
+            if (this.transferType === 'deposit') {
+                return currentBalance + amount;
+            } else {
+                return currentBalance - amount;
+            }
+        },
+        
+        // 計算最終代理餘額
+        calculateFinalAgentBalance() {
+            const currentBalance = parseFloat(this.agentCurrentBalance) || 0;
+            const amount = parseFloat(this.transferAmount) || 0;
+            if (this.transferType === 'deposit') {
+                return currentBalance - amount;
+            } else {
+                return currentBalance + amount;
+            }
+        },
+        
+        // 搜索下注記錄
+        async searchBets() {
+            this.loading = true;
+            try {
+                console.log('搜索下注記錄...');
+                const params = new URLSearchParams();
+                if (this.betFilters.member) params.append('username', this.betFilters.member);
+                if (this.betFilters.date) params.append('date', this.betFilters.date);
+                if (this.betFilters.period) params.append('period', this.betFilters.period);
+                params.append('agentId', this.user.id);
+                
+                const url = `${API_BASE_URL}/bets?${params.toString()}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('搜索下注記錄失敗:', response.status);
+                    this.bets = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.data) {
+                    this.bets = data.data.list || [];
+                    this.betPagination.totalPages = Math.ceil(data.data.total / this.betPagination.limit);
+                    this.betPagination.currentPage = data.data.page || 1;
+                    
+                    // 更新統計數據
+                    if (data.data.stats) {
+                        this.betStats = {
+                            totalBets: data.data.stats.totalBets || 0,
+                            totalAmount: data.data.stats.totalAmount || 0,
+                            totalProfit: data.data.stats.totalProfit || 0
+                        };
+                    }
+                } else {
+                    console.error('下注記錄數據格式錯誤:', data);
+                    this.bets = [];
+                }
+            } catch (error) {
+                console.error('搜索下注記錄錯誤:', error);
+                this.bets = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 加載開獎歷史
+        async loadDrawHistory() {
+            this.loading = true;
+            try {
+                console.log('加載開獎歷史...');
+                const url = `${API_BASE_URL}/draw-history`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('加載開獎歷史失敗:', response.status);
+                    this.drawRecords = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.records) {
+                    this.drawRecords = data.records || [];
+                    this.drawPagination.totalPages = Math.ceil(data.total / this.drawPagination.limit);
+                    this.drawPagination.currentPage = data.page || 1;
+                } else {
+                    console.error('開獎歷史數據格式錯誤:', data);
+                    this.drawRecords = [];
+                }
+            } catch (error) {
+                console.error('加載開獎歷史錯誤:', error);
+                this.drawRecords = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 搜索開獎歷史
+        async searchDrawHistory() {
+            this.loading = true;
+            try {
+                console.log('搜索開獎歷史...');
+                const params = new URLSearchParams();
+                if (this.drawFilters.period) params.append('period', this.drawFilters.period);
+                if (this.drawFilters.date) params.append('date', this.drawFilters.date);
+                
+                const url = `${API_BASE_URL}/draw-history?${params.toString()}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('搜索開獎歷史失敗:', response.status);
+                    this.drawRecords = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.records) {
+                    this.drawRecords = data.records || [];
+                    this.drawPagination.totalPages = Math.ceil(data.total / this.drawPagination.limit);
+                    this.drawPagination.currentPage = data.page || 1;
+                } else {
+                    console.error('開獎歷史數據格式錯誤:', data);
+                    this.drawRecords = [];
+                }
+            } catch (error) {
+                console.error('搜索開獎歷史錯誤:', error);
+                this.drawRecords = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 搜索今日開獎記錄
+        async searchTodayDrawHistory() {
+            this.drawFilters.date = new Date().toISOString().split('T')[0]; // 設置為今天日期 YYYY-MM-DD
+            this.drawFilters.period = '';
+            await this.searchDrawHistory();
+        },
+        
+        // 獲取分頁範圍
+        getPageRange(currentPage, totalPages) {
+            const range = [];
+            const maxVisible = 5;
+            
+            if (totalPages <= maxVisible) {
+                // 如果總頁數小於要顯示的頁數，顯示所有頁
+                for (let i = 1; i <= totalPages; i++) {
+                    range.push(i);
+                }
+            } else {
+                // 計算顯示哪些頁面
+                let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let end = start + maxVisible - 1;
+                
+                if (end > totalPages) {
+                    end = totalPages;
+                    start = Math.max(1, end - maxVisible + 1);
+                }
+                
+                for (let i = start; i <= end; i++) {
+                    range.push(i);
+                }
+            }
+            
+            return range;
+        },
+        
+        // 格式化投注類型
+        formatBetType(type) {
+            const types = {
+                'champion': '冠軍',
+                'second': '亞軍',
+                'third': '第三名',
+                'fourth': '第四名',
+                'fifth': '第五名',
+                'sixth': '第六名',
+                'seventh': '第七名',
+                'eighth': '第八名',
+                'ninth': '第九名',
+                'tenth': '第十名',
+                'sum': '冠亞和',
+                'dragon_tiger': '龍虎'
+            };
+            return types[type] || type;
+        },
+        
+        // 格式化位置
+        formatPosition(position) {
+            if (!position) return '-';
+            
+            if (position === 'champion') return '冠軍';
+            if (position === 'second') return '亞軍';
+            if (position === 'sum') return '冠亞和';
+            if (position === 'dragon_tiger') return '龍虎';
+            
+            return position;
+        },
+        
+        // 獲取龍虎結果
+        getDragonTigerResult(record) {
+            if (!record || !record.result || record.result.length < 10) {
+                return { value: '-', class: '' };
+            }
+            
+            const first = record.result[0];
+            const tenth = record.result[9];
+            
+            if (first > tenth) {
+                return { value: '龍', class: 'text-danger' };
+            } else if (first < tenth) {
+                return { value: '虎', class: 'text-primary' };
+            } else {
+                return { value: '和', class: 'text-warning' };
+            }
+        },
+        
+        // 格式化轉移類型
+        formatTransferType(transfer) {
+            const types = {
+                'deposit': '存入',
+                'withdraw': '提領',
+                'bet': '下注',
+                'win': '中獎',
+                'commission': '佣金'
+            };
+            return types[transfer.type] || transfer.type;
+        },
+        
+        // 格式化轉移方向
+        formatTransferDirection(transfer) {
+            if (transfer.from_type === 'agent' && transfer.to_type === 'member') {
+                return `代理 (${transfer.from_id}) → 會員 (${transfer.to_id})`;
+            } else if (transfer.from_type === 'member' && transfer.to_type === 'agent') {
+                return `會員 (${transfer.from_id}) → 代理 (${transfer.to_id})`;
+            } else {
+                return `${transfer.from_type} (${transfer.from_id}) → ${transfer.to_type} (${transfer.to_id})`;
+            }
+        },
+        
+        // 獲取級別名稱
+        getLevelName(level) {
+            const levels = {
+                0: '總代理',
+                1: '一級代理', 
+                2: '二級代理'
+            };
+            return levels[level] || `${level}級代理`;
+        }
     },
     
     // 計算屬性
