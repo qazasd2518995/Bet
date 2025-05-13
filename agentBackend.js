@@ -122,6 +122,24 @@ async function initDatabase() {
       )
     `);
     
+    // 創建點數轉移記錄表
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS point_transfers (
+        id SERIAL PRIMARY KEY,
+        from_type VARCHAR(10) NOT NULL,
+        from_id INTEGER NOT NULL,
+        to_type VARCHAR(10) NOT NULL,
+        to_id INTEGER NOT NULL,
+        amount DECIMAL(15, 2) NOT NULL,
+        from_before_balance DECIMAL(15, 2) NOT NULL,
+        from_after_balance DECIMAL(15, 2) NOT NULL,
+        to_before_balance DECIMAL(15, 2) NOT NULL,
+        to_after_balance DECIMAL(15, 2) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
     // 創建公告表
     await db.none(`
       CREATE TABLE IF NOT EXISTS notices (
@@ -138,13 +156,13 @@ async function initDatabase() {
     // 檢查是否已有總代理
     const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
     if (!adminAgent) {
-      // 創建總代理
+      // 創建總代理，初始餘額設為20萬
       await db.none(`
         INSERT INTO agents (username, password, level, balance, commission_rate) 
         VALUES ($1, $2, $3, $4, $5)
-      `, ['admin', 'adminpwd', 0, 100000, 0.3]);
+      `, ['admin', 'adminpwd', 0, 200000, 0.3]);
       
-      console.log('創建總代理成功');
+      console.log('創建總代理成功，初始餘額 200,000');
     }
     
     // 檢查是否有預設的測試會員
@@ -153,11 +171,11 @@ async function initDatabase() {
       // 獲取總代理
       const adminAgent = await db.one('SELECT id FROM agents WHERE level = 0');
       
-      // 創建預設測試會員
+      // 創建預設測試會員 (初始餘額為0，需要從代理轉移點數)
       await db.none(`
         INSERT INTO members (username, password, agent_id, balance) 
         VALUES ($1, $2, $3, $4)
-      `, ['aaa', 'aaapwd', adminAgent.id, 10000]);
+      `, ['aaa', 'aaapwd', adminAgent.id, 0]);
       
       console.log('創建預設測試會員成功');
     }
@@ -320,6 +338,39 @@ const AgentModel = {
       console.error('更新代理佣金出錯:', error);
       throw error;
     }
+  },
+  
+  // 更新代理餘額
+  async updateBalance(id, amount) {
+    try {
+      const agent = await this.findById(id);
+      if (!agent) throw new Error('代理不存在');
+      
+      const beforeBalance = parseFloat(agent.balance);
+      const afterBalance = beforeBalance + parseFloat(amount);
+      
+      // 確保餘額不會小於0
+      if (afterBalance < 0) throw new Error('代理餘額不足');
+      
+      const updatedAgent = await db.one(`
+        UPDATE agents 
+        SET balance = $1 
+        WHERE id = $2 
+        RETURNING *
+      `, [afterBalance, id]);
+      
+      // 記錄交易
+      await db.none(`
+        INSERT INTO transactions 
+        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, ['agent', id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '代理點數調整']);
+      
+      return updatedAgent;
+    } catch (error) {
+      console.error('更新代理餘額出錯:', error);
+      throw error;
+    }
   }
 };
 
@@ -472,8 +523,11 @@ const MemberModel = {
       const member = await this.findByUsername(username);
       if (!member) throw new Error('會員不存在');
       
-      const beforeBalance = member.balance;
-      const afterBalance = parseFloat(beforeBalance) + parseFloat(amount);
+      const beforeBalance = parseFloat(member.balance);
+      const afterBalance = beforeBalance + parseFloat(amount);
+      
+      // 確保餘額不會小於0
+      if (afterBalance < 0) throw new Error('會員餘額不足');
       
       // 更新餘額
       const updatedMember = await db.one(`
@@ -488,7 +542,7 @@ const MemberModel = {
         INSERT INTO transactions 
         (user_type, user_id, amount, type, before_balance, after_balance, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['member', member.id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '餘額調整']);
+      `, ['member', member.id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '會員點數調整']);
       
       return updatedMember;
     } catch (error) {
@@ -504,8 +558,11 @@ const MemberModel = {
       const member = await this.findByUsername(username);
       if (!member) throw new Error('會員不存在');
       
-      const beforeBalance = member.balance;
+      const beforeBalance = parseFloat(member.balance);
       const afterBalance = parseFloat(balance);
+      
+      // 確保餘額不會小於0
+      if (afterBalance < 0) throw new Error('會員餘額不能小於0');
       
       // 更新餘額
       const updatedMember = await db.one(`
@@ -520,11 +577,200 @@ const MemberModel = {
         INSERT INTO transactions 
         (user_type, user_id, amount, type, before_balance, after_balance, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['member', member.id, afterBalance - beforeBalance, 'adjustment', beforeBalance, afterBalance, '餘額設置']);
+      `, ['member', member.id, afterBalance - beforeBalance, 'adjustment', beforeBalance, afterBalance, '會員點數設置']);
       
       return updatedMember;
     } catch (error) {
       console.error('設置會員餘額出錯:', error);
+      throw error;
+    }
+  },
+  
+  // 查詢特定代理下的特定會員
+  async findByAgentAndUsername(agentId, username) {
+    try {
+      return await db.oneOrNone(`
+        SELECT * FROM members 
+        WHERE agent_id = $1 AND username = $2
+      `, [agentId, username]);
+    } catch (error) {
+      console.error('查詢特定代理下的特定會員出錯:', error);
+      throw error;
+    }
+  }
+};
+
+// 模型: 點數轉移
+const PointTransferModel = {
+  // 從代理轉移點數到會員
+  async transferFromAgentToMember(agentId, memberId, amount, description = '從代理轉移點數到會員') {
+    try {
+      // 參數驗證
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('轉移的點數必須大於0');
+      }
+      
+      // 獲取代理和會員信息
+      const agent = await AgentModel.findById(agentId);
+      if (!agent) throw new Error('代理不存在');
+      
+      const member = await MemberModel.findById(memberId);
+      if (!member) throw new Error('會員不存在');
+      
+      // 檢查代理餘額是否足夠
+      if (parseFloat(agent.balance) < parsedAmount) {
+        throw new Error('代理點數不足');
+      }
+      
+      // 開始數據庫事務
+      return await db.tx(async t => {
+        // 更新代理餘額
+        const agentBeforeBalance = parseFloat(agent.balance);
+        const agentAfterBalance = agentBeforeBalance - parsedAmount;
+        
+        await t.one(`
+          UPDATE agents 
+          SET balance = $1 
+          WHERE id = $2 
+          RETURNING *
+        `, [agentAfterBalance, agentId]);
+        
+        // 更新會員餘額
+        const memberBeforeBalance = parseFloat(member.balance);
+        const memberAfterBalance = memberBeforeBalance + parsedAmount;
+        
+        const updatedMember = await t.one(`
+          UPDATE members 
+          SET balance = $1 
+          WHERE id = $2 
+          RETURNING *
+        `, [memberAfterBalance, memberId]);
+        
+        // 記錄代理的交易
+        await t.none(`
+          INSERT INTO transactions 
+          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['agent', agentId, -parsedAmount, 'transfer_out', agentBeforeBalance, agentAfterBalance, '轉移點數到會員']);
+        
+        // 記錄會員的交易
+        await t.none(`
+          INSERT INTO transactions 
+          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['member', memberId, parsedAmount, 'transfer_in', memberBeforeBalance, memberAfterBalance, '從代理收到點數']);
+        
+        // 記錄點數轉移
+        await t.one(`
+          INSERT INTO point_transfers 
+          (from_type, from_id, to_type, to_id, amount, 
+           from_before_balance, from_after_balance, 
+           to_before_balance, to_after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+          RETURNING *
+        `, ['agent', agentId, 'member', memberId, parsedAmount, 
+            agentBeforeBalance, agentAfterBalance, 
+            memberBeforeBalance, memberAfterBalance, description]);
+        
+        return updatedMember;
+      });
+    } catch (error) {
+      console.error('轉移點數出錯:', error);
+      throw error;
+    }
+  },
+  
+  // 從會員轉移點數到代理
+  async transferFromMemberToAgent(memberId, agentId, amount, description = '從會員轉移點數到代理') {
+    try {
+      // 參數驗證
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('轉移的點數必須大於0');
+      }
+      
+      // 獲取代理和會員信息
+      const member = await MemberModel.findById(memberId);
+      if (!member) throw new Error('會員不存在');
+      
+      const agent = await AgentModel.findById(agentId);
+      if (!agent) throw new Error('代理不存在');
+      
+      // 檢查會員餘額是否足夠
+      if (parseFloat(member.balance) < parsedAmount) {
+        throw new Error('會員點數不足');
+      }
+      
+      // 開始數據庫事務
+      return await db.tx(async t => {
+        // 更新會員餘額
+        const memberBeforeBalance = parseFloat(member.balance);
+        const memberAfterBalance = memberBeforeBalance - parsedAmount;
+        
+        await t.one(`
+          UPDATE members 
+          SET balance = $1 
+          WHERE id = $2 
+          RETURNING *
+        `, [memberAfterBalance, memberId]);
+        
+        // 更新代理餘額
+        const agentBeforeBalance = parseFloat(agent.balance);
+        const agentAfterBalance = agentBeforeBalance + parsedAmount;
+        
+        const updatedAgent = await t.one(`
+          UPDATE agents 
+          SET balance = $1 
+          WHERE id = $2 
+          RETURNING *
+        `, [agentAfterBalance, agentId]);
+        
+        // 記錄會員的交易
+        await t.none(`
+          INSERT INTO transactions 
+          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['member', memberId, -parsedAmount, 'transfer_out', memberBeforeBalance, memberAfterBalance, '轉移點數到代理']);
+        
+        // 記錄代理的交易
+        await t.none(`
+          INSERT INTO transactions 
+          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['agent', agentId, parsedAmount, 'transfer_in', agentBeforeBalance, agentAfterBalance, '從會員收到點數']);
+        
+        // 記錄點數轉移
+        await t.one(`
+          INSERT INTO point_transfers 
+          (from_type, from_id, to_type, to_id, amount, 
+           from_before_balance, from_after_balance, 
+           to_before_balance, to_after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+          RETURNING *
+        `, ['member', memberId, 'agent', agentId, parsedAmount, 
+            memberBeforeBalance, memberAfterBalance, 
+            agentBeforeBalance, agentAfterBalance, description]);
+        
+        return updatedAgent;
+      });
+    } catch (error) {
+      console.error('轉移點數出錯:', error);
+      throw error;
+    }
+  },
+  
+  // 獲取點數轉移記錄
+  async getTransferRecords(userType, userId, limit = 50) {
+    try {
+      return await db.any(`
+        SELECT * FROM point_transfers 
+        WHERE (from_type = $1 AND from_id = $2) OR (to_type = $1 AND to_id = $2) 
+        ORDER BY created_at DESC 
+        LIMIT $3
+      `, [userType, userId, limit]);
+    } catch (error) {
+      console.error('獲取點數轉移記錄出錯:', error);
       throw error;
     }
   }
@@ -1159,7 +1405,7 @@ app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
   }
 });
 
-// 獲取會員餘額
+// 新增: 會員餘額查詢API
 app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
   const { username } = req.query;
   
@@ -1171,7 +1417,6 @@ app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
       });
     }
     
-    // 查詢會員
     const member = await MemberModel.findByUsername(username);
     if (!member) {
       return res.json({
@@ -1193,48 +1438,123 @@ app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
   }
 });
 
-// 更新會員餘額
+// 更新會員餘額 API 端點 - 修改為點數轉移邏輯
 app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
-  const { username, amount, type } = req.body;
+  const { agentId, username, amount, type, description } = req.body;
+  
+  console.log(`收到更新會員餘額請求: 代理ID=${agentId}, 會員=${username}, 金額=${amount}, 類型=${type}, 說明=${description}`);
+  console.log(`請求體:`, JSON.stringify(req.body));
   
   try {
-    if (!username || amount === undefined) {
+    if (!username || amount === undefined || !agentId) {
+      console.error('更新會員餘額失敗: 缺少必要參數');
       return res.json({
         success: false,
-        message: '請提供會員用戶名和變更金額'
+        message: '請提供代理ID、會員用戶名和變更金額'
       });
     }
     
     // 查詢會員
     const member = await MemberModel.findByUsername(username);
     if (!member) {
+      console.error(`更新會員餘額失敗: 會員 ${username} 不存在`);
       return res.json({
         success: false,
         message: '會員不存在'
       });
     }
+    console.log(`找到會員: ID=${member.id}, 用戶名=${member.username}`);
     
-    // 更新餘額
-    const updatedMember = await MemberModel.updateBalance(username, parseFloat(amount));
-    
-    // 如果是會員贏錢，給代理增加佣金
-    if (type === 'settlement' && amount > 0) {
-      // 查詢會員的代理
-      const agent = await AgentModel.findById(member.agent_id);
-      if (agent) {
-        // 計算佣金
-        const commission = parseFloat(amount) * parseFloat(agent.commission_rate);
-        // 更新代理佣金
-        await AgentModel.updateCommission(agent.id, commission);
-      }
+    // 查詢代理
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      console.error(`更新會員餘額失敗: 代理 ID=${agentId} 不存在`);
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
     }
+    console.log(`找到代理: ID=${agent.id}, 用戶名=${agent.username}`);
+    
+    const parsedAmount = parseFloat(amount);
+    console.log(`處理點數轉移: 金額=${parsedAmount}`);
+    
+    // 根據操作類型執行不同的點數轉移
+    let result;
+    
+    try {
+      if (parsedAmount > 0) {
+        // 從代理轉移點數到會員
+        console.log(`執行代理到會員的點數轉移: 金額=${parsedAmount}`);
+        result = await PointTransferModel.transferFromAgentToMember(
+          agent.id, 
+          member.id, 
+          parsedAmount, 
+          description || '代理存入點數給會員'
+        );
+      } else if (parsedAmount < 0) {
+        // 從會員轉移點數到代理
+        console.log(`執行會員到代理的點數轉移: 金額=${Math.abs(parsedAmount)}`);
+        result = await PointTransferModel.transferFromMemberToAgent(
+          member.id, 
+          agent.id, 
+          Math.abs(parsedAmount), 
+          description || '會員提領點數給代理'
+        );
+      } else {
+        console.error('更新會員餘額失敗: 轉移點數必須不等於0');
+        return res.json({
+          success: false,
+          message: '轉移點數必須不等於0'
+        });
+      }
+      
+      // 查詢更新後的代理餘額
+      const updatedAgent = await AgentModel.findById(agent.id);
+      
+      console.log(`點數轉移成功: 會員餘額=${result.balance}, 代理餘額=${updatedAgent.balance}`);
+      
+      res.json({
+        success: true,
+        newBalance: result.balance,
+        agentBalance: updatedAgent.balance
+      });
+    } catch (error) {
+      console.error('點數轉移處理出錯:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || '點數轉移處理出錯，請稍後再試'
+      });
+    }
+  } catch (error) {
+    console.error('更新會員餘額出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增: 點數轉移記錄API
+app.get(`${API_PREFIX}/point-transfers`, async (req, res) => {
+  const { userType, userId, limit = 50 } = req.query;
+  
+  try {
+    if (!userType || !userId) {
+      return res.json({
+        success: false,
+        message: '請提供用戶類型和ID'
+      });
+    }
+    
+    const transfers = await PointTransferModel.getTransferRecords(userType, userId, limit);
     
     res.json({
       success: true,
-      newBalance: updatedMember.balance
+      transfers
     });
   } catch (error) {
-    console.error('更新會員餘額出錯:', error);
+    console.error('獲取點數轉移記錄出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
@@ -1242,39 +1562,36 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
   }
 });
 
-// 設置會員餘額(絕對值)
-app.post(`${API_PREFIX}/set-member-balance`, async (req, res) => {
-  const { username, balance } = req.body;
+// 獲取代理餘額
+app.get(`${API_PREFIX}/agent-balance`, async (req, res) => {
+  const { agentId } = req.query;
   
   try {
-    if (!username || balance === undefined) {
+    if (!agentId) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名和餘額'
+        message: '請提供代理ID'
       });
     }
     
-    // 查詢會員
-    const member = await MemberModel.findByUsername(username);
-    if (!member) {
+    // 查詢代理信息
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '代理不存在'
       });
     }
-    
-    // 設置餘額
-    const updatedMember = await MemberModel.setBalance(username, parseFloat(balance));
     
     res.json({
       success: true,
-      newBalance: updatedMember.balance
+      balance: agent.balance
     });
   } catch (error) {
-    console.error('設置會員餘額出錯:', error);
+    console.error('獲取代理餘額出錯:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: error.message || '系統錯誤，請稍後再試'
     });
   }
 });
@@ -1291,6 +1608,36 @@ app.get(`${API_PREFIX}/notices`, async (req, res) => {
     });
   } catch (error) {
     console.error('獲取公告出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增: 獲取總代理API端點
+app.get(`${API_PREFIX}/admin-agent`, async (req, res) => {
+  try {
+    // 獲取總代理 (level = 0)
+    const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
+    
+    if (!adminAgent) {
+      return res.json({
+        success: false,
+        message: '系統還未設置總代理'
+      });
+    }
+    
+    res.json({
+      success: true,
+      agent: {
+        id: adminAgent.id,
+        username: adminAgent.username,
+        balance: adminAgent.balance
+      }
+    });
+  } catch (error) {
+    console.error('獲取總代理信息出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
@@ -1376,20 +1723,214 @@ app.get('/api/dashboard/members', async (req, res) => {
   }
 });
 
+// 切換會員狀態
+app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
+  const { memberId, status } = req.body;
+  
+  try {
+    if (!memberId) {
+      return res.json({
+        success: false,
+        message: '請提供會員ID'
+      });
+    }
+    
+    // 確保狀態值為0或1
+    const newStatus = status === 1 ? 1 : 0;
+    
+    // 更新會員狀態
+    await db.none('UPDATE members SET status = $1 WHERE id = $2', [newStatus, memberId]);
+    
+    res.json({
+      success: true,
+      message: '會員狀態更新成功'
+    });
+  } catch (error) {
+    console.error('更新會員狀態出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 獲取開獎結果歷史記錄
+app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, period = '', date = '' } = req.query;
+
+    // 從遊戲後端獲取開獎歷史
+    let url = `http://localhost:3002/api/history`;
+    // 添加查詢參數
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    if (date) params.append('date', date);
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    console.log(`請求遊戲後端開獎歷史: ${url}`);
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`遊戲後端返回錯誤狀態: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // 向前端返回數據
+    res.json({
+      success: true,
+      records: data.records || data,
+      totalPages: data.totalPages || 1,
+      currentPage: parseInt(page),
+      totalRecords: data.totalRecords || (data.length || 0)
+    });
+  } catch (error) {
+    console.error('獲取開獎歷史出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '獲取開獎歷史失敗'
+    });
+  }
+});
+
+// API 路由
+// 獲取下注記錄
+app.get(`${API_PREFIX}/bets`, async (req, res) => {
+  try {
+    const { agentId, username, date, period, page = 1, limit = 20 } = req.query;
+    
+    // 基本參數驗證
+    if (!agentId) {
+      return res.status(400).json({
+        success: false,
+        message: '代理ID為必填項'
+      });
+    }
+    
+    // 查詢該代理下的所有會員
+    let members = [];
+    
+    // 如果指定了會員用戶名
+    if (username) {
+      // 檢查這個會員是否屬於該代理
+      const member = await MemberModel.findByAgentAndUsername(agentId, username);
+      if (member) {
+        members = [member];
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: '該會員不存在或不屬於你的下線'
+        });
+      }
+    } else {
+      // 獲取所有直系下線會員
+      const memberList = await MemberModel.findByAgentId(agentId);
+      members = memberList.data || [];
+    }
+    
+    if (members.length === 0) {
+      return res.json({
+        success: true,
+        bets: [],
+        total: 0,
+        stats: {
+          totalBets: 0,
+          totalAmount: 0,
+          totalProfit: 0
+        }
+      });
+    }
+    
+    // 獲取這些會員的用戶名
+    const memberUsernames = members.map(m => m.username);
+    
+    // 構建查詢條件
+    let whereClause = `WHERE username IN (${memberUsernames.map((_, i) => `$${i + 1}`).join(',')})`;
+    let params = [...memberUsernames];
+    let paramIndex = memberUsernames.length + 1;
+    
+    // 添加日期過濾
+    if (date) {
+      whereClause += ` AND DATE(created_at) = $${paramIndex}`;
+      params.push(date);
+      paramIndex++;
+    }
+    
+    // 添加期數過濾
+    if (period) {
+      whereClause += ` AND period = $${paramIndex}`;
+      params.push(period);
+      paramIndex++;
+    }
+    
+    // 計算總記錄數
+    const countQuery = `SELECT COUNT(*) AS total FROM bet_history ${whereClause}`;
+    const totalResult = await db.one(countQuery, params);
+    const total = parseInt(totalResult.total);
+    
+    // 計算分頁
+    const offset = (page - 1) * limit;
+    
+    // 獲取投注記錄
+    const betQuery = `
+      SELECT * FROM bet_history 
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    params.push(limit, offset);
+    const bets = await db.any(betQuery, params);
+    
+    // 計算統計數據
+    const statsQuery = `
+      SELECT 
+        COUNT(*) AS total_bets,
+        SUM(amount) AS total_amount,
+        SUM(CASE WHEN win = true THEN win_amount - amount ELSE -amount END) AS total_profit
+      FROM bet_history 
+      ${whereClause}
+    `;
+    
+    const stats = await db.one(statsQuery, params.slice(0, paramIndex - 1));
+    
+    res.json({
+      success: true,
+      bets,
+      total,
+      stats: {
+        totalBets: parseInt(stats.total_bets),
+        totalAmount: parseFloat(stats.total_amount) || 0,
+        totalProfit: parseFloat(stats.total_profit) || 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取下注記錄出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取下注記錄失敗',
+      error: error.message
+    });
+  }
+});
+
 // 初始化數據庫並啟動服務器
 async function startServer() {
   try {
-    // 初始化數據庫
     await initDatabase();
-    
-    // 啟動服務器
     app.listen(port, () => {
       console.log(`代理管理系統後端運行在端口 ${port}`);
     });
   } catch (error) {
     console.error('啟動服務器時出錯:', error);
+    process.exit(1);
   }
 }
 
-// 啟動服務器
 startServer();

@@ -905,6 +905,98 @@ const app = new Vue({
             } finally {
                 this.loading = false;
             }
+        },
+        // 新增的方法，確保在Vue實例中定義
+        async createMember() {
+            // 實際的創建會員邏輯需要您來實現
+            console.log('createMember 方法被調用', this.newMember);
+            if (!this.newMember.username || !this.newMember.password || !this.newMember.confirmPassword) {
+                this.showMessage('請填寫所有必填欄位', 'error');
+                return;
+            }
+            if (this.newMember.password !== this.newMember.confirmPassword) {
+                this.showMessage('兩次輸入的密碼不一致', 'error');
+                return;
+            }
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/create-member`, {
+                    username: this.newMember.username,
+                    password: this.newMember.password,
+                    agentId: this.user.id // 使用當前登入代理的ID
+                });
+                if (response.data.success) {
+                    this.showMessage('會員創建成功!', 'success');
+                    this.hideCreateMemberModal();
+                    this.searchMembers(); // 刷新會員列表
+                } else {
+                    this.showMessage(response.data.message || '會員創建失敗', 'error');
+                }
+            } catch (error) {
+                console.error('創建會員出錯:', error);
+                this.showMessage(error.response?.data?.message || '創建會員出錯，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        async fetchParentAgents() {
+            // 實際獲取上級代理列表的邏輯需要您來實現
+            console.log('fetchParentAgents 方法被調用');
+             if (this.user.level === 0) { // 總代理不能有上級
+                this.parentAgents = [];
+                return;
+            }
+            this.loading = true;
+            try {
+                // 通常是獲取可作為當前操作代理的上級代理列表
+                // 這裡假設API會返回合適的代理列表
+                const response = await axios.get(`${API_BASE_URL}/available-parents`);
+                if (response.data.success) {
+                    this.parentAgents = response.data.agents || [];
+                } else {
+                    this.showMessage(response.data.message || '獲取上級代理失敗', 'error');
+                    this.parentAgents = [];
+                }
+            } catch (error) {
+                console.error('獲取上級代理列表出錯:', error);
+                this.showMessage('獲取上級代理列表出錯，請稍後再試', 'error');
+                this.parentAgents = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        async createAgent() {
+            // 實際的創建代理邏輯需要您來實現
+            console.log('createAgent 方法被調用', this.newAgent);
+            if (!this.newAgent.username || !this.newAgent.password || !this.newAgent.level) {
+                this.showMessage('請填寫所有必填欄位', 'error');
+                return;
+            }
+            // 根據業務邏輯，可能需要驗證佣金比例等
+            this.loading = true;
+            try {
+                // parent_id 應該是可選的，或者根據代理級別自動設置
+                const payload = {
+                    username: this.newAgent.username,
+                    password: this.newAgent.password,
+                    level: parseInt(this.newAgent.level),
+                    commission_rate: parseFloat(this.newAgent.commission),
+                    parent_id: this.newAgent.parent || this.user.id // 如果沒有選擇上級，則默認為當前代理
+                };
+                const response = await axios.post(`${API_BASE_URL}/create-agent`, payload);
+                if (response.data.success) {
+                    this.showMessage('代理創建成功!', 'success');
+                    this.hideCreateAgentModal();
+                    this.searchAgents(); // 刷新代理列表
+                } else {
+                    this.showMessage(response.data.message || '代理創建失敗', 'error');
+                }
+            } catch (error) {
+                console.error('創建代理出錯:', error);
+                this.showMessage(error.response?.data?.message || '創建代理出錯，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
         }
     },
     

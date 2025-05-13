@@ -35,39 +35,79 @@ Vue.component('bet-records', {
         'sumValue': '冠亞和',
         'champion': '冠軍',
         'runnerup': '亞軍',
-        'number': `第${bet.position}名`,
-        'dragonTiger': '龍虎'
+        'third': '第三名',
+        'fourth': '第四名',
+        'fifth': '第五名',
+        'sixth': '第六名',
+        'seventh': '第七名',
+        'eighth': '第八名',
+        'ninth': '第九名',
+        'tenth': '第十名',
+        'dragonTiger': '龍虎',
+        'number': '單號'
       };
-      return typeMap[bet.type] || bet.type;
+      
+      const betType = bet.type || bet.betType;
+      if (!betType) return '未知類型';
+      
+      if (betType === 'number') {
+        return `第${bet.position}名號碼`;
+      } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
+                 ['big', 'small', 'odd', 'even'].includes(bet.value)) {
+        return `${typeMap[betType]} 雙面`;
+      } else if (betType === 'sumValue' && ['big', 'small', 'odd', 'even'].includes(bet.value)) {
+        return '冠亞和 雙面';
+      } else if (betType === 'dragonTiger') {
+        return '龍虎';
+      }
+      
+      return typeMap[betType] || betType;
     },
     
     getBetValueDesc(bet) {
-      if (bet.type === 'sumValue') {
-        if (['big', 'small', 'odd', 'even'].includes(bet.value)) {
-          const valueMap = {
-            'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
-          };
-          return valueMap[bet.value];
-        } else {
-          return `和值 ${bet.value}`;
-        }
-      } else if (bet.type === 'champion' || bet.type === 'runnerup') {
-        const valueMap = {
-          'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
+      const betType = bet.type || bet.betType;
+      const betValue = bet.value || bet.betValue;
+      
+      // 添加熱門標記顯示邏輯
+      let isHot = bet.isHot || false;
+      let hotDisplay = isHot ? '<span class="hot-badge">熱門</span>' : '';
+      
+      if (!betValue) return '無';
+      
+      if (betType === 'dragonTiger') {
+        const dragonTigerMap = {
+          'dragon': '龍',
+          'tiger': '虎'
         };
-        return valueMap[bet.value] || bet.value;
-      } else if (bet.type === 'number') {
-        return `號碼 ${bet.value}`;
-      } else if (bet.type === 'dragonTiger') {
-        return bet.value === 'dragon' ? '龍' : '虎';
+        return dragonTigerMap[betValue] + hotDisplay;
+      } else if (['big', 'small', 'odd', 'even'].includes(betValue)) {
+        const valueMap = {
+          'big': '大',
+          'small': '小',
+          'odd': '單',
+          'even': '雙'
+        };
+        return valueMap[betValue] + hotDisplay;
+      } else if (betType === 'sumValue' && !isNaN(betValue)) {
+        return `總和值 ${betValue}` + hotDisplay;
+      } else if (!isNaN(betValue)) {
+        return `號碼 ${betValue}` + hotDisplay;
       }
-      return bet.value;
+      
+      return betValue + hotDisplay;
     },
     
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
       return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+    },
+    
+    formatOdds(odds) {
+      if (!odds) return ''; 
+      // 將賠率顯示為帶兩位小數的數字
+      const oddsNum = parseFloat(odds);
+      return oddsNum ? oddsNum.toFixed(2) : '';
     }
   },
   
@@ -118,10 +158,10 @@ Vue.component('bet-records', {
                     h('span', { class: 'bet-label' }, '投注選項:'),
                     h('span', { class: 'bet-value' }, this.getBetValueDesc(bet)),
                   ]),
-                  bet.odds ? h('div', { class: 'bet-detail-row' }, [
+                  h('div', { class: 'bet-detail-row' }, [
                     h('span', { class: 'bet-label' }, '賠率:'),
-                    h('span', { class: 'bet-value' }, bet.odds),
-                  ]) : null
+                    h('span', { class: 'bet-value' }, this.formatOdds(bet.odds) || '1.95'),
+                  ])
                 ]),
                 
                 // 底部信息：金額和時間

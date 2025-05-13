@@ -1790,27 +1790,34 @@
                 fetchHotBets() {
                     console.log('開始獲取熱門投注數據...');
                     
-                    // 檢測環境，決定使用哪個API端點
                     let apiUrl = '/api/hot-bets';
-                    
-                    // 添加時間戳防止緩存
                     const timestamp = new Date().getTime();
                     apiUrl = `${apiUrl}?_t=${timestamp}`;
                     
                     fetch(apiUrl)
                         .then(response => {
                             console.log('熱門投注API響應狀態:', response.status);
+                            if (response.status === 404) {
+                                // 如果是 404 錯誤，表示沒有熱門投注數據
+                                return response.json().then(data => {
+                                    console.log('熱門投注API返回 (404):', data);
+                                    this.hotBets = []; // 清空熱門投注數據
+                                    this.displayNotification(data.message || '暫無熱門投注數據'); 
+                                    return null; // 返回 null 以便後續 .then 不執行成功邏輯
+                                });
+                            }
                             if (!response.ok) {
+                                // 其他錯誤，拋出以便 catch 處理
                                 throw new Error(`服務器響應錯誤: ${response.status}`);
                             }
-                            return response.json();
+                            return response.json(); // 正常情況，解析 JSON
                         })
                         .then(data => {
+                            if (data === null) return; // 如果是 404 處理過的，直接返回
+                            
                             console.log('熱門投注API返回數據:', data);
                             if (data && data.success) {
-                                // 確保數據格式一致 - 將API返回的數據格式化為前端所需格式
                                 this.hotBets = (data.hotBets || []).map(bet => ({
-                                    // 確保betType和betValue與前端一致
                                     betType: bet.type,
                                     betValue: bet.value,
                                     position: bet.position,
@@ -1821,22 +1828,20 @@
                                 console.log('熱門投注數據獲取成功，共有', this.hotBets.length, '個熱門投注');
                             } else {
                                 console.error('獲取熱門投注數據失敗:', data ? data.message : '無數據');
-                                // 初始化為空數組以避免undefined錯誤
                                 this.hotBets = [];
-                                this.displayNotification('無法獲取熱門投注數據');
+                                this.displayNotification(data.message || '無法獲取熱門投注數據');
                             }
                         })
                         .catch(error => {
                             console.error('獲取熱門投注數據出錯:', error);
-                            // 錯誤時也設置為空數組
                             this.hotBets = [];
-                            this.displayNotification('獲取熱門投注數據出錯，請刷新頁面重試');
+                            this.displayNotification('獲取熱門投注數據出錯，請稍後再試');
                             
-                            // 30秒後重試
-                            setTimeout(() => {
-                                console.log('嘗試重新獲取熱門投注數據...');
-                                this.fetchHotBets();
-                            }, 30000);
+                            // 可以考慮移除或調整自動重試邏輯，避免在持續 404 的情況下頻繁請求
+                            // setTimeout(() => {
+                            //     console.log('嘗試重新獲取熱門投注數據...');
+                            //     this.fetchHotBets();
+                            // }, 30000);
                         });
                 },
                 

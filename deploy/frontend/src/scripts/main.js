@@ -88,9 +88,13 @@ async function getHistory() {
 async function getBetHistory() {
     if (!checkLogin()) return [];
     try {
-        return await apiRequest('bet-history');
+        const username = sessionStorage.getItem('username');
+        if (!username) {
+            throw new Error('未找到用戶信息');
+        }
+        return await apiRequest(`bet-history?username=${encodeURIComponent(username)}`);
     } catch (error) {
-        console.error('獲取下注記錄失敗:', error);
+        console.error('獲取注單歷史失敗:', error);
         return [];
     }
 }
