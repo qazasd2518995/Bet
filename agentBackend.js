@@ -170,37 +170,56 @@ async function initDatabase() {
     
     console.log('初始化代理系統數據庫表結構完成');
     
-    // 檢查是否已有總代理 - 修改為使用 db.any 並處理多筆結果
-    const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0');
-    if (adminAgents.length === 0) {
-      // 創建總代理，初始餘額設為20萬
-      await db.none(`
-        INSERT INTO agents (username, password, level, balance, commission_rate) 
+    // 清理現有數據 (注意順序以處理外鍵約束)
+    console.log('開始清理現有代理和會員數據...');
+    await db.none('DELETE FROM point_transfers');
+    await db.none('DELETE FROM transactions');
+    await db.none('DELETE FROM members');
+    await db.none('DELETE FROM agents'); // agents 表最後刪除，因為其他表可能引用它
+    console.log('現有代理和會員數據清理完成。');
+
+    // 創建新的總代理
+    console.log('創建新的總代理 ti2025...');
+    await db.none(`
+        INSERT INTO agents (username, password, level, balance, commission_rate)
         VALUES ($1, $2, $3, $4, $5)
-      `, ['admin', 'adminpwd', 0, 200000, 0.3]);
-      
-      console.log('創建總代理成功，初始餘額 200,000');
-    } else if (adminAgents.length > 1) {
-        // 如果找到多個總代理，記錄警告，但繼續執行
-        console.warn(`警告：數據庫中發現 ${adminAgents.length} 個 level=0 的總代理。系統將使用第一個找到的代理 (ID: ${adminAgents[0].id})。建議清理數據庫，確保只有一個總代理。`);
-    } else {
-        console.log(`已存在總代理 (ID: ${adminAgents[0].id})，無需創建。`);
-    }
+    `, ['ti2025', 'ti2025', 0, 200000, 0.3]);
+    console.log('總代理 ti2025 創建成功，初始餘額 200,000');
     
-    // 檢查是否有預設的測試會員
-    const testMember = await db.oneOrNone('SELECT * FROM members WHERE username = $1', ['aaa']);
-    if (!testMember) {
-      // 獲取總代理 - 使用第一個找到的總代理
-      const adminAgent = adminAgents[0];
+    // 移除原有的檢查和創建 admin 和 aaa 的邏輯
+    // // 檢查是否已有總代理 - 修改為使用 db.any 並處理多筆結果
+    // const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0');
+    // if (adminAgents.length === 0) {
+    //   // 創建總代理，初始餘額設為20萬
+    //   await db.none(`
+    //     INSERT INTO agents (username, password, level, balance, commission_rate) 
+    //     VALUES ($1, $2, $3, $4, $5)
+    //   `, ['admin', 'adminpwd', 0, 200000, 0.3]);
       
-      // 創建預設測試會員 (初始餘額為0，需要從代理轉移點數)
-      await db.none(`
-        INSERT INTO members (username, password, agent_id, balance) 
-        VALUES ($1, $2, $3, $4)
-      `, ['aaa', 'aaapwd', adminAgent.id, 0]);
+    //   console.log('創建總代理成功，初始餘額 200,000');
+    // } else if (adminAgents.length > 1) {
+    //     // 如果找到多個總代理，記錄警告，但繼續執行
+    //     console.warn(`警告：數據庫中發現 ${adminAgents.length} 個 level=0 的總代理。系統將使用第一個找到的代理 (ID: ${adminAgents[0].id})。建議清理數據庫，確保只有一個總代理。`);
+    // } else {
+    //     console.log(`已存在總代理 (ID: ${adminAgents[0].id})，無需創建。`);
+    // }
+    
+    // // 檢查是否有預設的測試會員
+    // const testMember = await db.oneOrNone('SELECT * FROM members WHERE username = $1', ['aaa']);
+    // if (!testMember) {
+    //   // 獲取總代理 - 使用第一個找到的總代理
+    //   const adminAgentForTestMember = await db.oneOrNone('SELECT * FROM agents WHERE level = 0 ORDER BY id LIMIT 1'); //確保能取到一個總代
       
-      console.log('創建預設測試會員成功');
-    }
+    //   if (adminAgentForTestMember) {
+    //        await db.none(`
+    //         INSERT INTO members (username, password, agent_id, balance) 
+    //         VALUES ($1, $2, $3, $4)
+    //       `, ['aaa', 'aaapwd', adminAgentForTestMember.id, 0]);
+    //       console.log('創建預設測試會員成功');
+    //   } else {
+    //       console.warn('未能創建預設測試會員，因為找不到總代理。');
+    //   }
+    // }
     
     console.log('初始化代理系統數據庫完成');
   } catch (error) {
@@ -785,10 +804,27 @@ const PointTransferModel = {
   // 獲取點數轉移記錄
   async getTransferRecords(userType, userId, limit = 50) {
     try {
+      // 更新SQL查詢以JOIN agents 和 members 表來獲取用戶名
       return await db.any(`
-        SELECT * FROM point_transfers 
-        WHERE (from_type = $1 AND from_id = $2) OR (to_type = $1 AND to_id = $2) 
-        ORDER BY created_at DESC 
+        SELECT 
+          pt.*,
+          CASE 
+            WHEN pt.from_type = 'agent' THEN from_agent.username
+            WHEN pt.from_type = 'member' THEN from_member.username
+            ELSE NULL 
+          END as from_username,
+          CASE 
+            WHEN pt.to_type = 'agent' THEN to_agent.username
+            WHEN pt.to_type = 'member' THEN to_member.username
+            ELSE NULL 
+          END as to_username
+        FROM point_transfers pt
+        LEFT JOIN agents from_agent ON pt.from_type = 'agent' AND pt.from_id = from_agent.id
+        LEFT JOIN members from_member ON pt.from_type = 'member' AND pt.from_id = from_member.id
+        LEFT JOIN agents to_agent ON pt.to_type = 'agent' AND pt.to_id = to_agent.id
+        LEFT JOIN members to_member ON pt.to_type = 'member' AND pt.to_id = to_member.id
+        WHERE (pt.from_type = $1 AND pt.from_id = $2) OR (pt.to_type = $1 AND pt.to_id = $2) 
+        ORDER BY pt.created_at DESC 
         LIMIT $3
       `, [userType, userId, limit]);
     } catch (error) {

@@ -872,13 +872,13 @@ const app = new Vue({
         
         // 格式化轉移方向
         formatTransferDirection(transfer) {
-            if (transfer.from_type === 'agent' && transfer.to_type === 'member') {
-                return `代理 (${transfer.from_id}) → 會員 (${transfer.to_id})`;
-            } else if (transfer.from_type === 'member' && transfer.to_type === 'agent') {
-                return `會員 (${transfer.from_id}) → 代理 (${transfer.to_id})`;
-            } else {
-                return `${transfer.from_type} (${transfer.from_id}) → ${transfer.to_type} (${transfer.to_id})`;
-            }
+            // 使用後端返回的 from_username 和 to_username
+            const fromName = transfer.from_username || `(${transfer.from_id})`;
+            const toName = transfer.to_username || `(${transfer.to_id})`;
+            const fromTypeDisplay = transfer.from_type === 'agent' ? '代理' : '會員';
+            const toTypeDisplay = transfer.to_type === 'agent' ? '代理' : '會員';
+
+            return `${fromTypeDisplay} ${fromName} → ${toTypeDisplay} ${toName}`;
         },
         
         // 獲取級別名稱
