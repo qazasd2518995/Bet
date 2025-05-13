@@ -1583,17 +1583,21 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
 
 // 新增: 點數轉移記錄API
 app.get(`${API_PREFIX}/point-transfers`, async (req, res) => {
-  const { userType, userId, limit = 50 } = req.query;
+  const { userType, userId, agentId, limit = 50 } = req.query;
   
   try {
-    if (!userType || !userId) {
+    // 如果提供了 agentId，優先使用它
+    const actualUserType = agentId ? 'agent' : userType;
+    const actualUserId = agentId || userId;
+    
+    if (!actualUserType || !actualUserId) {
       return res.json({
         success: false,
-        message: '請提供用戶類型和ID'
+        message: '請提供用戶類型和ID或代理ID'
       });
     }
     
-    const transfers = await PointTransferModel.getTransferRecords(userType, userId, limit);
+    const transfers = await PointTransferModel.getTransferRecords(actualUserType, actualUserId, limit);
     
     res.json({
       success: true,

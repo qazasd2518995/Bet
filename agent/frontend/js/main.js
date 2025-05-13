@@ -522,7 +522,14 @@ const app = new Vue({
         formatDate(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleDateString('zh-TW');
+            return date.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
         },
         
         // 獲取系統公告
@@ -996,6 +1003,35 @@ const app = new Vue({
             } catch (error) {
                 console.error('創建代理出錯:', error);
                 this.showMessage(error.response?.data?.message || '創建代理出錯，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        // 加載點數轉移記錄
+        async loadPointTransfers() {
+            this.loading = true;
+            try {
+                console.log('加載點數轉移記錄...');
+                const url = `${API_BASE_URL}/point-transfers?agentId=${this.user.id}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    console.error('加載點數轉移記錄失敗:', response.status);
+                    this.pointTransfers = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    this.pointTransfers = data.transfers || [];
+                    console.log('點數轉移記錄載入成功，共有 ' + this.pointTransfers.length + ' 筆記錄');
+                } else {
+                    console.error('點數轉移記錄數據格式錯誤:', data);
+                    this.pointTransfers = [];
+                }
+            } catch (error) {
+                console.error('加載點數轉移記錄錯誤:', error);
+                this.pointTransfers = [];
             } finally {
                 this.loading = false;
             }
