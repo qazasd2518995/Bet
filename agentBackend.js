@@ -1981,26 +1981,93 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
   }
 });
 
-// 初始化數據庫並啟動服務器
+// 定期同步開獎記錄的函數
+async function syncDrawRecords() {
+  try {
+    console.log('開始同步開獎記錄...');
+    
+    // 獲取draw_records表中最新的一筆記錄，用來確定從哪裡開始同步
+    const latestRecord = await db.oneOrNone(`
+      SELECT period FROM draw_records ORDER BY period DESC LIMIT 1
+    `);
+    
+    let whereClause = '';
+    const params = [];
+    
+    if (latestRecord && latestRecord.period) {
+      whereClause = 'WHERE period > $1';
+      params.push(latestRecord.period);
+      console.log(`從期數 ${latestRecord.period} 以後開始同步`);
+    } else {
+      console.log('沒有現有記錄，將同步全部開獎歷史');
+    }
+    
+    // 從result_history表獲取需要同步的記錄
+    const recordsToSync = await db.any(`
+      SELECT period, result, created_at 
+      FROM result_history 
+      ${whereClause}
+      ORDER BY period ASC
+    `, params);
+    
+    if (recordsToSync.length === 0) {
+      console.log('沒有新的開獎記錄需要同步');
+      return;
+    }
+    
+    console.log(`找到 ${recordsToSync.length} 筆開獎記錄需要同步`);
+    
+    // 逐一同步記錄
+    for (const record of recordsToSync) {
+      try {
+        // 正確處理result為JSONB格式
+        let result = record.result;
+        if (typeof result === 'string') {
+          result = JSON.parse(result);
+        }
+        
+        // 使用to_jsonb轉換確保PostgreSQL正確處理JSONB類型
+        await db.none(`
+          INSERT INTO draw_records (period, result, draw_time, created_at)
+          VALUES ($1, $2::jsonb, $3, $4)
+          ON CONFLICT (period) DO UPDATE 
+          SET result = $2::jsonb, draw_time = $3
+        `, [record.period, JSON.stringify(result), record.created_at, new Date()]);
+        
+        console.log(`同步開獎記錄: 期數=${record.period} 成功`);
+      } catch (insertError) {
+        console.error(`同步開獎記錄: 期數=${record.period} 失敗:`, insertError);
+      }
+    }
+    
+    console.log('開獎記錄同步完成');
+  } catch (error) {
+    console.error('同步開獎記錄時出錯:', error);
+  }
+}
+
+// 在服務器啟動時調用一次同步函數
 async function startServer() {
   try {
     await initDatabase();
     
-    // 啟動服務器
-    app.listen(port, () => {
-      console.log(`代理管理系統後端運行在端口 ${port}`);
-      
-      // 移除服務啟動時的同步調用
-      // 移除定時同步任務
+    // 首次同步開獎記錄
+    await syncDrawRecords();
+    
+    // 每5分鐘同步一次開獎記錄
+    setInterval(syncDrawRecords, 5 * 60 * 1000);
+    
+    // 啟動Express服務器
+    const PORT = process.env.PORT || 3003;
+    app.listen(PORT, () => {
+      console.log(`代理管理系統後端運行在端口 ${PORT}`);
     });
   } catch (error) {
     console.error('啟動服務器時出錯:', error);
-    process.exit(1);
   }
 }
 
-// 移除手動同步開獎歷史的API端點
-// app.get(`${API_PREFIX}/sync-draw-history`, ...);
+// ... existing code ...
 
 // ... 保持 startServer() 函數的調用 ...
 startServer();
