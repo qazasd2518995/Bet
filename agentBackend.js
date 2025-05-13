@@ -1890,7 +1890,8 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     } else {
       // 獲取所有直系下線會員
       const memberList = await MemberModel.findByAgentId(agentId);
-      members = memberList.data || [];
+      // members = memberList.data || []; // 原來的錯誤行
+      members = memberList || []; // <--- 修正：直接使用返回的數組
     }
     
     if (members.length === 0) {
@@ -1980,98 +1981,6 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
   }
 });
 
-// 從主遊戲系統同步開獎歷史
-async function syncDrawHistory(forceSync = false) {
-  try {
-    console.log(`開始同步開獎歷史數據，強制同步: ${forceSync}`);
-    
-    // 獲取最新的開獎記錄期數
-    let latestPeriod = null;
-    if (!forceSync) {
-      const latestRecord = await db.oneOrNone(`
-        SELECT period FROM draw_records 
-        ORDER BY CAST(period AS BIGINT) DESC 
-        LIMIT 1
-      `);
-      
-      if (latestRecord) {
-        latestPeriod = latestRecord.period;
-        console.log(`最新一期開獎記錄: ${latestPeriod}`);
-      } else {
-        console.log('沒有找到現有開獎記錄，將同步所有歷史');
-      }
-    }
-    
-    // 構建遊戲系統API URL
-    let apiUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://bet-game.onrender.com/api/history'
-      : 'http://localhost:3002/api/history';
-    
-    // 添加同步參數
-    const params = new URLSearchParams();
-    params.append('limit', '100'); // 每次同步100條記錄
-    if (latestPeriod) {
-      params.append('after_period', latestPeriod);
-    }
-    apiUrl += `?${params.toString()}`;
-    
-    console.log(`請求主遊戲系統API: ${apiUrl}`);
-    
-    // 發送請求到遊戲系統
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error(`遊戲系統API返回錯誤: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const records = Array.isArray(data) ? data : (data.records || []);
-    
-    if (records.length === 0) {
-      console.log('沒有新的開獎記錄需要同步');
-      return { success: true, syncedCount: 0 };
-    }
-    
-    console.log(`獲取到 ${records.length} 條開獎記錄，準備插入數據庫`);
-    
-    // 使用數據庫事務同步資料
-    return await db.tx(async t => {
-      let syncedCount = 0;
-      
-      for (const record of records) {
-        try {
-          // 檢查記錄是否已存在
-          const exists = await t.oneOrNone(`
-            SELECT id FROM draw_records WHERE period = $1
-          `, [record.period]);
-          
-          if (!exists) {
-            // 插入新記錄
-            await t.none(`
-              INSERT INTO draw_records (period, result, draw_time) 
-              VALUES ($1, $2, $3)
-            `, [
-              record.period,
-              JSON.stringify(record.result || record.numbers || []),
-              record.draw_time || record.created_at || new Date()
-            ]);
-            
-            syncedCount++;
-          }
-        } catch (err) {
-          console.error(`同步第 ${record.period} 期開獎記錄時出錯:`, err);
-          // 繼續處理其他記錄
-        }
-      }
-      
-      console.log(`成功同步 ${syncedCount} 條開獎記錄`);
-      return { success: true, syncedCount };
-    });
-  } catch (error) {
-    console.error('同步開獎歷史出錯:', error);
-    return { success: false, error: error.message };
-  }
-}
-
 // 初始化數據庫並啟動服務器
 async function startServer() {
   try {
@@ -2081,21 +1990,8 @@ async function startServer() {
     app.listen(port, () => {
       console.log(`代理管理系統後端運行在端口 ${port}`);
       
-      // 啟動後立即同步一次開獎歷史
-      syncDrawHistory().then(result => {
-        console.log('服務啟動初始同步結果:', result);
-      }).catch(err => {
-        console.error('服務啟動初始同步出錯:', err);
-      });
-      
-      // 設置定時同步任務 - 每5分鐘同步一次
-      setInterval(() => {
-        syncDrawHistory().then(result => {
-          console.log('定時同步結果:', result);
-        }).catch(err => {
-          console.error('定時同步出錯:', err);
-        });
-      }, 5 * 60 * 1000); // 5分鐘
+      // 移除服務啟動時的同步調用
+      // 移除定時同步任務
     });
   } catch (error) {
     console.error('啟動服務器時出錯:', error);
@@ -2103,19 +1999,8 @@ async function startServer() {
   }
 }
 
-// 添加手動同步開獎歷史的API端點
-app.get(`${API_PREFIX}/sync-draw-history`, async (req, res) => {
-  try {
-    const forceSync = req.query.force === 'true';
-    const result = await syncDrawHistory(forceSync);
-    res.json(result);
-  } catch (error) {
-    console.error('手動同步開獎歷史出錯:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || '同步失敗'
-    });
-  }
-});
+// 移除手動同步開獎歷史的API端點
+// app.get(`${API_PREFIX}/sync-draw-history`, ...);
 
+// ... 保持 startServer() 函數的調用 ...
 startServer();

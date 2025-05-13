@@ -674,22 +674,22 @@ const app = new Vue({
                 }
                 
                 const data = await response.json();
-                if (data.success && data.data) {
-                    this.bets = data.data.list || [];
-                    this.betPagination.totalPages = Math.ceil(data.data.total / this.betPagination.limit);
-                    this.betPagination.currentPage = data.data.page || 1;
+                if (data.success) {
+                    this.bets = data.bets || [];
                     
+                    this.betPagination.totalPages = Math.ceil(data.total / this.betPagination.limit);
+
                     // 更新統計數據
-                    if (data.data.stats) {
-                        this.betStats = {
-                            totalBets: data.data.stats.totalBets || 0,
-                            totalAmount: data.data.stats.totalAmount || 0,
-                            totalProfit: data.data.stats.totalProfit || 0
-                        };
-                    }
+                    this.betStats = data.stats || {
+                        totalBets: 0,
+                        totalAmount: 0,
+                        totalProfit: 0
+                    };
                 } else {
-                    console.error('下注記錄數據格式錯誤:', data);
+                    console.error('獲取下注記錄失敗:', data.message || '未知錯誤');
                     this.bets = [];
+                    this.betPagination.totalPages = 1;
+                    this.betStats = { totalBets: 0, totalAmount: 0, totalProfit: 0 };
                 }
             } catch (error) {
                 console.error('搜索下注記錄錯誤:', error);
@@ -704,7 +704,7 @@ const app = new Vue({
             this.loading = true;
             try {
                 console.log('加載開獎歷史...');
-                const url = `${API_BASE_URL}/history`;
+                const url = `${API_BASE_URL}/draw-history`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -738,8 +738,10 @@ const app = new Vue({
                 const params = new URLSearchParams();
                 if (this.drawFilters.period) params.append('period', this.drawFilters.period);
                 if (this.drawFilters.date) params.append('date', this.drawFilters.date);
+                params.append('page', this.drawPagination.currentPage);
+                params.append('limit', this.drawPagination.limit);
                 
-                const url = `${API_BASE_URL}/history?${params.toString()}`;
+                const url = `${API_BASE_URL}/draw-history?${params.toString()}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -1024,6 +1026,18 @@ const app = new Vue({
         activeTab(newTab, oldTab) {
             if (newTab === 'dashboard' && oldTab !== 'dashboard') {
                 this.fetchDashboardData();
+            }
+            if (newTab === 'memberManagement') {
+                this.searchMembers();
+            }
+            if (newTab === 'agentManagement') {
+                this.searchAgents();
+            }
+            if (newTab === 'drawHistory') {
+                this.loadDrawHistory();
+            }
+            if (newTab === 'betRecords') {
+                this.searchBets();
             }
         }
     }
