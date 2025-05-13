@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極速賽車 - 每分鐘開獎遊戲</title>
+    <title>極速賽車 - 生產版</title>
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- 先引入 Vue -->
@@ -163,7 +163,7 @@
                 <div class="user-info">
                     <span class="username-label">帳號：{{ username }}</span>
                     <span class="balance">{{ formatMoney(userBalance) }}</span>
-                </div>
+            </div>
             </div>
             <div class="logo" v-else>極速賽車</div>
             
@@ -187,7 +187,7 @@
                                 >
                                     <span class="hot-bet-label">{{ bet.label }}</span>
                                     <span class="hot-badge">熱門</span>
-                                </div>
+            </div>
                             </div>
                         </div>
                         <div class="dropdown-item" @click="logout">登出</div>
@@ -199,8 +199,8 @@
                 <input type="text" v-model="loginUsername" placeholder="用戶名" @keyup.enter="login">
                 <input type="password" v-model="loginPassword" placeholder="密碼" @keyup.enter="login">
                 <button @click="login">登入</button>
+                </div>
             </div>
-        </div>
         
         <!-- 遊戲狀態與倒計時 -->
         <div class="game-status">
@@ -213,7 +213,7 @@
                 <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
             </div>
         </div>
-        
+
         <!-- 上期開獎結果 -->
         <div class="result-section">
             <div class="period-info">
@@ -801,7 +801,7 @@
             <button class="action-button secondary-button" @click="clearBets">
                 清除
             </button>
-        </div>
+    </div>
 
         <!-- 顯示通知的元素 -->
         <div class="notification" :class="{visible: notificationVisible}">
@@ -817,20 +817,20 @@
                 return {
                     // 用戶相關
                     isLoggedIn: false,
-                    username: '',
+                username: '',
                     balance: 0,
                     loginUsername: '',
                     loginPassword: '',
                     
                     // 遊戲狀態
                     gameStatus: 'betting', // betting or drawing
-                    currentPeriod: '',
-                    nextPeriod: '',
+                currentPeriod: '',
+                nextPeriod: '',
                     countdownSeconds: 0,
                     
                     // 開獎結果
                     lastResult: [],
-                    lastResults: [],
+                lastResults: [],
                     resultLabels: ['冠軍', '亞軍', '第三名', '第四名', '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'],
                     
                     // 投注相關
@@ -840,8 +840,8 @@
                     activeTab: 'combined', // 當前活躍的標籤頁
                     
                     // 顯示狀態
-                    showHistory: false,
-                    showRecords: false,
+                showHistory: false,
+                showRecords: false,
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
                     
                     // 熱門投注
@@ -875,52 +875,52 @@
                     customAmount: '',
                     
                     // 賠率數據
-                    odds: {
-                        sumValue: {
-                            '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
-                            '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
-                            '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
-                            big: 1.96, small: 1.96, odd: 1.96, even: 1.96
-                        },
-                        champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        runnerup: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        third: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        fourth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        fifth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        sixth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        seventh: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        eighth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        ninth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        tenth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                odds: {
+                    sumValue: {
+                        '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
+                        '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
+                        '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
+                        big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+                    },
+                    champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    runnerup: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    third: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    fourth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    fifth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    sixth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    seventh: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    eighth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    ninth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    tenth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
                         dragonTiger: { 
                             dragon: 1.96, 
                             tiger: 1.96 
                         },
-                        number: {
-                            first: 9.59,
-                            second: 9.59,
-                            third: 9.59,
-                            fourth: 9.59,
-                            fifth: 9.59,
-                            sixth: 9.59,
-                            seventh: 9.59,
-                            eighth: 9.59,
-                            ninth: 9.59,
-                            tenth: 9.59
-                        }
-                    },
-                    hotBets: [],
-                    longestStreak: { count: 0, name: '' },
-                    showLoginModal: false,
-                    showRegisterModal: false,
-                    loginForm: {
-                        username: '',
-                        password: ''
-                    },
-                    registerForm: {
-                        username: '',
-                        password: '',
-                        confirmPassword: ''
+                    number: {
+                        first: 9.59,
+                        second: 9.59,
+                        third: 9.59,
+                        fourth: 9.59,
+                        fifth: 9.59,
+                        sixth: 9.59,
+                        seventh: 9.59,
+                        eighth: 9.59,
+                        ninth: 9.59,
+                        tenth: 9.59
+                    }
+                },
+                hotBets: [],
+                longestStreak: { count: 0, name: '' },
+                showLoginModal: false,
+                showRegisterModal: false,
+                loginForm: {
+                    username: '',
+                    password: ''
+                },
+                registerForm: {
+                    username: '',
+                    password: '',
+                    confirmPassword: ''
                     },
                     
                     // 通知相關
@@ -1117,7 +1117,7 @@
                                         // 3秒後移除元素
                                         setTimeout(() => {
                                             if (balanceElement.contains(changeElement)) {
-                                                balanceElement.removeChild(changeElement);
+                                            balanceElement.removeChild(changeElement);
                                             }
                                         }, 3000);
                                     }
@@ -1197,7 +1197,7 @@
                             this.displayNotification('下注成功！');
                             
                             // 清除所選注單
-                            this.selectedBets = [];
+                                this.selectedBets = [];
                             
                             // 重新獲取最新餘額
                             this.getBalance();
@@ -1272,12 +1272,12 @@
                     // 檢查新注單中是否有任何注單從未結算變為已結算
                     let hasNewSettlements = false;
                     if (Array.isArray(newBets)) {
-                        newBets.forEach(bet => {
-                            // 如果這個注單在舊注單中是未結算，但現在是已結算
-                            if (oldBetsMap[bet.id] === false && bet.settled === true) {
-                                hasNewSettlements = true;
-                            }
-                        });
+                    newBets.forEach(bet => {
+                        // 如果這個注單在舊注單中是未結算，但現在是已結算
+                        if (oldBetsMap[bet.id] === false && bet.settled === true) {
+                            hasNewSettlements = true;
+                        }
+                    });
                     }
                     
                     return hasNewSettlements;
@@ -1484,23 +1484,23 @@
                     // 確保betHistory是數組
                     if (Array.isArray(this.betHistory)) {
                         this.betHistory.forEach(bet => {
-                            const betDate = new Date(bet.time);
-                            
+                        const betDate = new Date(bet.time);
+                    
                             // 只統計今日的注單
                             if (betDate >= today) {
                                 dailyBetCount++;
-                                
+                    
                                 // 確保金額是數字類型
                                 const betAmount = parseFloat(bet.amount) || 0;
                                 
                                 // 如果已結算，計算盈虧
-                                if (bet.settled) {
+                        if (bet.settled) {
                                     // 根據輸贏計算盈虧
-                                    if (bet.win) {
+                            if (bet.win) {
                                         // 贏: 獲得獎金 - 下注金額 = 凈利潤
                                         const winAmount = parseFloat(bet.winAmount) || 0;
                                         dailyProfit += (winAmount - betAmount);
-                                    } else {
+                            } else {
                                         // 輸: 損失下注金額
                                         dailyProfit -= betAmount;
                                     }
@@ -1789,7 +1789,15 @@
                 // 獲取熱門投注數據
                 fetchHotBets() {
                     console.log('開始獲取熱門投注數據...');
-                    fetch('/api/hot-bets')
+                    
+                    // 檢測環境，決定使用哪個API端點
+                    let apiUrl = '/api/hot-bets';
+                    
+                    // 添加時間戳防止緩存
+                    const timestamp = new Date().getTime();
+                    apiUrl = `${apiUrl}?_t=${timestamp}`;
+                    
+                    fetch(apiUrl)
                         .then(response => {
                             console.log('熱門投注API響應狀態:', response.status);
                             if (!response.ok) {
@@ -1815,26 +1823,21 @@
                                 console.error('獲取熱門投注數據失敗:', data ? data.message : '無數據');
                                 // 初始化為空數組以避免undefined錯誤
                                 this.hotBets = [];
+                                this.displayNotification('無法獲取熱門投注數據');
                             }
                         })
                         .catch(error => {
                             console.error('獲取熱門投注數據出錯:', error);
                             // 錯誤時也設置為空數組
                             this.hotBets = [];
-                            // 嘗試使用一些模擬數據以便於調試
-                            this.initMockHotBets();
+                            this.displayNotification('獲取熱門投注數據出錯，請刷新頁面重試');
+                            
+                            // 30秒後重試
+                            setTimeout(() => {
+                                console.log('嘗試重新獲取熱門投注數據...');
+                                this.fetchHotBets();
+                            }, 30000);
                         });
-                },
-                
-                // 初始化模擬熱門投注數據 (當API失敗時使用)
-                initMockHotBets() {
-                    this.hotBets = [
-                        { betType: 'sumValue', betValue: 'big', label: '冠亞和 大', count: 28 },
-                        { betType: 'champion', betValue: 'big', label: '冠軍 大', count: 22 },
-                        { betType: 'sumValue', betValue: 'odd', label: '冠亞和 單', count: 18 },
-                        { betType: 'champion', betValue: '1', label: '冠軍 1號', count: 15 },
-                        { betType: 'runnerup', betValue: '10', label: '亞軍 10號', count: 14 }
-                    ];
                 },
                 
                 // 選擇熱門投注項目
@@ -1991,7 +1994,7 @@
                 // 每隔60秒刷新一次注單歷史
                 setInterval(() => {
                     if (this.isLoggedIn) {
-                        this.updateBetHistory();
+                this.updateBetHistory();
                     }
                 }, 60000);
                 

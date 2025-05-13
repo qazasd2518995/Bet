@@ -6,8 +6,10 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 // 導入數據庫模型
+import db from './db/config.js';
 import initDatabase from './db/init.js';
 import UserModel from './db/models/user.js';
 import BetModel from './db/models/bet.js';
@@ -239,31 +241,51 @@ async function initializeUserData(username) {
 
 // 註冊API
 app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, confirmPassword } = req.body;
   
-  // 驗證用戶數據
+  // 基本驗證
   if (!username || !password) {
-    return res.status(400).json({ success: false, message: '帳號和密碼不能為空' });
+    return res.status(400).json({
+      success: false,
+      message: '帳號和密碼不能為空'
+    });
+  }
+  
+  if (password !== confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: '兩次輸入的密碼不一致'
+    });
   }
   
   try {
-    // 檢查用戶是否已存在
+    // 檢查用戶名是否已存在
     const existingUser = await UserModel.findByUsername(username);
     if (existingUser) {
-      return res.status(400).json({ success: false, message: '此帳號已被註冊' });
+      return res.status(400).json({
+        success: false,
+        message: '該帳號已被註冊'
+      });
     }
     
     // 創建新用戶
     await UserModel.createOrUpdate({
       username,
-      password, // 注意：實際應用中應該加密密碼
-      balance: 1000 // 新用戶初始餘額
+      password,
+      balance: 10000 // 新用戶初始餘額
     });
     
-    res.status(201).json({ success: true, message: '註冊成功' });
+    res.status(201).json({
+      success: true,
+      message: '註冊成功',
+      username: username
+    });
   } catch (error) {
     console.error('註冊用戶出錯:', error);
-    res.status(500).json({ success: false, message: '註冊失敗，系統錯誤' });
+    res.status(500).json({
+      success: false,
+      message: '註冊失敗，系統錯誤'
+    });
   }
 });
 
@@ -441,41 +463,82 @@ const CONTROL_PARAMS = {
 
 // 根據下注情況生成智能結果
 async function generateSmartRaceResult(period) {
-  // 如果未啟用控制機制，直接返回隨機結果
-  if (!CONTROL_PARAMS.enabled) {
-    return generateRaceResult();
-  }
-  
   try {
     // 分析該期下注情況
     const betStats = await analyzeBetsForPeriod(period);
     
-    // 如果沒有下注或下注很少，直接返回隨機結果
-    if (betStats.totalAmount < 10) {
-      console.log('下注金額太小，使用隨機結果');
-      return generateRaceResult();
-    }
+    // 記錄下注統計
+    console.log(`期數 ${period} 的下注統計:`, 
+      { 
+        totalAmount: betStats.totalAmount, 
+        typeCounts: {
+          sumValue: Object.keys(betStats.sumValue).length,
+          number: Object.keys(betStats.number).length,
+          champion: Object.keys(betStats.champion).length,
+          runnerup: Object.keys(betStats.runnerup).length,
+          dragonTiger: Object.keys(betStats.dragonTiger).length
+        }
+      }
+    );
     
     // 識別大額下注組合
     const highBets = findHighBetCombinations(betStats);
     
-    // 如果沒有大額下注，則機率性地返回隨機結果
-    if (highBets.length === 0 && Math.random() > 0.3) {
-      console.log('沒有大額下注，使用隨機結果');
-      return generateRaceResult();
+    if (highBets.length > 0) {
+      console.log('檢測到大額下注，套用殺大賠小策略');
+      console.log('大額下注統計:', JSON.stringify(highBets));
+      
+      // 建立一個權重系統，避免大額下注獲勝
+      const weights = calculateResultWeights(highBets, betStats);
+      
+      // 基於權重生成結果
+      return generateWeightedResult(weights);
     }
     
-    console.log('檢測到大額下注，套用殺大賠小策略');
-    console.log('大額下注統計:', JSON.stringify(highBets));
+    // 即使沒有大額下注，也使用輕微權重，防止完全隨機
+    console.log('無大額下注，使用標準權重開獎');
+    const standardWeights = {
+      positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+      sumValue: Array(19).fill(1)
+    };
     
-    // 建立一個權重系統，避免大額下注獲勝
-    const weights = calculateResultWeights(highBets, betStats);
+    // 根據所有下注建立輕微權重
+    Object.entries(betStats).forEach(([betType, bets]) => {
+      if (betType !== 'totalAmount') {
+        Object.entries(bets).forEach(([value, amount]) => {
+          if (betType === 'number') {
+            // 號碼下注需特殊處理
+            const [position, num] = value.split('_');
+            if (position && num) {
+              const posIndex = parseInt(position) - 1;
+              const numIndex = parseInt(num) - 1;
+              if (posIndex >= 0 && posIndex < 10 && numIndex >= 0 && numIndex < 10) {
+                // 輕微減少該號碼的權重
+                standardWeights.positions[posIndex][numIndex] *= 0.9;
+              }
+            }
+          } else if (betType === 'sumValue') {
+            // 處理冠亞和值
+            if (!isNaN(parseInt(value))) {
+              const sumIndex = parseInt(value) - 3;
+              if (sumIndex >= 0 && sumIndex < 17) {
+                standardWeights.sumValue[sumIndex] *= 0.9;
+              }
+            }
+          }
+        });
+      }
+    });
     
-    // 基於權重生成結果
-    return generateWeightedResult(weights);
+    return generateWeightedResult(standardWeights);
   } catch (error) {
-    console.error('智能開獎過程出錯，使用隨機開獎:', error);
-    return generateRaceResult();
+    console.error('智能開獎過程出錯:', error);
+    // 出錯時使用權重為1的均等開獎，確保公平性
+    const defaultWeights = {
+      positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+      sumValue: Array(19).fill(1)
+    };
+    return generateWeightedResult(defaultWeights);
   }
 }
 
@@ -829,247 +892,147 @@ async function calculateRecentProfitLoss(periods = 10) {
   }
 }
 
-// 結算注單
-async function settleBets(period, result) {
-  // 獲取當前開獎結果
-  const champion = result[0];
-  const runnerup = result[1];
-  const sumValue = champion + runnerup;
-  
+// 在遊戲結算邏輯中處理點數發放
+async function settleBets(period, winResult) {
   console.log(`結算第${period}期注單...`);
   
-  try {
-    // 獲取該期所有未結算的注單
-    const unsettledBets = await BetModel.getUnsettledByPeriod(period);
-    
-    console.log(`找到${unsettledBets.length}個未結算注單`);
-    
-    // 處理每個注單
-    const userWinnings = {}; // 用於記錄每個用戶的贏利金額
-    
-    for (const bet of unsettledBets) {
-      let win = false;
-      let winAmount = 0;
+  // 獲取系統時間內未結算的注單
+  const bets = await BetModel.getUnsettledByPeriod(period);
+  
+  console.log(`找到${bets.length}個未結算注單`);
+  
+  if (bets.length === 0) {
+    console.log(`第${period}期注單結算完成`);
+    return;
+  }
+  
+  // 獲取總代理ID
+  const adminAgent = await getAdminAgentId();
+  if (!adminAgent) {
+    console.error('結算注單失敗: 找不到總代理帳戶');
+    return;
+  }
+  
+  // 遍歷並結算每個注單
+  for (const bet of bets) {
+    try {
+      const username = bet.username;
       
-      // 根據不同的投注類型計算贏利
-      switch (bet.bet_type) {
-        case 'sumValue':
-          if (bet.bet_value === 'big') {
-            win = sumValue > 11;
-          } else if (bet.bet_value === 'small') {
-            win = sumValue <= 11;
-          } else if (bet.bet_value === 'odd') {
-            win = sumValue % 2 === 1;
-          } else if (bet.bet_value === 'even') {
-            win = sumValue % 2 === 0;
-          } else {
-            // 冠亞和值單點
-            win = sumValue === parseInt(bet.bet_value);
-          }
-          winAmount = win ? bet.amount * bet.odds : 0;
-          break;
-          
-        case 'number':
-          // 號碼玩法
-          const position = bet.position;
-          win = result[position - 1] === parseInt(bet.bet_value);
-          winAmount = win ? bet.amount * bet.odds : 0;
-          break;
-          
-        case 'champion':
-          // 冠軍玩法
-          if (bet.bet_value === 'big') {
-            win = champion > 5;
-          } else if (bet.bet_value === 'small') {
-            win = champion <= 5;
-          } else if (bet.bet_value === 'odd') {
-            win = champion % 2 === 1;
-          } else if (bet.bet_value === 'even') {
-            win = champion % 2 === 0;
-          }
-          winAmount = win ? bet.amount * bet.odds : 0;
-          break;
-          
-        case 'runnerup':
-          // 亞軍玩法
-          if (bet.bet_value === 'big') {
-            win = runnerup > 5;
-          } else if (bet.bet_value === 'small') {
-            win = runnerup <= 5;
-          } else if (bet.bet_value === 'odd') {
-            win = runnerup % 2 === 1;
-          } else if (bet.bet_value === 'even') {
-            win = runnerup % 2 === 0;
-          }
-          winAmount = win ? bet.amount * bet.odds : 0;
-          break;
-          
-        case 'dragonTiger':
-          // 龍虎玩法
-          if (bet.bet_value === 'dragon') {
-            win = champion > runnerup;
-          } else if (bet.bet_value === 'tiger') {
-            win = champion < runnerup;
-          }
-          winAmount = win ? bet.amount * bet.odds : 0;
-          break;
-      }
+      // 計算贏錢金額
+      const winAmount = calculateWinAmount(bet, winResult);
+      const isWin = winAmount > 0;
       
-      // 更新注單狀態
-      await BetModel.updateSettlement(bet.id, win, winAmount);
+      console.log(`結算用戶 ${username} 的注單 ${bet.id}，下注類型: ${bet.bet_type}，下注值: ${bet.bet_value}，贏錢金額: ${winAmount}`);
       
-      // 累計用戶贏利金額
-      if (win && winAmount > 0) {
-        if (!userWinnings[bet.username]) {
-          userWinnings[bet.username] = 0;
-        }
-        userWinnings[bet.username] += winAmount;
-      }
-    }
-    
-    // 更新用戶餘額並同步到代理系統
-    for (const [username, winAmount] of Object.entries(userWinnings)) {
-      if (winAmount > 0) {
-        // 更新本地餘額
-        const updatedUser = await UserModel.updateBalance(username, winAmount);
-        console.log(`用戶 ${username} 贏得了 ${winAmount} 元，更新後餘額: ${updatedUser.balance}`);
-        
-        // 異步更新代理系統的餘額
-        try {
-          console.log(`嘗試向代理系統同步用戶 ${username} 的餘額變更...`);
-          
-          // 向代理系統發送餘額更新請求
-          const response = await fetch(`${AGENT_API_URL}/update-member-balance`, {
+      // 標記為已結算
+      await BetModel.updateSettlement(bet.id, isWin, winAmount);
+      
+      // 如果贏了，則從總代理轉移點數到會員
+      if (isWin) {
+        // 呼叫代理系統API
+        const updateResponse = await fetch(`${AGENT_API_URL}/update-member-balance`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
+            'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              username,
-              amount: winAmount, // 僅發送贏得的金額，而不是整個餘額
-              type: 'settlement'
+            agentId: adminAgent.id,
+            username: username,
+            amount: parseFloat(winAmount),  // 正數表示轉入到會員賬戶
+            type: 'win',
+            description: `第${period}期中獎 ${bet.bet_type}:${bet.bet_value}`
             })
           });
           
-          if (!response.ok) {
-            console.error(`更新用戶 ${username} 餘額至代理系統失敗, 狀態碼: ${response.status}`);
-            const text = await response.text();
-            console.error(`錯誤詳情: ${text}`);
+        const updateData = await updateResponse.json();
+        
+        if (updateData.success) {
+          // 同步本地餘額
+          await UserModel.setBalance(username, updateData.newBalance);
+          console.log(`用戶 ${username} 贏得了 ${winAmount} 元，更新後餘額: ${updateData.newBalance}`);
           } else {
-            const data = await response.json();
-            if (data.success) {
-              // 更新本地餘額為代理系統同步後的餘額，確保一致性
-              await UserModel.setBalance(username, data.newBalance);
-              console.log(`用戶 ${username} 餘額已同步至代理系統: ${data.newBalance}`);
-            } else {
-              console.error(`代理系統拒絕更新 ${username} 的餘額: ${data.message}`);
+          console.error(`轉移獎金給用戶 ${username} 失敗:`, updateData.message);
             }
           }
         } catch (error) {
-          console.error(`同步用戶 ${username} 餘額時發生錯誤:`, error);
-        }
+      console.error(`結算用戶注單出錯 (ID=${bet.id}):`, error);
       }
     }
     
     console.log(`第${period}期注單結算完成`);
-  } catch (error) {
-    console.error('結算注單時出錯:', error);
-  }
 }
 
-// 餘額查詢API
+// 修改獲取餘額的API端點
 app.get('/api/balance', async (req, res) => {
   const { username } = req.query;
   
-  console.log('接收到餘額查詢請求:', req.query);
-  
+  try {
+    // 參數驗證
   if (!username) {
-    console.log('未提供用戶名，返回錯誤');
     return res.status(400).json({ 
       success: false, 
-      message: '請提供用戶名參數' 
+        message: '請提供用戶名' 
     });
   }
 
-  try {
-    // 檢查用戶是否存在，如不存在則初始化
-    let user = await UserModel.findByUsername(username);
+    // 獲取用戶信息
+    const user = await UserModel.findByUsername(username);
     if (!user) {
-      console.log('用戶不存在於數據庫，嘗試初始化:', username);
-      user = await initializeUserData(username);
-      if (!user) {
-        console.log('用戶初始化失敗:', username);
-        return res.status(404).json({
+      console.log(`用戶不存在: ${username}`);
+      return res.json({ 
           success: false,
-          message: '用戶不存在或初始化失敗'
+        message: '用戶不存在', 
+        balance: 0 
         });
-      }
     }
+    
+    console.log(`為用戶 ${username} 獲取餘額`);
 
     try {
-      // 向代理系統查詢餘額
-      console.log('向代理系統發送查詢餘額請求:', username);
+      // 從代理系統獲取餘額
       const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         }
       });
 
-      if (!response.ok) {
-        console.error('代理系統響應狀態碼:', response.status);
-        const text = await response.text();
-        console.error('代理系統響應內容:', text);
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('代理系統返回的餘額數據:', data);
         
-        // 代理系統無法訪問時，使用本地餘額
-        console.log('使用本地餘額數據:', user.balance);
+        // 更新本地餘額
+        await UserModel.setBalance(username, data.balance);
+        console.log('更新本地餘額為:', data.balance);
+        
+        return res.json({ 
+          success: true, 
+          balance: data.balance,
+          source: 'agent_system'
+        });
+      } else {
+        console.log('代理系統回應失敗，使用本地餘額:', user.balance);
         return res.json({ 
           success: true, 
           balance: user.balance,
-          source: 'local' 
-        });
-      }
-
-      const data = await response.json();
-      console.log('代理系統返回的餘額數據:', data);
-      
-      if (data.success) {
-        // 更新本地用戶資料
-        await UserModel.setBalance(username, data.balance);
-        console.log('更新本地餘額為:', data.balance);
-        res.json({ 
-          success: true, 
-          balance: data.balance,
-          source: 'agent' 
-        });
-      } else {
-        // 代理系統回應失敗時，使用本地餘額
-        console.log('代理系統回應失敗，使用本地餘額:', user.balance);
-        res.json({ 
-          success: true, 
-          balance: user.balance,
-          source: 'local',
-          message: data.message || '代理系統獲取餘額失敗，使用本地餘額' 
+          source: 'local_db' 
         });
       }
     } catch (error) {
-      console.error('獲取餘額錯誤:', error);
-      // 發生錯誤時，使用本地餘額
+      console.error('獲取代理系統餘額出錯:', error);
       console.log('發生錯誤，使用本地餘額:', user.balance);
-      res.json({ 
+      return res.json({ 
         success: true, 
         balance: user.balance,
-        source: 'local',
-        message: '與代理系統通信錯誤，使用本地餘額' 
+        source: 'local_db_error' 
       });
     }
   } catch (error) {
-    console.error('餘額查詢錯誤:', error);
+    console.error('獲取餘額出錯:', error);
     res.status(500).json({ 
       success: false, 
-      message: '查詢餘額時發生系統錯誤' 
+      message: '系統錯誤，請稍後再試' 
     });
   }
 });
@@ -1114,10 +1077,205 @@ app.get('/api/game-data', async (req, res) => {
   }
 });
 
+// 獲取當前遊戲數據 (供API內部使用)
+async function getGameData() {
+  const gameState = await GameModel.getCurrentState();
+  
+  // 解析JSON格式的last_result
+  let last_result = gameState.last_result;
+  if (typeof last_result === 'string' && last_result) {
+    try {
+      last_result = JSON.parse(last_result);
+    } catch (e) {
+      console.error('解析last_result出錯:', e);
+      last_result = null;
+    }
+  }
+  
+  return {
+    period: gameState.current_period,
+    countdown: gameState.countdown_seconds,
+    lastResult: last_result,
+    status: gameState.status
+  };
+}
+
+// 計算下注獎金
+function calculateWinAmount(bet, winResult) {
+  try {
+    // 比賽尚未結束
+    if (!winResult || !Array.isArray(winResult) || winResult.length !== 10) {
+      console.error('無效的開獎結果:', winResult);
+      return 0;
+    }
+    
+    // 檢查投注金額
+    const amount = parseFloat(bet.amount);
+    if (isNaN(amount) || amount <= 0) {
+      console.error('無效的投注金額:', bet.amount);
+      return 0;
+    }
+    
+    // 獲取賠率
+    const betOdds = parseFloat(bet.odds);
+    if (isNaN(betOdds) || betOdds <= 0) {
+      console.error('無效的賠率:', bet.odds);
+      return 0;
+    }
+    
+    // 冠軍和亞軍的值
+    const champion = winResult[0];
+    const runnerup = winResult[1];
+    const sumValue = champion + runnerup;
+    
+    switch (bet.bet_type) {
+      case 'number':
+        // 號碼玩法
+        const position = parseInt(bet.position) || 1;
+        const value = parseInt(bet.bet_value);
+        
+        // 檢查結果
+        if (position >= 1 && position <= 10 && value === winResult[position - 1]) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        }
+        break;
+        
+      case 'sumValue':
+        // 冠亞和值
+        const betValue = bet.bet_value;
+        
+        if (betValue === 'big' && sumValue > 11) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (betValue === 'small' && sumValue <= 11) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (betValue === 'odd' && sumValue % 2 === 1) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (betValue === 'even' && sumValue % 2 === 0) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (parseInt(betValue) === sumValue) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        }
+        break;
+        
+      case 'champion':
+        // 冠軍大小單雙
+        if (bet.bet_value === 'big' && champion > 5) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'small' && champion <= 5) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'odd' && champion % 2 === 1) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'even' && champion % 2 === 0) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        }
+        break;
+        
+      case 'runnerup':
+        // 亞軍大小單雙
+        if (bet.bet_value === 'big' && runnerup > 5) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'small' && runnerup <= 5) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'odd' && runnerup % 2 === 1) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'even' && runnerup % 2 === 0) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        }
+        break;
+        
+      case 'dragonTiger':
+        // 龍虎
+        if (bet.bet_value === 'dragon' && champion > runnerup) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (bet.bet_value === 'tiger' && champion < runnerup) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        }
+        break;
+        
+      default:
+        // 其他位置的大小單雙
+        const posMap = {
+          'third': 2, 'fourth': 3, 'fifth': 4, 
+          'sixth': 5, 'seventh': 6, 'eighth': 7, 
+          'ninth': 8, 'tenth': 9
+        };
+        
+        if (posMap[bet.bet_type]) {
+          const pos = posMap[bet.bet_type];
+          const ballValue = winResult[pos];
+          
+          if (bet.bet_value === 'big' && ballValue > 5) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (bet.bet_value === 'small' && ballValue <= 5) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (bet.bet_value === 'odd' && ballValue % 2 === 1) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (bet.bet_value === 'even' && ballValue % 2 === 0) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          }
+        }
+        break;
+    }
+    
+    // 未中獎
+    return 0;
+  } catch (error) {
+    console.error('計算獎金時出錯:', error);
+    return 0;
+  }
+}
+
 // 獲取歷史開獎結果
 app.get('/api/history', async (req, res) => {
   try {
-    const results = await GameModel.getResultHistory();
+    console.log('收到開獎歷史查詢請求:', req.query);
+    
+    const { page = 1, limit = 20, period = '', date = '' } = req.query;
+    const pageNumber = parseInt(page);
+    const pageSize = parseInt(limit);
+    
+    // 構建查詢條件
+    let whereClause = '';
+    let params = [];
+    let conditions = [];
+    
+    // 期數篩選
+    if (period) {
+      conditions.push('period::text LIKE $' + (params.length + 1));
+      params.push(`%${period}%`);
+    }
+    
+    // 日期篩選
+    if (date) {
+      conditions.push('DATE(created_at) = $' + (params.length + 1));
+      params.push(date);
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = 'WHERE ' + conditions.join(' AND ');
+    }
+    
+    console.log('查詢條件:', { whereClause, params });
+    
+    try {
+      // 計算總記錄數
+      const countQuery = `SELECT COUNT(*) as total FROM result_history ${whereClause}`;
+      console.log('執行計數查詢:', countQuery);
+      const countResult = await db.one(countQuery, params);
+      const totalRecords = parseInt(countResult.total);
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      
+      // 獲取分頁數據
+      const offset = (pageNumber - 1) * pageSize;
+      const query = `
+        SELECT period, result, created_at 
+        FROM result_history 
+        ${whereClause} 
+        ORDER BY created_at DESC 
+        LIMIT ${pageSize} OFFSET ${offset}
+      `;
+      console.log('執行查詢:', query);
+      const results = await db.any(query, params);
     
     // 轉換格式使其與前端相容
     const formattedResults = results.map(record => {
@@ -1133,10 +1291,126 @@ app.get('/api/history', async (req, res) => {
       };
     });
     
-    res.json(formattedResults);
+      res.json({
+        success: true,
+        records: formattedResults,
+        totalPages,
+        currentPage: pageNumber,
+        totalRecords
+      });
+    } catch (dbError) {
+      console.error('資料庫查詢錯誤:', dbError);
+      throw new Error(`資料庫查詢錯誤: ${dbError.message}`);
+    }
   } catch (error) {
     console.error('獲取歷史開獎結果出錯:', error);
-    res.status(500).json({ success: false, message: '獲取歷史開獎結果失敗' });
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取歷史開獎結果失敗',
+      error: error.message
+    });
+  }
+});
+
+// 獲取下注記錄API
+app.get('/api/bet-history', async (req, res) => {
+  try {
+    console.log('收到下注記錄查詢請求:', req.query);
+    
+    const { username, page = 1, limit = 20, period = '', date = '' } = req.query;
+    const pageNumber = parseInt(page);
+    const pageSize = parseInt(limit);
+    
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: '未提供用戶名'
+      });
+    }
+    
+    // 構建查詢條件
+    let whereClause = 'WHERE username = $1';
+    let params = [username];
+    
+    // 期數篩選
+    if (period) {
+      whereClause += ' AND period::text LIKE $' + (params.length + 1);
+      params.push(`%${period}%`);
+    }
+    
+    // 日期篩選
+    if (date) {
+      whereClause += ' AND DATE(created_at) = $' + (params.length + 1);
+      params.push(date);
+    }
+    
+    console.log('查詢條件:', { whereClause, params });
+    
+    try {
+      // 計算總記錄數
+      const countQuery = `SELECT COUNT(*) as total FROM bet_history ${whereClause}`;
+      console.log('執行計數查詢:', countQuery);
+      const countResult = await db.one(countQuery, params);
+      const totalRecords = parseInt(countResult.total);
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      
+      // 獲取分頁數據
+      const offset = (pageNumber - 1) * pageSize;
+      const query = `
+        SELECT 
+          id, 
+          username, 
+          amount, 
+          bet_type as "betType", 
+          bet_value as "value", 
+          position, 
+          period, 
+          created_at as "time", 
+          win, 
+          win_amount as "winAmount", 
+          settled
+        FROM bet_history 
+        ${whereClause} 
+        ORDER BY created_at DESC 
+        LIMIT ${pageSize} OFFSET ${offset}
+      `;
+      console.log('執行查詢:', query);
+      const results = await db.any(query, params);
+      
+      // 格式化結果，確保前端可以直接使用
+      const formattedResults = results.map(bet => ({
+        id: bet.id,
+        username: bet.username,
+        amount: bet.amount,
+        betType: bet.betType,
+        value: bet.value,
+        position: bet.position,
+        period: bet.period,
+        time: bet.time,
+        win: bet.win,
+        winAmount: bet.winAmount,
+        settled: bet.settled
+      }));
+      
+      res.json({
+        success: true,
+        records: formattedResults,
+        totalPages,
+        currentPage: pageNumber,
+        totalRecords
+      });
+    } catch (dbError) {
+      console.error('資料庫查詢錯誤:', dbError);
+      throw new Error(`資料庫查詢錯誤: ${dbError.message}`);
+    }
+  } catch (error) {
+    console.error('獲取下注記錄出錯:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取下注記錄失敗',
+      error: error.message,
+      records: [] // 確保即使錯誤也返回空數組
+    });
   }
 });
 
@@ -1162,29 +1436,6 @@ app.post('/api/login', async (req, res) => {
       console.error('代理系統響應狀態碼:', response.status);
       const text = await response.text();
       console.error('代理系統響應內容:', text);
-      
-      // 如果代理系統連接失敗，但用戶存在於本地，則允許登入
-      const user = await UserModel.findByUsername(username);
-      if (user) {
-        console.log('代理系統無法連接，使用本地數據進行登入');
-        return res.json({
-          success: true,
-          message: '登入成功（本地驗證）',
-          balance: user.balance
-        });
-      }
-      
-      // 嘗試初始化用戶資料
-      const newUser = await initializeUserData(username);
-      
-      if (newUser) {
-        console.log('已初始化用戶資料，使用本地數據進行登入');
-        return res.json({
-          success: true,
-          message: '登入成功（本地驗證）',
-          balance: newUser.balance
-        });
-      }
       
       return res.status(500).json({
         success: false,
@@ -1218,33 +1469,6 @@ app.post('/api/login', async (req, res) => {
     }
   } catch (error) {
     console.error('登入錯誤:', error);
-    
-    // 如果發生錯誤，但用戶存在於本地，則允許登入
-    try {
-      const user = await UserModel.findByUsername(username);
-      if (user) {
-        console.log('登入過程出錯，使用本地數據進行登入');
-        return res.json({
-          success: true,
-          message: '登入成功（本地驗證）',
-          balance: user.balance
-        });
-      }
-      
-      // 嘗試初始化用戶資料
-      const newUser = await initializeUserData(username);
-      
-      if (newUser) {
-        console.log('已初始化用戶資料，使用本地數據進行登入');
-        return res.json({
-          success: true,
-          message: '登入成功（本地驗證）',
-          balance: newUser.balance
-        });
-      }
-    } catch (innerError) {
-      console.error('使用本地資料進行登入時出錯:', innerError);
-    }
     
     res.status(500).json({
       success: false,
@@ -1303,155 +1527,233 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// 接收下注請求
+// 更新下注處理邏輯
 app.post('/api/bet', async (req, res) => {
-  const { username, betType, value, position, amount } = req.body;
-  
-  console.log('收到下注請求:', { username, betType, value, position, amount });
-  
   try {
-    // 檢查用戶是否存在
-    const user = await UserModel.findByUsername(username);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: '用戶不存在'
-      });
+    // 驗證必要參數
+    const { username, amount, betType, value, position } = req.body;
+    
+    console.log(`收到下注請求: 用戶=${username}, 金額=${amount}, 類型=${betType}, 值=${value}, 位置=${position || 'N/A'}`);
+    
+    if (!username || !amount || !betType || !value) {
+      console.error('下注失敗: 請提供完整的下注信息');
+      return res.status(400).json({ success: false, message: '請提供完整的下注信息' });
     }
+    
+    // 檢查參數有效性
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      console.error('下注失敗: 無效的下注金額');
+      return res.status(400).json({ success: false, message: '無效的下注金額' });
+    }
+    
+    // 檢查下注類型和選項的有效性
+    if (!isValidBet(betType, value, position)) {
+      console.error(`下注失敗: 無效的下注選項 ${betType}=${value}`);
+      return res.status(400).json({ success: false, message: '無效的下注選項' });
+    }
+    
+    // 獲取當前遊戲狀態
+    const gameState = await getGameData();
+    const { period, status } = gameState;
     
     // 檢查遊戲狀態
-    const gameState = await GameModel.getCurrentState();
-    if (gameState.status !== 'betting') {
-      return res.status(400).json({
-        success: false,
-        message: '當前不在下注時間'
-      });
+    if (status !== 'betting') {
+      console.error('下注失敗: 當前不是下注階段');
+      return res.status(400).json({ success: false, message: '當前不是下注階段' });
     }
+    
+    // 獲取賠率
+    const odds = getOdds(betType, value);
+    console.log(`下注賠率: ${odds}`);
+    
+    // 獲取用戶餘額
+    const currentBalance = await getBalance(username);
+    console.log(`用戶 ${username} 當前餘額: ${currentBalance}`);
     
     // 檢查餘額是否足夠
-    if (user.balance < amount) {
-      return res.status(400).json({
-        success: false,
-        message: '餘額不足'
-      });
+    if (currentBalance < amountNum) {
+      console.error(`下注失敗: 餘額不足 (當前: ${currentBalance}, 需要: ${amountNum})`);
+      return res.status(400).json({ success: false, message: '餘額不足' });
     }
     
-    // 向代理系統發送餘額更新請求
     try {
-      const updateResponse = await fetch(`${AGENT_API_URL}/update-member-balance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          username,
-          amount: -amount, // 下注是扣除餘額
-          type: 'bet'
-        })
-      });
-      
-      // 檢查更新請求的響應
-      if (!updateResponse.ok) {
-        console.error('餘額更新失敗，HTTP狀態碼:', updateResponse.status);
-        const errorText = await updateResponse.text();
-        console.error('更新餘額錯誤詳情:', errorText);
-        return res.status(500).json({
-          success: false,
-          message: '系統錯誤，無法處理下注'
-        });
+      // 獲取總代理ID
+      const adminAgent = await getAdminAgentId();
+      if (!adminAgent) {
+        console.error('下注失敗: 找不到總代理帳戶');
+        return res.status(500).json({ success: false, message: '系統錯誤：找不到總代理帳戶' });
       }
       
-      const updateData = await updateResponse.json();
+      console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
-      if (!updateData.success) {
-        return res.status(400).json({
-          success: false,
-          message: updateData.message || '下注處理失敗'
-        });
+      // 扣除用戶餘額
+      const updateBalanceResult = await updateMemberBalance(username, -amountNum, adminAgent, '下注');
+      
+      if (!updateBalanceResult.success) {
+        console.error('下注失敗: 無法更新餘額', updateBalanceResult.message);
+        return res.status(500).json({ success: false, message: `系統錯誤：無法更新餘額 - ${updateBalanceResult.message}` });
       }
       
-      // 更新本地餘額
-      await UserModel.setBalance(username, updateData.newBalance);
-      console.log(`用戶 ${username} 下注 ${amount} 元後餘額更新為: ${updateData.newBalance}`);
-      
-      // 創建新的注單
+      // 準備下注數據
       const betData = {
-        username,
-        bet_type: betType,
-        bet_value: value,
-        position: position !== null ? parseInt(position) : null,
-        amount: parseFloat(amount),
-        odds: getOdds(betType, value, position),
-        period: gameState.current_period
+        username: username,
+        amount: amountNum,
+        bet_type: betType,  // 注意: 這裡使用 bet_type 而不是 betType
+        bet_value: value,   // 注意: 這裡使用 bet_value 而不是 value
+        position: position,
+        period: period,
+        odds: odds
       };
       
-      const newBet = await BetModel.create(betData);
+      console.log('準備創建下注記錄:', JSON.stringify(betData));
       
-      res.json({
-        success: true,
-        message: '下注成功',
-        bet: newBet,
-        balance: updateData.newBalance
+      // 嘗試創建下注記錄
+      let betResult;
+      try {
+        // 使用BetModel創建下注記錄
+        betResult = await BetModel.create(betData);
+        console.log(`創建了一個新的下注記錄: ID=${betResult.id}`);
+      } catch (dbError) {
+        console.error('創建下注記錄失敗:', dbError);
+        // 如果記錄創建失敗，返還用戶餘額
+        await updateMemberBalance(username, amountNum, adminAgent, '下注失敗返還');
+        return res.status(500).json({ success: false, message: `創建下注記錄失敗: ${dbError.message}` });
+      }
+      
+      // 獲取新的餘額
+      const newBalance = await getBalance(username);
+      
+      console.log(`用戶 ${username} 下注 ${amountNum} 元，類型：${betType}，值：${value}，位置：${position || 'N/A'}`);
+      console.log(`用戶 ${username} 下注 ${amountNum} 元後餘額更新為: ${newBalance}`);
+      
+      // 返回成功和更新後的餘額
+      return res.json({ 
+        success: true, 
+        message: '下注成功', 
+        betId: betResult.id, 
+        balance: newBalance.toString() 
       });
-    } catch (error) {
-      console.error('下注過程出錯:', error);
-      res.status(500).json({
-        success: false,
-        message: '下注過程發生錯誤，請稍後再試'
-      });
+    } catch (innerError) {
+      console.error('下注處理過程中發生錯誤:', innerError);
+      return res.status(500).json({ success: false, message: `系統錯誤: ${innerError.message}` });
     }
+    
   } catch (error) {
-    console.error('下注錯誤:', error);
-    res.status(500).json({
-      success: false,
-      message: '系統錯誤，下注失敗'
-    });
+    console.error('下注處理過程中發生錯誤:', error);
+    return res.status(500).json({ success: false, message: `系統錯誤: ${error.message}` });
   }
 });
 
-// 獲取下注相應的賠率
-function getOdds(betType, value, position) {
-  switch (betType) {
-    case 'sumValue':
-      return odds.sumValue[value];
-    case 'number':
-      return odds.number[positionToKey(position)];
-    case 'champion':
-      return odds.champion[value];
-    case 'runnerup':
-      return odds.runnerup[value];
-    case 'dragonTiger':
-      return odds.dragonTiger;
-    default:
-      return 0;
+// 驗證下注是否有效
+function isValidBet(betType, value, position) {
+  // 檢查下注類型
+  const validBetTypes = [
+    'sumValue', 'champion', 'runnerup', 'third', 'fourth', 'fifth', 
+    'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'dragonTiger', 'number'
+  ];
+  
+  if (!validBetTypes.includes(betType)) {
+    return false;
+  }
+  
+  // 檢查數值
+  if (betType === 'number') {
+    // 對於單號投注，需要檢查數字和位置
+    if (!position || position < 1 || position > 10) {
+      return false;
+    }
+    
+    const numValue = parseInt(value);
+    if (isNaN(numValue) || numValue < 1 || numValue > 10) {
+      return false;
+    }
+    
+    return true;
+  } else if (betType === 'sumValue') {
+    // 對於冠亞和值，檢查是否為有效的和值或大小單雙
+    const validValues = ['big', 'small', 'odd', 'even', '3', '4', '5', '6', '7', 
+                          '8', '9', '10', '11', '12', '13', '14', '15', '16', 
+                          '17', '18', '19'];
+    return validValues.includes(value.toString());
+  } else if (betType === 'dragonTiger') {
+    // 龍虎，檢查是否為龍或虎
+    return value === 'dragon' || value === 'tiger';
+  } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
+    // 冠軍、亞軍等位置的大小單雙
+    const validValues = ['big', 'small', 'odd', 'even'];
+    return validValues.includes(value);
+  } else {
+    // 冠軍、亞軍等位置投注，檢查是否為有效的號碼
+    const numValue = parseInt(value);
+    return !isNaN(numValue) && numValue >= 1 && numValue <= 10;
   }
 }
 
-// 獲取注單歷史
-app.get('/api/bet-history', async (req, res) => {
-  const { username } = req.query;
-  
+// 創建下注記錄
+async function createBet(username, amount, betType, value, position, period, odds) {
   try {
-    // 如果提供了用戶名，只返回該用戶的注單
-    if (username) {
-      const userBets = await BetModel.getByUsername(username);
-      return res.json(userBets);
+    console.log(`創建下注記錄: 用戶=${username}, 金額=${amount}, 類型=${betType}, 值=${value}, 位置=${position || 'N/A'}, 期數=${period}, 賠率=${odds}`);
+    
+    // 檢查必要值
+    if (!username || !amount || !betType || !value || !period) {
+      console.error('創建下注記錄失敗: 缺少必要參數');
+      throw new Error('缺少必要的下注參數');
     }
     
-    // 否則返回錯誤
-    res.status(400).json({
-      success: false,
-      message: '請提供用戶名參數'
-    });
+    const query = `
+      INSERT INTO bet_history (username, amount, bet_type, bet_value, position, period, odds)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
+    `;
+    
+    const params = [username, amount, betType, value, position, period, odds];
+    
+    const result = await db.query(query, params);
+    
+    // 檢查查詢結果是否有效
+    if (!result || !result.rows || result.rows.length === 0) {
+      console.error('創建下注記錄失敗: 資料庫未返回有效結果');
+      throw new Error('創建下注記錄失敗');
+    }
+    
+    const betId = result.rows[0].id;
+    console.log(`創建了一個新的下注記錄: ID=${betId}, 用戶=${username}, 期數=${period}, 賠率=${odds}`);
+    return betId;
   } catch (error) {
-    console.error('獲取注單歷史出錯:', error);
-    res.status(500).json({
-      success: false,
-      message: '獲取注單歷史失敗'
-    });
+    console.error('創建下注記錄失敗:', error);
+    throw error;
   }
-});
+}
+
+// 新增: 獲取總代理ID的函數
+async function getAdminAgentId() {
+  try {
+    // 從代理系統獲取總代理ID
+    const response = await fetch(`${AGENT_API_URL}/admin-agent`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return { id: data.agent.id, username: data.agent.username };
+    } else {
+      console.error('獲取總代理ID失敗:', data.message);
+      // 返回本地默認總代理
+      console.log('使用本地默認總代理ID');
+      return { id: 1, username: 'admin' };
+    }
+  } catch (error) {
+    console.error('獲取總代理ID出錯:', error);
+    // 出錯時也返回本地默認總代理
+    console.log('連接代理系統失敗，使用本地默認總代理ID');
+    return { id: 1, username: 'admin' };
+  }
+}
 
 // 初始化數據庫並啟動服務器
 async function startServer() {
@@ -1459,9 +1761,34 @@ async function startServer() {
     // 初始化數據庫
     await initDatabase();
     
+    console.log('開始初始化熱門投注數據...');
+    // 更新熱門投注數據
+    try {
+      await updateHotBets();
+      console.log('熱門投注數據初始化成功');
+    } catch (hotBetsError) {
+      console.error('初始化熱門投注數據時出錯:', hotBetsError);
+    }
+    
+    // 設置定時更新熱門投注（每10分鐘）
+    const hotBetsInterval = setInterval(async () => {
+      try {
+        console.log('定時更新熱門投注數據...');
+        await updateHotBets();
+      } catch (error) {
+        console.error('定時更新熱門投注數據時出錯:', error);
+      }
+    }, 10 * 60 * 1000);
+    
     // 啟動服務器
     app.listen(port, () => {
       console.log(`極速賽車遊戲服務運行在端口 ${port}`);
+      console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`API Base URL: ${AGENT_API_URL}`);
+      
+      // 確認熱門投注API端點可用
+      console.log('已註冊 API 端點: /api/hot-bets');
+      
       // 啟動遊戲循環
       startGameCycle();
     });
@@ -1472,3 +1799,400 @@ async function startServer() {
 
 // 啟動服務器
 startServer();
+
+// 獲取下注賠率函數
+function getOdds(betType, value) {
+  try {
+    // 冠亞和值賠率
+    if (betType === 'sumValue') {
+      if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
+        return 1.96;  // 大小單雙賠率
+      } else {
+        // 和值賠率表
+        const sumOdds = {
+          '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
+          '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
+          '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
+          '18': 41.0, '19': 81.0
+        };
+        return sumOdds[value] || 1.0;
+      }
+    } 
+    // 單號投注
+    else if (betType === 'number') {
+      return 9.8;
+    }
+    // 龍虎
+    else if (betType === 'dragonTiger') {
+      return 1.96;
+    } 
+    // 冠軍、亞軍等位置的大小單雙
+    else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
+      if (['big', 'small', 'odd', 'even'].includes(value)) {
+        return 1.96;
+      } else {
+        return 9.8;  // 單號投注
+      }
+    }
+    
+    // 預設賠率
+    return 1.0;
+  } catch (error) {
+    console.error('計算賠率時出錯:', error);
+    return 1.0;
+  }
+}
+
+// 獲取餘額函數，由多個API使用
+async function getBalance(username) {
+  try {
+    if (!username) {
+      console.log('獲取餘額失敗: 未提供用戶名');
+      return 0;
+    }
+    
+    // 嘗試從代理系統獲取餘額
+    try {
+      const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // 更新本地餘額
+        await UserModel.setBalance(username, data.balance);
+        return parseFloat(data.balance);
+      }
+    } catch (error) {
+      console.error('從代理系統獲取餘額失敗:', error);
+    }
+    
+    // 如果從代理系統獲取失敗，則使用本地餘額
+    const user = await UserModel.findByUsername(username);
+    if (user) {
+      return parseFloat(user.balance);
+    }
+    
+    console.log(`用戶 ${username} 不存在，餘額為 0`);
+    return 0;
+  } catch (error) {
+    console.error('獲取餘額出錯:', error);
+    return 0;
+  }
+}
+
+// 更新會員餘額的函數
+async function updateMemberBalance(username, amount, adminAgent, reason) {
+  try {
+    console.log(`嘗試更新會員 ${username} 的餘額：${amount}，原因：${reason}`);
+    console.log(`代理信息:`, JSON.stringify(adminAgent));
+    
+    if (!username) {
+      console.error('更新會員餘額失敗: 未提供用戶名');
+      return { success: false, message: '未提供用戶名' };
+    }
+
+    // 獲取當前餘額
+    const currentBalance = await getBalance(username);
+    console.log(`用戶 ${username} 的當前餘額: ${currentBalance}`);
+    
+    // 計算新餘額
+    const newBalance = parseFloat(currentBalance) + parseFloat(amount);
+    console.log(`用戶 ${username} 的新餘額將為: ${newBalance}`);
+    
+    // 檢查餘額是否為負數
+    if (newBalance < 0) {
+      console.error(`更新會員餘額失敗: 餘額不足 (當前: ${currentBalance}, 嘗試扣除: ${Math.abs(amount)})`);
+      return { success: false, message: '餘額不足' };
+    }
+    
+    // 先更新本地用戶餘額
+    try {
+      await UserModel.setBalance(username, newBalance);
+      console.log(`本地餘額已更新為: ${newBalance}`);
+    } catch (localError) {
+      console.error('更新本地餘額失敗:', localError);
+      return { success: false, message: `更新本地餘額失敗: ${localError.message}` };
+    }
+    
+    // 嘗試通知代理系統，但即使失敗也不影響本地更新結果
+    let agentSystemSuccess = false;
+    if (adminAgent) {
+      try {
+        console.log(`向代理系統發送餘額更新請求: ${AGENT_API_URL}/update-member-balance`);
+        console.log(`請求體:`, JSON.stringify({
+          agentId: adminAgent.id,
+          username: username,
+          amount: amount,
+          type: amount > 0 ? 'win' : 'bet',
+          description: reason
+        }));
+        
+        const response = await fetch(`${AGENT_API_URL}/update-member-balance`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            agentId: adminAgent.id,
+            username: username,
+            amount: amount,
+            type: amount > 0 ? 'win' : 'bet',
+            description: reason
+        })
+      });
+      
+        console.log(`代理系統響應狀態碼: ${response.status}`);
+        
+        const data = await response.json();
+        console.log(`代理系統響應數據:`, JSON.stringify(data));
+        
+        if (!data.success) {
+          console.error('代理系統更新餘額失敗:', data.message);
+          // 即使代理系統失敗，我們也繼續使用本地更新的餘額
+        } else {
+          console.log(`代理系統成功處理餘額更新，新餘額為: ${data.newBalance}`);
+          agentSystemSuccess = true;
+        }
+      } catch (error) {
+        console.error('呼叫代理系統API出錯:', error);
+        // 繼續使用本地更新的餘額
+      }
+    } else {
+      console.log('未提供代理信息，僅更新本地餘額');
+    }
+    
+    console.log(`用戶 ${username} 餘額已更新: ${currentBalance} -> ${newBalance} (代理系統更新狀態: ${agentSystemSuccess ? '成功' : '失敗'})`);
+    return { success: true, balance: newBalance };
+    
+  } catch (error) {
+    console.error('更新會員餘額時出錯:', error);
+    return { success: false, message: `系統錯誤: ${error.message}` };
+  }
+}
+
+// 初始化全局熱門投注數據結構
+const hotBetsData = {
+  // 按下注類型和值保存熱門程度
+  byType: {
+    sumValue: {}, // 冠亞和值
+    dragonTiger: {}, // 龍虎
+    champion: {}, // 冠軍位置
+    runnerup: {}, // 亞軍位置
+    number: {} // 單號投注
+  },
+  // 熱門投注排行榜（按下注次數排序）
+  topBets: [],
+  // 最後更新時間
+  lastUpdate: null
+};
+
+// 定期更新熱門投注數據
+async function updateHotBets() {
+  try {
+    console.log('開始更新熱門投注數據');
+    const now = new Date();
+    
+    // 獲取最近24小時的下注數據
+    const period = 24 * 60 * 60 * 1000; // 24小時的毫秒數
+    const startTime = new Date(now.getTime() - period);
+    
+    // 查詢數據庫，獲取最近下注
+    let recentBets = [];
+    try {
+      recentBets = await db.any(`
+        SELECT 
+          bet_type, 
+          bet_value, 
+          position,
+          COUNT(*) as bet_count,
+          SUM(amount) as total_amount
+        FROM bet_history
+        WHERE created_at > $1
+        GROUP BY bet_type, bet_value, position
+        ORDER BY bet_count DESC
+      `, [startTime]);
+      
+      console.log(`查詢到 ${recentBets.length} 條近期投注數據`);
+    } catch (dbError) {
+      console.error('查詢數據庫獲取熱門投注數據失敗:', dbError);
+      // 如果數據庫查詢失敗，設置為空數組
+      recentBets = [];
+      throw new Error('查詢數據庫獲取熱門投注數據失敗');
+    }
+    
+    // 重置熱門投注數據
+    for (const type in hotBetsData.byType) {
+      hotBetsData.byType[type] = {};
+    }
+    
+    // 如果沒有數據，則直接返回空數組
+    if (recentBets.length === 0) {
+      console.log('沒有查詢到投注數據，返回空數據');
+      hotBetsData.topBets = [];
+      hotBetsData.lastUpdate = now;
+      return;
+    }
+    
+    // 正常處理查詢結果
+    recentBets.forEach(bet => {
+      const betType = bet.bet_type;
+      const betValue = bet.bet_value;
+      const position = bet.position;
+      const count = parseInt(bet.bet_count);
+      const amount = parseFloat(bet.total_amount);
+      
+      if (betType === 'number' && position) {
+        // 單號投注需要考慮位置
+        const key = `${position}_${betValue}`;
+        hotBetsData.byType.number[key] = { count, amount, position, value: betValue };
+      } else if (hotBetsData.byType[betType]) {
+        // 其他投注類型
+        hotBetsData.byType[betType][betValue] = { count, amount, value: betValue };
+      }
+    });
+    
+    // 整理熱門投注排行榜
+    const allBets = [];
+    
+    // 處理號碼投注
+    Object.entries(hotBetsData.byType.number).forEach(([key, data]) => {
+      const [position, value] = key.split('_');
+      allBets.push({
+        type: 'number',
+        typeLabel: '單號',
+        position: parseInt(position),
+        value,
+        count: data.count,
+        amount: data.amount,
+        label: `第${position}名 ${value}號`
+      });
+    });
+    
+    // 處理冠亞和值
+    Object.entries(hotBetsData.byType.sumValue).forEach(([value, data]) => {
+      let label = '';
+      if (['big', 'small', 'odd', 'even'].includes(value)) {
+        const valueMap = {
+          'big': '大',
+          'small': '小',
+          'odd': '單',
+          'even': '雙'
+        };
+        label = `冠亞和 ${valueMap[value]}`;
+      } else {
+        label = `冠亞和 ${value}`;
+      }
+      
+      allBets.push({
+        type: 'sumValue',
+        typeLabel: '冠亞和',
+        value,
+        count: data.count,
+        amount: data.amount,
+        label
+      });
+    });
+    
+    // 處理龍虎
+    Object.entries(hotBetsData.byType.dragonTiger).forEach(([value, data]) => {
+      const valueMap = {
+        'dragon': '龍',
+        'tiger': '虎'
+      };
+      
+      allBets.push({
+        type: 'dragonTiger',
+        typeLabel: '龍虎',
+        value,
+        count: data.count,
+        amount: data.amount,
+        label: `龍虎 ${valueMap[value] || value}`
+      });
+    });
+    
+    // 處理冠軍
+    Object.entries(hotBetsData.byType.champion).forEach(([value, data]) => {
+      let label = '';
+      if (['big', 'small', 'odd', 'even'].includes(value)) {
+        const valueMap = {
+          'big': '大',
+          'small': '小',
+          'odd': '單',
+          'even': '雙'
+        };
+        label = `冠軍 ${valueMap[value]}`;
+      } else {
+        label = `冠軍 ${value}號`;
+      }
+      
+      allBets.push({
+        type: 'champion',
+        typeLabel: '冠軍',
+        value,
+        count: data.count,
+        amount: data.amount,
+        label
+      });
+    });
+    
+    // 排序並只保留前10個
+    hotBetsData.topBets = allBets
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+    
+    hotBetsData.lastUpdate = now;
+    console.log(`熱門投注數據更新完成，共有 ${hotBetsData.topBets.length} 個熱門選項`);
+  } catch (error) {
+    console.error('更新熱門投注數據失敗:', error);
+    // 出錯時不產生默認數據，將topBets保持為原來的值，不影響已有數據
+  }
+}
+
+// REST API端點 - 獲取熱門投注
+app.get('/api/hot-bets', (req, res) => {
+  console.log('收到熱門投注API請求');
+  try {
+    // 如果hotBetsData.topBets為空或未初始化，返回錯誤訊息
+    if (!hotBetsData.topBets || hotBetsData.topBets.length === 0) {
+      console.log('熱門投注數據為空，返回錯誤');
+      return res.status(404).json({
+        success: false,
+        message: '暫無熱門投注數據',
+        hotBets: [],
+        lastUpdate: null
+      });
+    }
+    
+    // 正常數據處理
+    const hotBets = hotBetsData.topBets.map(bet => ({
+      type: bet.type,
+      typeLabel: bet.typeLabel,
+      value: bet.value,
+      position: bet.position,
+      count: bet.count,
+      label: bet.label,
+      isHot: true
+    }));
+    
+    console.log(`熱門投注API返回 ${hotBets.length} 個數據`);
+    
+    res.json({
+      success: true,
+      hotBets,
+      lastUpdate: hotBetsData.lastUpdate
+    });
+  } catch (error) {
+    console.error('獲取熱門投注數據失敗:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取熱門投注數據失敗',
+      error: error.message,
+      hotBets: []
+    });
+  }
+});
