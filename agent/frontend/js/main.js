@@ -1035,7 +1035,58 @@ const app = new Vue({
             } finally {
                 this.loading = false;
             }
-        }
+        },
+        // 新增：處理會員餘額調整模態框的顯示
+        adjustMemberBalance(member) {
+            this.balanceAdjustData.memberId = member.id;
+            this.balanceAdjustData.memberUsername = member.username;
+            this.balanceAdjustData.currentBalance = member.balance;
+            this.balanceAdjustData.agentId = this.user.id; // 設置代理ID
+            this.agentCurrentBalance = this.user.balance; // 設置代理當前餘額
+            this.transferAmount = 0; // 重置轉移金額
+            this.transferType = 'deposit'; // 預設為存入
+
+            this.showAdjustBalanceModal = true;
+            this.$nextTick(() => {
+                const modalEl = document.getElementById('adjustBalanceModal');
+                if (modalEl) {
+                    this.adjustBalanceModal = new bootstrap.Modal(modalEl);
+                    this.adjustBalanceModal.show();
+                } else {
+                    console.error('找不到餘額調整模態框元素');
+                    this.showMessage('系統錯誤，請稍後再試', 'error');
+                }
+            });
+        },
+
+        // 新增：切換會員狀態
+        async toggleMemberStatus(memberId, currentStatus) {
+            const newStatus = currentStatus === 1 ? 0 : 1;
+            const actionText = newStatus === 1 ? '啟用' : '停用';
+            if (!confirm(`確定要${actionText}該會員嗎？`)) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/toggle-member-status`, { memberId, status: newStatus });
+                if (response.data.success) {
+                    this.showMessage(`會員已${actionText}`, 'success');
+                    // 更新本地會員列表中的狀態
+                    const member = this.members.find(m => m.id === memberId);
+                    if (member) {
+                        member.status = newStatus;
+                    }
+                } else {
+                    this.showMessage(response.data.message || `${actionText}會員失敗`, 'error');
+                }
+            } catch (error) {
+                console.error(`${actionText}會員出錯:`, error);
+                this.showMessage(error.response?.data?.message || `${actionText}會員失敗，請稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
     },
     
     // 計算屬性
@@ -1063,17 +1114,25 @@ const app = new Vue({
             if (newTab === 'dashboard' && oldTab !== 'dashboard') {
                 this.fetchDashboardData();
             }
-            if (newTab === 'memberManagement') {
+            if (newTab === 'members') {
                 this.searchMembers();
             }
-            if (newTab === 'agentManagement') {
+            if (newTab === 'agents') {
                 this.searchAgents();
             }
-            if (newTab === 'drawHistory') {
+            if (newTab === 'draw') {
                 this.loadDrawHistory();
             }
-            if (newTab === 'betRecords') {
+            if (newTab === 'stats') {
                 this.searchBets();
+            }
+            if (newTab === 'transactions' && this.transactionTab === 'transfers') {
+                this.loadPointTransfers();
+            }
+        },
+        transactionTab(newTab, oldTab) {
+            if (this.activeTab === 'transactions' && newTab === 'transfers') {
+                this.loadPointTransfers();
             }
         }
     }
