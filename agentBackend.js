@@ -151,11 +151,28 @@ async function initDatabase() {
       )
     `);
     
+    // 創建開獎記錄表
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS draw_records (
+        id SERIAL PRIMARY KEY,
+        period VARCHAR(50) UNIQUE NOT NULL,
+        result JSONB,
+        draw_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 為開獎記錄表創建索引
+    await db.none(`
+      CREATE INDEX IF NOT EXISTS idx_draw_records_period ON draw_records(period);
+      CREATE INDEX IF NOT EXISTS idx_draw_records_draw_time ON draw_records(draw_time);
+    `);
+    
     console.log('初始化代理系統數據庫表結構完成');
     
-    // 檢查是否已有總代理
-    const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
-    if (!adminAgent) {
+    // 檢查是否已有總代理 - 修改為使用 db.any 並處理多筆結果
+    const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0');
+    if (adminAgents.length === 0) {
       // 創建總代理，初始餘額設為20萬
       await db.none(`
         INSERT INTO agents (username, password, level, balance, commission_rate) 
@@ -163,13 +180,18 @@ async function initDatabase() {
       `, ['admin', 'adminpwd', 0, 200000, 0.3]);
       
       console.log('創建總代理成功，初始餘額 200,000');
+    } else if (adminAgents.length > 1) {
+        // 如果找到多個總代理，記錄警告，但繼續執行
+        console.warn(`警告：數據庫中發現 ${adminAgents.length} 個 level=0 的總代理。系統將使用第一個找到的代理 (ID: ${adminAgents[0].id})。建議清理數據庫，確保只有一個總代理。`);
+    } else {
+        console.log(`已存在總代理 (ID: ${adminAgents[0].id})，無需創建。`);
     }
     
     // 檢查是否有預設的測試會員
     const testMember = await db.oneOrNone('SELECT * FROM members WHERE username = $1', ['aaa']);
     if (!testMember) {
-      // 獲取總代理
-      const adminAgent = await db.one('SELECT id FROM agents WHERE level = 0');
+      // 獲取總代理 - 使用第一個找到的總代理
+      const adminAgent = adminAgents[0];
       
       // 創建預設測試會員 (初始餘額為0，需要從代理轉移點數)
       await db.none(`
@@ -1043,9 +1065,9 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
   }
 });
 
-// 創建代理
-app.post(`${API_PREFIX}/create`, async (req, res) => {
-  const { username, password, level, parent } = req.body;
+// 創建代理 - 修改路由名稱
+app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
+  const { username, password, level, parent, commission_rate } = req.body; // 添加 commission_rate
   
   try {
     // 檢查用戶名是否已存在
@@ -1057,10 +1079,11 @@ app.post(`${API_PREFIX}/create`, async (req, res) => {
       });
     }
     
-    // 獲取上級代理
+    // 獲取上級代理ID 和 上級代理信息
     let parentId = null;
+    let parentAgent = null; 
     if (parent) {
-      const parentAgent = await AgentModel.findById(parent);
+      parentAgent = await AgentModel.findById(parent);
       if (!parentAgent) {
         return res.json({
           success: false,
@@ -1068,6 +1091,29 @@ app.post(`${API_PREFIX}/create`, async (req, res) => {
         });
       }
       parentId = parentAgent.id;
+       // 驗證代理級別是否合理
+      if (parseInt(level) <= parentAgent.level) {
+        return res.json({
+          success: false,
+          message: '下級代理的級別必須低於上級代理'
+        });
+      }
+      // 驗證佣金比例是否合理
+      if (parseFloat(commission_rate) > parentAgent.commission_rate) {
+          return res.json({
+              success: false,
+              message: '下級代理的佣金比例不能高於上級代理'
+          });
+      }
+
+    } else {
+         // 如果沒有指定上級，檢查是否正在創建總代理
+         if (parseInt(level) !== 0) {
+              return res.json({
+                success: false,
+                message: '只有總代理可以沒有上級'
+              })
+         }
     }
     
     // 創建代理
@@ -1076,7 +1122,7 @@ app.post(`${API_PREFIX}/create`, async (req, res) => {
       password,
       parent_id: parentId,
       level: parseInt(level),
-      commission_rate: 0.2 // 預設佣金比例
+      commission_rate: parseFloat(commission_rate) // 使用傳入的佣金比例
     });
     
     res.json({
@@ -1758,39 +1804,53 @@ app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
 app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
   try {
     const { page = 1, limit = 20, period = '', date = '' } = req.query;
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const offset = (parsedPage - 1) * parsedLimit;
 
-    // 從遊戲後端獲取開獎歷史
-    let url = `http://localhost:3002/api/history`;
-    // 添加查詢參數
-    const params = new URLSearchParams();
-    if (period) params.append('period', period);
-    if (date) params.append('date', date);
-    if (page) params.append('page', page);
-    if (limit) params.append('limit', limit);
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
+    let countQuery = 'SELECT COUNT(*) FROM draw_records';
+    let dataQuery = 'SELECT * FROM draw_records';
+    const params = [];
+    const countParams = [];
+
+    let whereClause = '';
+
+    if (period) {
+      whereClause += (whereClause ? ' AND ' : ' WHERE ') + `period = $${params.length + 1}`;
+      params.push(period);
+      countParams.push(period);
     }
 
-    console.log(`請求遊戲後端開獎歷史: ${url}`);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`遊戲後端返回錯誤狀態: ${response.status}`);
+    if (date) {
+      whereClause += (whereClause ? ' AND ' : ' WHERE ') + `DATE(draw_time) = $${params.length + 1}`;
+      params.push(date);
+      countParams.push(date);
     }
-    
-    const data = await response.json();
-    
-    // 向前端返回數據
+
+    countQuery += whereClause;
+    dataQuery += whereClause;
+
+    dataQuery += ` ORDER BY period DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(parsedLimit, offset);
+
+    console.log(`Executing count query: ${countQuery} with params: ${JSON.stringify(countParams)}`);
+    console.log(`Executing data query: ${dataQuery} with params: ${JSON.stringify(params)}`);
+
+    // 執行查詢
+    const totalResult = await db.one(countQuery, countParams);
+    const totalRecords = parseInt(totalResult.count);
+    const records = await db.any(dataQuery, params);
+
     res.json({
       success: true,
-      records: data.records || data,
-      totalPages: data.totalPages || 1,
-      currentPage: parseInt(page),
-      totalRecords: data.totalRecords || (data.length || 0)
+      records: records,
+      totalPages: Math.ceil(totalRecords / parsedLimit),
+      currentPage: parsedPage,
+      totalRecords: totalRecords
     });
+
   } catch (error) {
-    console.error('獲取開獎歷史出錯:', error);
+    console.error('獲取開獎歷史出錯 (直接查詢數據庫):', error);
     res.status(500).json({
       success: false,
       message: error.message || '獲取開獎歷史失敗'
@@ -1920,17 +1980,142 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
   }
 });
 
+// 從主遊戲系統同步開獎歷史
+async function syncDrawHistory(forceSync = false) {
+  try {
+    console.log(`開始同步開獎歷史數據，強制同步: ${forceSync}`);
+    
+    // 獲取最新的開獎記錄期數
+    let latestPeriod = null;
+    if (!forceSync) {
+      const latestRecord = await db.oneOrNone(`
+        SELECT period FROM draw_records 
+        ORDER BY CAST(period AS BIGINT) DESC 
+        LIMIT 1
+      `);
+      
+      if (latestRecord) {
+        latestPeriod = latestRecord.period;
+        console.log(`最新一期開獎記錄: ${latestPeriod}`);
+      } else {
+        console.log('沒有找到現有開獎記錄，將同步所有歷史');
+      }
+    }
+    
+    // 構建遊戲系統API URL
+    let apiUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://bet-game.onrender.com/api/history'
+      : 'http://localhost:3002/api/history';
+    
+    // 添加同步參數
+    const params = new URLSearchParams();
+    params.append('limit', '100'); // 每次同步100條記錄
+    if (latestPeriod) {
+      params.append('after_period', latestPeriod);
+    }
+    apiUrl += `?${params.toString()}`;
+    
+    console.log(`請求主遊戲系統API: ${apiUrl}`);
+    
+    // 發送請求到遊戲系統
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`遊戲系統API返回錯誤: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const records = Array.isArray(data) ? data : (data.records || []);
+    
+    if (records.length === 0) {
+      console.log('沒有新的開獎記錄需要同步');
+      return { success: true, syncedCount: 0 };
+    }
+    
+    console.log(`獲取到 ${records.length} 條開獎記錄，準備插入數據庫`);
+    
+    // 使用數據庫事務同步資料
+    return await db.tx(async t => {
+      let syncedCount = 0;
+      
+      for (const record of records) {
+        try {
+          // 檢查記錄是否已存在
+          const exists = await t.oneOrNone(`
+            SELECT id FROM draw_records WHERE period = $1
+          `, [record.period]);
+          
+          if (!exists) {
+            // 插入新記錄
+            await t.none(`
+              INSERT INTO draw_records (period, result, draw_time) 
+              VALUES ($1, $2, $3)
+            `, [
+              record.period,
+              JSON.stringify(record.result || record.numbers || []),
+              record.draw_time || record.created_at || new Date()
+            ]);
+            
+            syncedCount++;
+          }
+        } catch (err) {
+          console.error(`同步第 ${record.period} 期開獎記錄時出錯:`, err);
+          // 繼續處理其他記錄
+        }
+      }
+      
+      console.log(`成功同步 ${syncedCount} 條開獎記錄`);
+      return { success: true, syncedCount };
+    });
+  } catch (error) {
+    console.error('同步開獎歷史出錯:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // 初始化數據庫並啟動服務器
 async function startServer() {
   try {
     await initDatabase();
+    
+    // 啟動服務器
     app.listen(port, () => {
       console.log(`代理管理系統後端運行在端口 ${port}`);
+      
+      // 啟動後立即同步一次開獎歷史
+      syncDrawHistory().then(result => {
+        console.log('服務啟動初始同步結果:', result);
+      }).catch(err => {
+        console.error('服務啟動初始同步出錯:', err);
+      });
+      
+      // 設置定時同步任務 - 每5分鐘同步一次
+      setInterval(() => {
+        syncDrawHistory().then(result => {
+          console.log('定時同步結果:', result);
+        }).catch(err => {
+          console.error('定時同步出錯:', err);
+        });
+      }, 5 * 60 * 1000); // 5分鐘
     });
   } catch (error) {
     console.error('啟動服務器時出錯:', error);
     process.exit(1);
   }
 }
+
+// 添加手動同步開獎歷史的API端點
+app.get(`${API_PREFIX}/sync-draw-history`, async (req, res) => {
+  try {
+    const forceSync = req.query.force === 'true';
+    const result = await syncDrawHistory(forceSync);
+    res.json(result);
+  } catch (error) {
+    console.error('手動同步開獎歷史出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '同步失敗'
+    });
+  }
+});
 
 startServer();
