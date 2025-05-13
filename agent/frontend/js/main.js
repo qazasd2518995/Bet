@@ -900,11 +900,25 @@ const app = new Vue({
             this.loading = true;
             
             try {
-                const response = await axios.post(`${API_BASE_URL}/adjust-balance`, this.balanceAdjustData);
+                // 準備要傳送的數據，確保包含所有後端需要的欄位
+                const payload = {
+                    agentId: this.balanceAdjustData.agentId,
+                    username: this.balanceAdjustData.memberUsername, // 後端需要 username
+                    amount: this.transferType === 'deposit' ? this.transferAmount : -this.transferAmount, // 根據類型調整金額正負
+                    type: this.transferType, // 轉移類型 'deposit' 或 'withdraw'
+                    description: this.balanceAdjustData.description
+                };
+
+                const response = await axios.post(`${API_BASE_URL}/update-member-balance`, payload);
                 
                 if (response.data.success) {
                     this.showMessage('餘額調整成功', 'success');
-                    await this.fetchDashboardData();
+                    // 更新前端顯示的代理和會員餘額
+                    this.user.balance = response.data.agentBalance;
+                    // 需要重新獲取會員列表或更新特定會員的餘額，以反映變更
+                    this.searchMembers(); // 重新載入會員列表，會包含更新後的餘額
+                    this.hideAdjustBalanceModal(); // 關閉模態框
+                    await this.fetchDashboardData(); // 更新儀表板數據
                 } else {
                     this.showMessage(response.data.message || '餘額調整失敗', 'error');
                 }
