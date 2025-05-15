@@ -1127,13 +1127,15 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
         });
       }
       parentId = parentAgent.id;
-       // 驗證代理級別是否合理
-      if (parsedLevel <= parentAgent.level) {
+      
+      // 修改驗證邏輯：代理級別必須恰好比上級代理高1級
+      if (parsedLevel !== parentAgent.level + 1) {
         return res.json({
           success: false,
-          message: '下級代理的級別必須低於上級代理'
+          message: `必須嚴格按照代理層級結構創建，${parentAgent.level}級代理只能創建${parentAgent.level + 1}級代理`
         });
       }
+      
       // 驗證佣金比例是否合理
       if (parseFloat(commission_rate) > parentAgent.commission_rate) {
           return res.json({

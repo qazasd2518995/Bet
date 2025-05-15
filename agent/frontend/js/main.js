@@ -232,13 +232,23 @@ const app = new Vue({
         // 顯示創建代理模態框
         showAgentModal() {
             this.showCreateAgentModal = true;
+            
+            // 根據當前代理級別，設置默認的下級代理級別
+            // 只能創建比自己高一級的代理
+            this.newAgent = {
+                username: '',
+                password: '',
+                level: (this.user.level + 1).toString(), // 設置為上級代理的下一級
+                parent: this.user.id,
+                commission: this.user.commission_rate ? parseFloat(this.user.commission_rate) * 0.9 : 0.2 // 默認佣金稍低於上級
+            };
+            
             this.$nextTick(() => {
                 // 確保模態框元素已經被渲染到DOM後再初始化和顯示
                 const modalEl = document.getElementById('createAgentModal');
                 if (modalEl) {
                     this.agentModal = new bootstrap.Modal(modalEl);
                     this.agentModal.show();
-                    this.fetchParentAgents();
                 } else {
                     console.error('找不到代理模態框元素');
                     this.showMessage('系統錯誤，請稍後再試', 'error');
@@ -1002,23 +1012,25 @@ const app = new Vue({
             }
         },
         async createAgent() {
-            // 實際的創建代理邏輯需要您來實現
             console.log('createAgent 方法被調用', this.newAgent);
-            if (!this.newAgent.username || !this.newAgent.password || !this.newAgent.level) {
+            if (!this.newAgent.username || !this.newAgent.password) {
                 this.showMessage('請填寫所有必填欄位', 'error');
                 return;
             }
-            // 根據業務邏輯，可能需要驗證佣金比例等
+            
             this.loading = true;
             try {
-                // 修正：parent參數名稱應該是parent而不是parent_id
+                // 由於級別和上級已在模態框開啟時確定，只需發送到後端
                 const payload = {
                     username: this.newAgent.username,
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
                     commission_rate: parseFloat(this.newAgent.commission),
-                    parent: this.newAgent.parent || this.user.id // 如果沒有選擇上級，則默認為當前代理
+                    parent: this.newAgent.parent
                 };
+                
+                console.log('創建代理請求數據:', payload);
+                
                 const response = await axios.post(`${API_BASE_URL}/create-agent`, payload);
                 if (response.data.success) {
                     this.showMessage('代理創建成功!', 'success');
