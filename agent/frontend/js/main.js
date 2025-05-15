@@ -219,13 +219,25 @@ const app = new Vue({
             // 獲取代理現有的點數餘額
             console.log('嘗試獲取代理餘額，代理ID:', this.user.id);
             try {
-                const response = await axios.get(`${API_BASE_URL}/agents/${this.user.id}`);
+                // 修改API路徑格式，使其與後端一致
+                const response = await axios.get(`${API_BASE_URL}/agent-balance?agentId=${this.user.id}`);
                 if (response.data.success) {
-                    console.log('代理當前額度:', response.data.agent.balance);
-                    this.user.balance = response.data.agent.balance;
+                    console.log('代理當前額度:', response.data.balance);
+                    this.user.balance = response.data.balance;
                 }
             } catch (error) {
                 console.error('獲取代理額度錯誤:', error);
+                // 遇到錯誤時嘗試備用API格式
+                try {
+                    console.log('嘗試備用API路徑獲取代理餘額');
+                    const fallbackResponse = await axios.get(`${API_BASE_URL}/agent/${this.user.id}`);
+                    if (fallbackResponse.data.success) {
+                        console.log('備用API路徑獲取代理額度成功:', fallbackResponse.data.agent?.balance);
+                        this.user.balance = fallbackResponse.data.agent?.balance || 0;
+                    }
+                } catch (fallbackError) {
+                    console.error('備用API路徑獲取代理額度也失敗:', fallbackError);
+                }
             }
         } else {
             console.log('用戶未認證，顯示登入表單');
