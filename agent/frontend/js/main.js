@@ -187,12 +187,17 @@ const app = new Vue({
             agentId: null,
             agentUsername: '',
             currentBalance: 0,
-            reason: ''
+            reason: '',
+            description: '' // 新增: 點數轉移備註
         },
         agentModifyType: 'absolute', // 'absolute' 或 'relative'
         agentModifyAmount: 0,
         agentChangeDirection: 'increase', // 'increase' 或 'decrease'
         adjustAgentBalanceModal: null,
+        
+        // 新增: 代理點數轉移相關變量
+        agentTransferType: 'deposit', // 'deposit' 或 'withdraw'
+        agentTransferAmount: 0
     },
     
     // 頁面載入時自動執行
@@ -1275,10 +1280,9 @@ const app = new Vue({
             this.agentBalanceData.agentId = agent.id;
             this.agentBalanceData.agentUsername = agent.username;
             this.agentBalanceData.currentBalance = agent.balance;
-            this.agentBalanceData.reason = '';
-            this.agentModifyType = 'absolute';
-            this.agentModifyAmount = 0;
-            this.agentChangeDirection = 'increase';
+            this.agentBalanceData.description = '';
+            this.agentTransferType = 'deposit'; // 預設為存入
+            this.agentTransferAmount = 0; // 重置轉移金額
             
             this.$nextTick(() => {
                 const modalEl = document.getElementById('adjustAgentBalanceModal');
@@ -1286,10 +1290,34 @@ const app = new Vue({
                     this.adjustAgentBalanceModal = new bootstrap.Modal(modalEl);
                     this.adjustAgentBalanceModal.show();
                 } else {
-                    console.error('找不到修改代理額度模態框元素');
+                    console.error('找不到代理點數轉移模態框元素');
                     this.showMessage('系統錯誤，請稍後再試', 'error');
                 }
             });
+        },
+        
+        // 計算最終下級代理餘額
+        calculateFinalSubAgentBalance() {
+            const currentBalance = parseFloat(this.agentBalanceData.currentBalance) || 0;
+            const transferAmount = parseFloat(this.agentTransferAmount) || 0;
+            
+            if (this.agentTransferType === 'deposit') {
+                return currentBalance + transferAmount;
+            } else {
+                return currentBalance - transferAmount;
+            }
+        },
+        
+        // 計算最終上級代理(自己)餘額
+        calculateFinalParentAgentBalance() {
+            const currentBalance = parseFloat(this.user.balance) || 0;
+            const transferAmount = parseFloat(this.agentTransferAmount) || 0;
+            
+            if (this.agentTransferType === 'deposit') {
+                return currentBalance - transferAmount;
+            } else {
+                return currentBalance + transferAmount;
+            }
         },
         
         // 切換代理狀態
@@ -1348,50 +1376,40 @@ const app = new Vue({
             }
         },
         
-        // 提交修改代理額度
-        async submitAdjustAgentBalance() {
-            if (!this.agentBalanceData.agentId || !this.agentModifyAmount || !this.agentBalanceData.reason) {
+        // 提交代理額度修改
+        async submitAgentBalanceAdjustment() {
+            if (!this.agentBalanceData.agentId || !this.agentTransferAmount || !this.agentBalanceData.description) {
                 return this.showMessage('請填寫完整資料', 'error');
-            }
-            
-            // 檢查修改後的金額是否合理
-            const finalBalance = this.calculateFinalAgentBalance();
-            if (finalBalance < 0) {
-                return this.showMessage('修改後的額度不能小於0', 'error');
             }
             
             this.loading = true;
             
             try {
-                // 準備發送到後端的數據
-                let requestData = {
-                    agentId: this.agentBalanceData.agentId,
-                    amount: finalBalance,
-                    reason: this.agentBalanceData.reason
+                // 準備要傳送的數據
+                const payload = {
+                    agentId: this.user.id,  // 當前代理ID（來源或目標）
+                    subAgentId: this.agentBalanceData.agentId,  // 下級代理ID
+                    amount: this.agentTransferType === 'deposit' ? this.agentTransferAmount : -this.agentTransferAmount, // 根據類型調整金額正負
+                    type: this.agentTransferType, // 轉移類型 'deposit' 或 'withdraw'
+                    description: this.agentBalanceData.description
                 };
-                
-                // 相對值模式下，發送相對值變化量
-                if (this.agentModifyType === 'relative') {
-                    requestData.amount = this.agentChangeDirection === 'increase' 
-                        ? this.agentModifyAmount 
-                        : -this.agentModifyAmount;
-                    requestData.isRelative = true;
-                } else {
-                    requestData.isRelative = false;
-                }
-                
-                const response = await axios.post(`${API_BASE_URL}/modify-agent-balance`, requestData);
+
+                const response = await axios.post(`${API_BASE_URL}/transfer-agent-balance`, payload);
                 
                 if (response.data.success) {
-                    this.showMessage('代理額度修改成功', 'success');
-                    this.hideAdjustAgentBalanceModal();
+                    this.showMessage('代理點數轉移成功', 'success');
+                    // 更新前端顯示的代理餘額
+                    this.user.balance = response.data.parentBalance;
+                    // 需要重新獲取代理列表或更新特定代理的餘額
                     this.searchAgents(); // 重新載入代理列表
+                    this.hideAdjustAgentBalanceModal(); // 關閉模態框
+                    await this.fetchDashboardData(); // 更新儀表板數據
                 } else {
-                    this.showMessage(response.data.message || '代理額度修改失敗', 'error');
+                    this.showMessage(response.data.message || '代理點數轉移失敗', 'error');
                 }
             } catch (error) {
-                console.error('修改代理額度錯誤:', error);
-                this.showMessage(error.response?.data?.message || '代理額度修改失敗，請稍後再試', 'error');
+                console.error('提交代理點數轉移錯誤:', error);
+                this.showMessage(error.response?.data?.message || '代理點數轉移失敗，請稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
@@ -1435,6 +1453,24 @@ const app = new Vue({
                 return this.agentCurrentBalance >= parseFloat(this.transferAmount);
             } else if (this.transferType === 'withdraw') {
                 return this.balanceAdjustData.currentBalance >= parseFloat(this.transferAmount);
+            }
+            
+            return false;
+        },
+        
+        // 檢查代理點數轉移是否有效
+        isValidAgentTransfer() {
+            const amount = parseFloat(this.agentTransferAmount) || 0;
+            if (amount <= 0) {
+                return false;
+            }
+            
+            if (this.agentTransferType === 'deposit') {
+                // 存入時，檢查上級代理(自己)餘額是否足夠
+                return parseFloat(this.user.balance) >= amount;
+            } else if (this.agentTransferType === 'withdraw') {
+                // 提領時，檢查下級代理餘額是否足夠
+                return parseFloat(this.agentBalanceData.currentBalance) >= amount;
             }
             
             return false;

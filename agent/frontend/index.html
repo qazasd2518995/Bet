@@ -1068,61 +1068,67 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">修改代理額度 - {{ agentBalanceData.agentUsername }}</h5>
+                    <h5 class="modal-title">點數轉移 - {{ agentBalanceData.agentUsername }}</h5>
                     <button type="button" class="btn-close" @click="hideAdjustAgentBalanceModal"></button>
                 </div>
                 <div class="modal-body">
-                    <form @submit.prevent="submitAdjustAgentBalance">
-                        <div class="mb-3">
-                            <label class="form-label">當前額度</label>
-                            <input type="text" class="form-control" :value="formatMoney(agentBalanceData.currentBalance)" disabled>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">修改方式</label>
-                            <div class="btn-group w-100">
-                                <input type="radio" class="btn-check" name="agentModifyType" id="agentModifyAbsolute" v-model="agentModifyType" value="absolute">
-                                <label class="btn btn-outline-primary" for="agentModifyAbsolute">設置絕對值</label>
-                                
-                                <input type="radio" class="btn-check" name="agentModifyType" id="agentModifyRelative" v-model="agentModifyType" value="relative">
-                                <label class="btn btn-outline-success" for="agentModifyRelative">增加/減少</label>
+                    <form @submit.prevent="submitAgentBalanceAdjustment">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">您的餘額</label>
+                                <input type="text" class="form-control" :value="formatMoney(user.balance)" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">下級代理餘額</label>
+                                <input type="text" class="form-control" :value="formatMoney(agentBalanceData.currentBalance)" disabled>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">{{ agentModifyType === 'absolute' ? '新額度' : '變更額度' }}</label>
+                            <label class="form-label">轉移類型</label>
+                            <div class="btn-group w-100">
+                                <input type="radio" class="btn-check" name="agentTransferType" id="agentDeposit" v-model="agentTransferType" value="deposit">
+                                <label class="btn btn-outline-success" for="agentDeposit">存入 (您→下級代理)</label>
+                                
+                                <input type="radio" class="btn-check" name="agentTransferType" id="agentWithdraw" v-model="agentTransferType" value="withdraw">
+                                <label class="btn btn-outline-danger" for="agentWithdraw">提領 (下級代理→您)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">點數轉移金額</label>
                             <div class="input-group">
-                                <span v-if="agentModifyType === 'relative'" class="input-group-text">
-                                    <div class="btn-group">
-                                        <input type="radio" class="btn-check" name="agentChangeType" id="agentIncrease" v-model="agentChangeDirection" value="increase">
-                                        <label class="btn btn-sm btn-outline-success" for="agentIncrease">+</label>
-                                        
-                                        <input type="radio" class="btn-check" name="agentChangeType" id="agentDecrease" v-model="agentChangeDirection" value="decrease">
-                                        <label class="btn btn-sm btn-outline-danger" for="agentDecrease">-</label>
-                                    </div>
-                                </span>
-                                <input type="number" step="0.01" class="form-control" v-model="agentModifyAmount" 
-                                    placeholder="請輸入金額" min="0" required>
+                                <input type="number" step="0.01" class="form-control" v-model="agentTransferAmount" 
+                                       placeholder="請輸入要轉移的點數金額" min="0" required>
                                 <span class="input-group-text">元</span>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">修改後額度</label>
-                            <input type="text" class="form-control" :value="formatMoney(calculateFinalAgentBalance())" disabled>
+                            <label class="form-label">轉移後下級代理點數</label>
+                            <input type="text" class="form-control" 
+                                   :value="formatMoney(calculateFinalSubAgentBalance())" 
+                                   disabled>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">操作原因</label>
-                            <textarea class="form-control" v-model="agentBalanceData.reason" 
-                                placeholder="請輸入修改額度的原因" required></textarea>
+                            <label class="form-label">轉移後您的點數</label>
+                            <input type="text" class="form-control" 
+                                   :value="formatMoney(calculateFinalParentAgentBalance())" 
+                                   disabled>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">備註說明</label>
+                            <textarea class="form-control" v-model="agentBalanceData.description" 
+                                      placeholder="請輸入點數轉移原因"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @click="hideAdjustAgentBalanceModal">取消</button>
-                    <button type="button" class="btn btn-primary" @click="submitAdjustAgentBalance" :disabled="!isValidAgentBalanceModification">
-                        <i class="fas fa-check me-1"></i>確認修改
+                    <button type="button" class="btn btn-primary" @click="submitAgentBalanceAdjustment" :disabled="!isValidAgentTransfer">
+                        <i class="fas fa-check me-1"></i>確認轉移
                     </button>
                 </div>
             </div>
@@ -1137,5 +1143,7 @@
     
     <!-- 載入主要 JS 檔案 -->
     <script src="./js/main.js"></script>
+</body>
+</html>
 </body>
 </html>
