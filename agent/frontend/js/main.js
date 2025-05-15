@@ -1011,13 +1011,13 @@ const app = new Vue({
             // 根據業務邏輯，可能需要驗證佣金比例等
             this.loading = true;
             try {
-                // parent_id 應該是可選的，或者根據代理級別自動設置
+                // 修正：parent參數名稱應該是parent而不是parent_id
                 const payload = {
                     username: this.newAgent.username,
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
                     commission_rate: parseFloat(this.newAgent.commission),
-                    parent_id: this.newAgent.parent || this.user.id // 如果沒有選擇上級，則默認為當前代理
+                    parent: this.newAgent.parent || this.user.id // 如果沒有選擇上級，則默認為當前代理
                 };
                 const response = await axios.post(`${API_BASE_URL}/create-agent`, payload);
                 if (response.data.success) {
