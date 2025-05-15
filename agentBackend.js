@@ -65,6 +65,8 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
+
+
 // 代理API路由前綴
 const API_PREFIX = '/api/agent';
 
@@ -174,23 +176,40 @@ async function initDatabase() {
     const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0');
     
     if (adminAgents.length === 0) {
-      // 只有在沒有總代理的情況下才清理數據並創建新的總代理
-      console.log('未找到總代理，開始清理現有代理和會員數據...');
-      await db.none('DELETE FROM point_transfers');
-      await db.none('DELETE FROM transactions');
-      await db.none('DELETE FROM members');
-      await db.none('DELETE FROM agents'); // agents 表最後刪除，因為其他表可能引用它
-      console.log('現有代理和會員數據清理完成。');
+      // 只有在沒有總代理的情況下才創建新的總代理
+      console.log('未找到總代理，開始創建新的總代理...');
       
       // 創建新的總代理
       console.log('創建新的總代理 ti2025...');
       await db.none(`
-          INSERT INTO agents (username, password, level, balance, commission_rate)
-          VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO agents (username, password, level, balance, commission_rate) 
+        VALUES ($1, $2, $3, $4, $5)
       `, ['ti2025', 'ti2025', 0, 200000, 0.3]);
       console.log('總代理 ti2025 創建成功，初始餘額 200,000');
     } else {
-      console.log(`已存在 ${adminAgents.length} 個總代理，跳過數據清理和總代理創建操作`);
+      console.log(`已存在 ${adminAgents.length} 個總代理，檢查是否需要重命名為ti2025`);
+      
+      // 檢查是否為Render環境且是第一次運行
+      const isRenderFirstRun = process.env.RENDER === 'true' && process.env.RENDER_FIRST_RUN === 'true';
+      
+      // 只有在Render第一次運行且總代理用戶名不是ti2025時才修改
+      if (isRenderFirstRun && adminAgents[0].username !== 'ti2025') {
+        console.log(`檢測到Render首次部署，將總代理 "${adminAgents[0].username}" 重命名為 "ti2025"`);
+        
+        // 只修改總代理的用戶名和密碼，保留原餘額和其他數據
+        await db.none(`
+          UPDATE agents 
+          SET username = $1, password = $2 
+          WHERE id = $3
+        `, ['ti2025', 'ti2025', adminAgents[0].id]);
+        
+        console.log(`總代理已重命名為 "ti2025"，ID=${adminAgents[0].id}`);
+        
+        // 重命名後清除首次運行標誌，確保以後不再修改
+        process.env.RENDER_FIRST_RUN = 'false';
+      } else {
+        console.log(`無需修改總代理: ${adminAgents[0].username}`);
+      }
     }
     
     console.log('初始化代理系統數據庫完成');
@@ -1087,6 +1106,15 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       });
     }
     
+    // 驗證代理級別範圍 (0-15)
+    const parsedLevel = parseInt(level);
+    if (isNaN(parsedLevel) || parsedLevel < 0 || parsedLevel > 15) {
+      return res.json({
+        success: false,
+        message: '代理級別必須在0到15之間'
+      });
+    }
+    
     // 獲取上級代理ID 和 上級代理信息
     let parentId = null;
     let parentAgent = null; 
@@ -1100,7 +1128,7 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       }
       parentId = parentAgent.id;
        // 驗證代理級別是否合理
-      if (parseInt(level) <= parentAgent.level) {
+      if (parsedLevel <= parentAgent.level) {
         return res.json({
           success: false,
           message: '下級代理的級別必須低於上級代理'
@@ -1116,7 +1144,7 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
 
     } else {
          // 如果沒有指定上級，檢查是否正在創建總代理
-         if (parseInt(level) !== 0) {
+         if (parsedLevel !== 0) {
               return res.json({
                 success: false,
                 message: '只有總代理可以沒有上級'
@@ -1129,7 +1157,7 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       username,
       password,
       parent_id: parentId,
-      level: parseInt(level),
+      level: parsedLevel,
       commission_rate: parseFloat(commission_rate) // 使用傳入的佣金比例
     });
     
@@ -2061,7 +2089,48 @@ async function syncDrawRecords() {
 // 在服務器啟動時調用一次同步函數
 async function startServer() {
   try {
+    // 檢測是否在Render環境運行
+    const isRenderPlatform = process.env.RENDER === 'true' || 
+                             process.env.RENDER_EXTERNAL_URL || 
+                             process.env.RENDER_SERVICE_ID;
+    
+    // 檢查是否已經存在標記文件，用於判斷是否為首次運行
+    let isFirstRun = false;
+    try {
+      // 嘗試讀取標記文件
+      await fs.access(path.join(__dirname, '.render_initialized'));
+      console.log('檢測到Render初始化標記，非首次運行');
+    } catch (err) {
+      // 文件不存在，說明是首次運行
+      isFirstRun = true;
+      console.log('未檢測到Render初始化標記，視為首次運行');
+    }
+    
+    if (isRenderPlatform) {
+      console.log('檢測到Render部署環境');
+      process.env.RENDER = 'true';
+      
+      if (isFirstRun) {
+        console.log('設置為Render首次運行，將在需要時修改總代理為ti2025');
+        process.env.RENDER_FIRST_RUN = 'true';
+      }
+    }
+    
     await initDatabase();
+    
+    // 如果是Render環境且首次運行，創建標記文件避免下次重置
+    if (isRenderPlatform && isFirstRun) {
+      try {
+        // 創建標記文件
+        await fs.writeFile(
+          path.join(__dirname, '.render_initialized'), 
+          `Initialized at ${new Date().toISOString()}`
+        );
+        console.log('已創建Render初始化標記文件');
+      } catch (err) {
+        console.error('創建初始化標記文件失敗:', err);
+      }
+    }
     
     // 首次同步開獎記錄
     await syncDrawRecords();
