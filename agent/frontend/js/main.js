@@ -204,58 +204,78 @@ const app = new Vue({
     async mounted() {
         console.log('Vue應用已掛載');
         
-        try {
-            // 首先測試API連接
-            console.log('開始測試API連接...');
-            const apiConnected = await this.checkApiStatus();
-            console.log('API連接測試結果:', apiConnected ? '成功' : '失敗');
+        // 檢查是否已登入
+        const isAuthenticated = await this.checkAuth();
+        
+        if (isAuthenticated) {
+            console.log('用戶已認證，開始加載初始數據');
+            // 獲取初始數據
+            await Promise.all([
+                this.checkApiStatus(),
+                this.fetchDashboardData(),
+                this.fetchNotices()
+            ]);
             
-            // 檢查登入狀態
-            await this.checkAuth();
-            
-            // 獲取代理自身額度
-            if (this.isLoggedIn && this.user && this.user.id) {
-                try {
-                    // 測試不同可能的API路徑格式
-                    console.log('嘗試獲取代理餘額，代理ID:', this.user.id);
-                    const response = await fetch(`${API_BASE_URL}/agent-balance?agentId=${this.user.id}`);
-                    if (!response.ok) {
-                        console.error('獲取代理額度HTTP錯誤:', response.status);
-                        throw new Error(`HTTP錯誤: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        this.user.balance = data.balance;
-                        console.log('代理當前額度:', this.user.balance);
-                    } else {
-                        console.error('獲取代理額度失敗:', data.message);
-                        this.showMessage('獲取代理額度失敗: ' + (data.message || '未知錯誤'), 'error');
-                    }
-                } catch (error) {
-                    console.error('獲取代理額度出錯:', error);
-                    // this.showMessage('獲取代理額度失敗，請檢查網絡連接或聯繫管理員', 'error');
+            // 獲取代理現有的點數餘額
+            console.log('嘗試獲取代理餘額，代理ID:', this.user.id);
+            try {
+                const response = await axios.get(`${API_BASE_URL}/agents/${this.user.id}`);
+                if (response.data.success) {
+                    console.log('代理當前額度:', response.data.agent.balance);
+                    this.user.balance = response.data.agent.balance;
                 }
+            } catch (error) {
+                console.error('獲取代理額度錯誤:', error);
             }
-            
-            // 如果已登入，初始化儀表板和圖表
-            if (this.isLoggedIn) {
-                await this.fetchDashboardData();
-                this.initTransactionChart();
-                this.fetchNotices();
-            }
-        } catch (error) {
-            console.error('Vue掛載期間出錯:', error);
+        } else {
+            console.log('用戶未認證，顯示登入表單');
         }
         
         // 初始化模態框
-        this.initModals();
+        this.$nextTick(() => {
+            this.initModals();
+        });
     },
     
     methods: {
         // 初始化 Bootstrap 5 模態框
         initModals() {
-            // 不需要在此處初始化模態框，因為當它們通過v-if被渲染時才應該被初始化
+            console.log('初始化所有模態框');
+            
+            // 初始化創建代理模態框
+            const createAgentModalEl = document.getElementById('createAgentModal');
+            if (createAgentModalEl) {
+                console.log('初始化創建代理模態框');
+                this.agentModal = new bootstrap.Modal(createAgentModalEl);
+            }
+            
+            // 初始化創建會員模態框
+            const createMemberModalEl = document.getElementById('createMemberModal');
+            if (createMemberModalEl) {
+                console.log('初始化創建會員模態框');
+                this.memberModal = new bootstrap.Modal(createMemberModalEl);
+            }
+            
+            // 初始化會員餘額調整模態框
+            const adjustBalanceModalEl = document.getElementById('adjustBalanceModal');
+            if (adjustBalanceModalEl) {
+                console.log('初始化會員餘額調整模態框');
+                this.adjustBalanceModal = new bootstrap.Modal(adjustBalanceModalEl);
+            }
+            
+            // 初始化代理餘額調整模態框
+            const adjustAgentBalanceModalEl = document.getElementById('adjustAgentBalanceModal');
+            if (adjustAgentBalanceModalEl) {
+                console.log('初始化代理餘額調整模態框');
+                this.adjustAgentBalanceModal = new bootstrap.Modal(adjustAgentBalanceModalEl);
+            }
+            
+            // 初始化修改會員餘額模態框
+            const modifyMemberBalanceModalEl = document.getElementById('modifyMemberBalanceModal');
+            if (modifyMemberBalanceModalEl) {
+                console.log('初始化修改會員餘額模態框');
+                this.modifyMemberBalanceModal = new bootstrap.Modal(modifyMemberBalanceModalEl);
+            }
         },
         
         // 顯示創建代理模態框
@@ -1277,6 +1297,7 @@ const app = new Vue({
         
         // 代理額度修改相關方法
         adjustAgentBalance(agent) {
+            console.log('開始顯示代理點數轉移模態框，代理ID:', agent.id);
             this.agentBalanceData.agentId = agent.id;
             this.agentBalanceData.agentUsername = agent.username;
             this.agentBalanceData.currentBalance = agent.balance;
@@ -1284,11 +1305,22 @@ const app = new Vue({
             this.agentTransferType = 'deposit'; // 預設為存入
             this.agentTransferAmount = 0; // 重置轉移金額
             
+            console.log('代理餘額數據:', JSON.stringify(this.agentBalanceData));
+            console.log('您的餘額:', this.user.balance);
+            
             this.$nextTick(() => {
                 const modalEl = document.getElementById('adjustAgentBalanceModal');
+                console.log('找到模態框元素:', modalEl ? '是' : '否');
                 if (modalEl) {
-                    this.adjustAgentBalanceModal = new bootstrap.Modal(modalEl);
-                    this.adjustAgentBalanceModal.show();
+                    try {
+                        this.adjustAgentBalanceModal = new bootstrap.Modal(modalEl);
+                        console.log('創建Bootstrap模態框成功');
+                        this.adjustAgentBalanceModal.show();
+                        console.log('模態框顯示方法已調用');
+                    } catch (error) {
+                        console.error('創建或顯示模態框時出錯:', error);
+                        this.showMessage('顯示模態框失敗，請稍後再試', 'error');
+                    }
                 } else {
                     console.error('找不到代理點數轉移模態框元素');
                     this.showMessage('系統錯誤，請稍後再試', 'error');
@@ -1355,8 +1387,26 @@ const app = new Vue({
         
         // 隱藏代理額度修改模態框
         hideAdjustAgentBalanceModal() {
-            if (this.adjustAgentBalanceModal) {
-                this.adjustAgentBalanceModal.hide();
+            console.log('嘗試隱藏代理點數轉移模態框');
+            try {
+                if (this.adjustAgentBalanceModal) {
+                    console.log('找到模態框實例，嘗試隱藏');
+                    this.adjustAgentBalanceModal.hide();
+                    console.log('模態框隱藏方法已調用');
+                } else {
+                    console.log('找不到模態框實例，嘗試手動隱藏');
+                    const modalEl = document.getElementById('adjustAgentBalanceModal');
+                    if (modalEl) {
+                        modalEl.style.display = 'none';
+                        modalEl.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) backdrop.remove();
+                        console.log('已手動隱藏模態框');
+                    }
+                }
+            } catch (error) {
+                console.error('隱藏模態框時出錯:', error);
             }
         },
         
@@ -1378,11 +1428,18 @@ const app = new Vue({
         
         // 提交代理額度修改
         async submitAgentBalanceAdjustment() {
+            console.log('嘗試提交代理點數轉移');
             if (!this.agentBalanceData.agentId || !this.agentTransferAmount || !this.agentBalanceData.description) {
+                console.log('資料不完整:', {
+                    agentId: this.agentBalanceData.agentId,
+                    transferAmount: this.agentTransferAmount,
+                    description: this.agentBalanceData.description
+                });
                 return this.showMessage('請填寫完整資料', 'error');
             }
             
             this.loading = true;
+            console.log('開始提交代理點數轉移數據');
             
             try {
                 // 準備要傳送的數據
@@ -1394,7 +1451,9 @@ const app = new Vue({
                     description: this.agentBalanceData.description
                 };
 
+                console.log('準備發送的數據:', payload);
                 const response = await axios.post(`${API_BASE_URL}/transfer-agent-balance`, payload);
+                console.log('伺服器返回結果:', response.data);
                 
                 if (response.data.success) {
                     this.showMessage('代理點數轉移成功', 'success');
