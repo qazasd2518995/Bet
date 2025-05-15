@@ -518,9 +518,6 @@
                                                         <i class="fas" :class="member.status === 1 ? 'fa-ban' : 'fa-check'"></i>
                                                         {{ member.status === 1 ? '停用' : '啟用' }}
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-warning" @click="modifyMemberBalance(member)">
-                                                        <i class="fas fa-coins me-1"></i>修改額度
-                                                    </button>
                                                     <button class="btn btn-sm btn-outline-danger" @click="deleteMember(member.id, member.username)">
                                                         <i class="fas fa-trash-alt me-1"></i>刪除
                                                     </button>
