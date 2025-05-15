@@ -1292,6 +1292,39 @@ const app = new Vue({
             });
         },
         
+        // 切換代理狀態
+        async toggleAgentStatus(agent) {
+            const newStatus = agent.status === 1 ? 0 : 1;
+            const actionText = newStatus === 1 ? '啟用' : '停用';
+            if (!confirm(`確定要${actionText}該代理嗎？`)) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/toggle-agent-status`, { 
+                    agentId: agent.id, 
+                    status: newStatus 
+                });
+                
+                if (response.data.success) {
+                    this.showMessage(`代理已${actionText}`, 'success');
+                    // 更新本地代理列表中的狀態
+                    const agentInList = this.agents.find(a => a.id === agent.id);
+                    if (agentInList) {
+                        agentInList.status = newStatus;
+                    }
+                } else {
+                    this.showMessage(response.data.message || `${actionText}代理失敗`, 'error');
+                }
+            } catch (error) {
+                console.error(`${actionText}代理出錯:`, error);
+                this.showMessage(error.response?.data?.message || `${actionText}代理失敗，請稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
         // 隱藏代理額度修改模態框
         hideAdjustAgentBalanceModal() {
             if (this.adjustAgentBalanceModal) {
