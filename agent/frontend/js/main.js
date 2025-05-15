@@ -169,6 +169,30 @@ const app = new Vue({
             totalAmount: 0,
             totalProfit: 0
         },
+        
+        // 會員餘額修改相關
+        modifyBalanceData: {
+            memberId: null,
+            memberUsername: '',
+            currentBalance: 0,
+            reason: ''
+        },
+        modifyBalanceType: 'absolute', // 'absolute' 或 'relative'
+        modifyBalanceAmount: 0,
+        balanceChangeDirection: 'increase', // 'increase' 或 'decrease'
+        modifyMemberBalanceModal: null,
+        
+        // 代理餘額修改相關
+        agentBalanceData: {
+            agentId: null,
+            agentUsername: '',
+            currentBalance: 0,
+            reason: ''
+        },
+        agentModifyType: 'absolute', // 'absolute' 或 'relative'
+        agentModifyAmount: 0,
+        agentChangeDirection: 'increase', // 'increase' 或 'decrease'
+        adjustAgentBalanceModal: null,
     },
     
     // 頁面載入時自動執行
@@ -1126,6 +1150,244 @@ const app = new Vue({
                 this.loading = false;
             }
         },
+        
+        // 修改會員額度
+        modifyMemberBalance(member) {
+            this.modifyBalanceData.memberId = member.id;
+            this.modifyBalanceData.memberUsername = member.username;
+            this.modifyBalanceData.currentBalance = member.balance;
+            this.modifyBalanceData.reason = '';
+            this.modifyBalanceType = 'absolute';
+            this.modifyBalanceAmount = 0;
+            this.balanceChangeDirection = 'increase';
+            
+            this.$nextTick(() => {
+                const modalEl = document.getElementById('modifyMemberBalanceModal');
+                if (modalEl) {
+                    this.modifyMemberBalanceModal = new bootstrap.Modal(modalEl);
+                    this.modifyMemberBalanceModal.show();
+                } else {
+                    console.error('找不到修改會員額度模態框元素');
+                    this.showMessage('系統錯誤，請稍後再試', 'error');
+                }
+            });
+        },
+        
+        // 隱藏修改會員額度模態框
+        hideModifyMemberBalanceModal() {
+            if (this.modifyMemberBalanceModal) {
+                this.modifyMemberBalanceModal.hide();
+            }
+        },
+        
+        // 計算最終修改後的會員餘額
+        calculateFinalModifiedBalance() {
+            const currentBalance = parseFloat(this.modifyBalanceData.currentBalance) || 0;
+            const modifyAmount = parseFloat(this.modifyBalanceAmount) || 0;
+            
+            if (this.modifyBalanceType === 'absolute') {
+                return modifyAmount;
+            } else {
+                if (this.balanceChangeDirection === 'increase') {
+                    return currentBalance + modifyAmount;
+                } else {
+                    return currentBalance - modifyAmount;
+                }
+            }
+        },
+        
+        // 提交修改會員額度
+        async submitModifyMemberBalance() {
+            if (!this.modifyBalanceData.memberId || !this.modifyBalanceAmount || !this.modifyBalanceData.reason) {
+                return this.showMessage('請填寫完整資料', 'error');
+            }
+            
+            // 檢查修改後的金額是否合理
+            const finalBalance = this.calculateFinalModifiedBalance();
+            if (finalBalance < 0) {
+                return this.showMessage('修改後的額度不能小於0', 'error');
+            }
+            
+            this.loading = true;
+            
+            try {
+                // 準備發送到後端的數據
+                let requestData = {
+                    memberId: this.modifyBalanceData.memberId,
+                    amount: finalBalance,
+                    reason: this.modifyBalanceData.reason
+                };
+                
+                // 相對值模式下，發送相對值變化量
+                if (this.modifyBalanceType === 'relative') {
+                    requestData.amount = this.balanceChangeDirection === 'increase' 
+                        ? this.modifyBalanceAmount 
+                        : -this.modifyBalanceAmount;
+                    requestData.isRelative = true;
+                } else {
+                    requestData.isRelative = false;
+                }
+                
+                const response = await axios.post(`${API_BASE_URL}/modify-member-balance`, requestData);
+                
+                if (response.data.success) {
+                    this.showMessage('會員額度修改成功', 'success');
+                    this.hideModifyMemberBalanceModal();
+                    this.searchMembers(); // 重新載入會員列表
+                } else {
+                    this.showMessage(response.data.message || '會員額度修改失敗', 'error');
+                }
+            } catch (error) {
+                console.error('修改會員額度錯誤:', error);
+                this.showMessage(error.response?.data?.message || '會員額度修改失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 刪除會員
+        async deleteMember(memberId, username) {
+            if (!confirm(`確定要刪除會員 ${username} 嗎？此操作不可恢復！`)) {
+                return;
+            }
+            
+            this.loading = true;
+            
+            try {
+                const response = await axios.delete(`${API_BASE_URL}/delete-member/${memberId}`);
+                
+                if (response.data.success) {
+                    this.showMessage('會員刪除成功', 'success');
+                    this.searchMembers(); // 重新載入會員列表
+                } else {
+                    this.showMessage(response.data.message || '會員刪除失敗', 'error');
+                }
+            } catch (error) {
+                console.error('刪除會員錯誤:', error);
+                this.showMessage(error.response?.data?.message || '會員刪除失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 代理額度修改相關方法
+        adjustAgentBalance(agent) {
+            this.agentBalanceData.agentId = agent.id;
+            this.agentBalanceData.agentUsername = agent.username;
+            this.agentBalanceData.currentBalance = agent.balance;
+            this.agentBalanceData.reason = '';
+            this.agentModifyType = 'absolute';
+            this.agentModifyAmount = 0;
+            this.agentChangeDirection = 'increase';
+            
+            this.$nextTick(() => {
+                const modalEl = document.getElementById('adjustAgentBalanceModal');
+                if (modalEl) {
+                    this.adjustAgentBalanceModal = new bootstrap.Modal(modalEl);
+                    this.adjustAgentBalanceModal.show();
+                } else {
+                    console.error('找不到修改代理額度模態框元素');
+                    this.showMessage('系統錯誤，請稍後再試', 'error');
+                }
+            });
+        },
+        
+        // 隱藏代理額度修改模態框
+        hideAdjustAgentBalanceModal() {
+            if (this.adjustAgentBalanceModal) {
+                this.adjustAgentBalanceModal.hide();
+            }
+        },
+        
+        // 計算最終代理餘額
+        calculateFinalAgentBalance() {
+            const currentBalance = parseFloat(this.agentBalanceData.currentBalance) || 0;
+            const modifyAmount = parseFloat(this.agentModifyAmount) || 0;
+            
+            if (this.agentModifyType === 'absolute') {
+                return modifyAmount;
+            } else {
+                if (this.agentChangeDirection === 'increase') {
+                    return currentBalance + modifyAmount;
+                } else {
+                    return currentBalance - modifyAmount;
+                }
+            }
+        },
+        
+        // 提交修改代理額度
+        async submitAdjustAgentBalance() {
+            if (!this.agentBalanceData.agentId || !this.agentModifyAmount || !this.agentBalanceData.reason) {
+                return this.showMessage('請填寫完整資料', 'error');
+            }
+            
+            // 檢查修改後的金額是否合理
+            const finalBalance = this.calculateFinalAgentBalance();
+            if (finalBalance < 0) {
+                return this.showMessage('修改後的額度不能小於0', 'error');
+            }
+            
+            this.loading = true;
+            
+            try {
+                // 準備發送到後端的數據
+                let requestData = {
+                    agentId: this.agentBalanceData.agentId,
+                    amount: finalBalance,
+                    reason: this.agentBalanceData.reason
+                };
+                
+                // 相對值模式下，發送相對值變化量
+                if (this.agentModifyType === 'relative') {
+                    requestData.amount = this.agentChangeDirection === 'increase' 
+                        ? this.agentModifyAmount 
+                        : -this.agentModifyAmount;
+                    requestData.isRelative = true;
+                } else {
+                    requestData.isRelative = false;
+                }
+                
+                const response = await axios.post(`${API_BASE_URL}/modify-agent-balance`, requestData);
+                
+                if (response.data.success) {
+                    this.showMessage('代理額度修改成功', 'success');
+                    this.hideAdjustAgentBalanceModal();
+                    this.searchAgents(); // 重新載入代理列表
+                } else {
+                    this.showMessage(response.data.message || '代理額度修改失敗', 'error');
+                }
+            } catch (error) {
+                console.error('修改代理額度錯誤:', error);
+                this.showMessage(error.response?.data?.message || '代理額度修改失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 刪除代理
+        async deleteAgent(agentId, username) {
+            if (!confirm(`確定要刪除代理 ${username} 嗎？此操作將刪除該代理及其所有下級代理和會員，不可恢復！`)) {
+                return;
+            }
+            
+            this.loading = true;
+            
+            try {
+                const response = await axios.delete(`${API_BASE_URL}/delete-agent/${agentId}`);
+                
+                if (response.data.success) {
+                    this.showMessage('代理刪除成功', 'success');
+                    this.searchAgents(); // 重新載入代理列表
+                } else {
+                    this.showMessage(response.data.message || '代理刪除失敗', 'error');
+                }
+            } catch (error) {
+                console.error('刪除代理錯誤:', error);
+                this.showMessage(error.response?.data?.message || '代理刪除失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        }
     },
     
     // 計算屬性
@@ -1143,6 +1405,40 @@ const app = new Vue({
             }
             
             return false;
+        },
+        
+        // 檢查會員餘額修改是否有效
+        isValidBalanceModification() {
+            const amount = parseFloat(this.modifyBalanceAmount) || 0;
+            if (amount <= 0) return false;
+            
+            if (this.modifyBalanceType === 'absolute') {
+                return true; // 絕對值模式下，只要金額大於0即可
+            } else {
+                // 相對值模式下，如果是減少，則不能超過當前餘額
+                if (this.balanceChangeDirection === 'decrease') {
+                    const currentBalance = parseFloat(this.modifyBalanceData.currentBalance) || 0;
+                    return amount <= currentBalance;
+                }
+                return true;
+            }
+        },
+        
+        // 檢查代理餘額修改是否有效
+        isValidAgentBalanceModification() {
+            const amount = parseFloat(this.agentModifyAmount) || 0;
+            if (amount <= 0) return false;
+            
+            if (this.agentModifyType === 'absolute') {
+                return true; // 絕對值模式下，只要金額大於0即可
+            } else {
+                // 相對值模式下，如果是減少，則不能超過當前餘額
+                if (this.agentChangeDirection === 'decrease') {
+                    const currentBalance = parseFloat(this.agentBalanceData.currentBalance) || 0;
+                    return amount <= currentBalance;
+                }
+                return true;
+            }
         }
     },
     
