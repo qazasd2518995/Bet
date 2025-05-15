@@ -1309,40 +1309,41 @@ const app = new Vue({
         
         // 代理額度修改相關方法
         adjustAgentBalance(agent) {
-            console.log('開始顯示代理點數轉移模態框，代理ID:', agent.id);
-            this.agentBalanceData.agentId = agent.id;
-            this.agentBalanceData.agentUsername = agent.username;
-            this.agentBalanceData.currentBalance = agent.balance;
-            this.agentBalanceData.description = '';
-            this.agentTransferType = 'deposit'; // 預設為存入
-            this.agentTransferAmount = 0; // 重置轉移金額
+            // 設置要修改的代理資料
+            this.agentBalanceData = {
+                agentId: agent.id,
+                agentUsername: agent.username,
+                currentBalance: agent.balance,
+                description: ''
+            };
             
-            console.log('代理餘額數據:', JSON.stringify(this.agentBalanceData));
-            console.log('您的餘額:', this.user.balance);
+            // 設置默認值
+            this.agentTransferType = 'deposit';
+            this.agentTransferAmount = 0;
             
-            this.$nextTick(() => {
-                const modalEl = document.getElementById('adjustAgentBalanceModal');
-                console.log('找到模態框元素:', modalEl ? '是' : '否');
-                if (modalEl) {
-                    try {
-                        this.adjustAgentBalanceModal = new bootstrap.Modal(modalEl);
-                        console.log('創建Bootstrap模態框成功');
-                        this.adjustAgentBalanceModal.show();
-                        console.log('模態框顯示方法已調用');
-                    } catch (error) {
-                        console.error('創建或顯示模態框時出錯:', error);
-                        this.showMessage('顯示模態框失敗，請稍後再試', 'error');
-                    }
-                } else {
-                    console.error('找不到代理點數轉移模態框元素');
-                    this.showMessage('系統錯誤，請稍後再試', 'error');
-                }
+            console.log('代理點數轉移數據準備完成:', {
+                agent: agent,
+                user: this.user,
+                agentBalanceData: this.agentBalanceData
             });
+            
+            // 使用Bootstrap 5標準方式顯示模態框
+            const modalElement = document.getElementById('adjustAgentBalanceModal');
+            if (!modalElement) {
+                console.error('找不到模態框元素');
+                return this.showMessage('系統錯誤：找不到模態框元素', 'error');
+            }
+            
+            // 直接使用Bootstrap 5的Modal方法
+            const modal = new bootstrap.Modal(modalElement);
+            this.adjustAgentBalanceModal = modal;
+            modal.show();
         },
         
         // 計算最終下級代理餘額
         calculateFinalSubAgentBalance() {
-            const currentBalance = parseFloat(this.agentBalanceData.currentBalance) || 0;
+            // 確保使用有效數值
+            const currentBalance = parseFloat(this.agentBalanceData?.currentBalance) || 0;
             const transferAmount = parseFloat(this.agentTransferAmount) || 0;
             
             if (this.agentTransferType === 'deposit') {
@@ -1354,6 +1355,7 @@ const app = new Vue({
         
         // 計算最終上級代理(自己)餘額
         calculateFinalParentAgentBalance() {
+            // 確保使用有效數值
             const currentBalance = parseFloat(this.user.balance) || 0;
             const transferAmount = parseFloat(this.agentTransferAmount) || 0;
             
@@ -1531,17 +1533,29 @@ const app = new Vue({
         
         // 檢查代理點數轉移是否有效
         isValidAgentTransfer() {
+            // 確保數值正確
             const amount = parseFloat(this.agentTransferAmount) || 0;
+            const userBalance = parseFloat(this.user.balance) || 0;
+            const agentBalance = parseFloat(this.agentBalanceData?.currentBalance) || 0;
+            
+            console.log('驗證代理點數轉移:', {
+                amount, 
+                userBalance, 
+                agentBalance, 
+                type: this.agentTransferType
+            });
+            
+            // 金額必須大於0
             if (amount <= 0) {
                 return false;
             }
             
             if (this.agentTransferType === 'deposit') {
                 // 存入時，檢查上級代理(自己)餘額是否足夠
-                return parseFloat(this.user.balance) >= amount;
+                return userBalance >= amount;
             } else if (this.agentTransferType === 'withdraw') {
                 // 提領時，檢查下級代理餘額是否足夠
-                return parseFloat(this.agentBalanceData.currentBalance) >= amount;
+                return agentBalance >= amount;
             }
             
             return false;
