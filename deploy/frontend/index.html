@@ -150,57 +150,885 @@
             font-size: 24px;
             cursor: pointer;
         }
+        
+        /* 快速投注樣式 */
+        .position-selector {
+            margin-bottom: 20px;
+        }
+        
+        .position-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .position-tab {
+            padding: 8px 12px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .position-tab:hover {
+            background: #e8f4f8;
+            border-color: #4CAF50;
+        }
+        
+        .position-tab.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .position-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .selected-count {
+            font-size: 14px;
+            color: #28a745;
+            font-weight: 500;
+        }
+        
+        .clear-positions {
+            padding: 4px 12px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .clear-positions:hover {
+            background-color: #c82333;
+        }
+        
+        .no-position-hint {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-size: 16px;
+        }
+        
+        .no-position-hint p {
+            margin: 0;
+        }
+        
+        /* 現代化導航欄樣式 */
+        .modern-navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 0;
+        }
+        
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 12px 20px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        /* Logo區域 */
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            font-size: 32px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .brand-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+        }
+        
+        /* 用戶信息區域 */
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 8px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            justify-self: center;
+        }
+        
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .username {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .balance-amount {
+            color: #ffd700;
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .balance-amount.changed {
+            animation: balancePulse 0.6s ease;
+        }
+        
+        @keyframes balancePulse {
+            0%, 100% { transform: scale(1); color: #ffd700; }
+            50% { transform: scale(1.1); color: #00ff88; }
+        }
+        
+        /* 功能按鈕區域 */
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 70px;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .action-btn .icon {
+            font-size: 20px;
+            filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+        }
+        
+        /* 下拉菜單 */
+        .menu-dropdown {
+            position: relative;
+        }
+        
+        .dropdown-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            min-width: 280px;
+            overflow: hidden;
+            z-index: 1001;
+        }
+        
+        .hot-bets-section {
+            padding: 16px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .hot-bet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .hot-bet-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .hot-bet-option:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
+        }
+        
+        .bet-label {
+            font-size: 13px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .hot-indicator {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+        
+        .dropdown-action {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            color: #495057;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-action:hover {
+            background: #f8f9fa;
+        }
+        
+        .logout-btn:hover {
+            background: #ffe6e6;
+            color: #dc3545;
+        }
+        
+        /* 登入區域 */
+        .login-section {
+            justify-self: end;
+        }
+        
+        .login-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .login-input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            width: 120px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .login-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .login-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .login-btn {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .navbar-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .user-section {
+                justify-self: center;
+            }
+            
+            .navbar-actions {
+                justify-content: center;
+            }
+            
+            .login-section {
+                justify-self: center;
+            }
+            
+            .login-form {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .dropdown-panel {
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+        
+        /* 個別投注金額輸入框樣式 */
+        .amount-input-small {
+            width: 60px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .amount-input-small:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 3px rgba(76, 175, 80, 0.3);
+        }
+        
+        .selected-bets-header {
+            display: grid;
+            grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1.2fr;
+            gap: 8px;
+            padding: 8px 12px;
+            background-color: #f5f5f5;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .selected-bet-item {
+            display: grid;
+            grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1.2fr;
+            gap: 8px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        
+        .selected-bet-amount {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .selected-bet-odds {
+            color: #ff6b6b;
+            font-weight: bold;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        /* 快速下注區域樣式 */
+        .quick-bet-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #0e6f3d;
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #f0f8f0;
+            border-radius: 6px;
+            border: 1px solid #d4edda;
+        }
+        
+        .chips-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .bet-chips {
+            background-color: #fafafa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 15px;
+        }
+        
+        .custom-chip-input {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .custom-chip-input input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 120px;
+            text-align: center;
+        }
+        
+        .custom-chip-input input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+        
+        .custom-chip-input button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .custom-chip-input button:hover {
+            background-color: #45a049;
+        }
+        
+        /* 現代化開獎結果區域樣式 */
+        .modern-result-section {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            margin: 15px;
+            border-radius: 16px;
+            overflow: visible;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .result-header {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .period-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .period-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+            color: #2c3e50;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .period-number {
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .period-label {
+            font-size: 16px;
+            font-weight: 700;
+            opacity: 1;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .status-indicator.betting {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-indicator.drawing {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        .status-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .results-display {
+            padding: 25px 15px;
+            overflow-x: auto;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(10, minmax(60px, 1fr));
+            gap: 8px;
+            min-width: 650px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-ball {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .result-ball:hover {
+            transform: scale(1.1);
+        }
+
+        .result-ball::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 25%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        /* 數字球顏色 - 現代化調色板 */
+        .color-1 {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #2c3e50;
+        }
+        .color-2 {
+            background: linear-gradient(135deg, #4A90E2, #357ABD);
+            color: white;
+        }
+        .color-3 {
+            background: linear-gradient(135deg, #8E8E93, #636366);
+            color: white;
+        }
+        .color-4 {
+            background: linear-gradient(135deg, #FF8C42, #FF6347);
+            color: white;
+        }
+        .color-5 {
+            background: linear-gradient(135deg, #00CED1, #20B2AA);
+            color: white;
+        }
+        .color-6 {
+            background: linear-gradient(135deg, #9966CC, #8A2BE2);
+            color: white;
+        }
+        .color-7 {
+            background: linear-gradient(135deg, #A8A8A8, #808080);
+            color: white;
+        }
+        .color-8 {
+            background: linear-gradient(135deg, #FF4757, #FF3838);
+            color: white;
+        }
+        .color-9 {
+            background: linear-gradient(135deg, #C44569, #B71540);
+            color: white;
+        }
+        .color-10 {
+            background: linear-gradient(135deg, #26de81, #20bf6b);
+            color: white;
+        }
+
+        .position-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+            line-height: 1.1;
+            min-height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 4px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            white-space: nowrap;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 1200px) {
+            .results-grid {
+                grid-template-columns: repeat(10, minmax(55px, 1fr));
+                gap: 6px;
+                min-width: 600px;
+            }
+            
+            .result-ball {
+                width: 48px;
+                height: 48px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modern-result-section {
+                margin: 8px;
+                border-radius: 12px;
+            }
+            
+            .result-header {
+                padding: 15px;
+            }
+            
+            .period-badge {
+                padding: 8px 16px;
+            }
+            
+            .period-number {
+                font-size: 20px;
+            }
+            
+            .period-label {
+                font-size: 14px;
+            }
+            
+            .results-display {
+                padding: 20px 10px;
+            }
+            
+            .results-grid {
+                grid-template-columns: repeat(10, minmax(50px, 1fr));
+                gap: 4px;
+                min-width: 540px;
+            }
+            
+            .result-ball {
+                width: 44px;
+                height: 44px;
+                font-size: 16px;
+            }
+            
+            .position-label {
+                font-size: 9px;
+                padding: 2px 3px;
+                min-height: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .period-display {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .status-indicator {
+                justify-content: center;
+            }
+            
+            .results-display {
+                padding: 15px 5px;
+            }
+            
+            .results-grid {
+                grid-template-columns: repeat(10, minmax(45px, 1fr));
+                gap: 3px;
+                min-width: 480px;
+            }
+            
+            .result-item {
+                gap: 6px;
+            }
+            
+            .result-ball {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+            
+            .position-label {
+                font-size: 8px;
+                min-height: 16px;
+                padding: 1px 2px;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- 遊戲主容器 -->
     <div id="app" class="container">
         <!-- 頂部導航欄 -->
-        <div class="navbar">
-            <!-- 左側內容：極速賽車、帳號、餘額 水平排列 -->
-            <div class="left-content" v-if="isLoggedIn">
-                <div class="logo">極速賽車</div>
-                <div class="user-info">
-                    <span class="username-label">帳號：{{ username }}</span>
-                    <span class="balance">{{ formatMoney(userBalance) }}</span>
-            </div>
-            </div>
-            <div class="logo" v-else>極速賽車</div>
-            
-            <!-- 右側選項：垂直排列 -->
-            <div class="right-options" v-if="isLoggedIn">
-                <button class="history-button" @click="showDrawHistory">歷史開獎</button>
-                <button class="record-button" @click="showBetRecords">注單記錄</button>
-                <button class="menu-button" @click="toggleDropdown">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="dropdown" v-show="showDropdownMenu">
-                    <div class="dropdown-menu">
-                        <div class="hot-bets-dropdown" v-if="hotBets && hotBets.length > 0">
-                            <h4 class="hot-bets-title">熱門投注</h4>
-                            <div class="hot-bets-container">
-                                <div
-                                    v-for="(bet, index) in hotBets.slice(0, 5)"
-                                    :key="index"
-                                    class="hot-bet-item"
-                                    @click="selectHotBet(bet)"
-                                >
-                                    <span class="hot-bet-label">{{ bet.label }}</span>
-                                    <span class="hot-badge">熱門</span>
-            </div>
-                            </div>
+        <header class="modern-navbar">
+            <div class="navbar-container">
+                <!-- 左側：Logo和標題 -->
+                <div class="navbar-brand">
+                    <div class="logo-icon">🏁</div>
+                    <h1 class="brand-title">極速賽車</h1>
+                </div>
+                
+                <!-- 中間：用戶信息 -->
+                <div class="user-section" v-if="isLoggedIn">
+                    <div class="user-avatar">
+                        <span>{{ username.charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <div class="user-details">
+                        <div class="username">{{ username }}</div>
+                        <div class="balance-amount" :class="{ changed: balanceChanged }">
+                            {{ formatMoney(balance) }}
                         </div>
-                        <div class="dropdown-item" @click="logout">登出</div>
+                    </div>
+                </div>
+                
+                <!-- 右側：功能按鈕 -->
+                <div class="navbar-actions" v-if="isLoggedIn">
+                    <button class="action-btn history-btn" @click="showDrawHistory">
+                        <i class="icon">📊</i>
+                        <span>歷史開獎</span>
+                    </button>
+                    <button class="action-btn records-btn" @click="showBetRecords">
+                        <i class="icon">📋</i>
+                        <span>注單記錄</span>
+                    </button>
+                    <div class="menu-dropdown">
+                        <button class="action-btn menu-btn" @click="toggleDropdown">
+                            <i class="icon">⚙️</i>
+                            <span>更多</span>
+                        </button>
+                        <div class="dropdown-panel" v-show="showDropdownMenu">
+                            <div class="hot-bets-section" v-if="hotBets && hotBets.length > 0">
+                                <div class="section-title">🔥 熱門投注</div>
+                                <div class="hot-bet-list">
+                                    <div
+                                        v-for="(bet, index) in hotBets.slice(0, 5)"
+                                        :key="index"
+                                        class="hot-bet-option"
+                                        @click="selectHotBet(bet)"
+                                    >
+                                        <span class="bet-label">{{ bet.label }}</span>
+                                        <span class="hot-indicator">HOT</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-action logout-btn" @click="logout">
+                                <i class="icon">🚪</i>
+                                <span>登出</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 登入區域 -->
+                <div class="login-section" v-else>
+                    <div class="login-form">
+                        <input type="text" v-model="loginUsername" placeholder="用戶名" class="login-input" @keyup.enter="login">
+                        <input type="password" v-model="loginPassword" placeholder="密碼" class="login-input" @keyup.enter="login">
+                        <button @click="login" class="login-btn">登入</button>
                     </div>
                 </div>
             </div>
-            
-            <div class="login-container" v-else>
-                <input type="text" v-model="loginUsername" placeholder="用戶名" @keyup.enter="login">
-                <input type="password" v-model="loginPassword" placeholder="密碼" @keyup.enter="login">
-                <button @click="login">登入</button>
-                </div>
-            </div>
+        </header>
         
         <!-- 遊戲狀態與倒計時 -->
         <div class="game-status">
@@ -214,22 +1042,31 @@
             </div>
         </div>
 
-        <!-- 上期開獎結果 -->
-        <div class="result-section">
-            <div class="period-info">
-                <span class="period-number">{{ currentPeriod }}期</span>
-                <span class="period-status">{{ gameStatus === 'betting' ? '開盤結果' : '開獎中...' }}</span>
-            </div>
-            
-            <div class="race-result">
-                <div v-for="(number, index) in lastResults" :key="index" 
-                     :class="['number-ball', `color-${number}`]">
-                    {{ number }}
+        <!-- 開獎結果區域 -->
+        <div class="modern-result-section">
+            <div class="result-header">
+                <div class="period-display">
+                    <div class="period-badge">
+                        <span class="period-number">{{ currentPeriod }}</span>
+                        <span class="period-label">期</span>
+                    </div>
+                    <div class="status-indicator" :class="gameStatus">
+                        <span class="status-dot"></span>
+                        <span class="status-text">{{ gameStatus === 'betting' ? '開盤結果' : '開獎中...' }}</span>
+                    </div>
                 </div>
             </div>
             
-            <div class="result-labels">
-                <div v-for="(label, index) in resultLabels" :key="index" class="label">{{ label }}</div>
+            <div class="results-display">
+                <div class="results-grid">
+                    <div v-for="(number, index) in lastResults" :key="index" 
+                         class="result-item">
+                        <div :class="['result-ball', `color-${number}`]">
+                            {{ number }}
+                        </div>
+                        <div class="position-label">{{ resultLabels[index] }}</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -237,7 +1074,7 @@
         <section class="betting-tabs">
             <div class="tabs">
                 <div class="tab" :class="{ active: activeTab === 'combined' }" @click="activeTab = 'combined'">兩面</div>
-                <div class="tab" :class="{ active: activeTab === 'positions' }" @click="activeTab = 'positions'">位置</div>
+                <div class="tab" :class="{ active: activeTab === 'quick' }" @click="activeTab = 'quick'">快速</div>
                 <div class="tab" :class="{ active: activeTab === 'number1to5' }" @click="activeTab = 'number1to5'">單號1~5</div>
                 <div class="tab" :class="{ active: activeTab === 'number6to10' }" @click="activeTab = 'number6to10'">單號6~10</div>
                 <div class="tab" :class="{ active: activeTab === 'dragonTiger' }" @click="activeTab = 'dragonTiger'">冠亞和</div>
@@ -245,47 +1082,6 @@
             
             <!-- 兩面玩法區域 -->
             <div class="tab-content" v-if="activeTab === 'combined'">
-                <div class="betting-group">
-                    <div class="group-title">雙面</div>
-                    <div class="betting-options">
-                        <div class="option" 
-                             :class="{ 
-                                 selected: isSelected('sumValue', 'big'),
-                                 hot: isHotBet('sumValue', 'big')
-                             }" 
-                             @click="selectBet('sumValue', 'big')">
-                            <span>大</span>
-                            <span class="odds">{{ formatOdds(odds.sumValue.big) }}</span>
-                        </div>
-                        <div class="option" 
-                             :class="{ 
-                                 selected: isSelected('sumValue', 'small'),
-                                 hot: isHotBet('sumValue', 'small')
-                             }" 
-                             @click="selectBet('sumValue', 'small')">
-                            <span>小</span>
-                            <span class="odds">{{ formatOdds(odds.sumValue.small) }}</span>
-                        </div>
-                        <div class="option" 
-                             :class="{ 
-                                 selected: isSelected('sumValue', 'odd'),
-                                 hot: isHotBet('sumValue', 'odd')
-                             }" 
-                             @click="selectBet('sumValue', 'odd')">
-                            <span>單</span>
-                            <span class="odds">{{ formatOdds(odds.sumValue.odd) }}</span>
-                        </div>
-                        <div class="option" 
-                             :class="{ 
-                                 selected: isSelected('sumValue', 'even'),
-                                 hot: isHotBet('sumValue', 'even')
-                             }" 
-                             @click="selectBet('sumValue', 'even')">
-                            <span>雙</span>
-                            <span class="odds">{{ formatOdds(odds.sumValue.even) }}</span>
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="betting-group">
                     <div class="group-title">冠軍</div>
@@ -506,97 +1302,132 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                        </div>
             
-            <!-- 位置選擇區域 -->
-            <div class="tab-content" v-if="activeTab === 'positions'">
+            <!-- 快速投注區域 -->
+            <div class="tab-content" v-if="activeTab === 'quick'">
                 <div class="position-selector">
+                    <div class="group-title">選擇位置 (可多選)</div>
                     <div class="position-tabs">
                         <div 
                             v-for="position in positions" 
                             :key="position.value" 
                             class="position-tab" 
-                            :class="{ active: selectedPosition === position.value }"
-                            @click="selectedPosition = position.value"
+                            :class="{ active: selectedPositions.includes(position.value) }"
+                            @click="togglePosition(position.value)"
                         >
                             {{ position.label }}
                         </div>
                     </div>
+                    <div class="position-controls" v-if="selectedPositions.length > 0">
+                        <span class="selected-count">已選 {{ selectedPositions.length }} 個位置</span>
+                        <button class="clear-positions" @click="clearPositions">清除位置</button>
+                    </div>
                 </div>
                 
-                <div class="betting-group">
-                    <div class="group-title">球號</div>
+                <div class="betting-group" v-if="selectedPositions.length > 0">
+                    <div class="group-title">選擇號碼 ({{ getSelectedPositionsLabel() }})</div>
                     <div class="betting-options numbers">
                         <div 
                             v-for="num in 10" 
                             :key="num" 
                             class="option ball-option" 
-                            :class="{ selected: isSelectedPositionNumber(num) }"
-                            @click="selectPositionNumber(num)"
+                            :class="{ selected: isAnyPositionNumberSelected(num) }"
+                            @click="selectMultiPositionNumber(num)"
                         >
                             <span class="number">{{ num }}</span>
-                            <span class="odds">{{ formatOdds(9.59) }}</span>
+                            <span class="odds">{{ formatOdds(odds.number['first']) }}</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="betting-group">
-                    <div class="group-title">玩法</div>
+                <div class="betting-group" v-if="selectedPositions.length > 0">
+                    <div class="group-title">快速選項 ({{ getSelectedPositionsLabel() }})</div>
                     <div class="betting-options properties">
                         <div 
                             class="option property-option" 
-                            :class="{ selected: isSelectedProperty('big') }"
-                            @click="selectProperty('big')"
+                            :class="{ selected: isAnyPositionPropertySelected('big') }"
+                            @click="selectMultiPositionProperty('big')"
                         >
                             <span>大</span>
-                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                            <span class="odds">{{ formatOdds(1.96) }}</span>
                         </div>
                         <div 
                             class="option property-option" 
-                            :class="{ selected: isSelectedProperty('small') }"
-                            @click="selectProperty('small')"
+                            :class="{ selected: isAnyPositionPropertySelected('small') }"
+                            @click="selectMultiPositionProperty('small')"
                         >
                             <span>小</span>
-                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                            <span class="odds">{{ formatOdds(1.96) }}</span>
                         </div>
                         <div 
                             class="option property-option" 
-                            :class="{ selected: isSelectedProperty('odd') }"
-                            @click="selectProperty('odd')"
+                            :class="{ selected: isAnyPositionPropertySelected('odd') }"
+                            @click="selectMultiPositionProperty('odd')"
                         >
                             <span>單</span>
-                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                            <span class="odds">{{ formatOdds(1.96) }}</span>
                         </div>
                         <div 
                             class="option property-option" 
-                            :class="{ selected: isSelectedProperty('even') }"
-                            @click="selectProperty('even')"
+                            :class="{ selected: isAnyPositionPropertySelected('even') }"
+                            @click="selectMultiPositionProperty('even')"
                         >
                             <span>雙</span>
-                            <span class="odds">{{ formatOdds(1.9) }}</span>
-                        </div>
-                        <div 
-                            class="option property-option" 
-                            :class="{ selected: isSelectedProperty('dragon') }"
-                            @click="selectProperty('dragon')"
-                        >
-                            <span>龍</span>
-                            <span class="odds">{{ formatOdds(1.9) }}</span>
-                        </div>
-                        <div 
-                            class="option property-option" 
-                            :class="{ selected: isSelectedProperty('tiger') }"
-                            @click="selectProperty('tiger')"
-                        >
-                            <span>虎</span>
-                            <span class="odds">{{ formatOdds(1.9) }}</span>
+                            <span class="odds">{{ formatOdds(1.96) }}</span>
                         </div>
                     </div>
+                </div>
+                
+                <div class="no-position-hint" v-if="selectedPositions.length === 0">
+                    <p>請先選擇位置 (可選擇多個位置)</p>
                 </div>
             </div>
             
             <!-- 冠亞和值區域 -->
             <div class="tab-content" v-if="activeTab === 'dragonTiger'">
+                <div class="betting-group">
+                    <div class="group-title">冠亞和大小單雙</div>
+                    <div class="betting-options">
+                        <div class="option" 
+                             :class="{ 
+                                 selected: isSelected('sumValue', 'big'),
+                                 hot: isHotBet('sumValue', 'big')
+                             }" 
+                             @click="selectBet('sumValue', 'big')">
+                            <span>大</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.big) }}</span>
+                        </div>
+                        <div class="option" 
+                             :class="{ 
+                                 selected: isSelected('sumValue', 'small'),
+                                 hot: isHotBet('sumValue', 'small')
+                             }" 
+                             @click="selectBet('sumValue', 'small')">
+                            <span>小</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.small) }}</span>
+                        </div>
+                        <div class="option" 
+                             :class="{ 
+                                 selected: isSelected('sumValue', 'odd'),
+                                 hot: isHotBet('sumValue', 'odd')
+                             }" 
+                             @click="selectBet('sumValue', 'odd')">
+                            <span>單</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.odd) }}</span>
+                        </div>
+                        <div class="option" 
+                             :class="{ 
+                                 selected: isSelected('sumValue', 'even'),
+                                 hot: isHotBet('sumValue', 'even')
+                             }" 
+                             @click="selectBet('sumValue', 'even')">
+                            <span>雙</span>
+                            <span class="odds">{{ formatOdds(odds.sumValue.even) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="betting-group">
                     <div class="group-title">冠亞和值</div>
                     <div class="betting-options sum-values">
@@ -632,6 +1463,7 @@
                     <div class="group-title">第{{ position }}名</div>
                     <div class="betting-options numbers">
                         <div v-for="num in 10" :key="num" class="option" 
+                             :class="{ selected: isSelected('number', String(num), position) }"
                              @click="selectBet('number', String(num), position)">
                             <span>{{ num }}</span>
                             <span class="odds">{{ formatOdds(odds.number['first']) }}</span>
@@ -646,6 +1478,7 @@
                     <div class="group-title">第{{ position + 5 }}名</div>
                     <div class="betting-options numbers">
                         <div v-for="num in 10" :key="num" class="option" 
+                             :class="{ selected: isSelected('number', String(num), position + 5) }"
                              @click="selectBet('number', String(num), position + 5)">
                             <span>{{ num }}</span>
                             <span class="odds">{{ formatOdds(odds.number['first']) }}</span>
@@ -667,38 +1500,56 @@
                 <div class="selected-bets-header">
                     <span>投注類型</span>
                     <span>注單明細</span>
+                    <span>賠率</span>
+                    <span>金額</span>
                     <span>可能獲利</span>
                 </div>
-                <div class="selected-bet-item" v-for="bet in selectedBets" :key="bet.id">
+                <div class="selected-bet-item" v-for="(bet, index) in selectedBets" :key="index">
                     <div class="selected-bet-type">{{ getBetTypeLabel(bet) }}</div>
                     <div class="selected-bet-detail">{{ getBetValueLabel(bet) }}</div>
+                    <div class="selected-bet-odds">{{ formatOdds(getBetOdds(bet)) }}</div>
+                    <div class="selected-bet-amount">
+                        <input 
+                            type="number" 
+                            v-model="bet.amount" 
+                            @input="updateBetAmount(index, $event.target.value)"
+                            @blur="handleAmountBlur(index, $event)"
+                            @focus="handleAmountFocus(index, $event)"
+                            min="1" 
+                            step="1"
+                            class="amount-input-small"
+                        />
+                    </div>
                     <div class="selected-bet-profit">
-                        <span v-if="betAmount">{{ formatMoney(calculatePotentialProfit(bet)) }}</span>
+                        <span v-if="bet.amount && bet.amount !== '' && parseFloat(bet.amount) > 0">{{ formatMoney(calculateIndividualPotentialProfit(bet)) }}</span>
                         <span v-else>--</span>
                     </div>
                 </div>
                 <div class="selected-bets-summary">
-                    <div>總投注金額: <span>{{ betAmount ? formatMoney(betAmount * selectedBets.length) : '--' }}</span></div>
-                    <div>可能總獲利: <span>{{ betAmount ? formatMoney(calculateTotalPotentialProfit()) : '--' }}</span></div>
+                    <div>總投注金額: <span>{{ formatMoney(calculateTotalBetAmount()) }}</span></div>
+                    <div>可能總獲利: <span>{{ formatMoney(calculateTotalPotentialProfit()) }}</span></div>
                 </div>
             </div>
             
-            <!-- 自定義籌碼輸入 -->
+            <!-- 快速下注區域 -->
             <div class="bet-chips" v-if="selectedBets.length > 0">
-                <div class="chip chip-5" @click="setBetAmount(5)">5</div>
-                <div class="chip chip-10" @click="setBetAmount(10)">10</div>
-                <div class="chip chip-50" @click="setBetAmount(50)">50</div>
-                <div class="chip chip-100" @click="setBetAmount(100)">100</div>
-                <div class="chip chip-500" @click="setBetAmount(500)">500</div>
+                <div class="quick-bet-title">快速下注</div>
+                <div class="chips-container">
+                    <div class="chip chip-5" @click="setAllBetAmount(5)">5</div>
+                    <div class="chip chip-10" @click="setAllBetAmount(10)">10</div>
+                    <div class="chip chip-50" @click="setAllBetAmount(50)">50</div>
+                    <div class="chip chip-100" @click="setAllBetAmount(100)">100</div>
+                    <div class="chip chip-500" @click="setAllBetAmount(500)">500</div>
+                </div>
                 <!-- 自訂金額輸入 -->
                 <div class="custom-chip-input">
-                    <input type="number" v-model="customAmount" placeholder="自訂金額" min="1">
-                    <button @click="setCustomAmount">確定</button>
+                    <input type="number" v-model="customAmount" placeholder="輸入自訂金額" min="1">
+                    <button @click="setAllCustomAmount">設置全部</button>
                 </div>
             </div>
             
             <!-- 下注按鈕 -->
-            <button class="bet-button" @click="placeBets" :disabled="!selectedBets.length || !betAmount"
+            <button class="bet-button" @click="placeBets" :disabled="!selectedBets.length || calculateTotalBetAmount() <= 0"
                     style="background-color: #ffcc00; color: #000; font-weight: bold; border-radius: 8px; padding: 12px 20px; border: none; cursor: pointer; font-size: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                 確認下注
             </button>
@@ -795,7 +1646,7 @@
 
         <!-- 投注動作按鈕 -->
         <div class="betting-actions-buttons">
-            <button class="action-button primary-button" @click="placeBets" :disabled="selectedBets.length === 0 || !betAmount">
+            <button class="action-button primary-button" @click="placeBets" :disabled="selectedBets.length === 0 || calculateTotalBetAmount() <= 0">
                 下注
             </button>
             <button class="action-button secondary-button" @click="clearBets">
@@ -831,13 +1682,29 @@
                     // 開獎結果
                     lastResult: [],
                 lastResults: [],
-                    resultLabels: ['冠軍', '亞軍', '第三名', '第四名', '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'],
+                    resultLabels: ['冠軍', '亞軍', '三名', '四名', '五名', '六名', '七名', '八名', '九名', '十名'],
                     
                     // 投注相關
-                    defaultBetAmount: 100, // 默認投注金額
-                    betAmount: 100,
+                    defaultBetAmount: 1, // 默認投注金額
+                    betAmount: 1,
                     selectedBets: [],
                     activeTab: 'combined', // 當前活躍的標籤頁
+                    
+                    // 位置選擇相關
+                    selectedPosition: null,
+                    selectedPositions: [], // 多選位置
+                    positions: [
+                        { value: 1, label: '第一名' },
+                        { value: 2, label: '第二名' },
+                        { value: 3, label: '第三名' },
+                        { value: 4, label: '第四名' },
+                        { value: 5, label: '第五名' },
+                        { value: 6, label: '第六名' },
+                        { value: 7, label: '第七名' },
+                        { value: 8, label: '第八名' },
+                        { value: 9, label: '第九名' },
+                        { value: 10, label: '第十名' }
+                    ],
                     
                     // 顯示狀態
                 showHistory: false,
@@ -965,6 +1832,9 @@
                     // 更新初始資料
                     this.updateDailyStats();
                     this.updateHistoryRecords();
+                    
+                    // 立即更新一次遊戲數據以獲取最新狀態
+                    this.updateGameData();
                 },
                 
                 formatMoney(amount) {
@@ -997,6 +1867,11 @@
                     );
                 },
                 selectBet(betType, value, position = null) {
+                    // 確保投注金額至少為1元
+                    if (!this.betAmount || this.betAmount <= 0) {
+                        this.betAmount = 1;
+                    }
+                    
                     const bet = {
                         type: betType,
                         value: value,
@@ -1032,7 +1907,7 @@
                     if (isLoggedIn) {
                         this.username = sessionStorage.getItem('username');
                         // 確保初始化時就轉換為數字類型
-                        this.userBalance = parseFloat(sessionStorage.getItem('balance') || '0');
+                        this.balance = parseFloat(sessionStorage.getItem('balance') || '0');
                         this.isLoggedIn = true;
                         
                         // 直接從API獲取最新餘額，確保與伺服器同步
@@ -1079,6 +1954,9 @@
                                 
                                 // 播放音效
                                 this.playSound('draw');
+                                
+                                // 立即更新歷史記錄以確保即時性
+                                this.updateHistoryRecords();
                             }
                             
                             this.updateCountdownDisplay();
@@ -1094,17 +1972,17 @@
                         .then(data => {
                             if (data.success) {
                                 // 檢查餘額是否有變化
-                                this.previousBalance = parseFloat(this.userBalance);
+                                this.previousBalance = parseFloat(this.balance);
                                 // 確保轉換為數字類型，避免字串拼接問題
-                                this.userBalance = parseFloat(data.balance);
+                                this.balance = parseFloat(data.balance);
                                 
                                 // 更新sessionStorage中的餘額
-                                sessionStorage.setItem('balance', this.userBalance.toString());
+                                sessionStorage.setItem('balance', this.balance.toString());
                                 
                                 // 顯示餘額變化提示
-                                if (this.previousBalance !== 0 && this.userBalance !== this.previousBalance) {
+                                if (this.previousBalance !== 0 && this.balance !== this.previousBalance) {
                                     this.balanceChanged = true;
-                                    const change = this.userBalance - this.previousBalance;
+                                    const change = this.balance - this.previousBalance;
                                     
                                     // 添加餘額變化動畫
                                     const balanceElement = document.querySelector('.balance');
@@ -1128,7 +2006,7 @@
                                     }, 2000);
                                 }
                                 
-                                console.log('餘額更新成功：', this.userBalance, '來源：', data.source);
+                                console.log('餘額更新成功：', this.balance, '來源：', data.source);
                             } else {
                                 console.error('獲取餘額失敗:', data.message);
                             }
@@ -1143,8 +2021,10 @@
                         return;
                     }
 
-                    if (!this.betAmount) {
-                        alert('請選擇下注金額');
+                    // 檢查是否所有投注項目都有有效金額
+                    const invalidBets = this.selectedBets.filter(bet => !bet.amount || bet.amount <= 0);
+                    if (invalidBets.length > 0) {
+                        alert('請為所有投注項目設置有效金額');
                         return;
                     }
 
@@ -1155,10 +2035,10 @@
                     }
 
                     // 計算總投注金額
-                    const totalBetAmount = this.selectedBets.length * this.betAmount;
+                    const totalBetAmount = this.calculateTotalBetAmount();
                     
                     // 檢查用戶餘額是否足夠
-                    if (totalBetAmount > this.userBalance) {
+                    if (totalBetAmount > this.balance) {
                         alert('餘額不足');
                         return;
                     }
@@ -1178,7 +2058,7 @@
                             },
                             body: JSON.stringify({
                                 username,
-                                amount: this.betAmount,
+                                amount: bet.amount,
                                 betType: bet.type,
                                 value: bet.value,
                                 position: bet.position
@@ -1187,8 +2067,8 @@
                     });
 
                     // 先預先更新本地餘額（臨時顯示）
-                    const oldBalance = this.userBalance;
-                    this.userBalance = parseFloat((oldBalance - totalBetAmount).toFixed(2));
+                    const oldBalance = this.balance;
+                    this.balance = parseFloat((oldBalance - totalBetAmount).toFixed(2));
                     
                     // 處理所有投注請求
                     Promise.all(promises)
@@ -1216,7 +2096,7 @@
                             alert('下注失敗，請稍後再試');
                             
                             // 恢復原始餘額
-                            this.userBalance = oldBalance;
+                            this.balance = oldBalance;
                             
                             // 關閉加載中提示
                             this.isLoading = false;
@@ -1305,8 +2185,15 @@
                         'ninth': '第九名',
                         'tenth': '第十名',
                         'dragonTiger': '龍虎',
-                        'number': '單號'
+                        'number': '單號',
+                        'position': '快速'
                     };
+                    
+                    // 如果是位置投注，顯示具體位置
+                    if (bet.type === 'position' && bet.position) {
+                        return this.getPositionLabel(bet.position);
+                    }
+                    
                     return typeMap[bet.type] || bet.type;
                 },
                 getBetValueLabel(bet) {
@@ -1323,27 +2210,59 @@
                         return `第${bet.position}名 ${bet.value}號`;
                     }
                     
+                    if (bet.type === 'position') {
+                        // 位置投注顯示屬性
+                        if (bet.property) {
+                            return valueMap[bet.property] || bet.property;
+                        }
+                        // 如果有value，也處理
+                        if (bet.value) {
+                            return valueMap[bet.value] || bet.value;
+                        }
+                    }
+                    
                     return valueMap[bet.value] || bet.value;
                 },
-                calculatePotentialProfit(bet) {
-                    let odds = 0;
+                getBetOdds(bet) {
                     if (bet.type === 'number') {
-                        odds = this.odds.number[this.positionToKey(bet.position)] || 9.9;
+                        return this.odds.number[this.positionToKey(bet.position)] || 9.59;
                     } else if (bet.type === 'dragonTiger') {
-                        odds = this.odds.dragonTiger;
+                        return this.odds.dragonTiger[bet.value] || 1.96;
+                    } else if (bet.type === 'position') {
+                        // 位置投注使用固定賠率
+                        return bet.odds || this.getPropertyOdds(bet.property) || 1.96;
+                    } else if (bet.type === 'sumValue') {
+                        // 冠亞和值投注
+                        if (['big', 'small', 'odd', 'even'].includes(bet.value)) {
+                            return this.odds.sumValue[bet.value] || 1.96;
+                        } else {
+                            // 具體數值
+                            return this.odds.sumValue[bet.value] || 9;
+                        }
                     } else {
-                        odds = this.odds[bet.type]?.[bet.value] || 1.98;
+                        // 其他投注類型（冠軍、亞軍等）
+                        return this.odds[bet.type]?.[bet.value] || 1.96;
                     }
-                    return this.betAmount * odds;
+                },
+                calculateIndividualPotentialProfit(bet) {
+                    const odds = this.getBetOdds(bet);
+                    return (bet.amount || 0) * odds;
                 },
                 calculateTotalPotentialProfit() {
                     return this.selectedBets.reduce((total, bet) => {
-                        return total + this.calculatePotentialProfit(bet);
+                        return total + this.calculateIndividualPotentialProfit(bet);
+                    }, 0);
+                },
+                calculateTotalBetAmount() {
+                    return this.selectedBets.reduce((total, bet) => {
+                        return total + (parseFloat(bet.amount) || 0);
                     }, 0);
                 },
                 clearBets() {
                     this.selectedBets = [];
                 },
+                
+                // 位置選擇相關方法
                 selectPositionNumber(num) {
                     if (!this.selectedPosition) {
                         alert('請先選擇位置');
@@ -1386,7 +2305,7 @@
                         type: 'position',
                         position: this.selectedPosition,
                         property: property,
-                        odds: this.getPropertyOdds(property)
+                        amount: this.betAmount
                     };
                     
                     const existingBetIndex = this.selectedBets.findIndex(b => 
@@ -1408,6 +2327,184 @@
                         bet.property === property
                     );
                 },
+                getPositionLabel(position) {
+                    const positionObj = this.positions.find(p => p.value === position);
+                    return positionObj ? positionObj.label : `第${position}名`;
+                },
+                
+                // 多位置選擇相關方法
+                togglePosition(position) {
+                    const index = this.selectedPositions.indexOf(position);
+                    if (index === -1) {
+                        // 新增位置
+                        this.selectedPositions.push(position);
+                        // 自動為新位置創建已經選中的號碼和屬性投注
+                        this.autoCreateBetsForNewPosition(position);
+                    } else {
+                        // 移除位置
+                        this.selectedPositions.splice(index, 1);
+                        // 移除該位置的所有投注
+                        this.removeBetsForPosition(position);
+                    }
+                },
+                autoCreateBetsForNewPosition(newPosition) {
+                    // 確保投注金額至少為1元
+                    if (!this.betAmount || this.betAmount <= 0) {
+                        this.betAmount = 1;
+                    }
+                    
+                    // 獲取已經在其他位置選中的號碼
+                    const selectedNumbers = new Set();
+                    const selectedProperties = new Set();
+                    
+                    this.selectedBets.forEach(bet => {
+                        if (bet.type === 'number' && this.selectedPositions.includes(bet.position)) {
+                            selectedNumbers.add(bet.value);
+                        }
+                        if (bet.type === 'position' && this.selectedPositions.includes(bet.position)) {
+                            selectedProperties.add(bet.property);
+                        }
+                    });
+                    
+                    // 為新位置創建號碼投注
+                    selectedNumbers.forEach(number => {
+                        const existingBetIndex = this.selectedBets.findIndex(b => 
+                            b.type === 'number' && 
+                            b.position === newPosition && 
+                            b.value === number
+                        );
+                        
+                        if (existingBetIndex === -1) {
+                            this.selectedBets.push({
+                                type: 'number',
+                                position: newPosition,
+                                value: number,
+                                amount: this.betAmount
+                            });
+                        }
+                    });
+                    
+                    // 為新位置創建屬性投注
+                    selectedProperties.forEach(property => {
+                        const existingBetIndex = this.selectedBets.findIndex(b => 
+                            b.type === 'position' && 
+                            b.position === newPosition && 
+                            b.property === property
+                        );
+                        
+                        if (existingBetIndex === -1) {
+                            this.selectedBets.push({
+                                type: 'position',
+                                position: newPosition,
+                                property: property,
+                                amount: this.betAmount
+                            });
+                        }
+                    });
+                },
+                removeBetsForPosition(position) {
+                    // 移除指定位置的所有投注
+                    this.selectedBets = this.selectedBets.filter(bet => 
+                        bet.position !== position
+                    );
+                },
+                clearPositions() {
+                    // 移除所有快速標籤頁的投注項目
+                    this.selectedBets = this.selectedBets.filter(bet => 
+                        !this.selectedPositions.includes(bet.position)
+                    );
+                    this.selectedPositions = [];
+                },
+                getSelectedPositionsLabel() {
+                    if (this.selectedPositions.length === 0) return '';
+                    if (this.selectedPositions.length === 1) {
+                        return this.getPositionLabel(this.selectedPositions[0]);
+                    }
+                    return `${this.selectedPositions.length}個位置`;
+                },
+                selectMultiPositionNumber(num) {
+                    if (this.selectedPositions.length === 0) {
+                        alert('請先選擇位置');
+                        return;
+                    }
+
+                    // 確保投注金額至少為1元
+                    if (!this.betAmount || this.betAmount <= 0) {
+                        this.betAmount = 1;
+                    }
+
+                    this.selectedPositions.forEach(position => {
+                        const bet = {
+                            type: 'number',
+                            position: position,
+                            value: String(num),
+                            amount: this.betAmount
+                        };
+
+                        const existingBetIndex = this.selectedBets.findIndex(b => 
+                            b.type === 'number' && 
+                            b.position === position && 
+                            b.value === String(num)
+                        );
+
+                        if (existingBetIndex === -1) {
+                            this.selectedBets.push(bet);
+                        } else {
+                            this.selectedBets.splice(existingBetIndex, 1);
+                        }
+                    });
+                },
+                isAnyPositionNumberSelected(num) {
+                    return this.selectedPositions.some(position => 
+                        this.selectedBets.some(bet => 
+                            bet.type === 'number' && 
+                            bet.position === position && 
+                            bet.value === String(num)
+                        )
+                    );
+                },
+                selectMultiPositionProperty(property) {
+                    if (this.selectedPositions.length === 0) {
+                        alert('請先選擇位置');
+                        return;
+                    }
+                    
+                    // 確保投注金額至少為1元
+                    if (!this.betAmount || this.betAmount <= 0) {
+                        this.betAmount = 1;
+                    }
+                    
+                    this.selectedPositions.forEach(position => {
+                        const bet = {
+                            type: 'position',
+                            position: position,
+                            property: property,
+                            amount: this.betAmount
+                        };
+                        
+                        const existingBetIndex = this.selectedBets.findIndex(b => 
+                            b.type === 'position' && 
+                            b.position === position && 
+                            b.property === property
+                        );
+                        
+                        if (existingBetIndex === -1) {
+                            this.selectedBets.push(bet);
+                        } else {
+                            this.selectedBets.splice(existingBetIndex, 1);
+                        }
+                    });
+                },
+                isAnyPositionPropertySelected(property) {
+                    return this.selectedPositions.some(position => 
+                        this.selectedBets.some(bet => 
+                            bet.type === 'position' && 
+                            bet.position === position && 
+                            bet.property === property
+                        )
+                    );
+                },
+
                 getPropertyOdds(property) {
                     const baseOdds = {
                         big: 1.98,
@@ -1451,14 +2548,61 @@
                 },
                 setBetAmount(amount) {
                     this.betAmount = amount;
+                    // 只更新沒有設置金額的投注項目
+                    this.selectedBets.forEach(bet => {
+                        if (!bet.amount || bet.amount <= 0) {
+                            bet.amount = amount;
+                        }
+                    });
+                },
+                setAllBetAmount(amount) {
+                    this.betAmount = amount;
+                    // 設置所有投注項目的金額
                     this.selectedBets.forEach(bet => {
                         bet.amount = amount;
                     });
                 },
-                setCustomAmount() {
+                updateBetAmount(index, amount) {
+                    // 允許空白輸入（用戶正在編輯時）
+                    if (amount === '' || amount === null || amount === undefined) {
+                        if (this.selectedBets[index]) {
+                            this.selectedBets[index].amount = '';
+                        }
+                        return;
+                    }
+                    
+                    const numAmount = parseFloat(amount);
+                    if (isNaN(numAmount) || numAmount < 1) {
+                        // 無效輸入，恢復為 1
+                        if (this.selectedBets[index]) {
+                            this.selectedBets[index].amount = 1;
+                        }
+                        return;
+                    }
+                    
+                    if (this.selectedBets[index]) {
+                        this.selectedBets[index].amount = numAmount;
+                    }
+                },
+                handleAmountFocus(index, event) {
+                    // 當用戶點擊輸入框時，如果值為 1，則全選以便直接覆蓋
+                    if (this.selectedBets[index] && this.selectedBets[index].amount === 1) {
+                        event.target.select();
+                    }
+                },
+                handleAmountBlur(index, event) {
+                    // 當用戶離開輸入框時，如果為空或無效值，則設為 1
+                    const value = event.target.value;
+                    if (value === '' || value === null || isNaN(parseFloat(value)) || parseFloat(value) < 1) {
+                        if (this.selectedBets[index]) {
+                            this.selectedBets[index].amount = 1;
+                        }
+                    }
+                },
+                setAllCustomAmount() {
                     if (this.customAmount && !isNaN(this.customAmount) && this.customAmount > 0) {
                         const amount = parseFloat(this.customAmount);
-                        this.setBetAmount(amount);
+                        this.setAllBetAmount(amount);
                         this.customAmount = ''; // 清空輸入框
                     } else {
                         alert('請輸入有效的下注金額');
@@ -1522,7 +2666,7 @@
                         .then(data => {
                             if (data.success) {
                                 // 確保餘額是數字類型
-                                this.userBalance = parseFloat(data.balance) || 0;
+                                this.balance = parseFloat(data.balance) || 0;
                             }
                         })
                         .catch(err => {
@@ -1595,6 +2739,8 @@
                     // 每3秒更新遊戲數據
                     this.gameDataTimer = setInterval(() => {
                         this.updateGameData();
+                        // 每次更新遊戲數據時也更新歷史記錄
+                        this.updateHistoryRecords();
                     }, 3000);
                     
                     // 每10秒更新余額和下注記錄
@@ -1603,11 +2749,17 @@
                         this.updateBetHistory();
                         this.updateDailyStats();
                     }, 10000);
+                    
+                    // 每5秒更新歷史記錄以確保即時性
+                    this.historyTimer = setInterval(() => {
+                        this.updateHistoryRecords();
+                    }, 5000);
                 },
                 stopUpdateTimers() {
                     clearInterval(this.countdownTimer);
                     clearInterval(this.gameDataTimer);
                     clearInterval(this.balanceTimer);
+                    clearInterval(this.historyTimer);
                 },
                 playSound(sound) {
                     try {

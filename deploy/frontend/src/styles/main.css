@@ -434,7 +434,7 @@ body {
 }
 
 .property-option {
-    background-color: #f9f9f9;
+    background-color: #fff;
     transition: all 0.2s;
 }
 
@@ -850,6 +850,74 @@ body {
     text-align: center;
     padding: 30px;
     color: #999;
+}
+
+/* 投注記錄中開獎號碼顯示樣式 */
+.draw-result-row {
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.draw-result-balls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.result-ball {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* 球號顏色樣式 - 與歷史開獎保持一致 */
+.result-ball.color-1 {
+    background-color: #ffcc00; /* 金黃色 */
+    color: #000;
+}
+.result-ball.color-2 {
+    background-color: #3399ff; /* 鮮藍色 */
+    color: #fff;
+}
+.result-ball.color-3 {
+    background-color: #777777; /* 深灰色 */
+    color: #fff;
+}
+.result-ball.color-4 {
+    background-color: #ff9933; /* 橙色 */
+    color: #fff;
+}
+.result-ball.color-5 {
+    background-color: #00ccff; /* 天藍色 */
+    color: #fff;
+}
+.result-ball.color-6 {
+    background-color: #9966cc; /* 紫色 */
+    color: #fff;
+}
+.result-ball.color-7 {
+    background-color: #aaaaaa; /* 灰色 */
+    color: #fff;
+}
+.result-ball.color-8 {
+    background-color: #ff3333; /* 紅色 */
+    color: #fff;
+}
+.result-ball.color-9 {
+    background-color: #990000; /* 深紅色 */
+    color: #fff;
+}
+.result-ball.color-10 {
+    background-color: #33cc33; /* 綠色 */
+    color: #fff;
 }
 
 /* 開獎歷史組件樣式 */

@@ -10,7 +10,8 @@ Vue.component('bet-records', {
   
   data() {
     return {
-      activeTab: 'ongoing'
+      activeTab: 'ongoing',
+      drawResults: {} // 存儲各期開獎結果，格式: { period: [result] }
     }
   },
   
@@ -21,6 +22,17 @@ Vue.component('bet-records', {
       } else {
         return this.records.filter(bet => bet.settled);
       }
+    }
+  },
+  
+  watch: {
+    records: {
+      handler(newRecords) {
+        if (newRecords && newRecords.length > 0) {
+          this.fetchDrawResults(newRecords);
+        }
+      },
+      immediate: true
     }
   },
   
@@ -108,6 +120,41 @@ Vue.component('bet-records', {
       // 將賠率顯示為帶兩位小數的數字
       const oddsNum = parseFloat(odds);
       return oddsNum ? oddsNum.toFixed(2) : '';
+    },
+    
+    // 獲取投注記錄對應的開獎結果
+    async fetchDrawResults(records) {
+      try {
+        // 提取所有未獲取過的期數
+        const periods = [...new Set(records.map(bet => bet.period))];
+        const missingPeriods = periods.filter(period => !this.drawResults[period]);
+        
+        if (missingPeriods.length === 0) return;
+        
+        // 批量獲取開獎結果
+        for (const period of missingPeriods) {
+          try {
+            const response = await fetch(`/api/history?period=${period}&limit=1`);
+            const data = await response.json();
+            
+            if (data.success && data.records && data.records.length > 0) {
+              this.drawResults[period] = data.records[0].result;
+            }
+          } catch (error) {
+            console.error(`獲取期數 ${period} 開獎結果失敗:`, error);
+          }
+        }
+        
+        // 強制更新組件
+        this.$forceUpdate();
+      } catch (error) {
+        console.error('獲取開獎結果失敗:', error);
+      }
+    },
+    
+    // 獲取指定期數的開獎結果
+    getDrawResult(period) {
+      return this.drawResults[period] || null;
     }
   },
   
@@ -161,7 +208,20 @@ Vue.component('bet-records', {
                   h('div', { class: 'bet-detail-row' }, [
                     h('span', { class: 'bet-label' }, '賠率:'),
                     h('span', { class: 'bet-value' }, this.formatOdds(bet.odds) || '1.95'),
-                  ])
+                  ]),
+                  // 開獎號碼顯示
+                  this.getDrawResult(bet.period) ? 
+                    h('div', { class: 'bet-detail-row draw-result-row' }, [
+                      h('span', { class: 'bet-label' }, '開獎號碼:'),
+                      h('div', { class: 'draw-result-balls' }, 
+                        this.getDrawResult(bet.period).map((number, index) =>
+                          h('div', { 
+                            class: ['result-ball', 'color-' + number],
+                            key: index
+                          }, number)
+                        )
+                      )
+                    ]) : null
                 ]),
                 
                 // 底部信息：金額和時間
