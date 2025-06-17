@@ -1037,6 +1037,287 @@ app.get('/api/balance', async (req, res) => {
   }
 });
 
+// 獲取今日盈虧的API端點
+app.get('/api/daily-profit', async (req, res) => {
+  const { username } = req.query;
+  
+  try {
+    // 參數驗證
+    if (!username) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '請提供用戶名' 
+      });
+    }
+
+    // 獲取用戶信息
+    const user = await UserModel.findByUsername(username);
+    if (!user) {
+      return res.json({ 
+        success: false,
+        message: '用戶不存在', 
+        profit: 0 
+      });
+    }
+
+    // 獲取今日開始和結束時間（使用UTC時間）
+    const today = new Date();
+    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
+
+    // 查詢今日投注記錄
+    const result = await db.oneOrNone(
+      `SELECT 
+        COALESCE(SUM(amount), 0) as total_bet,
+        COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win
+      FROM bet_history 
+      WHERE username = $1 
+        AND settled = true 
+        AND created_at >= $2 
+        AND created_at < $3`,
+      [username, startOfDay, endOfDay]
+    );
+
+    const totalBet = result ? parseFloat(result.total_bet) || 0 : 0;
+    const totalWin = result ? parseFloat(result.total_win) || 0 : 0;
+    const dailyProfit = totalWin - totalBet;
+
+    console.log(`用戶 ${username} 今日盈虧: 投注 ${totalBet}, 贏得 ${totalWin}, 盈虧 ${dailyProfit}`);
+
+    res.json({ 
+      success: true, 
+      profit: dailyProfit,
+      totalBet: totalBet,
+      totalWin: totalWin
+    });
+
+  } catch (error) {
+    console.error('獲取今日盈虧出錯:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '系統錯誤，請稍後再試' 
+    });
+  }
+});
+
+// 獲取盈虧記錄的API端點
+app.get('/api/profit-records', async (req, res) => {
+  const { username, days = 7 } = req.query;
+  
+  try {
+    // 參數驗證
+    if (!username) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '請提供用戶名' 
+      });
+    }
+
+    // 獲取用戶信息
+    const user = await UserModel.findByUsername(username);
+    if (!user) {
+      return res.json({ 
+        success: false,
+        message: '用戶不存在',
+        records: [],
+        totalBetCount: 0,
+        totalProfit: 0
+      });
+    }
+
+    // 計算日期範圍
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - parseInt(days));
+
+    // 獲取指定天數內的每日盈虧記錄
+    const query = `
+      SELECT 
+        DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') as date,
+        COUNT(*) as bet_count,
+        COALESCE(SUM(amount), 0) as total_bet,
+        COALESCE(SUM(win_amount), 0) as total_win
+      FROM bet_history 
+      WHERE username = $1 
+        AND settled = true 
+        AND created_at >= $2 
+        AND created_at < $3
+      GROUP BY DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei')
+      ORDER BY date DESC
+    `;
+
+    // 執行查詢
+    const result = await db.any(query, [username, startDate, endDate]);
+    
+    // 處理查詢結果
+    const records = result && result.length > 0 ? result.map(row => ({
+      date: row.date,
+      betCount: parseInt(row.bet_count),
+      profit: parseFloat(row.total_win) - parseFloat(row.total_bet)
+    })) : [];
+    
+    // 計算總計
+    const totalBetCount = records.reduce((sum, record) => sum + record.betCount, 0);
+    const totalProfit = records.reduce((sum, record) => sum + record.profit, 0);
+    
+    console.log(`獲取用戶 ${username} 的 ${days} 天盈虧記錄: ${records.length} 天記錄`);
+    
+    res.json({
+      success: true,
+      records,
+      totalBetCount,
+      totalProfit
+    });
+
+  } catch (error) {
+    console.error('獲取盈虧記錄出錯:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取盈虧記錄失敗',
+      records: [],
+      totalBetCount: 0,
+      totalProfit: 0
+    });
+  }
+});
+
+// 獲取單日詳細記錄的API端點
+app.get('/api/day-detail', async (req, res) => {
+  const { username, date } = req.query;
+  
+  try {
+    // 參數驗證
+    if (!username || !date) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '請提供用戶名和日期' 
+      });
+    }
+
+    // 檢查用戶名是否有效
+    if (!username || username.trim() === '') {
+      return res.json({ 
+        success: false,
+        message: '無效的用戶名',
+        records: [],
+        stats: { betCount: 0, profit: 0 }
+      });
+    }
+
+    // 計算日期範圍（當日的開始和結束，使用台北時區）
+    const inputDate = new Date(date);
+    
+    // 如果輸入的是ISO字符串，需要正確解析
+    let targetDate;
+    if (typeof date === 'string' && date.includes('T')) {
+      // 如果是完整的ISO字符串，轉換為台北時區的日期部分
+      targetDate = new Date(date);
+      targetDate.setHours(targetDate.getHours() + 8); // 轉換為台北時間
+    } else {
+      // 如果是簡單的日期字符串，直接使用
+      targetDate = new Date(date);
+    }
+    
+    // 計算台北時區的日期邊界
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+    const day = targetDate.getDate();
+    
+    // 台北時間的當日開始和結束
+    const startOfDayTaipei = new Date(year, month, day, 0, 0, 0);
+    const endOfDayTaipei = new Date(year, month, day + 1, 0, 0, 0);
+    
+    // 轉換為UTC時間（台北時間減去8小時）
+    const startOfDay = new Date(startOfDayTaipei.getTime() - 8 * 60 * 60 * 1000);
+    const endOfDay = new Date(endOfDayTaipei.getTime() - 8 * 60 * 60 * 1000);
+
+    console.log(`查詢用戶 ${username} 在 ${date} 的記錄，時間範圍: ${startOfDay.toISOString()} 到 ${endOfDay.toISOString()}`);
+
+    // 獲取當日的所有注單記錄，包含開獎結果
+    const query = `
+      SELECT 
+        bh.id, 
+        bh.period, 
+        bh.bet_type, 
+        bh.bet_value, 
+        bh.position, 
+        bh.amount, 
+        bh.odds,
+        bh.win, 
+        bh.win_amount, 
+        bh.created_at,
+        rh.result as draw_result
+      FROM bet_history bh
+      LEFT JOIN result_history rh ON bh.period = rh.period
+      WHERE bh.username = $1 
+        AND bh.settled = true 
+        AND bh.created_at >= $2 
+        AND bh.created_at < $3
+      ORDER BY bh.created_at DESC
+    `;
+
+    console.log(`執行查詢: ${query}`);
+    console.log(`查詢參數: [${username}, ${startOfDay.toISOString()}, ${endOfDay.toISOString()}]`);
+
+    // 執行查詢
+    const result = await db.any(query, [username, startOfDay, endOfDay]);
+    console.log(`查詢結果: ${result ? result.length : 0} 條記錄`);
+    
+    // 處理查詢結果
+    const records = result && result.length > 0 ? result.map(row => {
+      let drawResult = null;
+      try {
+        if (row.draw_result && typeof row.draw_result === 'string') {
+          drawResult = JSON.parse(row.draw_result);
+        } else if (Array.isArray(row.draw_result)) {
+          drawResult = row.draw_result;
+        }
+      } catch (e) {
+        console.error('解析開獎結果出錯:', e, row.draw_result);
+      }
+      
+      return {
+        id: row.id,
+        period: row.period,
+        betType: row.bet_type,
+        value: row.bet_value,
+        position: row.position,
+        amount: parseFloat(row.amount),
+        odds: parseFloat(row.odds) || 1.0,
+        win: row.win,
+        winAmount: parseFloat(row.win_amount) || 0,
+        time: row.created_at,
+        drawResult: drawResult
+      };
+    }) : [];
+    
+    // 計算統計數據
+    const stats = {
+      betCount: records.length,
+      profit: records.reduce((sum, record) => {
+        return sum + (record.win ? record.winAmount : 0) - record.amount;
+      }, 0)
+    };
+    
+    console.log(`獲取用戶 ${username} 在 ${date} 的詳細記錄: ${records.length} 條記錄`);
+
+    res.json({
+      success: true,
+      records,
+      stats
+    });
+
+  } catch (error) {
+    console.error('獲取單日詳細記錄出錯:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取單日詳細記錄失敗',
+      records: [],
+      stats: { betCount: 0, profit: 0 }
+    });
+  }
+});
+
 // 位置轉換函數
 function positionToKey(position) {
   const positionMap = {
@@ -1709,7 +1990,7 @@ async function createBet(username, amount, betType, value, position, period, odd
     
     const params = [username, amount, betType, value, position, period, odds];
     
-    const result = await db.query(query, params);
+    const result = await db.one(query, params);
     
     // 檢查查詢結果是否有效
     if (!result || !result.rows || result.rows.length === 0) {
@@ -2157,11 +2438,11 @@ async function updateHotBets() {
 app.get('/api/hot-bets', (req, res) => {
   console.log('收到熱門投注API請求');
   try {
-    // 如果hotBetsData.topBets為空或未初始化，返回錯誤訊息
+    // 如果hotBetsData.topBets為空或未初始化，返回空數據
     if (!hotBetsData.topBets || hotBetsData.topBets.length === 0) {
-      console.log('熱門投注數據為空，返回錯誤');
-      return res.status(404).json({
-        success: false,
+      console.log('熱門投注數據為空，返回空數組');
+      return res.json({
+        success: true,
         message: '暫無熱門投注數據',
         hotBets: [],
         lastUpdate: null

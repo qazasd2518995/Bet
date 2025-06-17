@@ -456,15 +456,27 @@ body {
 
 /* 添加骰子籌碼樣式 */
 .bet-chips {
+    margin-bottom: 10px;
+}
+
+.quick-bet-title {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.chips-container {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 10px;
 }
 
 .chip {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -472,12 +484,13 @@ body {
     font-weight: bold;
     color: white;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s;
+    font-size: 12px;
 }
 
 .chip:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -517,20 +530,41 @@ body {
 .bet-info {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 15px;
+    background-color: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border-left: 4px solid #0e6f3d;
 }
 
 .bet-count {
-    color: #666;
-    font-size: 14px;
+    color: #333;
+    font-size: 15px;
+    font-weight: 600;
+    background-color: #e8f5e8;
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid #0e6f3d;
 }
 
 .clear-button {
-    background: none;
+    background-color: #dc3545;
+    color: white;
     border: none;
-    color: #0e6f3d;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+.clear-button:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
 }
 
 .bet-amount {
@@ -1414,31 +1448,45 @@ body {
 /* 自定義投注金額輸入區域 - 根據爬蟲獲取的網站優化 */
 .custom-chip-input {
     display: flex;
-    flex: 1;
-    margin-top: 5px;
-    max-width: 180px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 0 20px;
 }
 
 .custom-chip-input input {
     flex: 1;
-    padding: 10px 15px;
+    max-width: 120px;
+    padding: 8px 12px;
     border: 1px solid #ddd;
-    border-radius: 5px 0 0 5px;
+    border-radius: 6px;
     font-size: 14px;
+    text-align: center;
+}
+
+.custom-chip-input input:focus {
+    outline: none;
+    border-color: #0e6f3d;
+    box-shadow: 0 0 5px rgba(14, 111, 61, 0.3);
 }
 
 .custom-chip-input button {
     background-color: #0e6f3d;
     color: white;
     border: none;
-    padding: 10px 15px;
-    border-radius: 0 5px 5px 0;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .custom-chip-input button:hover {
     background-color: #0d5f34;
+    transform: translateY(-1px);
 }
 
 /* 歷史記錄 - 短期趨勢顯示 */
@@ -1917,6 +1965,72 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+}
+
+/* 盈虧記錄專用樣式 */
+.profit-records, .day-detail {
+    width: 95vw;
+    max-width: 900px;
+    max-height: 95vh;
+    height: 85vh;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 盈虧記錄字體和間距優化 */
+.profit-records .profit-header,
+.day-detail .detail-header {
+    padding: 20px 25px;
+}
+
+.profit-records .profit-header .title,
+.day-detail .detail-header .title {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.profit-records .time-range-tabs .tab {
+    padding: 18px;
+    font-size: 16px;
+}
+
+.profit-records .profit-item {
+    padding: 20px 25px;
+}
+
+.profit-records .profit-date .date {
+    font-size: 20px;
+}
+
+.profit-records .profit-date .weekday {
+    font-size: 14px;
+}
+
+.profit-records .bet-count {
+    font-size: 14px;
+}
+
+.profit-records .profit-amount {
+    font-size: 22px;
+}
+
+.profit-records .profit-summary,
+.day-detail .day-summary {
+    padding: 20px 25px;
+}
+
+.profit-records .summary-item .label,
+.day-detail .summary-item .label {
+    font-size: 14px;
+}
+
+.profit-records .summary-item .value,
+.day-detail .summary-item .value {
+    font-size: 20px;
 }
 
 .history-list, .record-list {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>極速賽車 - 生產版</title>
-    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/main.css?v=1.4">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- 先引入 Vue -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
@@ -265,12 +265,13 @@
         }
         
         .brand-title {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 700;
             color: white;
             margin: 0;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            letter-spacing: 2px;
+            letter-spacing: 1px;
+            white-space: nowrap;
         }
         
         /* 用戶信息區域 */
@@ -278,11 +279,11 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.35);
             backdrop-filter: blur(10px);
             border-radius: 25px;
             padding: 8px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             justify-self: center;
         }
         
@@ -323,6 +324,394 @@
         
         .balance-amount.changed {
             animation: balancePulse 0.6s ease;
+        }
+        
+        .daily-profit {
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 2px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .daily-profit.profit-positive {
+            color: #28a745 !important; /* 綠色文字 - 賺錢 */
+        }
+        
+        .daily-profit.profit-negative {
+            color: #dc3545 !important; /* 紅色文字 - 虧損 */
+        }
+        
+        .daily-profit.profit-zero {
+            color: #495057 !important; /* 深灰色文字 - 無虧損 */
+            font-weight: 600 !important;
+        }
+        
+        /* 盈虧記錄顏色樣式 */
+        .profit-amount.profit-positive,
+        .value.profit-positive {
+            color: #28a745 !important; /* 綠色 - 賺錢 */
+        }
+        
+        .profit-amount.profit-negative,
+        .value.profit-negative {
+            color: #dc3545 !important; /* 紅色 - 虧損 */
+        }
+        
+        .profit-amount.profit-zero,
+        .value.profit-zero {
+            color: #495057 !important; /* 深灰色 - 無虧損 */
+        }
+        
+        /* 盈虧記錄模態框樣式 - 由外部CSS文件控制 */
+        
+        .profit-header, .detail-header {
+            background-color: #0e6f3d;
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .time-range-tabs {
+            display: flex;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .time-range-tabs .tab {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .time-range-tabs .tab:hover {
+            background-color: #e9ecef;
+        }
+        
+        .time-range-tabs .tab.active {
+            background-color: white;
+            border-bottom-color: #0e6f3d;
+            color: #0e6f3d;
+        }
+        
+        .profit-list, .detail-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .profit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f1f1;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f1f1;
+            transition: background-color 0.2s ease;
+        }
+        
+        .profit-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .profit-date {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .profit-date .date {
+            font-weight: 600;
+        }
+        
+        .profit-date .weekday {
+            color: #6c757d;
+        }
+        
+        .profit-stats {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        
+        .bet-count {
+            color: #6c757d;
+        }
+        
+        .profit-amount {
+            font-weight: 600;
+        }
+        
+        .profit-summary, .day-summary {
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .summary-item .label {
+            color: #6c757d;
+        }
+        
+        .summary-item .value {
+            font-weight: 600;
+        }
+        
+        .bet-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .bet-info .period {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .bet-info .bet-type {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .bet-info .time {
+            font-size: 11px;
+            color: #adb5bd;
+        }
+        
+        .bet-info .draw-result {
+            display: flex;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        
+        .result-number {
+            background: #007bff;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .bet-result {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        
+        .bet-result .odds {
+            font-size: 11px;
+            color: #6c757d;
+        }
+        
+        /* 複用投注記錄樣式 */
+        .record-list {
+            overflow-y: auto;
+            flex: 1;
+            padding: 10px;
+        }
+
+        .record-item {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 5px solid #47824A;
+        }
+
+        .record-top {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .record-top .period {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .record-top .status {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        .record-top .status.win {
+            background-color: #47bf74;
+            color: white;
+        }
+
+        .record-top .status.lose {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        /* 投注資訊區域樣式 */
+        .record-bet-info {
+            margin-bottom: 10px;
+            padding: 12px;
+            background-color: #f5f5f5;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .bet-detail-row {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .bet-detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .bet-label {
+            width: 85px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .bet-value {
+            color: #333;
+            font-weight: 600;
+            flex: 1;
+            background-color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border-left: 3px solid #47824A;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 底部資訊樣式 */
+        .record-bottom {
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .bet-time-info {
+            display: flex;
+            align-items: center;
+            color: #777;
+            font-size: 13px;
+        }
+
+        .time-value {
+            margin-left: 5px;
+        }
+
+        .bet-amount-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .amount-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .amount-label {
+            color: #555;
+        }
+
+        .amount-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .win-amount .amount-value {
+            color: #e67e22;
+        }
+
+        /* 開獎號碼顯示樣式 */
+        .draw-result-row {
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .draw-result-balls {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .result-ball {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .result-ball.color-1 { background-color: #e74c3c; }
+        .result-ball.color-2 { background-color: #3498db; }
+        .result-ball.color-3 { background-color: #95a5a6; }
+        .result-ball.color-4 { background-color: #f39c12; }
+        .result-ball.color-5 { background-color: #1abc9c; }
+        .result-ball.color-6 { background-color: #9b59b6; }
+        .result-ball.color-7 { background-color: #34495e; }
+        .result-ball.color-8 { background-color: #e67e22; }
+        .result-ball.color-9 { background-color: #2ecc71; }
+        .result-ball.color-10 { background-color: #f1c40f; }
+        
+        .bet-result .amount {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .win-status.win {
+            color: #28a745;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .win-status.lose {
+            color: #dc3545;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .win-amount {
+            font-weight: 600;
+            font-size: 14px;
         }
         
         @keyframes balancePulse {
@@ -595,72 +984,7 @@
             font-size: 13px;
         }
         
-        /* 快速下注區域樣式 */
-        .quick-bet-title {
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: #0e6f3d;
-            margin-bottom: 10px;
-            padding: 8px;
-            background-color: #f0f8f0;
-            border-radius: 6px;
-            border: 1px solid #d4edda;
-        }
-        
-        .chips-container {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .bet-chips {
-            background-color: #fafafa;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            margin-bottom: 15px;
-        }
-        
-        .custom-chip-input {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .custom-chip-input input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            width: 120px;
-            text-align: center;
-        }
-        
-        .custom-chip-input input:focus {
-            outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-        }
-        
-        .custom-chip-input button {
-            padding: 8px 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        
-        .custom-chip-input button:hover {
-            background-color: #45a049;
-        }
+        /* 快速下注區域樣式 - 移除重複定義，使用外部CSS */
         
         /* 現代化開獎結果區域樣式 */
         .modern-result-section {
@@ -682,32 +1006,114 @@
 
         .period-display {
             display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .period-info-row {
+            display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .period-badges {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .period-badge {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background: linear-gradient(45deg, #ffd700, #ffb347);
-            color: #2c3e50;
-            padding: 12px 20px;
-            border-radius: 25px;
+            gap: 6px;
+            background: linear-gradient(45deg, #1a1a1a, #333333);
+            color: #ffd700;
+            padding: 8px 16px;
+            border-radius: 20px;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            border: 2px solid #ffd700;
+            font-size: 14px;
+        }
+
+        .period-badge.current {
+            border-color: #ffd700;
+            background: linear-gradient(45deg, #1a1a1a, #333333);
+        }
+
+        .period-badge.next {
+            border-color: #4a90e2;
+            color: #4a90e2;
+            background: linear-gradient(45deg, #1a1a2a, #2a2a3a);
+        }
+
+        .countdown-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .countdown-section.betting {
+            border-color: rgba(76, 175, 80, 0.5);
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .countdown-section.drawing {
+            border-color: rgba(255, 193, 7, 0.5);
+            background: rgba(255, 193, 7, 0.1);
+        }
+
+        .countdown-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        .countdown-time {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ff4757 !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .countdown-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        
+        .countdown-inline .countdown-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+        
+        .countdown-inline .countdown-time {
+            font-size: 18px;
+            font-weight: 900;
+            color: #ff4757 !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .period-number {
-            font-size: 24px;
+            font-size: 16px;
             font-weight: 900;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .period-label {
-            font-size: 16px;
+            font-size: 12px;
             font-weight: 700;
-            opacity: 1;
+            opacity: 0.9;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .status-indicator {
@@ -749,9 +1155,9 @@
 
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(10, minmax(60px, 1fr));
-            gap: 8px;
-            min-width: 650px;
+            grid-template-columns: repeat(10, minmax(45px, 1fr));
+            gap: 4px;
+            min-width: 480px;
             width: 100%;
             margin: 0 auto;
         }
@@ -760,18 +1166,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
 
         .result-ball {
-            width: 50px;
-            height: 50px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 20px;
+            font-size: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             border: 3px solid rgba(255, 255, 255, 0.3);
             transition: transform 0.3s ease;
@@ -838,18 +1244,18 @@
         }
 
         .position-label {
-            font-size: 11px;
+            font-size: 16px !important;
             font-weight: 700;
             color: white;
             text-align: center;
-            line-height: 1.1;
-            min-height: 22px;
+            line-height: 1.2;
+            min-height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 3px 4px;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 8px;
+            padding: 5px 7px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 6px;
             backdrop-filter: blur(5px);
             white-space: nowrap;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -859,15 +1265,15 @@
         /* 響應式設計 */
         @media (max-width: 1200px) {
             .results-grid {
-                grid-template-columns: repeat(10, minmax(55px, 1fr));
-                gap: 6px;
-                min-width: 600px;
+                grid-template-columns: repeat(10, minmax(42px, 1fr));
+                gap: 3px;
+                min-width: 460px;
             }
             
             .result-ball {
-                width: 48px;
-                height: 48px;
-                font-size: 18px;
+                width: 40px;
+                height: 40px;
+                font-size: 15px;
             }
         }
 
@@ -881,38 +1287,57 @@
                 padding: 15px;
             }
             
+            .period-info-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .period-badges {
+                justify-content: center;
+                gap: 8px;
+            }
+            
             .period-badge {
-                padding: 8px 16px;
+                padding: 6px 12px;
+                font-size: 12px;
             }
             
             .period-number {
-                font-size: 20px;
-            }
-            
-            .period-label {
                 font-size: 14px;
             }
             
-            .results-display {
-                padding: 20px 10px;
+            .period-label {
+                font-size: 10px;
             }
             
-            .results-grid {
-                grid-template-columns: repeat(10, minmax(50px, 1fr));
-                gap: 4px;
-                min-width: 540px;
+            .countdown-section {
+                padding: 6px 12px;
             }
             
-            .result-ball {
-                width: 44px;
-                height: 44px;
+            .countdown-time {
                 font-size: 16px;
             }
             
+            .results-display {
+                padding: 20px 5px;
+            }
+            
+            .results-grid {
+                grid-template-columns: repeat(10, minmax(36px, 1fr));
+                gap: 2px;
+                min-width: 380px;
+            }
+            
+            .result-ball {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+            
             .position-label {
-                font-size: 9px;
-                padding: 2px 3px;
-                min-height: 18px;
+                font-size: 14px !important;
+                padding: 4px 5px;
+                min-height: 20px;
             }
         }
 
@@ -926,6 +1351,35 @@
             .status-indicator {
                 justify-content: center;
             }
+            
+            .results-display {
+                padding: 15px 2px;
+            }
+            
+            .results-grid {
+                grid-template-columns: repeat(10, minmax(32px, 1fr));
+                gap: 1px;
+                min-width: 340px;
+            }
+            
+            .result-ball {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+            }
+            
+            .result-item {
+                gap: 4px;
+            }
+            
+            .position-label {
+                font-size: 13px !important;
+                padding: 4px;
+                min-height: 18px;
+                border-radius: 4px;
+            }
+        }
             
             .results-display {
                 padding: 15px 5px;
@@ -948,11 +1402,10 @@
             }
             
             .position-label {
-                font-size: 8px;
-                min-height: 16px;
-                padding: 1px 2px;
+                font-size: 16px !important;
+                min-height: 20px;
+                padding: 4px 5px;
             }
-        }
     </style>
 </head>
 <body>
@@ -963,7 +1416,6 @@
             <div class="navbar-container">
                 <!-- 左側：Logo和標題 -->
                 <div class="navbar-brand">
-                    <div class="logo-icon">🏁</div>
                     <h1 class="brand-title">極速賽車</h1>
                 </div>
                 
@@ -977,22 +1429,29 @@
                         <div class="balance-amount" :class="{ changed: balanceChanged }">
                             {{ formatMoney(balance) }}
                         </div>
+                        <div class="daily-profit" :class="{ 
+                            'profit-positive': dailyProfit > 0, 
+                            'profit-negative': dailyProfit < 0,
+                            'profit-zero': dailyProfit === 0 
+                        }">
+                            今日盈虧: {{ formatProfit(dailyProfit) }}
+                        </div>
                     </div>
                 </div>
                 
                 <!-- 右側：功能按鈕 -->
                 <div class="navbar-actions" v-if="isLoggedIn">
                     <button class="action-btn history-btn" @click="showDrawHistory">
-                        <i class="icon">📊</i>
                         <span>歷史開獎</span>
                     </button>
                     <button class="action-btn records-btn" @click="showBetRecords">
-                        <i class="icon">📋</i>
                         <span>注單記錄</span>
+                    </button>
+                    <button class="action-btn profit-btn" @click="showProfitRecords">
+                        <span>盈虧記錄</span>
                     </button>
                     <div class="menu-dropdown">
                         <button class="action-btn menu-btn" @click="toggleDropdown">
-                            <i class="icon">⚙️</i>
                             <span>更多</span>
                         </button>
                         <div class="dropdown-panel" v-show="showDropdownMenu">
@@ -1030,30 +1489,28 @@
             </div>
         </header>
         
-        <!-- 遊戲狀態與倒計時 -->
-        <div class="game-status">
-            <div class="period-info">
-                <span>當前期數: {{ currentPeriod }}</span>
-                <span>下期期數: {{ nextPeriod }}</span>
-            </div>
-            <div class="countdown" :class="gameStatus">
-                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎倒計時' }}</span>
-                <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
-            </div>
-        </div>
+
 
         <!-- 開獎結果區域 -->
         <div class="modern-result-section">
             <div class="result-header">
                 <div class="period-display">
-                    <div class="period-badge">
-                        <span class="period-number">{{ currentPeriod }}</span>
-                        <span class="period-label">期</span>
+                    <div class="period-info-row">
+                        <div class="period-badges">
+                            <div class="period-badge current">
+                                <span class="period-number">{{ currentPeriod }}</span>
+                                <span class="period-label">期 (當前)</span>
+                            </div>
+
+                        </div>
+                        <div class="countdown-section" :class="gameStatus">
+                            <div class="countdown-inline">
+                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎倒計時' }}</span>
+                                <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="status-indicator" :class="gameStatus">
-                        <span class="status-dot"></span>
-                        <span class="status-text">{{ gameStatus === 'betting' ? '開盤結果' : '開獎中...' }}</span>
-                    </div>
+
                 </div>
             </div>
             
@@ -1563,6 +2020,150 @@
             ></bet-records>
         </div>
 
+        <!-- 盈虧記錄彈窗 -->
+        <div class="modal" v-if="showProfitModal">
+            <div class="profit-records">
+                <div class="profit-header">
+                    <div class="title">盈虧記錄</div>
+                    <button class="close-btn" @click="showProfitModal = false">×</button>
+                </div>
+                
+                <!-- 時間範圍選擇 -->
+                <div class="time-range-tabs">
+                    <div class="tab" :class="{ active: profitTimeRange === '7days' }" @click="switchProfitRange('7days')">7日記錄</div>
+                    <div class="tab" :class="{ active: profitTimeRange === '14days' }" @click="switchProfitRange('14days')">兩周報表</div>
+                </div>
+                
+                <!-- 盈虧記錄列表 -->
+                <div class="profit-list">
+                    <div v-if="profitRecords.length === 0" class="no-records">
+                        暫無盈虧記錄
+                    </div>
+                    <div v-for="(record, index) in profitRecords" :key="record.date" class="profit-item" @click="showDayDetail(record.date)">
+                        <div class="profit-date">
+                            <div class="date">{{ formatDate(record.date) }}</div>
+                            <div class="weekday">{{ getWeekday(record.date) }}</div>
+                        </div>
+                        <div class="profit-stats">
+                            <div class="bet-count">{{ record.betCount }}注</div>
+                            <div class="profit-amount" :class="{ 
+                                'profit-positive': record.profit > 0, 
+                                'profit-negative': record.profit < 0,
+                                'profit-zero': record.profit === 0 
+                            }">
+                                {{ formatProfit(record.profit) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 總計統計 -->
+                <div class="profit-summary">
+                    <div class="summary-item">
+                        <span class="label">總注數:</span>
+                        <span class="value">{{ totalBetCount }}注</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">總盈虧:</span>
+                        <span class="value" :class="{ 
+                            'profit-positive': totalProfit > 0, 
+                            'profit-negative': totalProfit < 0,
+                            'profit-zero': totalProfit === 0 
+                        }">{{ formatProfit(totalProfit) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 單日詳細記錄彈窗 -->
+        <div class="modal" v-if="showDayDetailModal">
+            <div class="day-detail">
+                <div class="detail-header">
+                    <div class="title">{{ formatDateTitle(selectedDate) }} 注單詳情</div>
+                    <button class="close-btn" @click="showDayDetailModal = false">×</button>
+                </div>
+                
+                <!-- 當日統計 -->
+                <div class="day-summary">
+                    <div class="summary-item">
+                        <span class="label">注數:</span>
+                        <span class="value">{{ dayDetailStats.betCount }}注</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">盈虧:</span>
+                        <span class="value" :class="{ 
+                            'profit-positive': dayDetailStats.profit > 0, 
+                            'profit-negative': dayDetailStats.profit < 0,
+                            'profit-zero': dayDetailStats.profit === 0 
+                        }">{{ formatProfit(dayDetailStats.profit) }}</span>
+                    </div>
+                </div>
+                
+                <!-- 詳細注單列表 -->
+                <div class="record-list">
+                    <div v-if="dayDetailRecords.length === 0" class="no-records">
+                        當日無注單記錄
+                    </div>
+                    <div v-for="(bet, index) in dayDetailRecords" :key="bet.id" class="record-item">
+                        <!-- 頂部信息：期數和狀態 -->
+                        <div class="record-top">
+                            <div class="period">{{ bet.period }}期</div>
+                            <div class="status" :class="bet.win ? 'win' : 'lose'">
+                                {{ bet.win ? '贏' : '輸' }}
+                            </div>
+                        </div>
+                        
+                        <!-- 投注資訊區域：投注類型和選項 -->
+                        <div class="record-bet-info">
+                            <div class="bet-detail-row">
+                                <span class="bet-label">投注類型:</span>
+                                <span class="bet-value">{{ formatBetType(bet.betType, bet.value, bet.position) }}</span>
+                            </div>
+                            <div class="bet-detail-row">
+                                <span class="bet-label">投注選項:</span>
+                                <span class="bet-value">{{ formatBetValue(bet.value) }}</span>
+                            </div>
+                            <div class="bet-detail-row">
+                                <span class="bet-label">賠率:</span>
+                                <span class="bet-value">{{ bet.odds ? bet.odds.toFixed(2) : '1.00' }}</span>
+                            </div>
+                            <!-- 開獎號碼顯示 -->
+                            <div v-if="bet.drawResult" class="bet-detail-row draw-result-row">
+                                <span class="bet-label">開獎號碼:</span>
+                                <div class="draw-result-balls">
+                                    <div v-for="(number, index) in bet.drawResult" :key="index" 
+                                         :class="['result-ball', 'color-' + number]">
+                                        {{ number }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 底部信息：金額和時間 -->
+                        <div class="record-bottom">
+                            <!-- 時間信息 -->
+                            <div class="bet-time-info">
+                                <span class="bet-label">下注時間:</span>
+                                <span class="time-value">{{ formatDateTime(bet.time) }}</span>
+                            </div>
+                            
+                            <!-- 金額信息 -->
+                            <div class="bet-amount-info">
+                                <div class="amount-row">
+                                    <span class="amount-label">下注金額:</span>
+                                    <span class="amount-value">{{ formatMoney(bet.amount) }}</span>
+                                </div>
+                                <div v-if="bet.win && bet.winAmount" class="amount-row win-amount">
+                                    <span class="amount-label">派彩金額:</span>
+                                    <span class="amount-value">{{ formatMoney(bet.winAmount) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 開獎歷史彈窗 -->
         <div class="modal" v-if="showHistory">
             <div class="draw-history">
@@ -1644,15 +2245,7 @@
             </div>
         </div>
 
-        <!-- 投注動作按鈕 -->
-        <div class="betting-actions-buttons">
-            <button class="action-button primary-button" @click="placeBets" :disabled="selectedBets.length === 0 || calculateTotalBetAmount() <= 0">
-                下注
-            </button>
-            <button class="action-button secondary-button" @click="clearBets">
-                清除
-            </button>
-    </div>
+
 
         <!-- 顯示通知的元素 -->
         <div class="notification" :class="{visible: notificationVisible}">
@@ -1670,6 +2263,7 @@
                     isLoggedIn: false,
                 username: '',
                     balance: 0,
+                    balanceChanged: false,
                     loginUsername: '',
                     loginPassword: '',
                     
@@ -1709,6 +2303,8 @@
                     // 顯示狀態
                 showHistory: false,
                 showRecords: false,
+                showProfitModal: false,
+                showDayDetailModal: false,
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
                     
                     // 熱門投注
@@ -1733,6 +2329,18 @@
                     // 統計數據
                     dailyBetCount: 0,
                     dailyProfit: 0,
+                    
+                    // 盈虧記錄相關
+                    profitTimeRange: '7days',
+                    profitRecords: [],
+                    totalBetCount: 0,
+                    totalProfit: 0,
+                    selectedDate: '',
+                    dayDetailRecords: [],
+                    dayDetailStats: {
+                        betCount: 0,
+                        profit: 0
+                    },
                     
                     // 通知系統
                     notificationText: '',
@@ -1848,6 +2456,24 @@
                         maximumFractionDigits: 0
                     });
                 },
+                
+                // 格式化盈虧金額，顯示+/-符號
+                formatProfit(amount) {
+                    if (amount === null || amount === undefined || amount === 0) {
+                        return '$0';
+                    }
+                    
+                    const formattedAmount = Math.abs(amount).toLocaleString('zh-TW', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    
+                    if (amount > 0) {
+                        return `+$${formattedAmount}`;
+                    } else {
+                        return `-$${formattedAmount}`;
+                    }
+                },
                 formatTime(seconds) {
                     const mins = Math.floor(seconds / 60);
                     const secs = seconds % 60;
@@ -1912,6 +2538,9 @@
                         
                         // 直接從API獲取最新餘額，確保與伺服器同步
                         this.updateBalance();
+                        
+                        // 獲取今日盈虧
+                        this.updateDailyProfit();
                     } else {
                         window.location.href = 'login.html';
                     }
@@ -2007,12 +2636,32 @@
                                 }
                                 
                                 console.log('餘額更新成功：', this.balance, '來源：', data.source);
+                                
+                                // 同時更新今日盈虧
+                                this.updateDailyProfit();
                             } else {
                                 console.error('獲取餘額失敗:', data.message);
                             }
                         })
                         .catch(error => {
                             console.error('獲取餘額失敗:', error);
+                        });
+                },
+                updateDailyProfit() {
+                    const username = sessionStorage.getItem('username');
+                    if (!username) return;
+                    
+                    fetch(`/api/daily-profit?username=${username}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.dailyProfit = parseFloat(data.profit) || 0;
+                            } else {
+                                console.error('獲取今日盈虧失敗:', data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取今日盈虧失敗:', error);
                         });
                 },
                 placeBets() {
@@ -3124,6 +3773,175 @@
                     this.displayNotification('正在加載投注記錄...');
                     this.updateBetHistory();
                     this.showRecords = true;
+                },
+                
+                // 盈虧記錄展示
+                showProfitRecords() {
+                    this.showProfitModal = true;
+                    this.getProfitRecords();
+                },
+                
+                // 切換盈虧記錄時間範圍
+                switchProfitRange(range) {
+                    this.profitTimeRange = range;
+                    this.getProfitRecords();
+                },
+                
+                // 獲取盈虧記錄
+                getProfitRecords() {
+                    const username = sessionStorage.getItem('username');
+                    if (!username) return;
+                    
+                    const days = this.profitTimeRange === '7days' ? 7 : 14;
+                    
+                    fetch(`/api/profit-records?username=${username}&days=${days}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.profitRecords = data.records;
+                                this.totalBetCount = data.totalBetCount;
+                                this.totalProfit = data.totalProfit;
+                            } else {
+                                console.error('獲取盈虧記錄失敗:', data.message);
+                                this.profitRecords = [];
+                                this.totalBetCount = 0;
+                                this.totalProfit = 0;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取盈虧記錄出錯:', error);
+                            this.profitRecords = [];
+                            this.totalBetCount = 0;
+                            this.totalProfit = 0;
+                        });
+                },
+                
+                // 顯示單日詳細記錄
+                showDayDetail(date) {
+                    this.selectedDate = date;
+                    this.showDayDetailModal = true;
+                    this.getDayDetailRecords(date);
+                },
+                
+                // 獲取單日詳細記錄
+                getDayDetailRecords(date) {
+                    const username = sessionStorage.getItem('username');
+                    if (!username) return;
+                    
+                    fetch(`/api/day-detail?username=${username}&date=${date}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.dayDetailRecords = data.records;
+                                this.dayDetailStats = data.stats;
+                            } else {
+                                console.error('獲取單日詳細記錄失敗:', data.message);
+                                this.dayDetailRecords = [];
+                                this.dayDetailStats = { betCount: 0, profit: 0 };
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取單日詳細記錄出錯:', error);
+                            this.dayDetailRecords = [];
+                            this.dayDetailStats = { betCount: 0, profit: 0 };
+                        });
+                },
+                
+                // 格式化日期
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                },
+                
+                // 格式化標題日期
+                formatDateTitle(dateString) {
+                    const date = new Date(dateString);
+                    // 如果是ISO格式，轉換為台北時區
+                    let displayDate = date;
+                    if (dateString.includes('T')) {
+                        displayDate = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+                    }
+                    
+                    const year = displayDate.getFullYear();
+                    const month = (displayDate.getMonth() + 1).toString().padStart(2, '0');
+                    const day = displayDate.getDate().toString().padStart(2, '0');
+                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                    const weekday = weekdays[displayDate.getDay()];
+                    return `${year}/${month}/${day} (星期${weekday})`;
+                },
+                
+                // 格式化日期時間
+                formatDateTime(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    // 轉換為台北時區顯示
+                    const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+                    const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
+                    const day = taipeiTime.getDate().toString().padStart(2, '0');
+                    const hours = taipeiTime.getHours().toString().padStart(2, '0');
+                    const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
+                    return `${month}/${day} ${hours}:${minutes}`;
+                },
+                
+                // 獲取星期幾
+                getWeekday(dateString) {
+                    const date = new Date(dateString);
+                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                    return `星期${weekdays[date.getDay()]}`;
+                },
+                
+                // 格式化投注類型
+                formatBetType(betType, value, position) {
+                    const typeMap = {
+                        'champion': '冠軍',
+                        'runnerup': '亞軍',
+                        'third': '第三名',
+                        'fourth': '第四名',
+                        'fifth': '第五名',
+                        'sixth': '第六名',
+                        'seventh': '第七名',
+                        'eighth': '第八名',
+                        'ninth': '第九名',
+                        'tenth': '第十名',
+                        'number': '單號',
+                        'sumValue': '冠亞和',
+                        'dragonTiger': '龍虎'
+                    };
+                    
+                    let result = typeMap[betType] || betType;
+                    
+                    if (position && betType === 'number') {
+                        result = `第${position}名號碼`;
+                    } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
+                               ['big', 'small', 'odd', 'even'].includes(value)) {
+                        result += ' 雙面';
+                    } else if (betType === 'sumValue' && ['big', 'small', 'odd', 'even'].includes(value)) {
+                        result = '冠亞和 雙面';
+                    }
+                    
+                    return result;
+                },
+                
+                // 格式化投注值
+                formatBetValue(value) {
+                    if (!value) return '無';
+                    
+                    const valueMap = {
+                        'big': '大',
+                        'small': '小',
+                        'odd': '單',
+                        'even': '雙',
+                        'dragon': '龍',
+                        'tiger': '虎'
+                    };
+                    
+                    if (valueMap[value]) {
+                        return valueMap[value];
+                    } else if (!isNaN(value)) {
+                        return `號碼 ${value}`;
+                    }
+                    
+                    return value;
                 },
                 
                 // 關閉彈窗
