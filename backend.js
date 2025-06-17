@@ -29,6 +29,37 @@ const AGENT_API_URL = process.env.NODE_ENV === 'production'
   ? 'https://bet-agent.onrender.com/api/agent'
   : 'http://localhost:3003/api/agent';
 
+// 立即同步開獎結果到代理系統
+async function syncToAgentSystem(period, result) {
+  try {
+    console.log(`🚀 立即同步開獎結果到代理系統: 期數=${period}`);
+    
+    // 調用代理系統的內部同步API
+    const response = await fetch(`${AGENT_API_URL}/sync-draw-record`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        period: period.toString(),
+        result: result,
+        draw_time: new Date().toISOString()
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ 開獎結果同步成功: 期數=${period}`, data);
+    } else {
+      console.error(`❌ 開獎結果同步失敗: 期數=${period}, 狀態=${response.status}`);
+    }
+  } catch (error) {
+    console.error(`❌ 同步開獎結果到代理系統出錯: 期數=${period}`, error.message);
+    // 不要拋出錯誤，避免影響遊戲流程
+  }
+}
+
 // 跨域設置 - 允許前端訪問
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
@@ -390,6 +421,9 @@ async function startGameCycle() {
                 
                 // 將結果添加到歷史記錄
                 await GameModel.addResult(current_period, newResult);
+                
+                // 立即同步到代理系統
+                await syncToAgentSystem(current_period, newResult);
                 
                 // 結算注單
                 await settleBets(current_period, newResult);

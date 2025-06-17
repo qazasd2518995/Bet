@@ -6,8 +6,8 @@
 let API_BASE_URL;
 
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // 本地開發環境
-    API_BASE_URL = '/api/agent';
+    // 本地開發環境 - 代理系統運行在3003端口
+    API_BASE_URL = 'http://localhost:3003/api/agent';
 } else {
     // Render 生產環境 - 不使用端口號，讓Render處理路由
     API_BASE_URL = 'https://bet-agent.onrender.com/api/agent';
@@ -527,8 +527,8 @@ const app = new Vue({
         // 檢查API狀態
         async checkApiStatus() {
             try {
-                // 使用根路徑的health端點
-                const healthUrl = 'https://bet-agent.onrender.com/api/health';
+                // 使用動態URL構建健康檢查端點
+                const healthUrl = `${API_BASE_URL.replace('/api/agent', '/api/health')}`;
                 console.log('開始API連接測試，使用URL:', healthUrl);
                 
                 const response = await fetch(healthUrl, {

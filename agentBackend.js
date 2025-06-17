@@ -20,13 +20,14 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3003; // 使用不同於主遊戲系統的端口
 
-// 跨域設置
+// 跨域設置 - 加強本地開發支持
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://bet-game.onrender.com', 'https://bet-agent.onrender.com'] 
-    : ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:3003'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+    : ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:3003', 'http://127.0.0.1:3003'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true
 }));
 
 app.use(express.json());
@@ -69,6 +70,150 @@ app.get('/api/init-db', async (req, res) => {
 
 // 代理API路由前綴
 const API_PREFIX = '/api/agent';
+
+// 接收遊戲端的即時開獎同步
+app.post(`${API_PREFIX}/sync-draw-record`, async (req, res) => {
+  try {
+    const { period, result, draw_time } = req.body;
+    
+    if (!period || !result) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數: period 或 result'
+      });
+    }
+    
+    console.log(`📨 收到即時開獎同步請求: 期數=${period}`);
+    
+    // 直接插入/更新到draw_records表
+    await db.none(`
+      INSERT INTO draw_records (period, result, draw_time, created_at)
+      VALUES ($1, $2::jsonb, $3, $4)
+      ON CONFLICT (period) DO UPDATE 
+      SET result = $2::jsonb, draw_time = $3, created_at = $4
+    `, [period, JSON.stringify(result), draw_time || new Date(), new Date()]);
+    
+    console.log(`✅ 即時開獎同步成功: 期數=${period}`);
+    
+    res.json({
+      success: true,
+      message: '開獎記錄同步成功',
+      period: period,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('即時開獎同步失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '開獎記錄同步失敗',
+      error: error.message
+    });
+  }
+});
+
+// 切換代理狀態API
+app.post(`${API_PREFIX}/toggle-agent-status`, async (req, res) => {
+  try {
+    const { agentId, status } = req.body;
+    
+    if (!agentId || status === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數: agentId 或 status'
+      });
+    }
+    
+    await AgentModel.updateStatus(agentId, status);
+    
+    res.json({
+      success: true,
+      message: `代理狀態已更新為: ${status ? '啟用' : '停用'}`,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('更新代理狀態失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新代理狀態失敗',
+      error: error.message
+    });
+  }
+});
+
+// 刪除代理API
+app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    
+    if (!agentId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少代理ID'
+      });
+    }
+    
+    // 檢查代理是否存在
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 檢查是否有下級代理或會員
+    const subAgents = await AgentModel.findByParentId(agentId);
+    const members = await MemberModel.findByAgentId(agentId);
+    
+    if (subAgents.agents.length > 0 || members.members.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: '無法刪除：該代理下還有下級代理或會員'
+      });
+    }
+    
+    // 執行軟刪除（將狀態設為0）
+    await AgentModel.updateStatus(agentId, 0);
+    
+    res.json({
+      success: true,
+      message: '代理已成功刪除',
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('刪除代理失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '刪除代理失敗',
+      error: error.message
+    });
+  }
+});
+
+// 清理測試數據API
+app.delete(`${API_PREFIX}/cleanup-test-data`, async (req, res) => {
+  try {
+    // 刪除測試期數
+    await db.none(`DELETE FROM draw_records WHERE period = 'test123'`);
+    
+    res.json({
+      success: true,
+      message: '測試數據已清理',
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('清理測試數據失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '清理測試數據失敗',
+      error: error.message
+    });
+  }
+});
 
 // 初始化代理系統數據庫
 async function initDatabase() {
@@ -2137,8 +2282,8 @@ async function startServer() {
     // 首次同步開獎記錄
     await syncDrawRecords();
     
-    // 每5分鐘同步一次開獎記錄
-    setInterval(syncDrawRecords, 5 * 60 * 1000);
+    // 每30秒同步一次開獎記錄作為備援（主要依靠即時同步）
+    setInterval(syncDrawRecords, 30 * 1000);
     
     // 啟動Express服務器
     const PORT = process.env.PORT || 3003;
