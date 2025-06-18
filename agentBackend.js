@@ -40,6 +40,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'agent/frontend', 'index.html'));
 });
 
+// Favicon 路由處理
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'agent/frontend', 'favicon.svg'));
+});
+
 // 健康檢查端點 - 用於 Render 監控
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -476,6 +481,43 @@ async function initDatabase() {
   }
 }
 
+
+// 安全查詢函數 - 避免 Multiple rows 錯誤
+const SafeDB = {
+  // 安全的單記錄查詢
+  async safeOne(query, params = []) {
+    try {
+      const results = await db.any(query + ' LIMIT 1', params);
+      return results.length > 0 ? results[0] : null;
+    } catch (error) {
+      console.error('SafeDB.safeOne 錯誤:', error);
+      throw error;
+    }
+  },
+  
+  // 安全的計數查詢
+  async safeCount(query, params = []) {
+    try {
+      const result = await db.one(query, params);
+      return parseInt(result.count || result.total || 0);
+    } catch (error) {
+      console.error('SafeDB.safeCount 錯誤:', error);
+      return 0;
+    }
+  },
+  
+  // 安全的存在性檢查
+  async exists(query, params = []) {
+    try {
+      const results = await db.any(query + ' LIMIT 1', params);
+      return results.length > 0;
+    } catch (error) {
+      console.error('SafeDB.exists 錯誤:', error);
+      return false;
+    }
+  }
+};
+
 // 模型: 代理
 const AgentModel = {
   // 獲取代理by用戶名
@@ -655,8 +697,8 @@ const AgentModel = {
       
       // 記錄交易
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, ['agent', id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '代理點數調整']);
       
@@ -689,8 +731,8 @@ const AgentModel = {
       
       // 記錄客服操作交易
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, ['agent', agentId, difference, difference > 0 ? 'cs_deposit' : 'cs_withdraw', beforeBalance, afterBalance, description]);
       
@@ -708,12 +750,13 @@ const AgentModel = {
   // 檢查是否為客服權限（總代理）
   async isCustomerService(agentId) {
     try {
-      const agent = await this.findById(agentId);
-      return agent && agent.level === 0; // 總代理level為0
+      const agents = await db.any('SELECT * FROM agents WHERE id = $1 AND level = 0 LIMIT 1', [agentId]);
+      return agents.length > 0; // 總代理level為0
     } catch (error) {
       console.error('檢查客服權限出錯:', error);
       return false;
     }
+  }
   },
 
   // 更新代理密碼
@@ -903,8 +946,8 @@ const MemberModel = {
       
       // 記錄交易
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, ['member', member.id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '會員點數調整']);
       
@@ -938,8 +981,8 @@ const MemberModel = {
       
       // 記錄交易
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, ['member', member.id, afterBalance - beforeBalance, 'adjustment', beforeBalance, afterBalance, '會員點數設置']);
       
@@ -987,8 +1030,8 @@ const MemberModel = {
       
       // 記錄客服操作交易
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, ['member', member.id, difference, difference > 0 ? 'cs_deposit' : 'cs_withdraw', beforeBalance, afterBalance, description]);
       
@@ -1074,15 +1117,15 @@ const PointTransferModel = {
         
         // 記錄代理的交易（客服操作使用cs_withdraw表示代理向會員轉出點數）
         await t.none(`
-          INSERT INTO transactions 
-          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['agent', agentId, -parsedAmount, 'cs_withdraw', agentBeforeBalance, agentAfterBalance, description || '客服會員存款操作']);
         
         // 記錄會員的交易（客服操作使用cs_deposit表示會員收到點數）
         await t.none(`
-          INSERT INTO transactions 
-          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['member', memberId, parsedAmount, 'cs_deposit', memberBeforeBalance, memberAfterBalance, description || '客服會員存款操作']);
         
@@ -1153,15 +1196,15 @@ const PointTransferModel = {
         
         // 記錄會員的交易（客服操作使用cs_withdraw表示會員轉出點數）
         await t.none(`
-          INSERT INTO transactions 
-          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['member', memberId, -parsedAmount, 'cs_withdraw', memberBeforeBalance, memberAfterBalance, description || '客服會員提款操作']);
         
         // 記錄代理的交易（客服操作使用cs_deposit表示代理收到點數）
         await t.none(`
-          INSERT INTO transactions 
-          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['agent', agentId, parsedAmount, 'cs_deposit', agentBeforeBalance, agentAfterBalance, description || '客服會員提款操作']);
         
@@ -1232,15 +1275,15 @@ const PointTransferModel = {
         
         // 記錄轉出代理的交易（客服操作使用cs_withdraw表示從該代理提款）
         await t.none(`
-          INSERT INTO transactions 
-          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['agent', fromAgentId, -parsedAmount, 'cs_withdraw', fromAgentBeforeBalance, fromAgentAfterBalance, description || '客服轉移操作']);
         
         // 記錄轉入代理的交易（客服操作使用cs_deposit表示為該代理存款）
         await t.none(`
-          INSERT INTO transactions 
-          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['agent', toAgentId, parsedAmount, 'cs_deposit', toAgentBeforeBalance, toAgentAfterBalance, description || '客服轉移操作']);
         
@@ -1376,11 +1419,11 @@ const TransactionModel = {
     
     try {
       return await db.one(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, reference_id, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, reference_id, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *
-      `, [user_type, user_id, amount, type, before_balance, after_balance, reference_id, description]);
+      `, [user_type, user_id, amount, transaction_type, balance_before, balance_after, reference_id, description]);
     } catch (error) {
       console.error('創建交易記錄出錯:', error);
       throw error;
@@ -2457,10 +2500,10 @@ app.get(`${API_PREFIX}/admin-agent`, async (req, res) => {
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
     // 獲取所有代理
-    const agents = await db.one('SELECT COUNT(*) AS count FROM agents');
+    const agents = await db.one('SELECT COUNT(*) as count FROM agents');
     
     // 獲取所有會員
-    const members = await db.one('SELECT COUNT(*) AS count FROM members');
+    const members = await db.one('SELECT COUNT(*) as count FROM members');
     
     // 獲取今日交易總額
     const today = new Date();
@@ -2468,13 +2511,13 @@ app.get('/api/dashboard/stats', async (req, res) => {
     
     const transactions = await db.one(`
       SELECT COALESCE(SUM(ABS(amount)), 0) as total_amount, COUNT(*) as count 
-      FROM transactions 
+      FROM transaction_records 
       WHERE created_at >= $1
     `, [today]);
     
     // 獲取總佣金
     const commission = await db.one(`
-      SELECT COALESCE(SUM(commission_balance), 0) as total 
+      SELECT COALESCE(SUM(total_commission), 0) as total 
       FROM agents
     `);
     
@@ -2515,8 +2558,12 @@ app.get('/api/dashboard/members', async (req, res) => {
     const members = await db.any(query, [limit, offset]);
     
     // 獲取總數
-    const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) FROM');
-    const totalResult = await db.one(countQuery, [limit, offset]);
+    const countQuery = `
+      SELECT COUNT(*) as count
+      FROM members m
+      LEFT JOIN agents a ON m.agent_id = a.id
+    `;
+    const totalResult = await db.one(countQuery);
     const total = parseInt(totalResult.count);
     
     res.json({
@@ -2893,14 +2940,15 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
       });
     }
     
-    // 獲取總代理 (level = 0)
-    const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
-    if (!adminAgent) {
+    // 獲取總代理 (level = 0) - 只取第一個
+    const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0 ORDER BY id LIMIT 1');
+    if (adminAgents.length === 0) {
       return res.json({
         success: false,
         message: '系統錯誤：未找到總代理'
       });
     }
+    const adminAgent = adminAgents[0];
     
     // 獲取目標代理
     const targetAgent = await AgentModel.findById(targetAgentId);
@@ -3080,10 +3128,10 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
                WHEN t.user_type = 'agent' THEN a.level 
                ELSE NULL 
              END as user_level
-      FROM transactions t
+      FROM transaction_records t
       LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
       LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
-      WHERE (t.type = 'cs_deposit' OR t.type = 'cs_withdraw')
+      WHERE (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'cs_withdraw')
     `;
     
     const params = [];
@@ -3096,7 +3144,7 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
     
     // 篩選交易類型
     if (transactionType !== 'all') {
-      query += ` AND t.type = $${params.length + 1}`;
+      query += ` AND t.transaction_type = $${params.length + 1}`;
       params.push(transactionType);
     }
     
@@ -3165,7 +3213,7 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
                WHEN t.user_type = 'agent' THEN a.level 
                ELSE NULL 
              END as user_level
-      FROM transactions t
+      FROM transaction_records t
       LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
       LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
       WHERE 1=1
@@ -3193,10 +3241,10 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     // 按類型篩選
     if (type === 'deposit') {
       // 存款記錄：包含 cs_deposit 和 deposit
-      query += ` AND (t.type = 'cs_deposit' OR t.type = 'deposit')`;
+      query += ` AND (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'deposit')`;
     } else if (type === 'withdraw') {
       // 提款記錄：包含 cs_withdraw 和 withdraw
-      query += ` AND (t.type = 'cs_withdraw' OR t.type = 'withdraw')`;
+      query += ` AND (t.transaction_type = 'cs_withdraw' OR t.transaction_type = 'withdraw')`;
     }
     
     // 獲取總數
@@ -3288,8 +3336,8 @@ app.post(`${API_PREFIX}/reset-agent-password`, async (req, res) => {
     if (result) {
       // 記錄操作日誌
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, [
         'agent', 
@@ -3376,8 +3424,8 @@ app.post(`${API_PREFIX}/reset-member-password`, async (req, res) => {
     if (result) {
       // 記錄操作日誌
       await db.none(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, [
         'member', 
@@ -3510,3 +3558,39 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
 });
 
 // ... existing code ...
+
+// 全局錯誤處理中間件
+app.use((err, req, res, next) => {
+  console.error('未捕獲的錯誤:', err);
+  
+  // 處理 pg-promise 的 "Multiple rows were not expected" 錯誤
+  if (err.message && err.message.includes('Multiple rows were not expected')) {
+    console.error('數據庫查詢返回了多筆記錄，但期望只有一筆');
+    return res.status(500).json({
+      success: false,
+      message: '數據庫查詢異常，請聯繫系統管理員'
+    });
+  }
+  
+  // 處理其他數據庫錯誤
+  if (err.code) {
+    console.error('數據庫錯誤代碼:', err.code);
+    return res.status(500).json({
+      success: false,
+      message: '數據庫操作失敗'
+    });
+  }
+  
+  // 通用錯誤處理
+  return res.status(500).json({
+    success: false,
+    message: '系統內部錯誤'
+  });
+});
+
+// 為所有客服相關 API 添加 try-catch 包裝器
+function wrapAsync(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}

@@ -12,6 +12,9 @@
     "dev": "nodemon backend.js",
     "dev:agent": "nodemon agentBackend.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:agent\"",
+    "check-deploy": "node check-deploy.js",
+    "fix-db": "node fix-db-issues.js",
+    "test-db": "node test-db-queries.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

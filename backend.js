@@ -79,6 +79,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'deploy/frontend', 'index.html'));
 });
 
+// Favicon 路由處理
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'deploy/frontend', 'favicon.svg'));
+});
+
 // 健康檢查端點 - 用於 Render 監控
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
