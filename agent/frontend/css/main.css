@@ -198,6 +198,72 @@
     background-color: rgba(40, 167, 69, 0.1) !important;
 }
 
+/* 系統公告樣式 */
+.notice-item {
+    transition: all 0.3s ease;
+    background-color: #fff;
+}
+
+.notice-item:hover {
+    background-color: #f8f9fa !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.notice-item .badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+}
+
+.notice-item h5 {
+    color: #333;
+    font-weight: 600;
+}
+
+.notice-item p {
+    line-height: 1.6;
+    color: #666;
+}
+
+/* 公告分類按鈕樣式 */
+.btn-check:checked + .btn-outline-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-check:checked + .btn-outline-info {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+}
+
+.btn-check:checked + .btn-outline-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+
+.btn-check:checked + .btn-outline-success {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+/* 公告內容區域 */
+.notice-content {
+    border-left: 4px solid transparent;
+    padding-left: 1rem;
+}
+
+.notice-content.category-最新公告 {
+    border-left-color: #0dcaf0;
+}
+
+.notice-content.category-維修 {
+    border-left-color: #ffc107;
+}
+
+.notice-content.category-活動 {
+    border-left-color: #198754;
+}
+
 .bet-row-lose {
     background-color: rgba(220, 53, 69, 0.1) !important;
 }
@@ -215,3 +281,73 @@
         padding: 0.2em 0.5em;
     }
 }
+
+/* 個人資料模態框樣式 */
+.profile-modal .modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.profile-modal .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    border-bottom: none;
+}
+
+.profile-modal .form-control {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.profile-modal .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.profile-modal .card {
+    border-radius: 10px;
+    border: none;
+    transition: transform 0.3s ease;
+}
+
+.profile-modal .card:hover {
+    transform: translateY(-5px);
+}
+
+.profile-modal h6 {
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f1f3f4;
+}
+
+.profile-modal .btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+/* 個人資料統計卡片動畫 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-modal .card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.profile-modal .card:nth-child(1) { animation-delay: 0.1s; }
+.profile-modal .card:nth-child(2) { animation-delay: 0.2s; }
+.profile-modal .card:nth-child(3) { animation-delay: 0.3s; }
+.profile-modal .card:nth-child(4) { animation-delay: 0.4s; }

@@ -293,10 +293,21 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         title VARCHAR(100) NOT NULL,
         content TEXT NOT NULL,
+        category VARCHAR(20) DEFAULT '最新公告',
         status INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // 檢查並添加category字段（為現有表添加新字段）
+    try {
+      await db.none(`
+        ALTER TABLE notices ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT '最新公告'
+      `);
+    } catch (error) {
+      // 如果字段已存在，忽略錯誤
+      console.log('公告分類字段已存在或添加失敗:', error.message);
+    }
     
     // 創建開獎記錄表
     await db.none(`
@@ -358,6 +369,107 @@ async function initDatabase() {
     }
     
     console.log('初始化代理系統數據庫完成');
+    
+    // 檢查並添加範例公告
+    const existingNotices = await db.any('SELECT COUNT(*) as count FROM notices');
+    if (existingNotices[0].count === 0) {
+      console.log('添加範例公告...');
+      
+      // 添加範例公告
+      const sampleNotices = [
+        {
+          title: '系統維護通知',
+          content: '本系統將於今晚00:00-02:00進行例行維護，期間可能會暫停服務，請提前做好準備。維護期間如有緊急情況，請聯繫客服人員。',
+          category: '維修'
+        },
+        {
+          title: '歡迎使用代理管理系統',
+          content: '歡迎使用全新的代理管理系統！系統提供會員管理、點數轉移、投注記錄查詢等完整功能。如有任何問題，請隨時聯繫技術支援。',
+          category: '最新公告'
+        },
+        {
+          title: '新春優惠活動開始',
+          content: '🎉 新春特別優惠活動正式開始！活動期間新會員註冊即享首存100%優惠，最高可獲得5000元獎金。活動詳情請洽客服人員。',
+          category: '活動'
+        },
+        {
+          title: '系統功能更新',
+          content: '系統已完成最新功能更新：1. 新增點數轉移記錄查詢 2. 優化投注統計報表 3. 增強系統安全性 4. 修復已知問題。請各位代理及時體驗新功能。',
+          category: '最新公告'
+        },
+        {
+          title: '每日維護時間調整',
+          content: '為提供更好的服務品質，每日系統維護時間調整為凌晨01:30-02:30，維護期間系統將暫停服務約1小時。造成不便敬請見諒。',
+          category: '維修'
+        },
+        {
+          title: '週年慶回饋活動',
+          content: '🎈 平台週年慶特別回饋！全體會員可享受特別優惠，代理商可獲得額外佣金加成。活動時間：本月1日-31日，詳細規則請查看活動專頁。',
+          category: '活動'
+        }
+      ];
+      
+      for (const notice of sampleNotices) {
+        await db.none(`
+          INSERT INTO notices (title, content, category) 
+          VALUES ($1, $2, $3)
+        `, [notice.title, notice.content, notice.category]);
+      }
+      
+      console.log(`成功添加 ${sampleNotices.length} 條範例公告`);
+    }
+
+    // 創建代理個人資料表
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS agent_profiles (
+        id SERIAL PRIMARY KEY,
+        agent_id INTEGER NOT NULL UNIQUE REFERENCES agents(id) ON DELETE CASCADE,
+        real_name VARCHAR(100),
+        phone VARCHAR(20),
+        email VARCHAR(100),
+        line_id VARCHAR(50),
+        telegram VARCHAR(50),
+        address TEXT,
+        remark TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // 檢查是否需要遷移舊字段
+    try {
+      const hasOldFields = await db.oneOrNone(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'agent_profiles' AND column_name IN ('qq', 'wechat')
+      `);
+      
+      if (hasOldFields) {
+        console.log('檢測到舊字段，執行數據庫遷移...');
+        
+        // 添加新字段
+        await db.none(`
+          ALTER TABLE agent_profiles 
+          ADD COLUMN IF NOT EXISTS line_id VARCHAR(50)
+        `);
+        
+        // 如果需要，可以將微信號遷移到Line ID
+        await db.none(`
+          UPDATE agent_profiles 
+          SET line_id = wechat 
+          WHERE line_id IS NULL AND wechat IS NOT NULL AND wechat != ''
+        `);
+        
+        // 刪除舊字段
+        await db.none(`ALTER TABLE agent_profiles DROP COLUMN IF EXISTS qq`);
+        await db.none(`ALTER TABLE agent_profiles DROP COLUMN IF EXISTS wechat`);
+        
+        console.log('數據庫遷移完成');
+      }
+    } catch (migrationError) {
+      console.log('數據庫遷移檢查失敗:', migrationError.message);
+    }
+    
+    console.log('代理個人資料表已創建');
   } catch (error) {
     console.error('初始化數據庫時出錯:', error);
     // 出錯時不結束進程，讓系統仍能啟動，方便調試
@@ -413,25 +525,30 @@ const AgentModel = {
         }
       }
       
-      let query = 'SELECT * FROM agents WHERE 1=1';
+      let query = `
+        SELECT a.*, p.username as parent_username 
+        FROM agents a 
+        LEFT JOIN agents p ON a.parent_id = p.id 
+        WHERE 1=1
+      `;
       const params = [];
       
       if (parentId && parentId !== '') {
-        query += ' AND parent_id = $' + (params.length + 1);
+        query += ' AND a.parent_id = $' + (params.length + 1);
         params.push(parseInt(parentId));
       }
       
       if (level && level !== '-1') {
-        query += ' AND level = $' + (params.length + 1);
+        query += ' AND a.level = $' + (params.length + 1);
         params.push(level);
       }
       
       if (status && status !== '-1') {
-        query += ' AND status = $' + (params.length + 1);
+        query += ' AND a.status = $' + (params.length + 1);
         params.push(status);
       }
       
-      query += ' ORDER BY created_at DESC';
+      query += ' ORDER BY a.created_at DESC';
       
       // 添加分頁
       const offset = (page - 1) * limit;
@@ -546,6 +663,76 @@ const AgentModel = {
       return updatedAgent;
     } catch (error) {
       console.error('更新代理餘額出錯:', error);
+      throw error;
+    }
+  },
+
+  // 客服專用: 直接設置代理餘額
+  async setBalanceByCustomerService(agentId, newBalance, description = '客服調整餘額') {
+    try {
+      const agent = await this.findById(agentId);
+      if (!agent) throw new Error('代理不存在');
+      
+      const beforeBalance = parseFloat(agent.balance);
+      const afterBalance = parseFloat(newBalance);
+      const difference = afterBalance - beforeBalance;
+      
+      // 確保新餘額不會小於0
+      if (afterBalance < 0) throw new Error('代理餘額不能小於0');
+      
+      const updatedAgent = await db.one(`
+        UPDATE agents 
+        SET balance = $1 
+        WHERE id = $2 
+        RETURNING *
+      `, [afterBalance, agentId]);
+      
+      // 記錄客服操作交易
+      await db.none(`
+        INSERT INTO transactions 
+        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, ['agent', agentId, difference, difference > 0 ? 'cs_deposit' : 'cs_withdraw', beforeBalance, afterBalance, description]);
+      
+      return {
+        success: true,
+        agent: updatedAgent,
+        difference: difference
+      };
+    } catch (error) {
+      console.error('客服設置代理餘額出錯:', error);
+      throw error;
+    }
+  },
+
+  // 檢查是否為客服權限（總代理）
+  async isCustomerService(agentId) {
+    try {
+      const agent = await this.findById(agentId);
+      return agent && agent.level === 0; // 總代理level為0
+    } catch (error) {
+      console.error('檢查客服權限出錯:', error);
+      return false;
+    }
+  },
+
+  // 更新代理密碼
+  async updatePassword(id, newPassword) {
+    try {
+      const agent = await this.findById(id);
+      if (!agent) throw new Error('代理不存在');
+      
+      // 更新密碼（後端會自動加密）
+      const result = await db.one(`
+        UPDATE agents 
+        SET password = $1 
+        WHERE id = $2 
+        RETURNING *
+      `, [newPassword, id]);
+      
+      return result;
+    } catch (error) {
+      console.error('更新代理密碼出錯:', error);
       throw error;
     }
   }
@@ -774,13 +961,74 @@ const MemberModel = {
       console.error('查詢特定代理下的特定會員出錯:', error);
       throw error;
     }
+  },
+
+  // 客服專用: 直接設置會員餘額
+  async setBalanceByCustomerService(memberUsername, newBalance, description = '客服調整餘額') {
+    try {
+      // 獲取當前餘額
+      const member = await this.findByUsername(memberUsername);
+      if (!member) throw new Error('會員不存在');
+      
+      const beforeBalance = parseFloat(member.balance);
+      const afterBalance = parseFloat(newBalance);
+      const difference = afterBalance - beforeBalance;
+      
+      // 確保餘額不會小於0
+      if (afterBalance < 0) throw new Error('會員餘額不能小於0');
+      
+      // 更新餘額
+      const updatedMember = await db.one(`
+        UPDATE members 
+        SET balance = $1 
+        WHERE username = $2 
+        RETURNING *
+      `, [afterBalance, memberUsername]);
+      
+      // 記錄客服操作交易
+      await db.none(`
+        INSERT INTO transactions 
+        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, ['member', member.id, difference, difference > 0 ? 'cs_deposit' : 'cs_withdraw', beforeBalance, afterBalance, description]);
+      
+      return {
+        success: true,
+        member: updatedMember,
+        difference: difference
+      };
+    } catch (error) {
+      console.error('客服設置會員餘額出錯:', error);
+      throw error;
+    }
+  },
+
+  // 更新會員密碼
+  async updatePassword(id, newPassword) {
+    try {
+      const member = await this.findById(id);
+      if (!member) throw new Error('會員不存在');
+      
+      // 更新密碼（後端會自動加密）
+      const result = await db.one(`
+        UPDATE members 
+        SET password = $1 
+        WHERE id = $2 
+        RETURNING *
+      `, [newPassword, id]);
+      
+      return result;
+    } catch (error) {
+      console.error('更新會員密碼出錯:', error);
+      throw error;
+    }
   }
 };
 
 // 模型: 點數轉移
 const PointTransferModel = {
   // 從代理轉移點數到會員
-  async transferFromAgentToMember(agentId, memberId, amount, description = '從代理轉移點數到會員') {
+  async transferFromAgentToMember(agentId, memberId, amount, description = '') {
     try {
       // 參數驗證
       const parsedAmount = parseFloat(amount);
@@ -824,19 +1072,19 @@ const PointTransferModel = {
           RETURNING *
         `, [memberAfterBalance, memberId]);
         
-        // 記錄代理的交易
+        // 記錄代理的交易（客服操作使用cs_withdraw表示代理向會員轉出點數）
         await t.none(`
           INSERT INTO transactions 
           (user_type, user_id, amount, type, before_balance, after_balance, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
-        `, ['agent', agentId, -parsedAmount, 'transfer_out', agentBeforeBalance, agentAfterBalance, '轉移點數到會員']);
+        `, ['agent', agentId, -parsedAmount, 'cs_withdraw', agentBeforeBalance, agentAfterBalance, description || '客服會員存款操作']);
         
-        // 記錄會員的交易
+        // 記錄會員的交易（客服操作使用cs_deposit表示會員收到點數）
         await t.none(`
           INSERT INTO transactions 
           (user_type, user_id, amount, type, before_balance, after_balance, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
-        `, ['member', memberId, parsedAmount, 'transfer_in', memberBeforeBalance, memberAfterBalance, '從代理收到點數']);
+        `, ['member', memberId, parsedAmount, 'cs_deposit', memberBeforeBalance, memberAfterBalance, description || '客服會員存款操作']);
         
         // 記錄點數轉移
         await t.one(`
@@ -859,7 +1107,7 @@ const PointTransferModel = {
   },
   
   // 從會員轉移點數到代理
-  async transferFromMemberToAgent(memberId, agentId, amount, description = '從會員轉移點數到代理') {
+  async transferFromMemberToAgent(memberId, agentId, amount, description = '') {
     try {
       // 參數驗證
       const parsedAmount = parseFloat(amount);
@@ -903,19 +1151,19 @@ const PointTransferModel = {
           RETURNING *
         `, [agentAfterBalance, agentId]);
         
-        // 記錄會員的交易
+        // 記錄會員的交易（客服操作使用cs_withdraw表示會員轉出點數）
         await t.none(`
           INSERT INTO transactions 
           (user_type, user_id, amount, type, before_balance, after_balance, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
-        `, ['member', memberId, -parsedAmount, 'transfer_out', memberBeforeBalance, memberAfterBalance, '轉移點數到代理']);
+        `, ['member', memberId, -parsedAmount, 'cs_withdraw', memberBeforeBalance, memberAfterBalance, description || '客服會員提款操作']);
         
-        // 記錄代理的交易
+        // 記錄代理的交易（客服操作使用cs_deposit表示代理收到點數）
         await t.none(`
           INSERT INTO transactions 
           (user_type, user_id, amount, type, before_balance, after_balance, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
-        `, ['agent', agentId, parsedAmount, 'transfer_in', agentBeforeBalance, agentAfterBalance, '從會員收到點數']);
+        `, ['agent', agentId, parsedAmount, 'cs_deposit', agentBeforeBalance, agentAfterBalance, description || '客服會員提款操作']);
         
         // 記錄點數轉移
         await t.one(`
@@ -937,6 +1185,88 @@ const PointTransferModel = {
     }
   },
   
+  // 從代理轉移點數到代理
+  async transferFromAgentToAgent(fromAgentId, toAgentId, amount, description = '') {
+    try {
+      // 參數驗證
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('轉移的點數必須大於0');
+      }
+      
+      // 獲取兩個代理的信息
+      const fromAgent = await AgentModel.findById(fromAgentId);
+      if (!fromAgent) throw new Error('轉出代理不存在');
+      
+      const toAgent = await AgentModel.findById(toAgentId);
+      if (!toAgent) throw new Error('轉入代理不存在');
+      
+      // 檢查轉出代理餘額是否足夠
+      if (parseFloat(fromAgent.balance) < parsedAmount) {
+        throw new Error('轉出代理點數不足');
+      }
+      
+      // 開始數據庫事務
+      return await db.tx(async t => {
+        // 更新轉出代理餘額
+        const fromAgentBeforeBalance = parseFloat(fromAgent.balance);
+        const fromAgentAfterBalance = fromAgentBeforeBalance - parsedAmount;
+        
+        await t.one(`
+          UPDATE agents 
+          SET balance = $1 
+          WHERE id = $2 
+          RETURNING *
+        `, [fromAgentAfterBalance, fromAgentId]);
+        
+        // 更新轉入代理餘額
+        const toAgentBeforeBalance = parseFloat(toAgent.balance);
+        const toAgentAfterBalance = toAgentBeforeBalance + parsedAmount;
+        
+        const updatedToAgent = await t.one(`
+          UPDATE agents 
+          SET balance = $1 
+          WHERE id = $2 
+          RETURNING *
+        `, [toAgentAfterBalance, toAgentId]);
+        
+        // 記錄轉出代理的交易（客服操作使用cs_withdraw表示從該代理提款）
+        await t.none(`
+          INSERT INTO transactions 
+          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['agent', fromAgentId, -parsedAmount, 'cs_withdraw', fromAgentBeforeBalance, fromAgentAfterBalance, description || '客服轉移操作']);
+        
+        // 記錄轉入代理的交易（客服操作使用cs_deposit表示為該代理存款）
+        await t.none(`
+          INSERT INTO transactions 
+          (user_type, user_id, amount, type, before_balance, after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['agent', toAgentId, parsedAmount, 'cs_deposit', toAgentBeforeBalance, toAgentAfterBalance, description || '客服轉移操作']);
+        
+        // 記錄點數轉移
+        await t.one(`
+          INSERT INTO point_transfers 
+          (from_type, from_id, to_type, to_id, amount, 
+           from_before_balance, from_after_balance, 
+           to_before_balance, to_after_balance, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+          RETURNING *
+        `, ['agent', fromAgentId, 'agent', toAgentId, parsedAmount, 
+            fromAgentBeforeBalance, fromAgentAfterBalance, 
+            toAgentBeforeBalance, toAgentAfterBalance, description]);
+        
+        return {
+          fromAgent: { ...fromAgent, balance: fromAgentAfterBalance },
+          toAgent: updatedToAgent
+        };
+      });
+    } catch (error) {
+      console.error('代理間轉移點數出錯:', error);
+      throw error;
+    }
+  },
+  
   // 獲取點數轉移記錄
   async getTransferRecords(userType, userId, limit = 50) {
     try {
@@ -953,7 +1283,15 @@ const PointTransferModel = {
             WHEN pt.to_type = 'agent' THEN to_agent.username
             WHEN pt.to_type = 'member' THEN to_member.username
             ELSE NULL 
-          END as to_username
+          END as to_username,
+          CASE 
+            WHEN pt.from_type = 'agent' THEN from_agent.level
+            ELSE NULL 
+          END as from_level,
+          CASE 
+            WHEN pt.to_type = 'agent' THEN to_agent.level
+            ELSE NULL 
+          END as to_level
         FROM point_transfers pt
         LEFT JOIN agents from_agent ON pt.from_type = 'agent' AND pt.from_id = from_agent.id
         LEFT JOIN members from_member ON pt.from_type = 'member' AND pt.from_id = from_member.id
@@ -973,28 +1311,53 @@ const PointTransferModel = {
 // 模型: 公告
 const NoticeModel = {
   // 獲取所有公告
-  async findAll(limit = 10) {
+  async findAll(limit = 50, category = null) {
     try {
-      return await db.any(`
+      let query = `
         SELECT * FROM notices 
-        WHERE status = 1 
-        ORDER BY created_at DESC 
-        LIMIT $1
-      `, [limit]);
+        WHERE status = 1
+      `;
+      const params = [];
+      
+      if (category && category !== 'all') {
+        query += ' AND category = $' + (params.length + 1);
+        params.push(category);
+      }
+      
+      query += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1);
+      params.push(limit);
+      
+      return await db.any(query, params);
     } catch (error) {
       console.error('獲取公告出錯:', error);
       throw error;
     }
   },
   
+  // 獲取公告分類列表
+  async getCategories() {
+    try {
+      const result = await db.any(`
+        SELECT DISTINCT category 
+        FROM notices 
+        WHERE status = 1 
+        ORDER BY category
+      `);
+      return result.map(r => r.category);
+    } catch (error) {
+      console.error('獲取公告分類出錯:', error);
+      return ['最新公告', '維修', '活動']; // 返回默認分類
+    }
+  },
+  
   // 創建公告
-  async create(title, content) {
+  async create(title, content, category = '最新公告') {
     try {
       return await db.one(`
-        INSERT INTO notices (title, content) 
-        VALUES ($1, $2) 
+        INSERT INTO notices (title, content, category) 
+        VALUES ($1, $2, $3) 
         RETURNING *
-      `, [title, content]);
+      `, [title, content, category]);
     } catch (error) {
       console.error('創建公告出錯:', error);
       throw error;
@@ -1102,44 +1465,51 @@ const TransactionModel = {
       const today = new Date().toISOString().split('T')[0];
       console.log(`獲取代理統計: 查詢日期=${today}`);
       
-      // 計算今日充值總額 - 使用正確的列名user_type和user_id
+      // 計算今日所有交易總額（包括代理和會員的所有轉帳）
       try {
-        const depositResult = await db.oneOrNone(`
+        // 查詢今日所有相關的交易記錄
+        const allTransactionsResult = await db.oneOrNone(`
+          SELECT COALESCE(SUM(ABS(amount)), 0) as total 
+          FROM transactions 
+          WHERE (
+            (user_type = 'member' AND user_id IN ($1:csv)) OR
+            (user_type = 'agent' AND user_id = $2)
+          )
+          AND DATE(created_at) = $3
+        `, [memberIds, parsedAgentId, today]);
+        
+        const totalTransactions = parseFloat(allTransactionsResult ? allTransactionsResult.total : 0);
+        
+        // 計算今日轉入總額（收入）
+        const transferInResult = await db.oneOrNone(`
           SELECT COALESCE(SUM(amount), 0) as total 
           FROM transactions 
-          WHERE user_type = 'member' 
-            AND user_id IN ($1:csv) 
+          WHERE user_type = 'agent' 
+            AND user_id = $1 
             AND type = $2 
+            AND amount > 0
             AND DATE(created_at) = $3
-        `, [memberIds, 'deposit', today]);
+        `, [parsedAgentId, 'transfer_in', today]);
         
-        const totalDeposit = parseFloat(depositResult ? depositResult.total : 0);
+        const totalTransferIn = parseFloat(transferInResult ? transferInResult.total : 0);
         
-        // 計算今日提現總額
-        const withdrawResult = await db.oneOrNone(`
-          SELECT COALESCE(SUM(amount), 0) as total 
+        // 計算今日轉出總額（支出）
+        const transferOutResult = await db.oneOrNone(`
+          SELECT COALESCE(SUM(ABS(amount)), 0) as total 
           FROM transactions 
-          WHERE user_type = 'member' 
-            AND user_id IN ($1:csv) 
+          WHERE user_type = 'agent' 
+            AND user_id = $1 
             AND type = $2 
+            AND amount < 0
             AND DATE(created_at) = $3
-        `, [memberIds, 'withdraw', today]);
+        `, [parsedAgentId, 'transfer_out', today]);
         
-        const totalWithdraw = parseFloat(withdrawResult ? withdrawResult.total : 0);
+        const totalTransferOut = parseFloat(transferOutResult ? transferOutResult.total : 0);
         
-        // 計算今日收入總額
-        const revenueResult = await db.oneOrNone(`
-          SELECT COALESCE(SUM(amount), 0) as total 
-          FROM transactions 
-          WHERE user_type = 'member' 
-            AND user_id IN ($1:csv) 
-            AND type = $2 
-            AND DATE(created_at) = $3
-        `, [memberIds, 'revenue', today]);
+        // 計算淨收入（轉入 - 轉出）
+        const netRevenue = totalTransferIn - totalTransferOut;
         
-        const totalRevenue = parseFloat(revenueResult ? revenueResult.total : 0);
-        
-        // 獲取活躍會員數 - 使用正確的列名
+        // 獲取活躍會員數和代理數 - 使用正確的列名
         const activeMembersResult = await db.oneOrNone(`
           SELECT COUNT(DISTINCT user_id) as count 
           FROM transactions 
@@ -1150,14 +1520,25 @@ const TransactionModel = {
         
         const activeMembers = parseInt(activeMembersResult ? activeMembersResult.count : 0);
         
+        // 獲取下級代理數量
+        const subAgentsResult = await db.oneOrNone(`
+          SELECT COUNT(*) as count 
+          FROM agents 
+          WHERE parent_id = $1 AND status = 1
+        `, [parsedAgentId]);
+        
+        const subAgentsCount = parseInt(subAgentsResult ? subAgentsResult.count : 0);
+        
         console.log(`獲取代理統計: 成功獲取 ID=${parsedAgentId} 的統計數據`);
         
         return {
-          totalDeposit,
-          totalWithdraw,
-          totalRevenue,
+          totalDeposit: totalTransferIn,
+          totalWithdraw: totalTransferOut,
+          totalRevenue: netRevenue,
+          totalTransactions: totalTransactions,
           memberCount: memberIds.length,
-          activeMembers
+          activeMembers,
+          subAgentsCount
         };
       } catch (queryError) {
         console.error('獲取代理統計 - 查詢錯誤:', queryError);
@@ -1165,8 +1546,10 @@ const TransactionModel = {
           totalDeposit: 0,
           totalWithdraw: 0,
           totalRevenue: 0,
+          totalTransactions: 0,
           memberCount: memberIds.length,
-          activeMembers: 0
+          activeMembers: 0,
+          subAgentsCount: 0
         };
       }
     } catch (error) {
@@ -1176,8 +1559,10 @@ const TransactionModel = {
         totalDeposit: 0,
         totalWithdraw: 0,
         totalRevenue: 0,
+        totalTransactions: 0,
         memberCount: 0,
-        activeMembers: 0
+        activeMembers: 0,
+        subAgentsCount: 0
       };
     }
   }
@@ -1719,7 +2104,7 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
           agent.id, 
           member.id, 
           parsedAmount, 
-          description || '代理存入點數給會員'
+          description || ''
         );
       } else if (parsedAmount < 0) {
         // 從會員轉移點數到代理
@@ -1728,7 +2113,7 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
           member.id, 
           agent.id, 
           Math.abs(parsedAmount), 
-          description || '會員提領點數給代理'
+          description || ''
         );
       } else {
         console.error('更新會員餘額失敗: 轉移點數必須不等於0');
@@ -1760,6 +2145,71 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增: 會員餘額同步API（用於下注/中獎，不扣代理點數）
+app.post(`${API_PREFIX}/sync-member-balance`, async (req, res) => {
+  const { username, balance, reason } = req.body;
+  
+  try {
+    if (!username || balance === undefined) {
+      return res.json({
+        success: false,
+        message: '請提供會員用戶名和餘額'
+      });
+    }
+    
+    // 查詢會員
+    const member = await MemberModel.findByUsername(username);
+    if (!member) {
+      console.log(`同步餘額失敗: 會員 ${username} 不存在`);
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 更新會員餘額（不影響代理餘額）
+    await MemberModel.setBalance(username, balance);
+    
+    console.log(`會員 ${username} 餘額已同步為: ${balance}，原因: ${reason || '系統同步'}`);
+    
+    res.json({
+      success: true,
+      message: '餘額同步成功',
+      balance: balance
+    });
+  } catch (error) {
+    console.error('同步會員餘額出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增: 清空點數轉移記錄API（僅用於測試）
+app.delete(`${API_PREFIX}/clear-transfers`, async (req, res) => {
+  try {
+    // 刪除所有點數轉移記錄
+    await db.none('DELETE FROM point_transfers');
+    
+    // 也清空相關的transactions記錄（可選）
+    await db.none('DELETE FROM transactions');
+    
+    console.log('所有點數轉移記錄已清空');
+    
+    res.json({
+      success: true,
+      message: '所有點數轉移記錄已清空'
+    });
+  } catch (error) {
+    console.error('清空點數轉移記錄出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '清空記錄失敗，請稍後再試'
     });
   }
 });
@@ -1829,15 +2279,140 @@ app.get(`${API_PREFIX}/agent-balance`, async (req, res) => {
   }
 });
 
+// 代理間點數轉移 API 端點
+app.post(`${API_PREFIX}/transfer-agent-balance`, async (req, res) => {
+  const { agentId, subAgentId, amount, type, description } = req.body;
+  
+  console.log(`收到代理點數轉移請求: 上級代理ID=${agentId}, 下級代理ID=${subAgentId}, 金額=${amount}, 類型=${type}, 說明=${description}`);
+  console.log(`請求體:`, JSON.stringify(req.body));
+  
+  try {
+    if (!agentId || !subAgentId || amount === undefined || !type) {
+      console.error('代理點數轉移失敗: 缺少必要參數');
+      return res.json({
+        success: false,
+        message: '請提供完整的轉移參數'
+      });
+    }
+    
+    // 查詢上級代理
+    const parentAgent = await AgentModel.findById(agentId);
+    if (!parentAgent) {
+      console.error(`代理點數轉移失敗: 上級代理 ID=${agentId} 不存在`);
+      return res.json({
+        success: false,
+        message: '上級代理不存在'
+      });
+    }
+    console.log(`找到上級代理: ID=${parentAgent.id}, 用戶名=${parentAgent.username}, 餘額=${parentAgent.balance}`);
+    
+    // 查詢下級代理
+    const subAgent = await AgentModel.findById(subAgentId);
+    if (!subAgent) {
+      console.error(`代理點數轉移失敗: 下級代理 ID=${subAgentId} 不存在`);
+      return res.json({
+        success: false,
+        message: '下級代理不存在'
+      });
+    }
+    console.log(`找到下級代理: ID=${subAgent.id}, 用戶名=${subAgent.username}, 餘額=${subAgent.balance}`);
+    
+    // 驗證代理層級關係
+    if (subAgent.parent_id !== parentAgent.id) {
+      console.error(`代理點數轉移失敗: 代理 ${subAgent.username} 不是 ${parentAgent.username} 的下級`);
+      return res.json({
+        success: false,
+        message: '只能對直接下級代理進行點數轉移'
+      });
+    }
+    
+    const transferAmount = Math.abs(parseFloat(amount));
+    console.log(`處理代理點數轉移: 金額=${transferAmount}, 類型=${type}`);
+    
+    // 根據操作類型執行不同的點數轉移
+    let result;
+    try {
+      if (type === 'deposit') {
+        // 上級代理存入點數給下級代理
+        console.log(`執行上級代理到下級代理的點數轉移: 金額=${transferAmount}`);
+        result = await PointTransferModel.transferFromAgentToAgent(
+          parentAgent.id, 
+          subAgent.id, 
+          transferAmount, 
+          description || ''
+        );
+        
+      } else if (type === 'withdraw') {
+        // 上級代理從下級代理提領點數
+        console.log(`執行下級代理到上級代理的點數轉移: 金額=${transferAmount}`);
+        result = await PointTransferModel.transferFromAgentToAgent(
+          subAgent.id, 
+          parentAgent.id, 
+          transferAmount, 
+          description || ''
+        );
+        
+      } else {
+        console.error('代理點數轉移失敗: 無效的轉移類型');
+        return res.json({
+          success: false,
+          message: '無效的轉移類型'
+        });
+      }
+      
+      // 根據轉移類型決定最終餘額
+      let finalParentBalance, finalSubAgentBalance;
+      
+      if (type === 'deposit') {
+        // 存入：上級代理 -> 下級代理
+        finalParentBalance = result.fromAgent.balance;
+        finalSubAgentBalance = result.toAgent.balance;
+      } else {
+        // 提領：下級代理 -> 上級代理
+        finalParentBalance = result.toAgent.balance;
+        finalSubAgentBalance = result.fromAgent.balance;
+      }
+      
+      console.log(`代理點數轉移成功: 上級代理餘額=${finalParentBalance}, 下級代理餘額=${finalSubAgentBalance}`);
+      
+      res.json({
+        success: true,
+        message: '代理點數轉移成功',
+        parentBalance: finalParentBalance,
+        subAgentBalance: finalSubAgentBalance
+      });
+      
+    } catch (error) {
+      console.error('代理點數轉移處理出錯:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || '代理點數轉移處理出錯，請稍後再試'
+      });
+    }
+  } catch (error) {
+    console.error('代理點數轉移出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '系統錯誤，請稍後再試'
+    });
+  }
+});
+
 // 獲取公告
 app.get(`${API_PREFIX}/notices`, async (req, res) => {
   try {
+    const { category = null, limit = 50 } = req.query;
+    
     // 獲取公告
-    const notices = await NoticeModel.findAll();
+    const notices = await NoticeModel.findAll(parseInt(limit), category);
+    
+    // 獲取所有分類
+    const categories = await NoticeModel.getCategories();
     
     res.json({
       success: true,
-      notices
+      notices,
+      categories
     });
   } catch (error) {
     console.error('獲取公告出錯:', error);
@@ -1940,12 +2515,14 @@ app.get('/api/dashboard/members', async (req, res) => {
     const members = await db.any(query, [limit, offset]);
     
     // 獲取總數
-    const totalCount = await db.one('SELECT COUNT(*) as count FROM members');
+    const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) FROM');
+    const totalResult = await db.one(countQuery, [limit, offset]);
+    const total = parseInt(totalResult.count);
     
     res.json({
       success: true,
       members,
-      total: parseInt(totalCount.count)
+      total: parseInt(total)
     });
   } catch (error) {
     console.error('獲取會員列表出錯:', error);
@@ -2299,3 +2876,637 @@ async function startServer() {
 
 // ... 保持 startServer() 函數的調用 ...
 startServer();
+
+// 客服專用: 代理點數轉移操作
+app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
+  const { operatorId, targetAgentId, amount, transferType, description } = req.body;
+  
+  try {
+    console.log(`客服代理點數轉移: 操作員=${operatorId}, 目標代理=${targetAgentId}, 金額=${amount}, 類型=${transferType}`);
+    
+    // 檢查操作員是否為客服
+    const isCS = await AgentModel.isCustomerService(operatorId);
+    if (!isCS) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有客服可以執行此操作'
+      });
+    }
+    
+    // 獲取總代理 (level = 0)
+    const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
+    if (!adminAgent) {
+      return res.json({
+        success: false,
+        message: '系統錯誤：未找到總代理'
+      });
+    }
+    
+    // 獲取目標代理
+    const targetAgent = await AgentModel.findById(targetAgentId);
+    if (!targetAgent) {
+      return res.json({
+        success: false,
+        message: '目標代理不存在'
+      });
+    }
+    
+    const transferAmount = parseFloat(amount);
+    let result;
+    
+    if (transferType === 'deposit') {
+      // 存款：總代理 -> 目標代理
+      console.log(`執行存款操作: 總代理(${adminAgent.username}) -> 目標代理(${targetAgent.username}), 金額=${transferAmount}`);
+      result = await PointTransferModel.transferFromAgentToAgent(
+        adminAgent.id, 
+        targetAgentId, 
+        transferAmount, 
+        description || '客服存款操作'
+      );
+    } else if (transferType === 'withdraw') {
+      // 提款：目標代理 -> 總代理
+      console.log(`執行提款操作: 目標代理(${targetAgent.username}) -> 總代理(${adminAgent.username}), 金額=${transferAmount}`);
+      result = await PointTransferModel.transferFromAgentToAgent(
+        targetAgentId, 
+        adminAgent.id, 
+        transferAmount, 
+        description || '客服提款操作'
+      );
+    } else {
+      return res.json({
+        success: false,
+        message: '無效的轉移類型'
+      });
+    }
+    
+    console.log(`客服代理點數轉移成功`);
+    
+    res.json({
+      success: true,
+      message: '代理點數轉移成功',
+      agent: {
+        id: result.toAgent.id,
+        username: result.toAgent.username,
+        balance: result.toAgent.balance
+      }
+    });
+    
+  } catch (error) {
+    console.error('客服代理點數轉移失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 客服專用: 會員點數轉移操作
+app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
+  const { operatorId, agentId, targetMemberUsername, amount, transferType, description } = req.body;
+  
+  try {
+    console.log(`客服會員點數轉移: 操作員=${operatorId}, 代理=${agentId}, 目標會員=${targetMemberUsername}, 金額=${amount}, 類型=${transferType}`);
+    
+    // 檢查操作員是否為客服
+    const isCS = await AgentModel.isCustomerService(operatorId);
+    if (!isCS) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有客服可以執行此操作'
+      });
+    }
+    
+    // 獲取代理
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 獲取會員
+    const member = await MemberModel.findByUsername(targetMemberUsername);
+    if (!member) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 驗證會員屬於該代理
+    if (member.agent_id !== parseInt(agentId)) {
+      return res.json({
+        success: false,
+        message: '會員不屬於指定的代理'
+      });
+    }
+    
+    const transferAmount = parseFloat(amount);
+    let result;
+    
+    if (transferType === 'deposit') {
+      // 存款：代理 -> 會員
+      console.log(`執行存款操作: 代理(${agent.username}) -> 會員(${member.username}), 金額=${transferAmount}`);
+      result = await PointTransferModel.transferFromAgentToMember(
+        agentId, 
+        member.id, 
+        transferAmount, 
+        description || '客服存款操作'
+      );
+    } else if (transferType === 'withdraw') {
+      // 提款：會員 -> 代理
+      console.log(`執行提款操作: 會員(${member.username}) -> 代理(${agent.username}), 金額=${transferAmount}`);
+      result = await PointTransferModel.transferFromMemberToAgent(
+        member.id, 
+        agentId, 
+        transferAmount, 
+        description || '客服提款操作'
+      );
+    } else {
+      return res.json({
+        success: false,
+        message: '無效的轉移類型'
+      });
+    }
+    
+    console.log(`客服會員點數轉移成功`);
+    
+    // 重新獲取最新的會員資料
+    const updatedMember = await MemberModel.findById(member.id);
+    
+    res.json({
+      success: true,
+      message: '會員點數轉移成功',
+      member: {
+        id: updatedMember.id,
+        username: updatedMember.username,
+        balance: updatedMember.balance
+      }
+    });
+    
+  } catch (error) {
+    console.error('客服會員點數轉移失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 獲取客服交易記錄（包含所有cs_deposit和cs_withdraw類型的交易）
+app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
+  const { operatorId, page = 1, limit = 20, userType = 'all', transactionType = 'all' } = req.query;
+  
+  try {
+    console.log(`獲取客服交易記錄: 操作員=${operatorId}, 頁碼=${page}, 數量=${limit}`);
+    
+    // 檢查操作員是否為客服
+    const isCS = await AgentModel.isCustomerService(operatorId);
+    if (!isCS) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有客服可以查看此記錄'
+      });
+    }
+    
+    let query = `
+      SELECT t.*, 
+             CASE 
+               WHEN t.user_type = 'agent' THEN a.username 
+               WHEN t.user_type = 'member' THEN m.username 
+             END as username,
+             CASE 
+               WHEN t.user_type = 'agent' THEN a.level 
+               ELSE NULL 
+             END as user_level
+      FROM transactions t
+      LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
+      LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
+      WHERE (t.type = 'cs_deposit' OR t.type = 'cs_withdraw')
+    `;
+    
+    const params = [];
+    
+    // 篩選用戶類型
+    if (userType !== 'all') {
+      query += ` AND t.user_type = $${params.length + 1}`;
+      params.push(userType);
+    }
+    
+    // 篩選交易類型
+    if (transactionType !== 'all') {
+      query += ` AND t.type = $${params.length + 1}`;
+      params.push(transactionType);
+    }
+    
+    // 獲取總數
+    const countQuery = query.replace(/SELECT[\s\S]*?FROM/i, 'SELECT COUNT(*) FROM');
+    const totalResult = await db.one(countQuery, params);
+    const total = parseInt(totalResult.count);
+    
+    // 添加排序和分頁
+    query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+    
+    const transactions = await db.any(query, params);
+    
+    console.log(`獲取客服交易記錄成功: 找到 ${transactions.length} 筆記錄，總計 ${total} 筆`);
+    
+    res.json({
+      success: true,
+      data: {
+        list: transactions,
+        total: total,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取客服交易記錄失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 獲取代理交易記錄（按類型篩選）
+app.get(`${API_PREFIX}/transactions`, async (req, res) => {
+  const { agentId, type, page = 1, limit = 20 } = req.query;
+  
+  try {
+    console.log(`獲取交易記錄: 代理ID=${agentId}, 類型=${type}, 頁碼=${page}, 數量=${limit}`);
+    
+    if (!agentId) {
+      return res.json({
+        success: false,
+        message: '請提供代理ID'
+      });
+    }
+
+    // 檢查代理是否存在
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+
+    let query = `
+      SELECT t.*, 
+             CASE 
+               WHEN t.user_type = 'agent' THEN a.username 
+               WHEN t.user_type = 'member' THEN m.username 
+             END as username,
+             CASE 
+               WHEN t.user_type = 'agent' THEN a.level 
+               ELSE NULL 
+             END as user_level
+      FROM transactions t
+      LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
+      LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    
+    // 如果是總代理，可以查看所有交易；否則只能查看自己和下級的交易
+    if (agent.level === 0) {
+      // 總代理可以查看所有交易，不加限制
+    } else {
+      // 獲取代理下的所有會員ID
+      const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [agentId]);
+      const memberIds = members.map(m => m.id);
+      
+      if (memberIds.length > 0) {
+        query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id IN ($${params.length + 2}:csv)))`;
+        params.push(agentId, memberIds);
+      } else {
+        query += ` AND t.user_type = 'agent' AND t.user_id = $${params.length + 1}`;
+        params.push(agentId);
+      }
+    }
+    
+    // 按類型篩選
+    if (type === 'deposit') {
+      // 存款記錄：包含 cs_deposit 和 deposit
+      query += ` AND (t.type = 'cs_deposit' OR t.type = 'deposit')`;
+    } else if (type === 'withdraw') {
+      // 提款記錄：包含 cs_withdraw 和 withdraw
+      query += ` AND (t.type = 'cs_withdraw' OR t.type = 'withdraw')`;
+    }
+    
+    // 獲取總數
+    const countQuery = query.replace(/SELECT[\s\S]*?FROM/i, 'SELECT COUNT(*) FROM');
+    const totalResult = await db.one(countQuery, params);
+    const total = parseInt(totalResult.count);
+    
+    // 添加排序和分頁
+    query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+    
+    const transactions = await db.any(query, params);
+    
+    console.log(`獲取交易記錄成功: 找到 ${transactions.length} 筆記錄，總計 ${total} 筆`);
+    
+    res.json({
+      success: true,
+      data: {
+        list: transactions,
+        total: total,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取交易記錄失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// ... existing code ...
+
+// 重設代理密碼
+app.post(`${API_PREFIX}/reset-agent-password`, async (req, res) => {
+  const { userId, newPassword, operatorId } = req.body;
+  
+  try {
+    console.log(`重設代理密碼: 代理ID=${userId}, 操作員=${operatorId}`);
+    
+    // 驗證參數
+    if (!userId || !newPassword || !operatorId) {
+      return res.json({
+        success: false,
+        message: '參數不完整'
+      });
+    }
+    
+    // 驗證密碼長度
+    if (newPassword.length < 6) {
+      return res.json({
+        success: false,
+        message: '密碼長度至少6個字符'
+      });
+    }
+    
+    // 檢查操作員權限（只有上級代理可以重設下級密碼）
+    const operator = await AgentModel.findById(operatorId);
+    if (!operator) {
+      return res.json({
+        success: false,
+        message: '操作員不存在'
+      });
+    }
+    
+    // 檢查目標代理是否存在
+    const targetAgent = await AgentModel.findById(userId);
+    if (!targetAgent) {
+      return res.json({
+        success: false,
+        message: '目標代理不存在'
+      });
+    }
+    
+    // 權限檢查：只有總代理或直接上級可以重設密碼
+    if (operator.level !== 0 && targetAgent.parent_id !== operator.id) {
+      return res.json({
+        success: false,
+        message: '權限不足，只能重設直接下級代理的密碼'
+      });
+    }
+    
+    // 更新密碼（後端會自動加密）
+    const result = await AgentModel.updatePassword(userId, newPassword);
+    
+    if (result) {
+      // 記錄操作日誌
+      await db.none(`
+        INSERT INTO transactions 
+        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        'agent', 
+        userId, 
+        0, 
+        'password_reset', 
+        targetAgent.balance, 
+        targetAgent.balance, 
+        `密碼重設 by ${operator.username}`
+      ]);
+      
+      console.log(`代理密碼重設成功: ${targetAgent.username}`);
+      res.json({
+        success: true,
+        message: '密碼重設成功'
+      });
+    } else {
+      res.json({
+        success: false,
+        message: '密碼重設失敗'
+      });
+    }
+  } catch (error) {
+    console.error('重設代理密碼錯誤:', error);
+    res.json({
+      success: false,
+      message: '服務器錯誤'
+    });
+  }
+});
+
+// 重設會員密碼
+app.post(`${API_PREFIX}/reset-member-password`, async (req, res) => {
+  const { userId, newPassword, operatorId } = req.body;
+  
+  try {
+    console.log(`重設會員密碼: 會員ID=${userId}, 操作員=${operatorId}`);
+    
+    // 驗證參數
+    if (!userId || !newPassword || !operatorId) {
+      return res.json({
+        success: false,
+        message: '參數不完整'
+      });
+    }
+    
+    // 驗證密碼長度
+    if (newPassword.length < 6) {
+      return res.json({
+        success: false,
+        message: '密碼長度至少6個字符'
+      });
+    }
+    
+    // 檢查操作員權限
+    const operator = await AgentModel.findById(operatorId);
+    if (!operator) {
+      return res.json({
+        success: false,
+        message: '操作員不存在'
+      });
+    }
+    
+    // 檢查目標會員是否存在
+    const targetMember = await MemberModel.findById(userId);
+    if (!targetMember) {
+      return res.json({
+        success: false,
+        message: '目標會員不存在'
+      });
+    }
+    
+    // 權限檢查：只有該會員的代理或總代理可以重設密碼
+    if (operator.level !== 0 && targetMember.agent_id !== operator.id) {
+      return res.json({
+        success: false,
+        message: '權限不足，只能重設自己旗下會員的密碼'
+      });
+    }
+    
+    // 更新密碼
+    const result = await MemberModel.updatePassword(userId, newPassword);
+    
+    if (result) {
+      // 記錄操作日誌
+      await db.none(`
+        INSERT INTO transactions 
+        (user_type, user_id, amount, type, before_balance, after_balance, description) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        'member', 
+        userId, 
+        0, 
+        'password_reset', 
+        targetMember.balance, 
+        targetMember.balance, 
+        `密碼重設 by ${operator.username}`
+      ]);
+      
+      console.log(`會員密碼重設成功: ${targetMember.username}`);
+      res.json({
+        success: true,
+        message: '密碼重設成功'
+      });
+    } else {
+      res.json({
+        success: false,
+        message: '密碼重設失敗'
+      });
+    }
+  } catch (error) {
+    console.error('重設會員密碼錯誤:', error);
+    res.json({
+      success: false,
+      message: '服務器錯誤'
+    });
+  }
+});
+
+// ... existing code ...
+
+//獲取代理個人資料
+app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
+  const { agentId } = req.params;
+  
+  try {
+    console.log(`獲取代理個人資料: 代理ID=${agentId}`);
+    
+    // 檢查代理是否存在
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 查詢個人資料
+    const profile = await db.oneOrNone(`
+      SELECT * FROM agent_profiles WHERE agent_id = $1
+    `, [agentId]);
+    
+    res.json({
+      success: true,
+      data: profile || {
+        agent_id: agentId,
+        real_name: '',
+        phone: '',
+        email: '',
+        line_id: '',
+        telegram: '',
+        address: '',
+        remark: ''
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取代理個人資料錯誤:', error);
+    res.json({
+      success: false,
+      message: '服務器錯誤'
+    });
+  }
+});
+
+// 更新代理個人資料
+app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
+  const { agentId, realName, phone, email, lineId, telegram, address, remark } = req.body;
+  
+  try {
+    console.log(`更新代理個人資料: 代理ID=${agentId}`);
+    
+    // 檢查代理是否存在
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 檢查是否已有個人資料記錄
+    const existingProfile = await db.oneOrNone(`
+      SELECT * FROM agent_profiles WHERE agent_id = $1
+    `, [agentId]);
+    
+    if (existingProfile) {
+      // 更新現有記錄
+      await db.none(`
+        UPDATE agent_profiles 
+        SET real_name = $1, phone = $2, email = $3, line_id = $4, 
+            telegram = $5, address = $6, remark = $7,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE agent_id = $8
+      `, [realName, phone, email, lineId, telegram, address, remark, agentId]);
+    } else {
+      // 創建新記錄
+      await db.none(`
+        INSERT INTO agent_profiles 
+        (agent_id, real_name, phone, email, line_id, telegram, address, remark)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [agentId, realName, phone, email, lineId, telegram, address, remark]);
+    }
+    
+    console.log(`代理個人資料更新成功: ${agent.username}`);
+    res.json({
+      success: true,
+      message: '個人資料更新成功'
+    });
+    
+  } catch (error) {
+    console.error('更新代理個人資料錯誤:', error);
+    res.json({
+      success: false,
+      message: '服務器錯誤'
+    });
+  }
+});
+
+// ... existing code ...

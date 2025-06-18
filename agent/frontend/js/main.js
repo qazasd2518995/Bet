@@ -24,180 +24,264 @@ const API_CONFIG = {
     }
 };
 
-// Vue 應用實例
-const app = new Vue({
-    el: '#app',
-    data: {
-        // 將API_BASE_URL添加到Vue實例的data中，使模板可以訪問
-        API_BASE_URL: API_BASE_URL,
-        
-        // 身份驗證狀態
-        isLoggedIn: false,
-        loading: false,
-        
-        // 登入表單
-        loginForm: {
-            username: '',
-            password: ''
-        },
-        
-        // 用戶資訊
-        user: {
-            id: '',
-            username: '',
-            level: 0,
-            balance: 0
-        },
-        
-        // 系統公告
-        notices: [],
-        
-        // 當前活動分頁
-        activeTab: 'dashboard',
-        transactionTab: 'deposit',
-        
-        // 儀表板數據
-        dashboardData: {
-            totalAgents: 0,
-            totalMembers: 0,
-            todayTransactions: 0,
-            monthlyCommission: 0
-        },
-        
-        // 圖表實例
-        transactionChart: null,
-        
-        // 代理管理相關
-        agents: [],
-        agentFilters: {
-            level: '-1',
-            status: '-1',
-            keyword: ''
-        },
-        agentPagination: {
-            currentPage: 1,
-            totalPages: 1,
-            limit: 20
-        },
-        
-        // 新增代理相關
-        showCreateAgentModal: false,
-        newAgent: {
-            username: '',
-            password: '',
-            level: '1',
-            parent: '',
-            commission: 0.2
-        },
-        parentAgents: [],
-        
-        // 編輯代理相關
-        showEditAgentModal: false,
-        editAgentData: {
-            id: '',
-            username: '',
-            password: '',
-            commission: 0.2,
-            status: 1
-        },
-        editAgentModal: null,
-        
-        // 會員管理相關
-        members: [],
-        memberFilters: {
-            status: '-1',
-            keyword: ''
-        },
-        memberPagination: {
-            currentPage: 1,
-            totalPages: 1,
-            limit: 20
-        },
-        
-        // 新增會員相關
-        showCreateMemberModal: false,
-        newMember: {
-            username: '',
-            password: '',
-            confirmPassword: ''
-        },
-        
-        // 會員餘額調整相關
-        showAdjustBalanceModal: false,
-        balanceAdjustData: {
-            memberId: null,
-            memberUsername: '',
-            agentId: null,
-            currentBalance: 0,
-            amount: 0,
-            description: ''
-        },
-        transferType: 'deposit',
-        transferAmount: 0,
-        agentCurrentBalance: 0,
-        adjustBalanceModal: null,
-        
-        // 點數轉移記錄
-        pointTransfers: [],
-        
-        // 開獎記錄相關
-        drawRecords: [],
-        drawFilters: {
-            period: '',
-            date: ''
-        },
-        drawPagination: {
-            currentPage: 1,
-            totalPages: 1,
-            limit: 20
-        },
-        
-        // 添加下注記錄相關
-        bets: [],
-        betFilters: {
-            member: '',
-            date: '',
-            period: ''
-        },
-        betPagination: {
-            currentPage: 1,
-            totalPages: 1,
-            limit: 20
-        },
-        betStats: {
-            totalBets: 0,
-            totalAmount: 0,
-            totalProfit: 0
-        },
-        
-        // 會員餘額修改相關
-        modifyBalanceData: {
-            memberId: null,
-            memberUsername: '',
-            currentBalance: 0,
-            reason: ''
-        },
-        modifyBalanceType: 'absolute', // 'absolute' 或 'relative'
-        modifyBalanceAmount: 0,
-        balanceChangeDirection: 'increase', // 'increase' 或 'decrease'
-        modifyMemberBalanceModal: null,
-        
-        // 代理餘額修改相關
-        agentBalanceData: {
-            agentId: null,
-            agentUsername: '',
-            currentBalance: 0,
-            reason: '',
-            description: '' // 新增: 點數轉移備註
-        },
-        agentModifyType: 'absolute', // 'absolute' 或 'relative'
-        agentModifyAmount: 0,
-        agentChangeDirection: 'increase', // 'increase' 或 'decrease'
-        adjustAgentBalanceModal: null,
-        
-        // 新增: 代理點數轉移相關變量
-        agentTransferType: 'deposit', // 'deposit' 或 'withdraw'
-        agentTransferAmount: 0
+console.log('開始初始化Vue應用');
+console.log('Vue是否可用:', typeof Vue);
+
+if (typeof Vue === 'undefined') {
+    console.error('Vue未定義！請檢查Vue腳本是否正確加載。');
+    alert('Vue未定義！請檢查Vue腳本是否正確加載。');
+    throw new Error('Vue未定義');
+}
+
+const { createApp } = Vue;
+console.log('createApp是否可用:', typeof createApp);
+
+const app = createApp({
+    data() {
+        return {
+            // 將API_BASE_URL添加到Vue實例的data中，使模板可以訪問
+            API_BASE_URL: API_BASE_URL,
+            
+            // 身份驗證狀態
+            isLoggedIn: false,
+            loading: false,
+            
+            // 登入表單
+            loginForm: {
+                username: '',
+                password: ''
+            },
+            
+            // 用戶資訊
+            user: {
+                id: null,
+                username: '',
+                level: 0,
+                balance: 0
+            },
+            
+            // 系統公告
+            notices: [],
+            noticeCategories: [],
+            selectedNoticeCategory: 'all',
+            
+            // 當前活動分頁
+            activeTab: 'dashboard',
+            transactionTab: 'transfers',
+            
+            // 儀表板數據
+            dashboardData: {
+                totalDeposit: 0,
+                totalWithdraw: 0,
+                totalRevenue: 0,
+                totalTransactions: 0,
+                memberCount: 0,
+                activeMembers: 0,
+                subAgentsCount: 0
+            },
+            
+            // 圖表實例
+            transactionChart: null,
+            
+            // 代理管理相關
+            agents: [],
+            agentFilters: {
+                level: '-1',
+                status: '-1',
+                keyword: ''
+            },
+            agentPagination: {
+                currentPage: 1,
+                totalPages: 1,
+                limit: 20
+            },
+            
+            // 新增代理相關
+            showCreateAgentModal: false,
+            newAgent: {
+                username: '',
+                password: '',
+                level: '1',
+                parent: ''
+            },
+            parentAgents: [],
+            
+            // 編輯代理相關
+            showEditAgentModal: false,
+            editAgentData: {
+                id: '',
+                username: '',
+                password: '',
+                status: 1
+            },
+            editAgentModal: null,
+            
+            // 會員管理相關
+            members: [],
+            memberFilters: {
+                status: '-1',
+                keyword: ''
+            },
+            memberPagination: {
+                currentPage: 1,
+                totalPages: 1,
+                limit: 20
+            },
+            
+            // 新增會員相關
+            showCreateMemberModal: false,
+            newMember: {
+                username: '',
+                password: '',
+                confirmPassword: ''
+            },
+            
+            // 會員餘額調整相關
+            showAdjustBalanceModal: false,
+            balanceAdjustData: {
+                memberId: null,
+                memberUsername: '',
+                agentId: null,
+                currentBalance: 0,
+                amount: 0,
+                description: ''
+            },
+            transferType: 'deposit',
+            transferAmount: 0,
+            agentCurrentBalance: 0,
+            adjustBalanceModal: null,
+            
+            // 點數轉移記錄
+            pointTransfers: [],
+            
+            // 開獎記錄相關
+            drawRecords: [],
+            drawFilters: {
+                period: '',
+                date: ''
+            },
+            drawPagination: {
+                currentPage: 1,
+                totalPages: 1,
+                limit: 20
+            },
+            
+            // 添加下注記錄相關
+            bets: [],
+            betFilters: {
+                member: '',
+                date: '',
+                period: ''
+            },
+            betPagination: {
+                currentPage: 1,
+                totalPages: 1,
+                limit: 20
+            },
+            betStats: {
+                totalBets: 0,
+                totalAmount: 0,
+                totalProfit: 0
+            },
+            
+            // 會員餘額修改相關
+            modifyBalanceData: {
+                memberId: null,
+                memberUsername: '',
+                currentBalance: 0,
+                reason: ''
+            },
+            modifyBalanceType: 'absolute', // 'absolute' 或 'relative'
+            modifyBalanceAmount: 0,
+            balanceChangeDirection: 'increase', // 'increase' 或 'decrease'
+            modifyMemberBalanceModal: null,
+            
+            // 代理餘額修改相關
+            agentBalanceData: {
+                agentId: null,
+                agentUsername: '',
+                currentBalance: 0,
+                reason: '',
+                description: '' // 新增: 點數轉移備註
+            },
+            agentModifyType: 'absolute', // 'absolute' 或 'relative'
+            agentModifyAmount: 0,
+            agentChangeDirection: 'increase', // 'increase' 或 'decrease'
+            adjustAgentBalanceModal: null,
+            
+            // 新增: 代理點數轉移相關變量
+            agentTransferType: 'deposit', // 'deposit' 或 'withdraw'
+            agentTransferAmount: 0,
+
+            // 客服專用數據
+            isCustomerService: false, // 是否為客服
+            showCSOperationModal: false, // 客服操作模態框
+            csOperation: {
+                targetAgentId: '',
+                operationTarget: '', // 'agent' 或 'member'
+                targetMemberId: '',
+                transferType: '', // 'deposit' 或 'withdraw'
+                amount: '',
+                description: ''
+            },
+            csTransactions: [], // 客服交易記錄
+            csTransactionFilters: {
+                userType: 'all',
+                transactionType: 'all'
+            },
+            csTransactionsPagination: {
+                page: 1,
+                limit: 20,
+                total: 0
+            },
+            allAgents: [], // 所有代理列表（供客服選擇）
+            agentMembers: [], // 選中代理的會員列表
+            csOperationModal: null, // 客服操作模態框
+            
+            // 存款記錄
+            depositRecords: [],
+            depositPagination: {
+                page: 1,
+                limit: 20,
+                total: 0
+            },
+            
+            // 提款記錄
+            withdrawRecords: [],
+            withdrawPagination: {
+                page: 1,
+                limit: 20,
+                total: 0
+            },
+            
+            // 重設密碼數據
+            resetPasswordData: {
+                userType: '', // 'agent' 或 'member'
+                userId: null,
+                username: '',
+                newPassword: '',
+                confirmPassword: ''
+            },
+            
+            // 個人資料數據
+            profileData: {
+                realName: '',
+                phone: '',
+                email: '',
+                lineId: '',
+                telegram: '',
+                address: '',
+                remark: ''
+            },
+            
+            // 顯示用的用戶信息
+            displayUsername: '載入中...',
+            displayUserLevel: '載入中...',
+            // 個人資料儲存專用載入狀態
+            profileLoading: false,
+            // 控制個人資料 modal 顯示
+            isProfileModalVisible: false,
+        };
     },
     
     // 頁面載入時自動執行
@@ -209,9 +293,17 @@ const app = new Vue({
         
         if (isAuthenticated) {
             console.log('用戶已認證，開始加載初始數據');
+            // 檢查是否為客服
+            this.isCustomerService = this.user.level === 0;
+            console.log('是否為客服:', this.isCustomerService);
+            
+            // 如果是客服，加載所有代理列表
+            if (this.isCustomerService) {
+                await this.loadAllAgents();
+            }
+            
             // 獲取初始數據
             await Promise.all([
-                this.checkApiStatus(),
                 this.fetchDashboardData(),
                 this.fetchNotices()
             ]);
@@ -288,6 +380,18 @@ const app = new Vue({
                 console.log('初始化修改會員餘額模態框');
                 this.modifyMemberBalanceModal = new bootstrap.Modal(modifyMemberBalanceModalEl);
             }
+            
+            // 初始化客服操作模態框
+            const csOperationModalEl = document.getElementById('csOperationModal');
+            if (csOperationModalEl) {
+                console.log('初始化客服操作模態框');
+                this.csOperationModal = new bootstrap.Modal(csOperationModalEl);
+                
+                // 監聽模態框隱藏事件，重置表單
+                csOperationModalEl.addEventListener('hidden.bs.modal', () => {
+                    this.hideCSOperationModal();
+                });
+            }
         },
         
         // 顯示創建代理模態框
@@ -300,8 +404,7 @@ const app = new Vue({
                 username: '',
                 password: '',
                 level: (this.user.level + 1).toString(), // 設置為上級代理的下一級
-                parent: this.user.id,
-                commission: this.user.commission_rate ? parseFloat(this.user.commission_rate) * 0.9 : 0.2 // 默認佣金稍低於上級
+                parent: this.user.id
             };
             
             this.$nextTick(() => {
@@ -352,16 +455,22 @@ const app = new Vue({
         // 檢查身份驗證狀態
         async checkAuth() {
             const token = localStorage.getItem('agent_token');
-            const user = JSON.parse(localStorage.getItem('agent_user') || '{}');
+            const userStr = localStorage.getItem('agent_user');
+            console.log('檢查認證，localStorage中的user字符串:', userStr);
+            
+            const user = JSON.parse(userStr || '{}');
+            console.log('解析後的user對象:', user);
             
             if (token && user.id) {
                 this.isLoggedIn = true;
                 this.user = user;
+                console.log('設置user對象成功:', this.user);
                 
                 // 設置 axios 身份驗證頭
                 axios.defaults.headers.common['Authorization'] = token;
                 return true;
             }
+            console.log('認證失敗，token:', !!token, 'user.id:', user.id);
             return false;
         },
         
@@ -388,6 +497,15 @@ const app = new Vue({
                     // 更新用戶資訊
                     this.user = agent;
                     this.isLoggedIn = true;
+                    
+                    // 檢查是否為客服
+                    this.isCustomerService = this.user.level === 0;
+                    console.log('登入後是否為客服:', this.isCustomerService, '用戶級別:', this.user.level);
+                    
+                    // 如果是客服，加載所有代理列表
+                    if (this.isCustomerService) {
+                        await this.loadAllAgents();
+                    }
                     
                     // 獲取初始數據
                     await this.fetchDashboardData();
@@ -447,10 +565,13 @@ const app = new Vue({
                     }
                     
                     this.dashboardData = {
-                        totalAgents: this.user.level === 0 ? (data.agentCount || 10) : 0,
-                        totalMembers: data.memberCount || 0,
-                        todayTransactions: (data.totalDeposit || 0) + (data.totalWithdraw || 0),
-                        monthlyCommission: data.totalRevenue || 0
+                        totalDeposit: data.totalDeposit || 0,
+                        totalWithdraw: data.totalWithdraw || 0,
+                        totalRevenue: data.totalRevenue || 0,
+                        totalTransactions: data.totalTransactions || 0,
+                        memberCount: data.memberCount || 0,
+                        activeMembers: data.activeMembers || 0,
+                        subAgentsCount: data.subAgentsCount || 0
                     };
                     
                     // 初始化交易圖表
@@ -475,6 +596,13 @@ const app = new Vue({
             const ctx = document.getElementById('transactionChart');
             if (!ctx) return;
             
+            // 檢查 Chart.js 是否已加載
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js 尚未加載，延遲初始化圖表');
+                setTimeout(() => this.initTransactionChart(), 500);
+                return;
+            }
+            
             // 模擬數據 - 過去7天的交易數據
             const labels = Array(7).fill(0).map((_, i) => {
                 const date = new Date();
@@ -483,7 +611,7 @@ const app = new Vue({
             });
             
             const transactionData = [15000, 22000, 19500, 24000, 28000, 21000, 26500];
-            const commissionData = transactionData.map(val => val * 0.05);
+
             
             if (this.transactionChart) {
                 this.transactionChart.destroy();
@@ -502,14 +630,7 @@ const app = new Vue({
                             borderWidth: 2,
                             fill: true
                         },
-                        {
-                            label: '佣金',
-                            data: commissionData,
-                            borderColor: 'rgba(255, 159, 64, 1)',
-                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                            borderWidth: 2,
-                            fill: true
-                        }
+
                     ]
                 },
                 options: {
@@ -524,48 +645,7 @@ const app = new Vue({
             });
         },
         
-        // 檢查API狀態
-        async checkApiStatus() {
-            try {
-                // 使用動態URL構建健康檢查端點
-                const healthUrl = `${API_BASE_URL.replace('/api/agent', '/api/health')}`;
-                console.log('開始API連接測試，使用URL:', healthUrl);
-                
-                const response = await fetch(healthUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    // 添加跨域支持
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
-                
-                console.log('API響應狀態:', response.status, response.statusText);
-                
-                if (!response.ok) {
-                    console.error('API健康檢查失敗:', response.status, response.statusText);
-                    this.showMessage(`API連接失敗: ${response.status} ${response.statusText}`, 'error');
-                    return false;
-                }
-                
-                const data = await response.json();
-                console.log('API健康狀態詳情:', data);
-                
-                if (data.status === 'ok') {
-                    this.showMessage('API連接正常', 'success');
-                    return true;
-                } else {
-                    this.showMessage(`API狀態異常: ${data.status || '未知狀態'}`, 'error');
-                    return false;
-                }
-            } catch (error) {
-                console.error('API連接測試出錯:', error.message);
-                this.showMessage(`API連接出錯: ${error.message}`, 'error');
-                return false;
-            }
-        },
+
         
         // 顯示訊息
         showMessage(message, type = 'info') {
@@ -603,11 +683,43 @@ const app = new Vue({
             });
         },
         
+        // 格式化日期時間（與 formatDate 相同，為了模板兼容性）
+        formatDateTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        },
+        
+        // 客服交易記錄分頁 - 上一頁
+        loadCSTransactionsPrevPage() {
+            const prevPage = Math.max(1, this.csTransactionsPagination.page - 1);
+            this.loadCSTransactions(prevPage);
+        },
+        
+        // 客服交易記錄分頁 - 下一頁
+        loadCSTransactionsNextPage() {
+            const maxPage = Math.ceil(this.csTransactionsPagination.total / this.csTransactionsPagination.limit);
+            const nextPage = Math.min(maxPage, this.csTransactionsPagination.page + 1);
+            this.loadCSTransactions(nextPage);
+        },
+        
         // 獲取系統公告
-        async fetchNotices() {
+        async fetchNotices(category = null) {
             try {
                 console.log('獲取系統公告...');
-                const response = await fetch(`${API_BASE_URL}/notices`);
+                let url = `${API_BASE_URL}/notices`;
+                if (category && category !== 'all') {
+                    url += `?category=${encodeURIComponent(category)}`;
+                }
+                
+                const response = await fetch(url);
                 
                 if (!response.ok) {
                     console.error('獲取系統公告失敗:', response.status);
@@ -616,8 +728,16 @@ const app = new Vue({
                 }
                 
                 const data = await response.json();
-                if (data.success && Array.isArray(data.notices)) {
-                    this.notices = data.notices;
+                if (data.success) {
+                    if (Array.isArray(data.notices)) {
+                        this.notices = data.notices;
+                    } else {
+                        this.notices = [];
+                    }
+                    
+                    if (Array.isArray(data.categories)) {
+                        this.noticeCategories = ['all', ...data.categories];
+                    }
                 } else {
                     console.error('系統公告數據格式錯誤:', data);
                     this.notices = [];
@@ -626,6 +746,12 @@ const app = new Vue({
                 console.error('獲取系統公告錯誤:', error);
                 this.notices = [];
             }
+        },
+        
+        // 根據分類過濾公告
+        async filterNoticesByCategory(category) {
+            this.selectedNoticeCategory = category;
+            await this.fetchNotices(category === 'all' ? null : category);
         },
         
         // 搜索代理
@@ -720,13 +846,16 @@ const app = new Vue({
             }
         },
         
-        // 計算最終代理餘額
+        // 計算最終代理餘額（會員點數轉移用）
         calculateFinalAgentBalance() {
             const currentBalance = parseFloat(this.agentCurrentBalance) || 0;
             const amount = parseFloat(this.transferAmount) || 0;
+            
             if (this.transferType === 'deposit') {
+                // 代理存入點數給會員，代理餘額減少
                 return currentBalance - amount;
             } else {
+                // 代理從會員提領點數，代理餘額增加
                 return currentBalance + amount;
             }
         },
@@ -741,6 +870,10 @@ const app = new Vue({
                 if (this.betFilters.date) params.append('date', this.betFilters.date);
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
                 params.append('agentId', this.user.id);
+                
+                // 添加分頁參數
+                params.append('page', this.betPagination.currentPage);
+                params.append('limit', this.betPagination.limit);
                 
                 const url = `${API_BASE_URL}/bets?${params.toString()}`;
                 const response = await fetch(url);
@@ -882,33 +1015,63 @@ const app = new Vue({
         
         // 格式化投注類型
         formatBetType(type) {
+            // 根據後端邏輯，重新分類投注類型
+            if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(type)) {
+                return '雙面';
+            } else if (type === 'number') {
+                return '號碼';
+            } else if (type === 'sumValue') {
+                return '冠亞和值';
+            } else if (type === 'dragonTiger' || type === 'dragon_tiger') {
+                return '龍虎';
+            }
+            
+            // 備用映射（向下相容）
             const types = {
-                'champion': '冠軍',
-                'second': '亞軍',
-                'third': '第三名',
-                'fourth': '第四名',
-                'fifth': '第五名',
-                'sixth': '第六名',
-                'seventh': '第七名',
-                'eighth': '第八名',
-                'ninth': '第九名',
-                'tenth': '第十名',
-                'sum': '冠亞和',
-                'dragon_tiger': '龍虎'
+                'sum': '冠亞和值',
+                'second': '雙面'
             };
             return types[type] || type;
         },
         
         // 格式化位置
-        formatPosition(position) {
-            if (!position) return '-';
+        formatPosition(position, betType) {
+            // 對於號碼投注，position是數字（1-10），代表第幾位
+            if (betType === 'number' && position) {
+                const positionMap = {
+                    '1': '冠軍',
+                    '2': '亞軍', 
+                    '3': '第三名',
+                    '4': '第四名',
+                    '5': '第五名',
+                    '6': '第六名',
+                    '7': '第七名',
+                    '8': '第八名',
+                    '9': '第九名',
+                    '10': '第十名'
+                };
+                return positionMap[position.toString()] || `第${position}名`;
+            }
             
-            if (position === 'champion') return '冠軍';
-            if (position === 'second') return '亞軍';
-            if (position === 'sum') return '冠亞和';
-            if (position === 'dragon_tiger') return '龍虎';
+            // 對於位置投注，bet_type本身就是位置
+            if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
+                const positionMap = {
+                    'champion': '冠軍',
+                    'runnerup': '亞軍',
+                    'third': '第三名',
+                    'fourth': '第四名',
+                    'fifth': '第五名',
+                    'sixth': '第六名',
+                    'seventh': '第七名',
+                    'eighth': '第八名',
+                    'ninth': '第九名',
+                    'tenth': '第十名'
+                };
+                return positionMap[betType] || betType;
+            }
             
-            return position;
+            // 其他情況（冠亞和值、龍虎等）不需要位置
+            return '-';
         },
         
         // 獲取龍虎結果
@@ -931,25 +1094,90 @@ const app = new Vue({
         
         // 格式化轉移類型
         formatTransferType(transfer) {
-            const types = {
-                'deposit': '存入',
-                'withdraw': '提領',
-                'bet': '下注',
-                'win': '中獎',
-                'commission': '佣金'
-            };
-            return types[transfer.type] || transfer.type;
+            // 以當前登入代理身份為第一人稱，只顯示存款或提領
+            const currentAgentId = this.user.id;
+            
+            // 如果當前代理是轉出方，顯示為「提領」（我轉出給其他人）
+            if (transfer.from_id === currentAgentId && transfer.from_type === 'agent') {
+                return '提領';
+            }
+            // 如果當前代理是轉入方，顯示為「存款」（其他人轉入給我）
+            else if (transfer.to_id === currentAgentId && transfer.to_type === 'agent') {
+                return '存款';
+            }
+            // 備用邏輯（適用於查看其他代理記錄的情況）
+            else if (transfer.from_type === 'agent' && transfer.to_type === 'member') {
+                return '存入';
+            } else if (transfer.from_type === 'member' && transfer.to_type === 'agent') {
+                return '提領';
+            } else if (transfer.from_type === 'agent' && transfer.to_type === 'agent') {
+                return '存入';  // 代理間轉移統一顯示為存入
+            } else {
+                return '點數轉移';
+            }
         },
         
         // 格式化轉移方向
         formatTransferDirection(transfer) {
-            // 使用後端返回的 from_username 和 to_username
-            const fromName = transfer.from_username || `(${transfer.from_id})`;
-            const toName = transfer.to_username || `(${transfer.to_id})`;
-            const fromTypeDisplay = transfer.from_type === 'agent' ? '代理' : '會員';
-            const toTypeDisplay = transfer.to_type === 'agent' ? '代理' : '會員';
-
-            return `${fromTypeDisplay} ${fromName} → ${toTypeDisplay} ${toName}`;
+            // 以當前登入代理身份為第一人稱，從其觀點描述轉移方向
+            const currentAgentId = this.user.id;
+            
+            // 如果當前代理是轉出方
+            if (transfer.from_id === currentAgentId && transfer.from_type === 'agent') {
+                if (transfer.to_type === 'member') {
+                    return `我 → ${transfer.to_username || '未知會員'}`;
+                } else if (transfer.to_type === 'agent') {
+                    return `我 → ${transfer.to_username || '未知代理'}`;
+                }
+            }
+            // 如果當前代理是轉入方
+            else if (transfer.to_id === currentAgentId && transfer.to_type === 'agent') {
+                if (transfer.from_type === 'member') {
+                    return `${transfer.from_username || '未知會員'} → 我`;
+                } else if (transfer.from_type === 'agent') {
+                    return `${transfer.from_username || '未知代理'} → 我`;
+                }
+            }
+            // 其他情況（查看他人記錄）
+            else {
+                const fromName = transfer.from_username || (transfer.from_type === 'agent' ? '代理' : '會員');
+                const toName = transfer.to_username || (transfer.to_type === 'agent' ? '代理' : '會員');
+                return `${fromName} → ${toName}`;
+            }
+            
+            return '未知方向';
+        },
+        
+        // 格式化交易類型
+        formatTransactionType(transaction) {
+            switch (transaction.type) {
+                case 'cs_deposit':
+                    return '客服存款';
+                case 'cs_withdraw':
+                    return '客服提款';
+                case 'deposit':
+                    return '存款';
+                case 'withdraw':
+                    return '提款';
+                case 'transfer_in':
+                    return '轉入';
+                case 'transfer_out':
+                    return '轉出';
+                default:
+                    return transaction.type || '未知';
+            }
+        },
+        
+        // 格式化用戶類型
+        formatUserType(userType) {
+            switch (userType) {
+                case 'agent':
+                    return '代理';
+                case 'member':
+                    return '會員';
+                default:
+                    return userType || '未知';
+            }
         },
         
         // 獲取級別名稱
@@ -999,6 +1227,9 @@ const app = new Vue({
                     this.showMessage('餘額調整成功', 'success');
                     // 更新前端顯示的代理和會員餘額
                     this.user.balance = response.data.agentBalance;
+                    // 同時更新localStorage中的用戶資訊
+                    localStorage.setItem('agent_user', JSON.stringify(this.user));
+                    this.agentCurrentBalance = parseFloat(response.data.agentBalance) || 0; // 同步更新代理當前餘額
                     // 需要重新獲取會員列表或更新特定會員的餘額，以反映變更
                     this.searchMembers(); // 重新載入會員列表，會包含更新後的餘額
                     this.hideAdjustBalanceModal(); // 關閉模態框
@@ -1086,7 +1317,6 @@ const app = new Vue({
                     username: this.newAgent.username,
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
-                    commission_rate: parseFloat(this.newAgent.commission),
                     parent: this.newAgent.parent
                 };
                 
@@ -1136,15 +1366,50 @@ const app = new Vue({
                 this.loading = false;
             }
         },
+        
+        // 清空所有轉移記錄（僅用於測試）
+        async clearAllTransfers() {
+            if (!confirm('確定要清空所有點數轉移記錄嗎？此操作無法撤銷！')) {
+                return;
+            }
+            
+            this.loading = true;
+            try {
+                const response = await fetch(`${API_BASE_URL}/agent/clear-transfers`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.showMessage('所有轉移記錄已清空', 'success');
+                    this.pointTransfers = [];
+                } else {
+                    this.showMessage(data.message || '清空記錄失敗', 'error');
+                }
+            } catch (error) {
+                console.error('清空記錄出錯:', error);
+                this.showMessage('清空記錄失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
         // 新增：處理會員餘額調整模態框的顯示
         adjustMemberBalance(member) {
             this.balanceAdjustData.memberId = member.id;
             this.balanceAdjustData.memberUsername = member.username;
             this.balanceAdjustData.currentBalance = member.balance;
             this.balanceAdjustData.agentId = this.user.id; // 設置代理ID
-            this.agentCurrentBalance = this.user.balance; // 設置代理當前餘額
+            this.balanceAdjustData.description = ''; // 重置描述
+            this.agentCurrentBalance = parseFloat(this.user.balance) || 0; // 設置代理當前餘額，確保是數字格式
             this.transferAmount = 0; // 重置轉移金額
             this.transferType = 'deposit'; // 預設為存入
+
+            // 強制更新Vue實例以確保響應式數據同步
+            this.$forceUpdate();
 
             this.showAdjustBalanceModal = true;
             this.$nextTick(() => {
@@ -1424,7 +1689,7 @@ const app = new Vue({
             }
         },
         
-        // 計算最終代理餘額
+        // 計算最終代理餘額（代理額度修改用）
         calculateFinalAgentBalance() {
             const currentBalance = parseFloat(this.agentBalanceData.currentBalance) || 0;
             const modifyAmount = parseFloat(this.agentModifyAmount) || 0;
@@ -1443,13 +1708,13 @@ const app = new Vue({
         // 提交代理額度修改
         async submitAgentBalanceAdjustment() {
             console.log('嘗試提交代理點數轉移');
-            if (!this.agentBalanceData.agentId || !this.agentTransferAmount || !this.agentBalanceData.description) {
+            if (!this.agentBalanceData.agentId || !this.agentTransferAmount) {
                 console.log('資料不完整:', {
                     agentId: this.agentBalanceData.agentId,
                     transferAmount: this.agentTransferAmount,
                     description: this.agentBalanceData.description
                 });
-                return this.showMessage('請填寫完整資料', 'error');
+                return this.showMessage('請填寫轉移金額', 'error');
             }
             
             this.loading = true;
@@ -1473,6 +1738,8 @@ const app = new Vue({
                     this.showMessage('代理點數轉移成功', 'success');
                     // 更新前端顯示的代理餘額
                     this.user.balance = response.data.parentBalance;
+                    // 同時更新localStorage中的用戶資訊
+                    localStorage.setItem('agent_user', JSON.stringify(this.user));
                     // 需要重新獲取代理列表或更新特定代理的餘額
                     this.searchAgents(); // 重新載入代理列表
                     this.hideAdjustAgentBalanceModal(); // 關閉模態框
@@ -1511,11 +1778,1068 @@ const app = new Vue({
             } finally {
                 this.loading = false;
             }
-        }
+        },
+        
+        // 改變頁碼
+        changePage(page, type) {
+            if (page < 1) return;
+            
+            switch (type) {
+                case 'agents':
+                    if (page > this.agentPagination.totalPages) return;
+                    this.agentPagination.currentPage = page;
+                    this.searchAgents();
+                    break;
+                case 'members':
+                    if (page > this.memberPagination.totalPages) return;
+                    this.memberPagination.currentPage = page;
+                    this.searchMembers();
+                    break;
+                case 'draw':
+                    if (page > this.drawPagination.totalPages) return;
+                    this.drawPagination.currentPage = page;
+                    this.searchDrawHistory();
+                    break;
+                case 'bets':
+                    if (page > this.betPagination.totalPages) return;
+                    this.betPagination.currentPage = page;
+                    this.searchBets();
+                    break;
+                default:
+                    console.warn('未知的分頁類型:', type);
+            }
+        },
+        
+        // 格式化佣金比例顯示
+
+        
+        // 格式化投注選項顯示
+        formatBetValue(value) {
+            if (!value) return '-';
+            
+            const valueMap = {
+                // 大小
+                'big': '大',
+                'small': '小',
+                // 單雙
+                'odd': '單',
+                'even': '雙',
+                // 龍虎
+                'dragon': '龍',
+                'tiger': '虎',
+                // 和值相關
+                'sumBig': '總和大',
+                'sumSmall': '總和小',
+                'sumOdd': '總和單',
+                'sumEven': '總和雙',
+            };
+            
+            // 如果是純數字，直接返回
+            if (!isNaN(value) && !isNaN(parseFloat(value))) {
+                return value;
+            }
+            
+            // 查找對應的中文翻譯
+            return valueMap[value] || value;
+        },
+        
+        // 客服專用方法
+        async loadAllAgents() {
+            try {
+                this.loading = true;
+                console.log('開始加載所有代理...');
+                // 遞歸獲取所有代理
+                const response = await axios.get(`${API_BASE_URL}/sub-agents`, {
+                    params: {
+                        parentId: '', // 空值獲取所有代理
+                        level: -1,
+                        status: -1,
+                        page: 1,
+                        limit: 1000 // 設置較大的limit獲取所有代理
+                    }
+                });
+                
+                console.log('API響應:', response.data);
+                
+                if (response.data.success) {
+                    this.allAgents = response.data.data.list || [];
+                    console.log('加載所有代理成功:', this.allAgents.length, this.allAgents);
+                    
+                    // 確保每個代理都有正確的屬性
+                    this.allAgents.forEach((agent, index) => {
+                        console.log(`代理 ${index}:`, {
+                            id: agent.id,
+                            username: agent.username,
+                            level: agent.level,
+                            balance: agent.balance,
+                            levelName: this.getLevelName(agent.level),
+                            formattedBalance: this.formatMoney(agent.balance)
+                        });
+                        
+                        // 確保數據類型正確
+                        agent.balance = parseFloat(agent.balance) || 0;
+                        agent.level = parseInt(agent.level) || 0;
+                    });
+                    
+                    // 手動更新代理選擇下拉列表
+                    this.updateAgentSelect();
+                } else {
+                    console.error('API返回失敗:', response.data.message);
+                    this.showMessage('加載代理列表失敗', 'error');
+                }
+            } catch (error) {
+                console.error('加載所有代理出錯:', error);
+                this.showMessage('加載代理列表出錯', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async loadCSTransactions(page = 1) {
+            if (!this.isCustomerService) return;
+            
+            try {
+                this.loading = true;
+                // 確保 page 是一個有效的數字
+                const pageNum = parseInt(page) || 1;
+                const response = await axios.get(`${API_BASE_URL}/cs-transactions`, {
+                    params: {
+                        operatorId: this.user.id,
+                        page: pageNum,
+                        limit: this.csTransactionsPagination.limit,
+                        userType: this.csTransactionFilters.userType,
+                        transactionType: this.csTransactionFilters.transactionType
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.csTransactions = response.data.data.list || [];
+                    this.csTransactionsPagination = {
+                        page: response.data.data.page,
+                        limit: response.data.data.limit,
+                        total: response.data.data.total
+                    };
+                    console.log('加載客服交易記錄成功:', this.csTransactions.length);
+                } else {
+                    this.showMessage(response.data.message || '加載客服交易記錄失敗', 'error');
+                }
+            } catch (error) {
+                console.error('加載客服交易記錄出錯:', error);
+                this.showMessage('加載客服交易記錄出錯', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 顯示客服操作模態框
+        async showCSOperationModalFunc() {
+            console.log('=== 開始顯示客服操作模態框 ===');
+            
+            // 重置表單數據
+            this.csOperation = {
+                targetAgentId: '',
+                operationTarget: '',
+                targetMemberId: '',
+                transferType: '',
+                amount: '',
+                description: ''
+            };
+            this.agentMembers = [];
+            
+            console.log('當前allAgents數量:', this.allAgents.length);
+            
+            // 確保代理列表已加載
+            if (this.allAgents.length === 0) {
+                console.log('代理列表為空，開始加載...');
+                await this.loadAllAgents();
+            }
+            
+            console.log('加載後allAgents數量:', this.allAgents.length);
+            console.log('allAgents內容:', this.allAgents);
+            
+            // 手動更新代理選擇列表
+            this.updateAgentSelect();
+            
+            // 顯示模態框
+            if (this.csOperationModal) {
+                this.csOperationModal.show();
+            } else {
+                // 如果模態框還沒初始化，先初始化再顯示
+                const csOperationModalEl = document.getElementById('csOperationModal');
+                if (csOperationModalEl) {
+                    this.csOperationModal = new bootstrap.Modal(csOperationModalEl);
+                    this.csOperationModal.show();
+                }
+            }
+            
+            // 設置初始操作對象（默認為代理）
+            setTimeout(() => {
+                const targetAgent = document.getElementById('csTargetAgent');
+                if (targetAgent) {
+                    targetAgent.checked = true;
+                    this.csOperation.operationTarget = 'agent';
+                    this.onOperationTargetChange();
+                }
+            }, 200);
+            
+            // 添加事件監聽器
+            setTimeout(() => {
+                const targetAgent = document.getElementById('csTargetAgent');
+                const targetMember = document.getElementById('csTargetMember');
+                const agentSelect = document.getElementById('agentSelect');
+                const memberSelect = document.getElementById('memberSelect');
+                const amountInput = document.getElementById('amountInput');
+                const depositRadio = document.getElementById('csDeposit');
+                const withdrawRadio = document.getElementById('csWithdraw');
+                
+                // 移除之前的事件監聽器（避免重複）
+                if (targetAgent) {
+                    targetAgent.removeEventListener('change', this.handleOperationTargetChange);
+                    targetAgent.addEventListener('change', this.handleOperationTargetChange.bind(this));
+                }
+                if (targetMember) {
+                    targetMember.removeEventListener('change', this.handleOperationTargetChange);
+                    targetMember.addEventListener('change', this.handleOperationTargetChange.bind(this));
+                }
+                if (agentSelect) {
+                    agentSelect.removeEventListener('change', this.handleAgentSelectionChange);
+                    agentSelect.addEventListener('change', this.handleAgentSelectionChange.bind(this));
+                }
+                if (memberSelect) {
+                    memberSelect.removeEventListener('change', this.handleMemberSelectionChange);
+                    memberSelect.addEventListener('change', this.handleMemberSelectionChange.bind(this));
+                }
+                if (amountInput) {
+                    amountInput.removeEventListener('input', this.handleAmountChange);
+                    amountInput.addEventListener('input', this.handleAmountChange.bind(this));
+                }
+                if (depositRadio) {
+                    depositRadio.removeEventListener('change', this.handleTransferTypeChange);
+                    depositRadio.addEventListener('change', this.handleTransferTypeChange.bind(this));
+                }
+                if (withdrawRadio) {
+                    withdrawRadio.removeEventListener('change', this.handleTransferTypeChange);
+                    withdrawRadio.addEventListener('change', this.handleTransferTypeChange.bind(this));
+                }
+                
+                // 添加表單提交事件監聽器
+                const submitBtn = document.getElementById('csOperationSubmitBtn');
+                if (submitBtn) {
+                    submitBtn.removeEventListener('click', this.handleSubmitCSOperation);
+                    submitBtn.addEventListener('click', this.handleSubmitCSOperation.bind(this));
+                }
+                
+                console.log('事件監聽器已添加');
+            }, 300);
+            
+            console.log('=== 客服操作模態框顯示完成 ===');
+        },
+        
+        // 事件處理器方法
+        handleOperationTargetChange() {
+            this.onOperationTargetChange();
+        },
+        
+        handleAgentSelectionChange() {
+            this.onAgentSelectionChange();
+        },
+        
+        handleMemberSelectionChange() {
+            const memberSelect = document.getElementById('memberSelect');
+            const memberId = memberSelect ? memberSelect.value : '';
+            this.csOperation.targetMemberId = memberId;
+            this.updateCurrentBalanceDisplay();
+        },
+        
+        handleAmountChange() {
+            const amountInput = document.getElementById('amountInput');
+            this.csOperation.amount = amountInput ? amountInput.value : '';
+            this.updateFinalBalanceDisplay();
+        },
+        
+        handleTransferTypeChange() {
+            const depositRadio = document.getElementById('csDeposit');
+            const withdrawRadio = document.getElementById('csWithdraw');
+            
+            if (depositRadio && depositRadio.checked) {
+                this.csOperation.transferType = 'deposit';
+            } else if (withdrawRadio && withdrawRadio.checked) {
+                this.csOperation.transferType = 'withdraw';
+            }
+            this.updateFinalBalanceDisplay();
+        },
+        
+        handleSubmitCSOperation() {
+            console.log('處理表單提交');
+            // 防止重複提交
+            const submitBtn = document.getElementById('csOperationSubmitBtn');
+            const spinner = document.getElementById('csOperationSpinner');
+            
+            if (submitBtn.disabled) {
+                console.log('按鈕已禁用，防止重複提交');
+                return;
+            }
+            
+            // 驗證表單
+            if (!this.isValidCSOperation) {
+                console.log('表單驗證失敗');
+                this.showMessage('請填寫完整的操作信息', 'error');
+                return;
+            }
+            
+            // 顯示載入狀態
+            submitBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            
+            // 調用提交方法
+            this.submitCSOperation().finally(() => {
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+            });
+        },
+        
+        hideCSOperationModal() {
+            this.showCSOperationModal = false;
+            this.csOperation = {
+                targetAgentId: '',
+                operationTarget: '',
+                targetMemberId: '',
+                transferType: '',
+                amount: '',
+                description: ''
+            };
+            this.agentMembers = [];
+        },
+        
+        // 操作對象變化時的處理
+        async onOperationTargetChange() {
+            const targetAgent = document.getElementById('csTargetAgent');
+            const targetMember = document.getElementById('csTargetMember');
+            
+            let operationTarget = '';
+            if (targetAgent && targetAgent.checked) {
+                operationTarget = 'agent';
+            } else if (targetMember && targetMember.checked) {
+                operationTarget = 'member';
+            }
+            
+            console.log('操作對象變化:', operationTarget);
+            this.csOperation.operationTarget = operationTarget;
+            
+            // 重置會員選擇和操作相關欄位（但保留代理選擇）
+            this.csOperation.targetMemberId = '';
+            this.csOperation.transferType = '';
+            this.csOperation.amount = '';
+            this.agentMembers = [];
+            
+            // 清空表單
+            const memberSelect = document.getElementById('memberSelect');
+            const amountInput = document.getElementById('amountInput');
+            const currentBalanceInput = document.getElementById('currentBalanceInput');
+            const finalBalanceInput = document.getElementById('finalBalanceInput');
+            const depositRadio = document.getElementById('csDeposit');
+            const withdrawRadio = document.getElementById('csWithdraw');
+            
+            if (memberSelect) memberSelect.value = '';
+            if (amountInput) amountInput.value = '';
+            if (currentBalanceInput) currentBalanceInput.value = '';
+            if (finalBalanceInput) finalBalanceInput.value = '';
+            if (depositRadio) depositRadio.checked = false;
+            if (withdrawRadio) withdrawRadio.checked = false;
+            
+            // 顯示/隱藏相關元素
+            const agentSelectDiv = document.getElementById('agentSelectDiv');
+            const memberSelectDiv = document.getElementById('memberSelectDiv');
+            const currentBalanceDiv = document.getElementById('currentBalanceDiv');
+            const operationTypeDiv = document.getElementById('operationTypeDiv');
+            const amountDiv = document.getElementById('amountDiv');
+            const finalBalanceDiv = document.getElementById('finalBalanceDiv');
+            
+            if (operationTarget) {
+                agentSelectDiv.style.display = 'block';
+                this.updateAgentSelect();
+            } else {
+                agentSelectDiv.style.display = 'none';
+                memberSelectDiv.style.display = 'none';
+                currentBalanceDiv.style.display = 'none';
+                operationTypeDiv.style.display = 'none';
+                amountDiv.style.display = 'none';
+                finalBalanceDiv.style.display = 'none';
+            }
+            
+            // 清空會員選擇列表
+            this.updateMemberSelect();
+            
+            // 如果改為會員操作且已經選擇了代理，則加載會員列表
+            if (operationTarget === 'member' && this.csOperation.targetAgentId) {
+                console.log('需要加載代理會員列表，代理ID:', this.csOperation.targetAgentId);
+                await this.loadAgentMembers(this.csOperation.targetAgentId);
+            }
+            
+            // 更新當前餘額顯示
+            setTimeout(() => {
+                this.updateCurrentBalanceDisplay();
+            }, 100);
+        },
+        
+        // 代理選擇變化時的處理
+        async onAgentSelectionChange() {
+            const agentSelect = document.getElementById('agentSelect');
+            const agentId = agentSelect ? agentSelect.value : '';
+            
+            console.log('代理選擇變化:', agentId, '操作對象:', this.csOperation.operationTarget);
+            this.csOperation.targetAgentId = agentId;
+            
+            // 重置會員選擇和操作相關欄位
+            this.csOperation.targetMemberId = '';
+            this.csOperation.transferType = '';
+            this.csOperation.amount = '';
+            this.agentMembers = [];
+            
+            // 清空表單
+            const memberSelect = document.getElementById('memberSelect');
+            const amountInput = document.getElementById('amountInput');
+            const currentBalanceInput = document.getElementById('currentBalanceInput');
+            const finalBalanceInput = document.getElementById('finalBalanceInput');
+            const depositRadio = document.getElementById('csDeposit');
+            const withdrawRadio = document.getElementById('csWithdraw');
+            
+            if (memberSelect) memberSelect.value = '';
+            if (amountInput) amountInput.value = '';
+            if (currentBalanceInput) currentBalanceInput.value = '';
+            if (finalBalanceInput) finalBalanceInput.value = '';
+            if (depositRadio) depositRadio.checked = false;
+            if (withdrawRadio) withdrawRadio.checked = false;
+            
+            // 顯示/隱藏相關元素
+            const memberSelectDiv = document.getElementById('memberSelectDiv');
+            const currentBalanceDiv = document.getElementById('currentBalanceDiv');
+            const operationTypeDiv = document.getElementById('operationTypeDiv');
+            const amountDiv = document.getElementById('amountDiv');
+            const finalBalanceDiv = document.getElementById('finalBalanceDiv');
+            
+            if (agentId) {
+                // 根據操作對象決定是否顯示會員選擇
+                if (this.csOperation.operationTarget === 'member') {
+                    memberSelectDiv.style.display = 'block';
+                    console.log('開始加載選中代理的會員列表，代理ID:', agentId);
+                    await this.loadAgentMembers(agentId);
+                } else {
+                    memberSelectDiv.style.display = 'none';
+                }
+                
+                currentBalanceDiv.style.display = 'block';
+                operationTypeDiv.style.display = 'block';
+                amountDiv.style.display = 'block';
+                finalBalanceDiv.style.display = 'block';
+            } else {
+                memberSelectDiv.style.display = 'none';
+                currentBalanceDiv.style.display = 'none';
+                operationTypeDiv.style.display = 'none';
+                amountDiv.style.display = 'none';
+                finalBalanceDiv.style.display = 'none';
+            }
+            
+            // 清空會員選擇列表
+            this.updateMemberSelect();
+            
+            // 更新當前餘額顯示
+            setTimeout(() => {
+                this.updateCurrentBalanceDisplay();
+            }, 100);
+        },
+        
+        // 加載指定代理的會員列表
+        async loadAgentMembers(agentId) {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/members`, {
+                    params: {
+                        agentId: agentId,
+                        status: -1, // 獲取所有狀態的會員
+                        page: 1,
+                        limit: 1000 // 設置較大的limit獲取所有會員
+                    }
+                });
+                if (response.data.success) {
+                    this.agentMembers = response.data.data.list || [];
+                    console.log('加載代理會員列表成功:', this.agentMembers.length, this.agentMembers);
+                    
+                    // 確保每個會員都有正確的屬性
+                    this.agentMembers.forEach((member, index) => {
+                        console.log(`會員 ${index}:`, {
+                            id: member.id,
+                            username: member.username,
+                            balance: member.balance,
+                            formattedBalance: this.formatMoney(member.balance)
+                        });
+                        
+                        // 確保數據類型正確
+                        member.balance = parseFloat(member.balance) || 0;
+                    });
+                    
+                    // 手動更新會員選擇下拉列表
+                    this.updateMemberSelect();
+                    
+                    // 為會員選擇添加change事件監聽器
+                    this.$nextTick(() => {
+                        const memberSelect = document.getElementById('memberSelect');
+                        if (memberSelect) {
+                            memberSelect.addEventListener('change', () => {
+                                this.updateCurrentBalanceDisplay();
+                            });
+                        }
+                        this.updateCurrentBalanceDisplay();
+                    });
+                } else {
+                    console.error('加載代理會員列表失敗:', response.data.message);
+                    this.agentMembers = [];
+                }
+            } catch (error) {
+                console.error('加載代理會員列表出錯:', error);
+                this.agentMembers = [];
+            }
+        },
+        
+        // 手動更新代理選擇下拉列表
+        updateAgentSelect() {
+            const agentSelect = document.getElementById('agentSelect');
+            if (!agentSelect) return;
+            
+            // 清除現有選項（保留第一個）
+            while (agentSelect.children.length > 1) {
+                agentSelect.removeChild(agentSelect.lastChild);
+            }
+            
+            // 添加代理選項
+            this.allAgents.forEach(agent => {
+                // 代理操作：排除總代理（避免自己操作自己）
+                // 會員操作：包含總代理（可以操作自己旗下的會員）
+                const shouldInclude = this.csOperation.operationTarget === 'member' || agent.level !== 0;
+                
+                if (shouldInclude) {
+                    const option = document.createElement('option');
+                    option.value = agent.id;
+                    option.textContent = `${agent.username} (${this.getLevelName(agent.level)}) - 餘額: ${this.formatMoney(agent.balance)}`;
+                    agentSelect.appendChild(option);
+                }
+            });
+            
+            const totalOptions = agentSelect.children.length - 1; // 排除第一個默認選項
+            console.log('已更新代理選擇列表，共', totalOptions, '個選項，操作類型:', this.csOperation.operationTarget);
+        },
+        
+        // 手動更新會員選擇下拉列表
+        updateMemberSelect() {
+            const memberSelect = document.getElementById('memberSelect');
+            if (!memberSelect) return;
+            
+            // 清除現有選項（保留第一個）
+            while (memberSelect.children.length > 1) {
+                memberSelect.removeChild(memberSelect.lastChild);
+            }
+            
+            // 添加會員選項
+            this.agentMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.id;
+                option.textContent = `${member.username} - 餘額: ${this.formatMoney(member.balance)}`;
+                memberSelect.appendChild(option);
+            });
+            
+            console.log('已更新會員選擇列表，共', this.agentMembers.length, '個選項');
+        },
+        
+        // 更新當前餘額顯示
+        updateCurrentBalanceDisplay() {
+            const currentBalanceInput = document.getElementById('currentBalanceInput');
+            if (currentBalanceInput) {
+                const balance = this.getCurrentBalance();
+                currentBalanceInput.value = balance !== null ? this.formatMoney(balance) : '';
+                console.log('更新當前餘額顯示:', balance);
+            }
+        },
+        
+        // 更新操作後餘額顯示
+        updateFinalBalanceDisplay() {
+            const finalBalanceInput = document.getElementById('finalBalanceInput');
+            if (finalBalanceInput) {
+                const finalBalance = this.calculateFinalBalance();
+                finalBalanceInput.value = this.formatMoney(finalBalance);
+                console.log('更新操作後餘額顯示:', finalBalance);
+            }
+        },
+        
+        // 獲取當前選中用戶的餘額
+        getCurrentBalance() {
+            console.log('獲取當前餘額:', {
+                operationTarget: this.csOperation.operationTarget,
+                targetAgentId: this.csOperation.targetAgentId,
+                targetMemberId: this.csOperation.targetMemberId,
+                allAgents: this.allAgents.length,
+                agentMembers: this.agentMembers.length
+            });
+            
+            if (this.csOperation.operationTarget === 'agent' && this.csOperation.targetAgentId) {
+                const selectedAgent = this.allAgents.find(agent => agent.id == this.csOperation.targetAgentId);
+                console.log('找到代理:', selectedAgent);
+                return selectedAgent ? parseFloat(selectedAgent.balance) : null;
+            } else if (this.csOperation.operationTarget === 'member' && this.csOperation.targetMemberId) {
+                const selectedMember = this.agentMembers.find(member => member.id == this.csOperation.targetMemberId);
+                console.log('找到會員:', selectedMember);
+                return selectedMember ? parseFloat(selectedMember.balance) : null;
+            }
+            return null;
+        },
+        
+        // 計算操作後的最終餘額
+        calculateFinalBalance() {
+            const currentBalance = this.getCurrentBalance();
+            const amount = parseFloat(this.csOperation.amount) || 0;
+            
+            if (currentBalance === null || amount <= 0) {
+                return currentBalance || 0;
+            }
+            
+            if (this.csOperation.transferType === 'deposit') {
+                return currentBalance + amount;
+            } else if (this.csOperation.transferType === 'withdraw') {
+                return currentBalance - amount;
+            }
+            
+            return currentBalance;
+        },
+        
+        async submitCSOperation() {
+            console.log('開始提交客服操作');
+            
+            // 從DOM元素獲取最新值
+            const targetAgent = document.getElementById('csTargetAgent');
+            const targetMember = document.getElementById('csTargetMember');
+            const agentSelect = document.getElementById('agentSelect');
+            const memberSelect = document.getElementById('memberSelect');
+            const amountInput = document.getElementById('amountInput');
+            const depositRadio = document.getElementById('csDeposit');
+            const withdrawRadio = document.getElementById('csWithdraw');
+            const descriptionInput = document.getElementById('csOperationDescription');
+            
+            // 更新csOperation數據
+            if (targetAgent && targetAgent.checked) {
+                this.csOperation.operationTarget = 'agent';
+            } else if (targetMember && targetMember.checked) {
+                this.csOperation.operationTarget = 'member';
+            }
+            
+            this.csOperation.targetAgentId = agentSelect ? agentSelect.value : '';
+            this.csOperation.targetMemberId = memberSelect ? memberSelect.value : '';
+            this.csOperation.amount = amountInput ? amountInput.value : '';
+            
+            if (depositRadio && depositRadio.checked) {
+                this.csOperation.transferType = 'deposit';
+            } else if (withdrawRadio && withdrawRadio.checked) {
+                this.csOperation.transferType = 'withdraw';
+            }
+            
+            this.csOperation.description = descriptionInput ? descriptionInput.value : '';
+            
+            console.log('表單數據:', this.csOperation);
+            
+            if (!this.isValidCSOperation) {
+                this.showMessage('請檢查輸入資料', 'error');
+                return;
+            }
+            
+            try {
+                this.loading = true;
+                let response;
+                
+                const currentBalance = this.getCurrentBalance();
+                const amount = parseFloat(this.csOperation.amount);
+                
+                console.log('操作詳情:', {
+                    操作對象: this.csOperation.operationTarget,
+                    當前餘額: currentBalance,
+                    操作金額: amount,
+                    操作類型: this.csOperation.transferType
+                });
+                
+                if (this.csOperation.operationTarget === 'agent') {
+                    // 代理操作 - 客服代表總代理進行點數轉移
+                    // 存款 = 總代理轉給目標代理
+                    // 提款 = 目標代理轉給總代理
+                    response = await axios.post(`${API_BASE_URL}/cs-agent-transfer`, {
+                        operatorId: this.user.id,
+                        targetAgentId: this.csOperation.targetAgentId,
+                        amount: amount,
+                        transferType: this.csOperation.transferType, // 'deposit' 或 'withdraw'
+                        description: this.csOperation.description || `客服${this.csOperation.transferType === 'deposit' ? '存款' : '提款'}`
+                    });
+                } else {
+                    // 會員操作 - 客服代表代理進行點數轉移
+                    // 存款 = 代理轉給會員
+                    // 提款 = 會員轉給代理
+                    const selectedMember = this.agentMembers.find(member => member.id == this.csOperation.targetMemberId);
+                    response = await axios.post(`${API_BASE_URL}/cs-member-transfer`, {
+                        operatorId: this.user.id,
+                        agentId: this.csOperation.targetAgentId,
+                        targetMemberUsername: selectedMember.username,
+                        amount: amount,
+                        transferType: this.csOperation.transferType, // 'deposit' 或 'withdraw'
+                        description: this.csOperation.description || `客服${this.csOperation.transferType === 'deposit' ? '存款' : '提款'}`
+                    });
+                }
+                
+                if (response.data.success) {
+                    this.showMessage('餘額調整成功!', 'success');
+                    
+                    // 保存操作類型和代理ID，用於後續刷新
+                    const wasMembeOperation = this.csOperation.operationTarget === 'member';
+                    const targetAgentId = this.csOperation.targetAgentId;
+                    
+                    // 隱藏模態框
+                    if (this.csOperationModal) {
+                        this.csOperationModal.hide();
+                    }
+                    this.hideCSOperationModal();
+                    
+                    // 重置操作表單
+                    this.csOperation = {
+                        targetAgentId: '',
+                        operationTarget: '',
+                        targetMemberId: '',
+                        transferType: '',
+                        amount: '',
+                        description: ''
+                    };
+                    
+                    // 全面刷新所有相關數據
+                    const refreshPromises = [
+                        this.loadCSTransactions(), // 刷新客服交易記錄
+                        this.loadAllAgents(),      // 刷新代理列表
+                        this.fetchDashboardData()  // 刷新儀表板統計
+                    ];
+                    
+                    // 如果操作的是會員，也要刷新會員列表
+                    if (wasMembeOperation && targetAgentId) {
+                        refreshPromises.push(this.loadAgentMembers(targetAgentId));
+                    }
+                    
+                    // 如果當前在會員頁面，刷新會員列表
+                    if (this.activeTab === 'members') {
+                        refreshPromises.push(this.searchMembers());
+                    }
+                    
+                    // 執行所有刷新操作
+                    await Promise.all(refreshPromises);
+                    
+                    // 刷新當前用戶餘額（右上角顯示）
+                    await this.refreshUserBalance();
+                    
+                    console.log('✅ 客服操作完成，所有數據已刷新');
+                } else {
+                    this.showMessage(response.data.message || '餘額調整失敗', 'error');
+                }
+            } catch (error) {
+                console.error('客服操作出錯:', error);
+                this.showMessage(error.response?.data?.message || '操作失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 刷新當前用戶餘額
+        async refreshUserBalance() {
+            try {
+                // 從所有代理列表中找到當前用戶並更新餘額
+                if (this.isCustomerService && this.allAgents.length > 0) {
+                    const currentUserAgent = this.allAgents.find(agent => agent.id == this.user.id);
+                    if (currentUserAgent) {
+                        this.user.balance = currentUserAgent.balance;
+                        // 同時更新localStorage中的用戶資訊
+                        localStorage.setItem('agent_user', JSON.stringify(this.user));
+                        console.log('✅ 用戶餘額已更新:', this.formatMoney(this.user.balance));
+                    }
+                }
+            } catch (error) {
+                console.error('刷新用戶餘額失敗:', error);
+            }
+        },
+        
+        // 加載存款記錄
+        async loadDepositRecords(page = 1) {
+            this.loading = true;
+            try {
+                console.log('加載存款記錄...');
+                const response = await fetch(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=deposit&page=${page}&limit=${this.depositPagination.limit}`);
+                
+                if (!response.ok) {
+                    console.error('加載存款記錄失敗:', response.status);
+                    this.depositRecords = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    this.depositRecords = data.data.list || [];
+                    this.depositPagination = {
+                        page: data.data.page || 1,
+                        limit: data.data.limit || 20,
+                        total: data.data.total || 0
+                    };
+                    console.log('存款記錄載入成功，共有 ' + this.depositRecords.length + ' 筆記錄');
+                } else {
+                    console.error('存款記錄數據格式錯誤:', data);
+                    this.depositRecords = [];
+                }
+            } catch (error) {
+                console.error('加載存款記錄錯誤:', error);
+                this.depositRecords = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 加載提款記錄
+        async loadWithdrawRecords(page = 1) {
+            this.loading = true;
+            try {
+                console.log('加載提款記錄...');
+                const response = await fetch(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=withdraw&page=${page}&limit=${this.withdrawPagination.limit}`);
+                
+                if (!response.ok) {
+                    console.error('加載提款記錄失敗:', response.status);
+                    this.withdrawRecords = [];
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    this.withdrawRecords = data.data.list || [];
+                    this.withdrawPagination = {
+                        page: data.data.page || 1,
+                        limit: data.data.limit || 20,
+                        total: data.data.total || 0
+                    };
+                    console.log('提款記錄載入成功，共有 ' + this.withdrawRecords.length + ' 筆記錄');
+                } else {
+                    console.error('提款記錄數據格式錯誤:', data);
+                    this.withdrawRecords = [];
+                }
+            } catch (error) {
+                console.error('加載提款記錄錯誤:', error);
+                this.withdrawRecords = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 重設代理密碼
+        resetAgentPassword(agent) {
+            this.resetPasswordData = {
+                userType: 'agent',
+                userId: agent.id,
+                username: agent.username,
+                newPassword: '',
+                confirmPassword: ''
+            };
+            
+            const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            modal.show();
+        },
+        
+        // 重設會員密碼
+        resetMemberPassword(member) {
+            this.resetPasswordData = {
+                userType: 'member',
+                userId: member.id,
+                username: member.username,
+                newPassword: '',
+                confirmPassword: ''
+            };
+            
+            const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            modal.show();
+        },
+        
+        // 提交密碼重設
+        async submitPasswordReset() {
+            if (!this.isPasswordResetValid) {
+                this.showMessage('請確認密碼格式正確且兩次輸入一致', 'error');
+                return;
+            }
+            
+            this.loading = true;
+            
+            try {
+                const endpoint = this.resetPasswordData.userType === 'agent' ? 'reset-agent-password' : 'reset-member-password';
+                
+                const response = await axios.post(`${API_BASE_URL}/${endpoint}`, {
+                    userId: this.resetPasswordData.userId,
+                    newPassword: this.resetPasswordData.newPassword,
+                    operatorId: this.user.id // 記錄操作者
+                });
+                
+                if (response.data.success) {
+                    this.showMessage(`${this.resetPasswordData.userType === 'agent' ? '代理' : '會員'}密碼重設成功`, 'success');
+                    
+                    // 關閉模態框
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+                    modal.hide();
+                    
+                    // 清空表單數據
+                    this.resetPasswordData = {
+                        userType: '',
+                        userId: null,
+                        username: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    };
+                } else {
+                    this.showMessage(response.data.message || '密碼重設失敗', 'error');
+                }
+            } catch (error) {
+                console.error('重設密碼錯誤:', error);
+                this.showMessage(error.response?.data?.message || '密碼重設失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 顯示個人資料模態框
+        async showProfileModal() {
+            console.log('顯示個人資料模態框');
+            // 載入個人資料數據
+            await this.loadProfileData();
+            // 顯示 modal
+            this.isProfileModalVisible = true;
+        },
+        
+        // 隱藏個人資料模態框
+        hideProfileModal() {
+            this.isProfileModalVisible = false;
+        },
+        
+        // 載入個人資料數據
+        async loadProfileData() {
+            this.profileLoading = true;
+            
+            try {
+                const response = await axios.get(`${API_BASE_URL}/agent-profile/${this.user.id}`);
+                
+                if (response.data.success) {
+                    // 更新個人資料數據
+                    this.profileData = {
+                        realName: response.data.data.real_name || '',
+                        phone: response.data.data.phone || '',
+                        email: response.data.data.email || '',
+                        lineId: response.data.data.line_id || '',
+                        telegram: response.data.data.telegram || '',
+                        address: response.data.data.address || '',
+                        remark: response.data.data.remark || ''
+                    };
+                } else {
+                    console.log('首次載入個人資料，使用空白數據');
+                }
+            } catch (error) {
+                console.error('載入個人資料錯誤:', error);
+                // 如果載入失敗，使用空白數據
+                this.profileData = {
+                    realName: '',
+                    phone: '',
+                    email: '',
+                    lineId: '',
+                    telegram: '',
+                    address: '',
+                    remark: ''
+                };
+            } finally {
+                this.profileLoading = false;
+            }
+        },
+        
+        // 更新個人資料
+        async updateProfile() {
+            console.log('開始更新個人資料...', this.user?.id);
+             
+             if (!this.user?.id) {
+                 this.showMessage('用戶信息錯誤，請重新登入', 'error');
+                 return;
+             }
+             
+             this.profileLoading = true;
+             
+             try {
+                 console.log('發送更新請求到:', `${API_BASE_URL}/update-agent-profile`);
+                 
+                 const response = await axios.post(`${API_BASE_URL}/update-agent-profile`, {
+                     agentId: this.user.id,
+                     realName: this.profileData.realName,
+                     phone: this.profileData.phone,
+                     email: this.profileData.email,
+                     lineId: this.profileData.lineId,
+                     telegram: this.profileData.telegram,
+                     address: this.profileData.address,
+                     remark: this.profileData.remark
+                 }, {
+                     timeout: 10000, // 10秒超時
+                     headers: {
+                         'Content-Type': 'application/json'
+                     }
+                 });
+                 
+                 console.log('收到API回應:', response.data);
+                 
+                 if (response.data.success) {
+                     this.showMessage('個人資料更新成功', 'success');
+                     
+                     // 關閉 modal
+                     this.hideProfileModal();
+                 } else {
+                     this.showMessage(response.data.message || '個人資料更新失敗', 'error');
+                 }
+             } catch (error) {
+                 console.error('更新個人資料錯誤:', error);
+                 console.error('錯誤詳情:', error.response);
+                 
+                 let errorMessage = '個人資料更新失敗，請稍後再試';
+                 if (error.response?.data?.message) {
+                     errorMessage = error.response.data.message;
+                 } else if (error.message) {
+                     errorMessage = error.message;
+                 }
+                 
+                 this.showMessage(errorMessage, 'error');
+             } finally {
+                 console.log('更新個人資料完成');
+                 this.profileLoading = false;
+                 
+                 // 額外的安全機制：確保按鈕狀態正確重置
+                 setTimeout(() => {
+                     if (this.profileLoading) {
+                         console.warn('檢測到 profileLoading 狀態異常，強制重置');
+                         this.profileLoading = false;
+                     }
+                 }, 1000);
+             }
+         },
     },
-    
+        
     // 計算屬性
     computed: {
+        // 計算最終代理餘額（會員點數轉移用）- 作為計算屬性
+        finalAgentBalance() {
+            const currentBalance = parseFloat(this.agentCurrentBalance) || 0;
+            const amount = parseFloat(this.transferAmount) || 0;
+            
+            if (this.transferType === 'deposit') {
+                // 代理存入點數給會員，代理餘額減少
+                return currentBalance - amount;
+            } else {
+                // 代理從會員提領點數，代理餘額增加
+                return currentBalance + amount;
+            }
+        },
+        
         // 檢查轉移是否有效
         isValidTransfer() {
             if (parseFloat(this.transferAmount) <= 0) {
@@ -1593,6 +2917,49 @@ const app = new Vue({
                 }
                 return true;
             }
+        },
+        
+        // 檢查客服操作是否有效
+        isValidCSOperation() {
+            const amount = parseFloat(this.csOperation.amount) || 0;
+            
+            if (amount <= 0) return false;
+            if (!this.csOperation.operationTarget) return false;
+            if (!this.csOperation.targetAgentId) return false;
+            if (this.csOperation.operationTarget === 'member' && !this.csOperation.targetMemberId) return false;
+            if (!this.csOperation.transferType) return false;
+            
+            return true;
+        },
+        
+        // 檢查密碼重設是否有效
+        isPasswordResetValid() {
+            return (
+                this.resetPasswordData.newPassword && 
+                this.resetPasswordData.confirmPassword &&
+                this.resetPasswordData.newPassword.length >= 6 &&
+                this.resetPasswordData.newPassword === this.resetPasswordData.confirmPassword
+            );
+        },
+        
+        // 當前用戶名
+        currentUsername() {
+            console.log('計算currentUsername，user:', this.user);
+            const username = this.user?.username || '載入中...';
+            console.log('計算得到的username:', username);
+            return username;
+        },
+        
+        // 當前用戶級別
+        currentUserLevel() {
+            console.log('計算currentUserLevel，user.level:', this.user?.level);
+            if (this.user?.level !== undefined && this.user?.level !== null) {
+                const levelName = this.getLevelName(this.user.level);
+                console.log('計算得到的levelName:', levelName);
+                return levelName;
+            }
+            console.log('回傳載入中...');
+            return '載入中...';
         }
     },
     
@@ -1618,6 +2985,9 @@ const app = new Vue({
             if (newTab === 'transactions' && this.transactionTab === 'transfers') {
                 this.loadPointTransfers();
             }
+            if (newTab === 'customer-service' && this.isCustomerService) {
+                this.loadCSTransactions();
+            }
         },
         transactionTab(newTab, oldTab) {
             if (this.activeTab === 'transactions' && newTab === 'transfers') {
@@ -1626,3 +2996,21 @@ const app = new Vue({
         }
     }
 });
+
+// 掛載Vue應用
+console.log('準備掛載Vue應用到 #app');
+const appElement = document.getElementById('app');
+console.log('找到app元素:', appElement);
+
+if (appElement) {
+    try {
+        const mountedApp = app.mount('#app');
+        console.log('Vue應用掛載成功:', mountedApp);
+    } catch (error) {
+        console.error('Vue應用掛載失敗:', error);
+        alert('Vue應用掛載失敗: ' + error.message);
+    }
+} else {
+    console.error('找不到 #app 元素！');
+    alert('找不到 #app 元素！');
+}

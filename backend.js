@@ -961,33 +961,38 @@ async function settleBets(period, winResult) {
       // 標記為已結算
       await BetModel.updateSettlement(bet.id, isWin, winAmount);
       
-      // 如果贏了，則從總代理轉移點數到會員
+      // 如果贏了，直接增加會員餘額（不從代理扣除）
       if (isWin) {
-        // 呼叫代理系統API
-        const updateResponse = await fetch(`${AGENT_API_URL}/update-member-balance`, {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-            agentId: adminAgent.id,
-            username: username,
-            amount: parseFloat(winAmount),  // 正數表示轉入到會員賬戶
-            type: 'win',
-            description: `第${period}期中獎 ${bet.bet_type}:${bet.bet_value}`
-            })
-          });
+        try {
+          // 獲取當前餘額
+          const currentBalance = await getBalance(username);
+          const newBalance = currentBalance + parseFloat(winAmount);
           
-        const updateData = await updateResponse.json();
-        
-        if (updateData.success) {
-          // 同步本地餘額
-          await UserModel.setBalance(username, updateData.newBalance);
-          console.log(`用戶 ${username} 贏得了 ${winAmount} 元，更新後餘額: ${updateData.newBalance}`);
-          } else {
-          console.error(`轉移獎金給用戶 ${username} 失敗:`, updateData.message);
-            }
+          // 直接更新會員餘額（不經過代理系統的點數轉移）
+          await UserModel.setBalance(username, newBalance);
+          
+          // 只同步餘額到代理系統（不扣代理點數）
+          try {
+            await fetch(`${AGENT_API_URL}/sync-member-balance`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                username: username,
+                balance: newBalance,
+                reason: `第${period}期中獎 ${bet.bet_type}:${bet.bet_value}`
+              })
+            });
+          } catch (syncError) {
+            console.warn('同步餘額到代理系統失敗，但會員餘額已更新:', syncError);
           }
+          
+          console.log(`用戶 ${username} 贏得了 ${winAmount} 元，餘額從 ${currentBalance} 更新為 ${newBalance}`);
+        } catch (error) {
+          console.error(`更新用戶 ${username} 中獎餘額失敗:`, error);
+        }
+      }
         } catch (error) {
       console.error(`結算用戶注單出錯 (ID=${bet.id}):`, error);
       }
@@ -1902,12 +1907,25 @@ app.post('/api/bet', async (req, res) => {
       
       console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
-      // 扣除用戶餘額
-      const updateBalanceResult = await updateMemberBalance(username, -amountNum, adminAgent, '下注');
+      // 直接扣除用戶餘額（不經過代理系統的點數轉移）
+      const updatedBalance = currentBalance - amountNum;
+      await UserModel.setBalance(username, updatedBalance);
       
-      if (!updateBalanceResult.success) {
-        console.error('下注失敗: 無法更新餘額', updateBalanceResult.message);
-        return res.status(500).json({ success: false, message: `系統錯誤：無法更新餘額 - ${updateBalanceResult.message}` });
+      // 只同步餘額到代理系統（不扣代理點數）
+      try {
+        await fetch(`${AGENT_API_URL}/sync-member-balance`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: username,
+            balance: updatedBalance,
+            reason: '下注扣除'
+          })
+        });
+      } catch (syncError) {
+        console.warn('同步餘額到代理系統失敗，但會員餘額已更新:', syncError);
       }
       
       // 準備下注數據
@@ -1932,7 +1950,7 @@ app.post('/api/bet', async (req, res) => {
       } catch (dbError) {
         console.error('創建下注記錄失敗:', dbError);
         // 如果記錄創建失敗，返還用戶餘額
-        await updateMemberBalance(username, amountNum, adminAgent, '下注失敗返還');
+        await UserModel.setBalance(username, currentBalance);
         return res.status(500).json({ success: false, message: `創建下注記錄失敗: ${dbError.message}` });
       }
       
