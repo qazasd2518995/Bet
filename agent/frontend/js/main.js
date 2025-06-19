@@ -780,18 +780,10 @@ const app = createApp({
         
         // 顯示新增公告模態框
         showCreateNoticeModalFunc() {
-            console.log('=== 新增公告按鈕被點擊 ===');
-            console.log('當前用戶:', this.user);
-            console.log('是否為客服:', this.isCustomerService);
-            console.log('用戶級別:', this.user.level);
-            
             if (!this.isCustomerService) {
-                console.log('❌ 權限不足');
                 this.showMessage('權限不足，只有總代理可以創建系統公告', 'error');
                 return;
             }
-            
-            console.log('✅ 權限驗證通過，準備顯示模態框');
             
             // 重置表單
             this.newNotice = {
@@ -801,7 +793,6 @@ const app = createApp({
             };
             
             this.showCreateNoticeModal = true;
-            console.log('模態框狀態已設置為:', this.showCreateNoticeModal);
         },
         
         // 提交新增公告
