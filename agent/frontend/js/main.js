@@ -73,6 +73,15 @@ const app = createApp({
                 category: '最新公告'
             },
             
+            // 編輯公告相關
+            showEditNoticeModal: false,
+            editNotice: {
+                id: null,
+                title: '',
+                content: '',
+                category: '最新公告'
+            },
+            
             // 當前活動分頁
             activeTab: 'dashboard',
             transactionTab: 'transfers',
@@ -837,6 +846,109 @@ const app = createApp({
             } catch (error) {
                 console.error('創建公告出錯:', error);
                 this.showMessage('創建公告出錯，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 顯示編輯公告模態框
+        showEditNoticeModalFunc(notice) {
+            if (!this.isCustomerService) {
+                this.showMessage('權限不足，只有總代理可以編輯系統公告', 'error');
+                return;
+            }
+            
+            // 設置編輯數據
+            this.editNotice = {
+                id: notice.id,
+                title: notice.title,
+                content: notice.content,
+                category: notice.category
+            };
+            
+            this.showEditNoticeModal = true;
+        },
+        
+        // 提交編輯公告
+        async submitEditNotice() {
+            try {
+                // 驗證輸入
+                if (!this.editNotice.title.trim()) {
+                    this.showMessage('請輸入公告標題', 'error');
+                    return;
+                }
+                
+                if (!this.editNotice.content.trim()) {
+                    this.showMessage('請輸入公告內容', 'error');
+                    return;
+                }
+                
+                // 標題長度限制
+                if (this.editNotice.title.length > 100) {
+                    this.showMessage('公告標題不能超過100個字符', 'error');
+                    return;
+                }
+                
+                this.loading = true;
+                
+                const response = await axios.put(`${API_BASE_URL}/notice/${this.editNotice.id}`, {
+                    operatorId: this.user.id,
+                    title: this.editNotice.title.trim(),
+                    content: this.editNotice.content.trim(),
+                    category: this.editNotice.category
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('系統公告更新成功', 'success');
+                    this.showEditNoticeModal = false;
+                    
+                    // 刷新公告列表
+                    await this.fetchNotices();
+                } else {
+                    this.showMessage(response.data.message || '更新公告失敗', 'error');
+                }
+                
+            } catch (error) {
+                console.error('更新公告出錯:', error);
+                this.showMessage('更新公告出錯，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 刪除公告
+        async deleteNotice(notice) {
+            if (!this.isCustomerService) {
+                this.showMessage('權限不足，只有總代理可以刪除系統公告', 'error');
+                return;
+            }
+            
+            // 確認刪除
+            if (!confirm(`確定要刪除公告「${notice.title}」嗎？此操作無法恢復。`)) {
+                return;
+            }
+            
+            try {
+                this.loading = true;
+                
+                const response = await axios.delete(`${API_BASE_URL}/notice/${notice.id}`, {
+                    data: {
+                        operatorId: this.user.id
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('系統公告刪除成功', 'success');
+                    
+                    // 刷新公告列表
+                    await this.fetchNotices();
+                } else {
+                    this.showMessage(response.data.message || '刪除公告失敗', 'error');
+                }
+                
+            } catch (error) {
+                console.error('刪除公告出錯:', error);
+                this.showMessage('刪除公告出錯，請稍後再試', 'error');
             } finally {
                 this.loading = false;
             }

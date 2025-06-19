@@ -1455,6 +1455,48 @@ const NoticeModel = {
       console.error('創建公告出錯:', error);
       throw error;
     }
+  },
+  
+  // 根據ID獲取公告
+  async findById(id) {
+    try {
+      return await db.oneOrNone(`
+        SELECT * FROM notices WHERE id = $1 AND status = 1
+      `, [id]);
+    } catch (error) {
+      console.error('獲取公告出錯:', error);
+      throw error;
+    }
+  },
+  
+  // 更新公告
+  async update(id, title, content, category) {
+    try {
+      return await db.one(`
+        UPDATE notices 
+        SET title = $2, content = $3, category = $4
+        WHERE id = $1 AND status = 1
+        RETURNING *
+      `, [id, title, content, category]);
+    } catch (error) {
+      console.error('更新公告出錯:', error);
+      throw error;
+    }
+  },
+  
+  // 刪除公告（軟刪除）
+  async delete(id) {
+    try {
+      return await db.one(`
+        UPDATE notices 
+        SET status = 0
+        WHERE id = $1 AND status = 1
+        RETURNING *
+      `, [id]);
+    } catch (error) {
+      console.error('刪除公告出錯:', error);
+      throw error;
+    }
   }
 };
 
@@ -2544,6 +2586,118 @@ app.post(`${API_PREFIX}/create-notice`, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '創建公告失敗，請稍後再試'
+    });
+  }
+});
+
+// 編輯系統公告 (僅總代理可用)
+app.put(`${API_PREFIX}/notice/:id`, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { operatorId, title, content, category } = req.body;
+    
+    // 參數驗證
+    if (!operatorId || !title || !content) {
+      return res.json({
+        success: false,
+        message: '請提供操作員ID、標題和內容'
+      });
+    }
+    
+    // 檢查操作員是否為總代理（客服）
+    const isCS = await AgentModel.isCustomerService(operatorId);
+    if (!isCS) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有總代理可以編輯系統公告'
+      });
+    }
+    
+    // 檢查公告是否存在
+    const existingNotice = await NoticeModel.findById(id);
+    if (!existingNotice) {
+      return res.json({
+        success: false,
+        message: '公告不存在或已被刪除'
+      });
+    }
+    
+    // 驗證分類
+    const validCategories = ['最新公告', '維修', '活動'];
+    const finalCategory = validCategories.includes(category) ? category : '最新公告';
+    
+    // 更新公告
+    const updatedNotice = await NoticeModel.update(
+      id,
+      title.substring(0, 100), // 限制標題長度
+      content,
+      finalCategory
+    );
+    
+    console.log(`總代理 ${operatorId} 編輯公告 ${id}: "${title}"`);
+    
+    res.json({
+      success: true,
+      message: '系統公告更新成功',
+      notice: updatedNotice
+    });
+    
+  } catch (error) {
+    console.error('編輯系統公告出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '編輯公告失敗，請稍後再試'
+    });
+  }
+});
+
+// 刪除系統公告 (僅總代理可用)
+app.delete(`${API_PREFIX}/notice/:id`, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { operatorId } = req.body;
+    
+    // 參數驗證
+    if (!operatorId) {
+      return res.json({
+        success: false,
+        message: '請提供操作員ID'
+      });
+    }
+    
+    // 檢查操作員是否為總代理（客服）
+    const isCS = await AgentModel.isCustomerService(operatorId);
+    if (!isCS) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有總代理可以刪除系統公告'
+      });
+    }
+    
+    // 檢查公告是否存在
+    const existingNotice = await NoticeModel.findById(id);
+    if (!existingNotice) {
+      return res.json({
+        success: false,
+        message: '公告不存在或已被刪除'
+      });
+    }
+    
+    // 刪除公告（軟刪除）
+    await NoticeModel.delete(id);
+    
+    console.log(`總代理 ${operatorId} 刪除公告 ${id}: "${existingNotice.title}"`);
+    
+    res.json({
+      success: true,
+      message: '系統公告刪除成功'
+    });
+    
+  } catch (error) {
+    console.error('刪除系統公告出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '刪除公告失敗，請稍後再試'
     });
   }
 });
