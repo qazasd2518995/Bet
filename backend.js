@@ -2257,20 +2257,21 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
       return { success: false, message: `更新本地餘額失敗: ${localError.message}` };
     }
     
-    // 嘗試通知代理系統，但即使失敗也不影響本地更新結果
+    // 嘗試同步到代理系統，但即使失敗也不影響本地更新結果
     let agentSystemSuccess = false;
     if (adminAgent) {
       try {
-        console.log(`向代理系統發送餘額更新請求: ${AGENT_API_URL}/update-member-balance`);
+        console.log(`向代理系統發送下注/中獎同步請求: ${AGENT_API_URL}/sync-bet-transaction`);
         console.log(`請求體:`, JSON.stringify({
           agentId: adminAgent.id,
           username: username,
           amount: amount,
+          newBalance: newBalance,
           type: amount > 0 ? 'win' : 'bet',
           description: reason
         }));
         
-        const response = await fetch(`${AGENT_API_URL}/update-member-balance`, {
+        const response = await fetch(`${AGENT_API_URL}/sync-bet-transaction`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -2279,6 +2280,7 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
             agentId: adminAgent.id,
             username: username,
             amount: amount,
+            newBalance: newBalance,
             type: amount > 0 ? 'win' : 'bet',
             description: reason
         })
@@ -2290,10 +2292,10 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
         console.log(`代理系統響應數據:`, JSON.stringify(data));
         
         if (!data.success) {
-          console.error('代理系統更新餘額失敗:', data.message);
+          console.error('代理系統同步下注/中獎失敗:', data.message);
           // 即使代理系統失敗，我們也繼續使用本地更新的餘額
         } else {
-          console.log(`代理系統成功處理餘額更新，新餘額為: ${data.newBalance}`);
+          console.log(`代理系統成功處理下注/中獎同步`);
           agentSystemSuccess = true;
         }
       } catch (error) {
@@ -2304,7 +2306,7 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
       console.log('未提供代理信息，僅更新本地餘額');
     }
     
-    console.log(`用戶 ${username} 餘額已更新: ${currentBalance} -> ${newBalance} (代理系統更新狀態: ${agentSystemSuccess ? '成功' : '失敗'})`);
+    console.log(`用戶 ${username} 餘額已更新: ${currentBalance} -> ${newBalance} (代理系統同步狀態: ${agentSystemSuccess ? '成功' : '失敗'})`);
     return { success: true, balance: newBalance };
     
   } catch (error) {

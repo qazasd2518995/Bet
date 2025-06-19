@@ -71,6 +71,55 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
+// 新增數據庫檢查端點 - 用於檢查agent_profiles表是否存在
+app.get('/api/check-profile-table', async (req, res) => {
+  try {
+    console.log('檢查 agent_profiles 表...');
+    
+    // 檢查表是否存在
+    const tableExists = await db.oneOrNone(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'agent_profiles'
+    `);
+    
+    if (!tableExists) {
+      return res.json({
+        success: false,
+        message: 'agent_profiles 表不存在',
+        tableExists: false
+      });
+    }
+    
+    // 檢查表結構
+    const columns = await db.any(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'agent_profiles' 
+      ORDER BY ordinal_position
+    `);
+    
+    // 檢查記錄數量
+    const recordCount = await db.one('SELECT COUNT(*) as count FROM agent_profiles');
+    
+    res.json({
+      success: true,
+      message: 'agent_profiles 表檢查完成',
+      tableExists: true,
+      columns: columns,
+      recordCount: parseInt(recordCount.count)
+    });
+    
+  } catch (error) {
+    console.error('檢查 agent_profiles 表失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '檢查失敗',
+      error: error.message
+    });
+  }
+});
+
 
 
 // 代理API路由前綴
@@ -440,6 +489,8 @@ async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    console.log('代理個人資料表已創建');
     
     // 檢查是否需要遷移舊字段
     try {
@@ -1413,16 +1464,16 @@ const TransactionModel = {
   async create(transactionData) {
     const { 
       user_type, user_id, amount, type, 
-      before_balance, after_balance, reference_id, description 
+      balance_before, balance_after, reference_id, description 
     } = transactionData;
     
     try {
       return await db.one(`
-        INSERT INTO transaction_records 
-        (user_type, user_id, amount, transaction_type, balance_before, balance_after, reference_id, description) 
+        INSERT INTO transactions 
+        (user_type, user_id, amount, type, balance_before, balance_after, reference_id, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *
-      `, [user_type, user_id, amount, transaction_type, balance_before, balance_after, reference_id, description]);
+      `, [user_type, user_id, amount, type, balance_before, balance_after, reference_id, description]);
     } catch (error) {
       console.error('創建交易記錄出錯:', error);
       throw error;
@@ -3465,9 +3516,20 @@ app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
   try {
     console.log(`獲取代理個人資料: 代理ID=${agentId}`);
     
+    // 參數驗證
+    const parsedAgentId = parseInt(agentId);
+    if (isNaN(parsedAgentId)) {
+      console.error(`獲取個人資料失敗: 代理ID "${agentId}" 不是有效的數字`);
+      return res.json({
+        success: false,
+        message: '代理ID格式錯誤'
+      });
+    }
+    
     // 檢查代理是否存在
-    const agent = await AgentModel.findById(agentId);
+    const agent = await AgentModel.findById(parsedAgentId);
     if (!agent) {
+      console.error(`獲取個人資料失敗: 代理ID ${parsedAgentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
@@ -3477,12 +3539,14 @@ app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
     // 查詢個人資料
     const profile = await db.oneOrNone(`
       SELECT * FROM agent_profiles WHERE agent_id = $1
-    `, [agentId]);
+    `, [parsedAgentId]);
+    
+    console.log('查詢到的個人資料:', profile);
     
     res.json({
       success: true,
       data: profile || {
-        agent_id: agentId,
+        agent_id: parsedAgentId,
         real_name: '',
         phone: '',
         email: '',
@@ -3495,6 +3559,7 @@ app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
     
   } catch (error) {
     console.error('獲取代理個人資料錯誤:', error);
+    console.error('錯誤堆疊:', error.stack);
     res.json({
       success: false,
       message: '服務器錯誤'
@@ -3508,22 +3573,64 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
   
   try {
     console.log(`更新代理個人資料: 代理ID=${agentId}`);
+    console.log('請求參數:', req.body);
+    
+    // 參數驗證
+    if (!agentId) {
+      console.error('更新個人資料失敗: 缺少代理ID');
+      return res.json({
+        success: false,
+        message: '缺少代理ID'
+      });
+    }
+    
+    // 確保agentId是數字
+    const parsedAgentId = parseInt(agentId);
+    if (isNaN(parsedAgentId)) {
+      console.error(`更新個人資料失敗: 代理ID "${agentId}" 不是有效的數字`);
+      return res.json({
+        success: false,
+        message: '代理ID格式錯誤'
+      });
+    }
     
     // 檢查代理是否存在
-    const agent = await AgentModel.findById(agentId);
+    const agent = await AgentModel.findById(parsedAgentId);
     if (!agent) {
+      console.error(`更新個人資料失敗: 代理ID ${parsedAgentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
     
+    // 處理可能為空的字段值
+    const safeRealName = realName || null;
+    const safePhone = phone || null;
+    const safeEmail = email || null;
+    const safeLineId = lineId || null;
+    const safeTelegram = telegram || null;
+    const safeAddress = address || null;
+    const safeRemark = remark || null;
+    
+    console.log('安全處理後的參數:', {
+      agentId: parsedAgentId,
+      realName: safeRealName,
+      phone: safePhone,
+      email: safeEmail,
+      lineId: safeLineId,
+      telegram: safeTelegram,
+      address: safeAddress,
+      remark: safeRemark
+    });
+    
     // 檢查是否已有個人資料記錄
     const existingProfile = await db.oneOrNone(`
       SELECT * FROM agent_profiles WHERE agent_id = $1
-    `, [agentId]);
+    `, [parsedAgentId]);
     
     if (existingProfile) {
+      console.log(`找到現有個人資料記錄，ID=${existingProfile.id}，執行更新`);
       // 更新現有記錄
       await db.none(`
         UPDATE agent_profiles 
@@ -3531,14 +3638,17 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
             telegram = $5, address = $6, remark = $7,
             updated_at = CURRENT_TIMESTAMP
         WHERE agent_id = $8
-      `, [realName, phone, email, lineId, telegram, address, remark, agentId]);
+      `, [safeRealName, safePhone, safeEmail, safeLineId, safeTelegram, safeAddress, safeRemark, parsedAgentId]);
+      console.log('個人資料更新完成');
     } else {
+      console.log('未找到現有記錄，創建新的個人資料記錄');
       // 創建新記錄
       await db.none(`
         INSERT INTO agent_profiles 
         (agent_id, real_name, phone, email, line_id, telegram, address, remark)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `, [agentId, realName, phone, email, lineId, telegram, address, remark]);
+      `, [parsedAgentId, safeRealName, safePhone, safeEmail, safeLineId, safeTelegram, safeAddress, safeRemark]);
+      console.log('個人資料創建完成');
     }
     
     console.log(`代理個人資料更新成功: ${agent.username}`);
@@ -3549,9 +3659,23 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
     
   } catch (error) {
     console.error('更新代理個人資料錯誤:', error);
+    console.error('錯誤堆疊:', error.stack);
+    
+    // 更詳細的錯誤信息
+    let errorMessage = '服務器錯誤';
+    if (error.code === '23505') {
+      errorMessage = '代理個人資料記錄已存在';
+    } else if (error.code === '23503') {
+      errorMessage = '代理不存在或已被刪除';
+    } else if (error.code === '22001') {
+      errorMessage = '輸入的資料過長，請檢查各欄位長度';
+    } else if (error.message) {
+      errorMessage = `數據庫錯誤: ${error.message}`;
+    }
+    
     res.json({
       success: false,
-      message: '服務器錯誤'
+      message: errorMessage
     });
   }
 });
@@ -3593,3 +3717,78 @@ function wrapAsync(fn) {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
+
+// 新增: 下注/中獎交易同步API（建立交易記錄用於統計）
+app.post(`${API_PREFIX}/sync-bet-transaction`, async (req, res) => {
+  const { agentId, username, amount, newBalance, type, description } = req.body;
+  
+  console.log(`收到下注/中獎同步請求: 代理ID=${agentId}, 會員=${username}, 金額=${amount}, 新餘額=${newBalance}, 類型=${type}, 說明=${description}`);
+  
+  try {
+    if (!username || amount === undefined || !agentId || newBalance === undefined) {
+      console.error('同步下注/中獎失敗: 缺少必要參數');
+      return res.json({
+        success: false,
+        message: '請提供完整的同步參數'
+      });
+    }
+    
+    // 查詢會員
+    const member = await MemberModel.findByUsername(username);
+    if (!member) {
+      console.error(`同步下注/中獎失敗: 會員 ${username} 不存在`);
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 查詢代理
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      console.error(`同步下注/中獎失敗: 代理 ID=${agentId} 不存在`);
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 驗證會員是否屬於該代理
+    if (member.agent_id !== agent.id) {
+      console.error(`同步下注/中獎失敗: 會員 ${username} 不屬於代理 ${agent.username}`);
+      return res.json({
+        success: false,
+        message: '會員與代理不匹配'
+      });
+    }
+    
+    // 更新會員餘額
+    await MemberModel.setBalance(username, newBalance);
+    console.log(`會員 ${username} 餘額已更新為: ${newBalance}`);
+    
+    // 建立交易記錄用於統計
+    const transactionType = type === 'win' ? 'game_win' : 'game_bet';
+    await TransactionModel.create({
+      user_type: 'member',
+      user_id: member.id,
+      amount: parseFloat(amount),
+      type: transactionType,
+      description: description || `遊戲${type === 'win' ? '中獎' : '下注'}`,
+      balance_after: parseFloat(newBalance)
+    });
+    
+    console.log(`交易記錄已建立: 會員ID=${member.id}, 金額=${amount}, 類型=${transactionType}`);
+    
+    res.json({
+      success: true,
+      message: '下注/中獎同步成功',
+      balance: newBalance
+    });
+  } catch (error) {
+    console.error('同步下注/中獎出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
