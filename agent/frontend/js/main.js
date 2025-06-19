@@ -3191,6 +3191,9 @@ const app = createApp({
             if (newTab === 'stats') {
                 this.searchBets();
             }
+            if (newTab === 'notices') {
+                this.fetchNotices();
+            }
             if (newTab === 'transactions' && this.transactionTab === 'transfers') {
                 this.loadPointTransfers();
             }
@@ -3206,20 +3209,42 @@ const app = createApp({
     }
 });
 
-// 掛載Vue應用
-console.log('準備掛載Vue應用到 #app');
-const appElement = document.getElementById('app');
-console.log('找到app元素:', appElement);
+// 等待 DOM 加載完成後掛載 Vue 應用
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM加載完成，準備掛載Vue應用到 #app');
+    const appElement = document.getElementById('app');
+    console.log('找到app元素:', appElement);
 
-if (appElement) {
-    try {
-        const mountedApp = app.mount('#app');
-        console.log('Vue應用掛載成功:', mountedApp);
-    } catch (error) {
-        console.error('Vue應用掛載失敗:', error);
-        alert('Vue應用掛載失敗: ' + error.message);
+    if (appElement) {
+        try {
+            const mountedApp = app.mount('#app');
+            console.log('Vue應用掛載成功:', mountedApp);
+        } catch (error) {
+            console.error('Vue應用掛載失敗:', error);
+            alert('Vue應用掛載失敗: ' + error.message);
+        }
+    } else {
+        console.error('找不到 #app 元素！');
+        alert('找不到 #app 元素！');
     }
+});
+
+// 如果 DOM 已經加載完成，直接執行掛載
+if (document.readyState === 'loading') {
+    // DOM 還在加載中，等待 DOMContentLoaded 事件
 } else {
-    console.error('找不到 #app 元素！');
-    alert('找不到 #app 元素！');
+    // DOM 已經加載完成，直接執行
+    console.log('DOM已加載，直接掛載Vue應用');
+    const appElement = document.getElementById('app');
+    if (appElement) {
+        try {
+            const mountedApp = app.mount('#app');
+            console.log('Vue應用掛載成功:', mountedApp);
+        } catch (error) {
+            console.error('Vue應用掛載失敗:', error);
+            alert('Vue應用掛載失敗: ' + error.message);
+        }
+    } else {
+        console.error('找不到 #app 元素！');
+    }
 }
