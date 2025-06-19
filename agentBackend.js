@@ -1560,10 +1560,10 @@ const TransactionModel = {
       
       // 計算今日所有交易總額（包括代理和會員的所有轉帳）
       try {
-        // 查詢今日所有相關的交易記錄
+        // 查詢今日所有相關的交易記錄（使用正確的表名 transaction_records）
         const allTransactionsResult = await db.oneOrNone(`
           SELECT COALESCE(SUM(ABS(amount)), 0) as total 
-          FROM transactions 
+          FROM transaction_records 
           WHERE (
             (user_type = 'member' AND user_id IN ($1:csv)) OR
             (user_type = 'agent' AND user_id = $2)
@@ -1573,39 +1573,39 @@ const TransactionModel = {
         
         const totalTransactions = parseFloat(allTransactionsResult ? allTransactionsResult.total : 0);
         
-        // 計算今日轉入總額（收入）
-        const transferInResult = await db.oneOrNone(`
+        // 計算今日存款總額（收入）- 代理收到的點數
+        const depositResult = await db.oneOrNone(`
           SELECT COALESCE(SUM(amount), 0) as total 
-          FROM transactions 
+          FROM transaction_records 
           WHERE user_type = 'agent' 
             AND user_id = $1 
-            AND type = $2 
+            AND transaction_type IN ('cs_deposit', 'deposit')
             AND amount > 0
-            AND DATE(created_at) = $3
-        `, [parsedAgentId, 'transfer_in', today]);
+            AND DATE(created_at) = $2
+        `, [parsedAgentId, today]);
         
-        const totalTransferIn = parseFloat(transferInResult ? transferInResult.total : 0);
+        const totalDeposit = parseFloat(depositResult ? depositResult.total : 0);
         
-        // 計算今日轉出總額（支出）
-        const transferOutResult = await db.oneOrNone(`
+        // 計算今日提款總額（支出）- 代理轉出的點數
+        const withdrawResult = await db.oneOrNone(`
           SELECT COALESCE(SUM(ABS(amount)), 0) as total 
-          FROM transactions 
+          FROM transaction_records 
           WHERE user_type = 'agent' 
             AND user_id = $1 
-            AND type = $2 
+            AND transaction_type IN ('cs_withdraw', 'withdraw')
             AND amount < 0
-            AND DATE(created_at) = $3
-        `, [parsedAgentId, 'transfer_out', today]);
+            AND DATE(created_at) = $2
+        `, [parsedAgentId, today]);
         
-        const totalTransferOut = parseFloat(transferOutResult ? transferOutResult.total : 0);
+        const totalWithdraw = parseFloat(withdrawResult ? withdrawResult.total : 0);
         
-        // 計算淨收入（轉入 - 轉出）
-        const netRevenue = totalTransferIn - totalTransferOut;
+        // 計算淨收入（存款 - 提款）
+        const netRevenue = totalDeposit - totalWithdraw;
         
-        // 獲取活躍會員數和代理數 - 使用正確的列名
+        // 獲取活躍會員數 - 使用正確的表名
         const activeMembersResult = await db.oneOrNone(`
           SELECT COUNT(DISTINCT user_id) as count 
-          FROM transactions 
+          FROM transaction_records 
           WHERE user_type = 'member' 
             AND user_id IN ($1:csv) 
             AND DATE(created_at) = $2
@@ -1625,8 +1625,8 @@ const TransactionModel = {
         console.log(`獲取代理統計: 成功獲取 ID=${parsedAgentId} 的統計數據`);
         
         return {
-          totalDeposit: totalTransferIn,
-          totalWithdraw: totalTransferOut,
+          totalDeposit: totalDeposit,
+          totalWithdraw: totalWithdraw,
           totalRevenue: netRevenue,
           totalTransactions: totalTransactions,
           memberCount: memberIds.length,
