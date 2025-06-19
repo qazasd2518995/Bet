@@ -3775,31 +3775,3 @@ app.post(`${API_PREFIX}/sync-bet-transaction`, async (req, res) => {
   }
 });
 
-// 手動修復Vue實例狀態
-const userData = JSON.parse(localStorage.getItem('agent_user'));
-
-// 修復用戶狀態
-app.user = userData;
-app.isLoggedIn = true;
-
-// 手動設置儀表板數據
-fetch(`https://bet-agent.onrender.com/api/agent/stats?agentId=${userData.id}`)
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // 手動更新Vue的響應式數據
-      app.$data.dashboardData = {
-        totalDeposit: data.data.totalDeposit || 0,
-        totalWithdraw: data.data.totalWithdraw || 0,
-        totalRevenue: data.data.totalRevenue || 0,
-        totalTransactions: data.data.totalTransactions || 0,
-        memberCount: data.data.memberCount || 0,
-        activeMembers: data.data.activeMembers || 0,
-        subAgentsCount: data.data.subAgentsCount || 0
-      };
-      console.log('✅ 已更新Vue響應式數據');
-      
-      // 強制Vue重新渲染
-      app.$forceUpdate();
-    }
-  });
