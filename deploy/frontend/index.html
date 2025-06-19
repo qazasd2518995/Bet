@@ -11,8 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- 然後引入組件 -->
-    <script src="./src/components/BetRecords.js"></script>
-    <script src="./src/components/DrawHistory.js"></script>
+    <script src="./src/components/BetRecords.js?v=2025061901"></script>
+          <script src="./src/components/DrawHistory.js?v=2025061901"></script>
     <script>
         // 登入檢查，如果用戶未登入，則重定向到登入頁面
         document.addEventListener('DOMContentLoaded', function() {
@@ -1407,6 +1407,444 @@
                 min-height: 20px;
                 padding: 4px 5px;
             }
+
+        /* 新的簡潔下注區域樣式 */
+        .compact-betting-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .compact-bet-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
+            gap: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .compact-clear-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .compact-clear-btn:hover {
+            background: #5a6268;
+        }
+
+        .compact-middle-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .compact-bet-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .compact-bet-count {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .compact-repeat-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .compact-repeat-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .compact-repeat-btn:hover:not(:disabled) {
+            background: #138496;
+        }
+
+        .chips-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .chips-toggle-btn {
+            background: #ffc107;
+            color: #212529;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .chips-toggle-btn:hover {
+            background: #e0a800;
+            transform: translateY(-1px);
+        }
+
+        .dropdown-arrow {
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .dropdown-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .compact-chips {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+            padding: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            z-index: 1000;
+            min-width: 250px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .compact-chips.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .compact-chips::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid white;
+            z-index: 1001;
+        }
+
+        .compact-chips::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #dee2e6;
+            z-index: 1000;
+        }
+
+        .compact-chip {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 40px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .compact-chip.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+            transform: scale(1.05);
+        }
+
+        .compact-chip:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .compact-chip.active:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .compact-amount-input input {
+            width: 80px;
+            padding: 6px 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .compact-amount-input input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .compact-bet-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .compact-bet-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .compact-bet-btn:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+        }
+
+        /* 下注確認彈窗樣式 */
+        .bet-confirmation {
+            background: white;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .bet-confirm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            background: #47824A;
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .bet-confirm-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .bet-confirm-summary {
+            padding: 12px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .total-info {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .bet-confirm-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .bet-confirm-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .bet-confirm-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bet-type {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .bet-odds {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .bet-multiply {
+            color: #666;
+        }
+
+        .remove-bet-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bet-confirm-options {
+            padding: 12px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .auto-accept-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .help-icon {
+            background: #6c757d;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .bet-confirm-actions {
+            display: flex;
+            gap: 12px;
+            padding: 16px 20px;
+        }
+
+        .cancel-bet-btn {
+            flex: 1;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .confirm-bet-btn {
+            flex: 1;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .cancel-bet-btn:hover {
+            background: #5a6268;
+        }
+
+        .confirm-bet-btn:hover {
+            background: #218838;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .compact-bet-bar {
+                flex-wrap: wrap;
+                padding: 10px 15px;
+                gap: 10px;
+            }
+            
+            .compact-bet-info {
+                order: 1;
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .chips-dropdown {
+                order: 2;
+            }
+            
+            .compact-chips {
+                position: relative;
+                bottom: auto;
+                left: auto;
+                transform: none;
+                min-width: auto;
+                margin-bottom: 0;
+                margin-top: 8px;
+                justify-content: center;
+                flex-wrap: wrap;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            .compact-chips::after,
+            .compact-chips::before {
+                display: none;
+            }
+            
+            .compact-amount-input {
+                order: 3;
+            }
+            
+            .compact-clear-btn {
+                order: 4;
+                padding: 6px 12px;
+            }
+            
+            .compact-bet-btn {
+                order: 5;
+                padding: 8px 16px;
+            }
+            
+            .compact-chip {
+                min-width: 35px;
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1421,41 +1859,47 @@
                 </div>
                 
                 <!-- 中間：用戶信息 -->
-                <div class="user-section" v-if="isLoggedIn">
-                    <div class="user-avatar">
-                        <span>{{ username.charAt(0).toUpperCase() }}</span>
-                    </div>
-                    <div class="user-details">
-                        <div class="username">{{ username }}</div>
-                        <div class="balance-amount" :class="{ changed: balanceChanged }">
-                            {{ formatMoney(balance) }}
-                        </div>
-                        <div class="daily-profit" :class="{ 
-                            'profit-positive': dailyProfit > 0, 
-                            'profit-negative': dailyProfit < 0,
-                            'profit-zero': dailyProfit === 0 
-                        }">
-                            今日盈虧: {{ formatProfit(dailyProfit) }}
-                        </div>
-                    </div>
-                </div>
+                <!-- User info section is removed from here -->
                 
                 <!-- 右側：功能按鈕 -->
-                <div class="navbar-actions" v-if="isLoggedIn">
-                    <button class="action-btn history-btn" @click="showDrawHistory">
-                        <span>歷史開獎</span>
-                    </button>
-                    <button class="action-btn records-btn" @click="showBetRecords">
-                        <span>注單記錄</span>
-                    </button>
-                    <button class="action-btn profit-btn" @click="showProfitRecords">
-                        <span>盈虧記錄</span>
-                    </button>
-                    <div class="menu-dropdown">
+                <div class="navbar-actions" v-if="isLoggedIn" style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
+                     <!-- Balance display -->
+                    <div class="balance-info" style="color: white; background: rgba(255, 255, 255, 0.15); padding: 8px 15px; border-radius: 20px;">
+                        <span style="font-weight: 700;">{{ formatMoney(balance) }}</span>
+                    </div>
+                    <!-- Hamburger menu -->
+                    <div class="menu-dropdown" ref="menuContainer">
                         <button class="action-btn menu-btn" @click="toggleDropdown">
-                            <span>更多</span>
+                            <i class="fas fa-bars" style="font-size: 18px;"></i>
                         </button>
-                        <div class="dropdown-panel" v-show="showDropdownMenu">
+                        <div class="dropdown-panel" v-show="showDropdownMenu" style="right: 0;">
+                            <!-- User info moved inside dropdown -->
+                            <div class="user-section-dropdown" style="padding: 16px; border-bottom: 1px solid #eee;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div class="user-avatar" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px;">
+                                        <span>{{ username.charAt(0).toUpperCase() }}</span>
+                                    </div>
+                                    <div class="user-details">
+                                        <div class="username" style="color: #333; font-weight: 500;">{{ username }}</div>
+                                        <div class="daily-profit" :class="{ 'profit-positive': dailyProfit > 0, 'profit-negative': dailyProfit < 0, 'profit-zero': dailyProfit === 0 }" style="font-size: 12px;">
+                                            今日盈虧: {{ formatProfit(dailyProfit) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="dropdown-action" @click="showDrawHistory">
+                                <span>歷史開獎</span>
+                            </button>
+                            <button class="dropdown-action" @click="showBetRecords">
+                                <span>注單記錄</span>
+                            </button>
+                            <button class="dropdown-action" @click="showProfitRecords">
+                                <span>盈虧記錄</span>
+                            </button>
+
+                            <div class="dropdown-divider"></div>
+
                             <div class="hot-bets-section" v-if="hotBets && hotBets.length > 0">
                                 <div class="section-title">🔥 熱門投注</div>
                                 <div class="hot-bet-list">
@@ -1471,8 +1915,10 @@
                                 </div>
                             </div>
                             <div class="dropdown-divider"></div>
-                            <button class="dropdown-action logout-btn" @click="logout">
-                                <i class="icon">🚪</i>
+                            <button class="dropdown-action" @click="showGameRules">
+                                <span>規則說明</span>
+                            </button>
+                            <button class="dropdown-action" @click="logout">
                                 <span>登出</span>
                             </button>
                         </div>
@@ -1522,7 +1968,6 @@
                         <div :class="['result-ball', `color-${number}`]">
                             {{ number }}
                         </div>
-                        <div class="position-label">{{ resultLabels[index] }}</div>
                     </div>
                 </div>
             </div>
@@ -1946,72 +2391,81 @@
             </div>
         </section>
 
-        <!-- 投注信息和操作區域 -->
-        <section class="betting-actions">
-            <div class="bet-info">
-                <div class="bet-count">已選：{{ selectedBets.length }}注</div>
-                <button class="clear-button" @click="clearBets">清除</button>
-            </div>
-            
-            <!-- 已選下注列表 -->
-            <div class="selected-bets-list" v-if="selectedBets.length > 0">
-                <div class="selected-bets-header">
-                    <span>投注類型</span>
-                    <span>注單明細</span>
-                    <span>賠率</span>
-                    <span>金額</span>
-                    <span>可能獲利</span>
+        <!-- 新的簡潔下注區域 -->
+        <section class="compact-betting-actions">
+            <div class="compact-bet-bar">
+                <!-- 左側：清除按鈕 -->
+                <button class="compact-clear-btn" @click="clearBets">清除</button>
+                
+                <!-- 中間：已選注數和續押 -->
+                <div class="compact-bet-info">
+                    <span class="compact-bet-count">已選：{{ selectedBets.length }}注</span>
+                    <button class="compact-repeat-btn" @click="repeatLastBets" :disabled="!hasLastBets">續押</button>
                 </div>
-                <div class="selected-bet-item" v-for="(bet, index) in selectedBets" :key="index">
-                    <div class="selected-bet-type">{{ getBetTypeLabel(bet) }}</div>
-                    <div class="selected-bet-detail">{{ getBetValueLabel(bet) }}</div>
-                    <div class="selected-bet-odds">{{ formatOdds(getBetOdds(bet)) }}</div>
-                    <div class="selected-bet-amount">
-                        <input 
-                            type="number" 
-                            v-model="bet.amount" 
-                            @input="updateBetAmount(index, $event.target.value)"
-                            @blur="handleAmountBlur(index, $event)"
-                            @focus="handleAmountFocus(index, $event)"
-                            min="1" 
-                            step="1"
-                            class="amount-input-small"
-                        />
-                    </div>
-                    <div class="selected-bet-profit">
-                        <span v-if="bet.amount && bet.amount !== '' && parseFloat(bet.amount) > 0">{{ formatMoney(calculateIndividualPotentialProfit(bet)) }}</span>
-                        <span v-else>--</span>
+                
+                <!-- 籌碼按鈕（可展開） -->
+                <div class="chips-dropdown">
+                    <button class="chips-toggle-btn" @click="showChips = !showChips">
+                        籌碼 <span class="dropdown-arrow" :class="{ open: showChips }">▼</span>
+                    </button>
+                    <div class="compact-chips" :class="{ show: showChips }">
+                        <div class="compact-chip" :class="{ active: betAmount === 5 }" @click="setBetAmount(5); showChips = false">5</div>
+                        <div class="compact-chip" :class="{ active: betAmount === 10 }" @click="setBetAmount(10); showChips = false">10</div>
+                        <div class="compact-chip" :class="{ active: betAmount === 50 }" @click="setBetAmount(50); showChips = false">50</div>
+                        <div class="compact-chip" :class="{ active: betAmount === 100 }" @click="setBetAmount(100); showChips = false">100</div>
+                        <div class="compact-chip" :class="{ active: betAmount === 500 }" @click="setBetAmount(500); showChips = false">500</div>
                     </div>
                 </div>
-                <div class="selected-bets-summary">
-                    <div>總投注金額: <span>{{ formatMoney(calculateTotalBetAmount()) }}</span></div>
-                    <div>可能總獲利: <span>{{ formatMoney(calculateTotalPotentialProfit()) }}</span></div>
+                
+                <!-- 金額輸入框 -->
+                <div class="compact-amount-input">
+                    <input type="number" v-model="betAmount" min="1" step="1" placeholder="金額">
                 </div>
+                
+                <!-- 右側：下注按鈕 -->
+                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="!selectedBets.length || !betAmount || betAmount <= 0">
+                    下注
+                </button>
             </div>
-            
-            <!-- 快速下注區域 -->
-            <div class="bet-chips" v-if="selectedBets.length > 0">
-                <div class="quick-bet-title">快速下注</div>
-                <div class="chips-container">
-                    <div class="chip chip-5" @click="setAllBetAmount(5)">5</div>
-                    <div class="chip chip-10" @click="setAllBetAmount(10)">10</div>
-                    <div class="chip chip-50" @click="setAllBetAmount(50)">50</div>
-                    <div class="chip chip-100" @click="setAllBetAmount(100)">100</div>
-                    <div class="chip chip-500" @click="setAllBetAmount(500)">500</div>
-                </div>
-                <!-- 自訂金額輸入 -->
-                <div class="custom-chip-input">
-                    <input type="number" v-model="customAmount" placeholder="輸入自訂金額" min="1">
-                    <button @click="setAllCustomAmount">設置全部</button>
-                </div>
-            </div>
-            
-            <!-- 下注按鈕 -->
-            <button class="bet-button" @click="placeBets" :disabled="!selectedBets.length || calculateTotalBetAmount() <= 0"
-                    style="background-color: #ffcc00; color: #000; font-weight: bold; border-radius: 8px; padding: 12px 20px; border: none; cursor: pointer; font-size: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                確認下注
-            </button>
         </section>
+
+        <!-- 下注確認彈窗 -->
+        <div class="modal" v-if="showBetModal">
+            <div class="bet-confirmation">
+                <div class="bet-confirm-header">
+                    <h3>下注清單</h3>
+                    <button class="close-btn" @click="showBetModal = false">×</button>
+                </div>
+                
+                <div class="bet-confirm-summary">
+                    <span class="total-info">共計：{{ formatMoney(calculateTotalBetAmount()) }}/{{ selectedBets.length }}注，您確定下注嗎？</span>
+                </div>
+                
+                <div class="bet-confirm-list">
+                    <div v-for="(bet, index) in selectedBets" :key="index" class="bet-confirm-item">
+                        <div class="bet-confirm-info">
+                            <span class="bet-type">{{ getBetTypeLabel(bet) }} {{ getBetValueLabel(bet) }}</span>
+                            <span class="bet-odds">@{{ formatOdds(getBetOdds(bet)) }}</span>
+                            <span class="bet-multiply">× {{ bet.amount }}</span>
+                        </div>
+                        <button class="remove-bet-btn" @click="removeBetFromConfirm(index)">×</button>
+                    </div>
+                </div>
+                
+                <div class="bet-confirm-options">
+                    <label class="auto-accept-checkbox">
+                        <input type="checkbox" v-model="autoAcceptBetterOdds">
+                        <span>自動接受更好賠率</span>
+                        <span class="help-icon">?</span>
+                    </label>
+                </div>
+                
+                <div class="bet-confirm-actions">
+                    <button class="cancel-bet-btn" @click="showBetModal = false">取消</button>
+                    <button class="confirm-bet-btn" @click="confirmBets">確認</button>
+                </div>
+            </div>
+        </div>
         
         <!-- 派彩記錄彈窗 -->
         <div class="modal" v-if="showRecords">
@@ -2260,9 +2714,12 @@
             el: '#app',
             data() {
                 return {
+                    API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                        ? 'http://localhost:3002' 
+                        : '', // 在production環境中使用相同域名
                     // 用戶相關
                     isLoggedIn: false,
-                username: '',
+                    username: '',
                     balance: 0,
                     balanceChanged: false,
                     loginUsername: '',
@@ -2270,14 +2727,13 @@
                     
                     // 遊戲狀態
                     gameStatus: 'betting', // betting or drawing
-                currentPeriod: '',
-                nextPeriod: '',
+                    currentPeriod: '',
+                    nextPeriod: '',
                     countdownSeconds: 0,
                     
                     // 開獎結果
                     lastResult: [],
-                lastResults: [],
-                    resultLabels: ['冠軍', '亞軍', '三名', '四名', '五名', '六名', '七名', '八名', '九名', '十名'],
+                    lastResults: [],
                     
                     // 投注相關
                     defaultBetAmount: 1, // 默認投注金額
@@ -2302,10 +2758,10 @@
                     ],
                     
                     // 顯示狀態
-                showHistory: false,
-                showRecords: false,
-                showProfitModal: false,
-                showDayDetailModal: false,
+                    showHistory: false,
+                    showRecords: false,
+                    showProfitModal: false,
+                    showDayDetailModal: false,
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
                     
                     // 熱門投注
@@ -2351,57 +2807,67 @@
                     customAmount: '',
                     
                     // 賠率數據
-                odds: {
-                    sumValue: {
-                        '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
-                        '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
-                        '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
-                        big: 1.96, small: 1.96, odd: 1.96, even: 1.96
-                    },
-                    champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    runnerup: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    third: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    fourth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    fifth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    sixth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    seventh: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    eighth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    ninth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                    tenth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                    odds: {
+                        sumValue: {
+                            '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
+                            '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
+                            '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
+                            big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+                        },
+                        champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        runnerup: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        third: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        fourth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        fifth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        sixth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        seventh: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        eighth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        ninth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        tenth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
                         dragonTiger: { 
                             dragon: 1.96, 
                             tiger: 1.96 
                         },
-                    number: {
-                        first: 9.59,
-                        second: 9.59,
-                        third: 9.59,
-                        fourth: 9.59,
-                        fifth: 9.59,
-                        sixth: 9.59,
-                        seventh: 9.59,
-                        eighth: 9.59,
-                        ninth: 9.59,
-                        tenth: 9.59
-                    }
-                },
-                hotBets: [],
-                longestStreak: { count: 0, name: '' },
-                showLoginModal: false,
-                showRegisterModal: false,
-                loginForm: {
-                    username: '',
-                    password: ''
-                },
-                registerForm: {
-                    username: '',
-                    password: '',
-                    confirmPassword: ''
+                        number: {
+                            first: 9.59,
+                            second: 9.59,
+                            third: 9.59,
+                            fourth: 9.59,
+                            fifth: 9.59,
+                            sixth: 9.59,
+                            seventh: 9.59,
+                            eighth: 9.59,
+                            ninth: 9.59,
+                            tenth: 9.59
+                        }
+                    },
+                    hotBets: [],
+                    longestStreak: { count: 0, name: '' },
+                    showLoginModal: false,
+                    showRegisterModal: false,
+                    loginForm: {
+                        username: '',
+                        password: ''
+                    },
+                    registerForm: {
+                        username: '',
+                        password: '',
+                        confirmPassword: ''
                     },
                     
                     // 通知相關
                     notificationVisible: false,
                     notificationText: '',
+                    
+                    // 開獎結果標籤
+                    resultLabels: Array.from({ length: 10 }, (_, i) => `${i + 1}名`),
+                    
+                    // 新的下注確認相關
+                    showBetModal: false,
+                    autoAcceptBetterOdds: true,
+                    hasLastBets: false,
+                    lastBets: [],
+                    showChips: false,
                 };
             },
             created() {
@@ -2422,6 +2888,9 @@
                     const minutes = Math.floor(this.countdownSeconds / 60);
                     const seconds = this.countdownSeconds % 60;
                     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                },
+                isMobile() {
+                    return /Mobi|Android/i.test(navigator.userAgent);
                 }
             },
             methods: {
@@ -2494,16 +2963,11 @@
                     );
                 },
                 selectBet(betType, value, position = null) {
-                    // 確保投注金額至少為1元
-                    if (!this.betAmount || this.betAmount <= 0) {
-                        this.betAmount = 1;
-                    }
-                    
                     const bet = {
                         type: betType,
                         value: value,
                         position: position,
-                        amount: this.betAmount
+                        amount: 0 // 不立即設置金額，在確認時才設置
                     };
 
                     const existingBetIndex = this.selectedBets.findIndex(b => 
@@ -2552,13 +3016,18 @@
                     sessionStorage.removeItem('balance');
                     window.location.href = 'login.html';
                 },
+                showGameRules() {
+                    // 顯示遊戲規則
+                    alert('遊戲規則說明：\n\n北京賽車PK10是一個數字競猜遊戲。\n\n投注選項：\n- 大小：1-5為小，6-10為大\n- 單雙：奇數為單，偶數為雙\n- 冠亞和：冠軍和亞軍號碼的和值\n- 龍虎：冠軍vs亞軍的大小比較');
+                    this.showDropdownMenu = false; // 關閉選單
+                },
                 toggleDropdown() {
                     // 切換下拉菜單的顯示狀態
                     this.showDropdownMenu = !this.showDropdownMenu;
                 },
                 updateGameData() {
                     console.log('開始獲取遊戲數據...');
-                    fetch('/api/game-data')
+                    fetch(`${this.API_BASE_URL}/api/game-data`)
                         .then(response => response.json())
                         .then(data => {
                             this.countdownSeconds = data.gameData.countdownSeconds;
@@ -2597,7 +3066,7 @@
                 },
                 updateBalance() {
                     console.log('開始刷新餘額...');
-                    fetch(`/api/balance?username=${this.username}`)
+                    fetch(`${this.API_BASE_URL}/api/balance?username=${this.username}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
@@ -2652,7 +3121,7 @@
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
                     
-                    fetch(`/api/daily-profit?username=${username}`)
+                    fetch(`${this.API_BASE_URL}/api/daily-profit?username=${username}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
@@ -2701,7 +3170,7 @@
                     
                     // 建立投注請求
                     const promises = bets.map(bet => {
-                        return fetch('/api/bet', {
+                        return fetch(`${this.API_BASE_URL}/api/bet`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -2752,8 +3221,8 @@
                             this.isLoading = false;
                         });
                 },
-                updateBetHistory() {
-                    fetch(`/api/bet-history?username=${this.username}`)
+                updateBetHistory(page = 1) {
+                    fetch(`${this.API_BASE_URL}/api/bet-history?username=${this.username}&page=${page}`)
                         .then(response => response.json())
                         .then(data => {
                             // 檢查是否有新結算的注單
@@ -2905,11 +3374,55 @@
                 },
                 calculateTotalBetAmount() {
                     return this.selectedBets.reduce((total, bet) => {
-                        return total + (parseFloat(bet.amount) || 0);
+                        // 如果bet有amount且>0則使用，否則使用當前設定的betAmount
+                        const amount = (bet.amount && bet.amount > 0) ? bet.amount : this.betAmount;
+                        return total + (parseFloat(amount) || 0);
                     }, 0);
                 },
                 clearBets() {
                     this.selectedBets = [];
+                },
+                
+                // 新的下注確認流程方法
+                showBetConfirmation() {
+                    // 為每個選定的投注設置金額
+                    this.selectedBets.forEach(bet => {
+                        if (!bet.amount || bet.amount <= 0) {
+                            bet.amount = this.betAmount;
+                        }
+                    });
+                    this.showBetModal = true;
+                },
+                
+                confirmBets() {
+                    // 保存當前投注作為上次投注
+                    this.lastBets = JSON.parse(JSON.stringify(this.selectedBets));
+                    this.hasLastBets = true;
+                    
+                    // 執行原有的下注邏輯
+                    this.placeBets();
+                    this.showBetModal = false;
+                },
+                
+                removeBetFromConfirm(index) {
+                    this.selectedBets.splice(index, 1);
+                    if (this.selectedBets.length === 0) {
+                        this.showBetModal = false;
+                    }
+                },
+                
+                repeatLastBets() {
+                    if (this.hasLastBets && this.lastBets.length > 0) {
+                        // 清除當前選擇
+                        this.selectedBets = [];
+                        
+                        // 重新添加上次的投注
+                        this.lastBets.forEach(lastBet => {
+                            const newBet = JSON.parse(JSON.stringify(lastBet));
+                            newBet.amount = this.betAmount; // 使用當前設置的金額
+                            this.selectedBets.push(newBet);
+                        });
+                    }
                 },
                 
                 // 位置選擇相關方法
@@ -2923,7 +3436,7 @@
                         type: 'number',
                         position: this.selectedPosition,
                         value: String(num),
-                        amount: this.betAmount
+                        amount: 0 // 不立即設置金額
                     };
 
                     const existingBetIndex = this.selectedBets.findIndex(b => 
@@ -3311,7 +3824,7 @@
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
                     
-                    fetch(`/api/balance?username=${username}`)
+                    fetch(`${this.API_BASE_URL}/api/balance?username=${username}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
@@ -3324,7 +3837,7 @@
                         });
                 },
                 getBetHistory() {
-                    fetch(`/api/bet-history?username=${this.username}`)
+                    fetch(`${this.API_BASE_URL}/api/bet-history?username=${this.username}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data.success && Array.isArray(data.records)) {
@@ -3342,13 +3855,9 @@
                             this.betRecords = [];
                         });
                 },
-                updateHistoryRecords() {
-                    console.log('獲取開獎歷史...');
-                    fetch('/api/history')
-                        .then(response => {
-                            console.log('開獎歷史API響應狀態:', response.status);
-                            return response.json();
-                        })
+                updateHistoryRecords(page = 1) {
+                    fetch(`${this.API_BASE_URL}/api/history?page=${page}`)
+                        .then(response => response.json())
                         .then(data => {
                             console.log('開獎歷史API返回數據:', JSON.stringify(data).substring(0, 200) + '...');
                             // 更新歷史記錄 - 修正數據結構處理
@@ -3590,35 +4099,10 @@
                 
                 // 獲取熱門投注數據
                 fetchHotBets() {
-                    console.log('開始獲取熱門投注數據...');
-                    
-                    let apiUrl = '/api/hot-bets';
-                    const timestamp = new Date().getTime();
-                    apiUrl = `${apiUrl}?_t=${timestamp}`;
-                    
-                    fetch(apiUrl)
-                        .then(response => {
-                            console.log('熱門投注API響應狀態:', response.status);
-                            if (response.status === 404) {
-                                // 如果是 404 錯誤，表示沒有熱門投注數據
-                                return response.json().then(data => {
-                                    console.log('熱門投注API返回 (404):', data);
-                                    this.hotBets = []; // 清空熱門投注數據
-                                    this.displayNotification(data.message || '暫無熱門投注數據'); 
-                                    return null; // 返回 null 以便後續 .then 不執行成功邏輯
-                                });
-                            }
-                            if (!response.ok) {
-                                // 其他錯誤，拋出以便 catch 處理
-                                throw new Error(`服務器響應錯誤: ${response.status}`);
-                            }
-                            return response.json(); // 正常情況，解析 JSON
-                        })
+                    fetch(`${this.API_BASE_URL}/api/hot-bets`)
+                        .then(response => response.json())
                         .then(data => {
-                            if (data === null) return; // 如果是 404 處理過的，直接返回
-                            
-                            console.log('熱門投注API返回數據:', data);
-                            if (data && data.success) {
+                            if (data.success) {
                                 this.hotBets = (data.hotBets || []).map(bet => ({
                                     betType: bet.type,
                                     betValue: bet.value,
@@ -3795,7 +4279,7 @@
                     
                     const days = this.profitTimeRange === '7days' ? 7 : 14;
                     
-                    fetch(`/api/profit-records?username=${username}&days=${days}`)
+                    fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&range=${this.profitTimeRange}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
@@ -3829,7 +4313,7 @@
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
                     
-                    fetch(`/api/day-detail?username=${username}&date=${date}`)
+                    fetch(`${this.API_BASE_URL}/api/day-detail?username=${username}&date=${date}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
@@ -3949,6 +4433,75 @@
                 closeModal(selector) {
                     document.querySelector(selector).style.display = 'none';
                 },
+                login() {
+                    fetch(`${this.API_BASE_URL}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: this.loginForm.username,
+                            password: this.loginForm.password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            sessionStorage.setItem('isLoggedIn', 'true');
+                            sessionStorage.setItem('username', data.user.username);
+                            sessionStorage.setItem('balance', data.user.balance);
+                            this.username = data.user.username;
+                            this.balance = data.user.balance;
+                            this.checkLoginStatus();
+                            this.showNotification('登入成功！');
+                        } else {
+                            this.showNotification('登入失敗，請檢查用戶名和密碼。');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('登入失敗:', error);
+                        this.showNotification('登入失敗，請稍後再試。');
+                    });
+                },
+                register() {
+                    fetch(`${this.API_BASE_URL}/api/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: this.registerForm.username,
+                            password: this.registerForm.password,
+                            confirmPassword: this.registerForm.confirmPassword
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.showNotification('註冊成功！');
+                            this.showLoginModal = true;
+                            this.showRegisterModal = false;
+                        } else {
+                            this.showNotification('註冊失敗，請檢查輸入的資料。');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('註冊失敗:', error);
+                        this.showNotification('註冊失敗，請稍後再試。');
+                    });
+                },
+                handleClickOutside(event) {
+                    const menuContainer = this.$refs.menuContainer;
+                    if (menuContainer && !menuContainer.contains(event.target)) {
+                        this.showDropdownMenu = false;
+                    }
+                    
+                    // 檢查是否點擊在籌碼選單外部
+                    const chipsDropdown = document.querySelector('.chips-dropdown');
+                    if (chipsDropdown && !chipsDropdown.contains(event.target)) {
+                        this.showChips = false;
+                    }
+                },
+                showBetSlip(betType, choice, odds) {
+                    // Implement the logic to show the bet slip for the selected bet
+                    console.log(`Showing bet slip for ${betType}: ${choice} with odds: ${odds}`);
+                },
             },
             mounted() {
                 this.initCountdown();
@@ -3985,7 +4538,36 @@
                 // 更新初始資料
                 this.updateDailyStats();
                 this.updateHistoryRecords();
-            }
+            },
+            beforeDestroy() {
+                if (this.socket) {
+                    this.socket.disconnect();
+                }
+                document.removeEventListener('click', this.handleClickOutside);
+            },
+            watch: {
+                showDropdownMenu(isOpen) {
+                    if (isOpen) {
+                        // Use timeout to prevent the click that opens the menu from immediately closing it.
+                        setTimeout(() => {
+                            document.addEventListener('click', this.handleClickOutside);
+                        }, 0);
+                    } else {
+                        document.removeEventListener('click', this.handleClickOutside);
+                    }
+                },
+                showChips(isOpen) {
+                    if (isOpen) {
+                        setTimeout(() => {
+                            document.addEventListener('click', this.handleClickOutside);
+                        }, 0);
+                    } else {
+                        if (!this.showDropdownMenu) {
+                            document.removeEventListener('click', this.handleClickOutside);
+                        }
+                    }
+                }
+            },
         });
     </script>
     <!-- 最後引入主要腳本 -->

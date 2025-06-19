@@ -134,7 +134,9 @@ Vue.component('bet-records', {
         // 批量獲取開獎結果
         for (const period of missingPeriods) {
           try {
-            const response = await fetch(`/api/history?period=${period}&limit=1`);
+                            const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                    ? 'http://localhost:3002' : '';
+                const response = await fetch(`${apiBase}/api/history?period=${period}&limit=1`);
             const data = await response.json();
             
             if (data.success && data.records && data.records.length > 0) {

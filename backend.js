@@ -64,7 +64,7 @@ async function syncToAgentSystem(period, result) {
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://bet-game.onrender.com', 'https://bet-agent.onrender.com'] 
-    : ['http://localhost:3002', 'http://localhost:3000'],
+    : ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:8082', 'http://127.0.0.1:8082'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
