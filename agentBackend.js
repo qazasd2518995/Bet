@@ -1560,56 +1560,37 @@ const TransactionModel = {
       
       // 計算今日所有交易總額（包括代理和會員的所有轉帳）
       try {
-        // 查詢今日所有相關的交易記錄（使用正確的表名 transaction_records）
-        const allTransactionsResult = await db.oneOrNone(`
-          SELECT COALESCE(SUM(ABS(amount)), 0) as total 
-          FROM transaction_records 
-          WHERE (
-            (user_type = 'member' AND user_id IN ($1:csv)) OR
-            (user_type = 'agent' AND user_id = $2)
-          )
-          AND DATE(created_at) = $3
-        `, [memberIds, parsedAgentId, today]);
-        
-        const totalTransactions = parseFloat(allTransactionsResult ? allTransactionsResult.total : 0);
-        
-        // 計算今日存款總額（收入）- 代理收到的點數
-        const depositResult = await db.oneOrNone(`
-          SELECT COALESCE(SUM(amount), 0) as total 
-          FROM transaction_records 
-          WHERE user_type = 'agent' 
-            AND user_id = $1 
-            AND transaction_type IN ('cs_deposit', 'deposit')
-            AND amount > 0
-            AND DATE(created_at) = $2
+        // 查詢真實的下注統計數據（從bet_history表通過members表關聯）
+        const betStatsResult = await db.oneOrNone(`
+          SELECT 
+            COUNT(bh.*) as total_bets,
+            COALESCE(SUM(bh.amount), 0) as total_bet_amount,
+            COALESCE(SUM(bh.win_amount), 0) as total_win_amount,
+            COALESCE(SUM(bh.amount) - SUM(bh.win_amount), 0) as agent_profit
+          FROM bet_history bh
+          JOIN members m ON bh.username = m.username
+          WHERE m.agent_id = $1
+            AND DATE(bh.created_at) = $2
         `, [parsedAgentId, today]);
         
-        const totalDeposit = parseFloat(depositResult ? depositResult.total : 0);
+        const totalBets = parseInt(betStatsResult ? betStatsResult.total_bets : 0);
+        const totalBetAmount = parseFloat(betStatsResult ? betStatsResult.total_bet_amount : 0);
+        const totalWinAmount = parseFloat(betStatsResult ? betStatsResult.total_win_amount : 0);
+        const agentProfit = parseFloat(betStatsResult ? betStatsResult.agent_profit : 0);
         
-        // 計算今日提款總額（支出）- 代理轉出的點數
-        const withdrawResult = await db.oneOrNone(`
-          SELECT COALESCE(SUM(ABS(amount)), 0) as total 
-          FROM transaction_records 
-          WHERE user_type = 'agent' 
-            AND user_id = $1 
-            AND transaction_type IN ('cs_withdraw', 'withdraw')
-            AND amount < 0
-            AND DATE(created_at) = $2
-        `, [parsedAgentId, today]);
+        // 計算代理盈虧分解
+        const agentEarnings = agentProfit > 0 ? agentProfit : 0;  // 代理盈利（會員虧損）
+        const agentLosses = agentProfit < 0 ? Math.abs(agentProfit) : 0;  // 代理虧損（會員盈利）
+        const netRevenue = agentProfit;  // 淨收益
         
-        const totalWithdraw = parseFloat(withdrawResult ? withdrawResult.total : 0);
-        
-        // 計算淨收入（存款 - 提款）
-        const netRevenue = totalDeposit - totalWithdraw;
-        
-        // 獲取活躍會員數 - 使用正確的表名
+        // 獲取今日活躍會員數（有下注的會員）
         const activeMembersResult = await db.oneOrNone(`
-          SELECT COUNT(DISTINCT user_id) as count 
-          FROM transaction_records 
-          WHERE user_type = 'member' 
-            AND user_id IN ($1:csv) 
-            AND DATE(created_at) = $2
-        `, [memberIds, today]);
+          SELECT COUNT(DISTINCT bh.username) as count 
+          FROM bet_history bh
+          JOIN members m ON bh.username = m.username
+          WHERE m.agent_id = $1
+            AND DATE(bh.created_at) = $2
+        `, [parsedAgentId, today]);
         
         const activeMembers = parseInt(activeMembersResult ? activeMembersResult.count : 0);
         
@@ -1625,13 +1606,14 @@ const TransactionModel = {
         console.log(`獲取代理統計: 成功獲取 ID=${parsedAgentId} 的統計數據`);
         
         return {
-          totalDeposit: totalDeposit,
-          totalWithdraw: totalWithdraw,
-          totalRevenue: netRevenue,
-          totalTransactions: totalTransactions,
-          memberCount: memberIds.length,
-          activeMembers,
-          subAgentsCount
+          totalDeposit: agentEarnings,        // 代理盈利（會員虧損）
+          totalWithdraw: agentLosses,         // 代理虧損（會員盈利）
+          totalRevenue: netRevenue,           // 淨收益
+          totalTransactions: totalBetAmount,  // 總投注金額
+          totalBets: totalBets,               // 總投注筆數
+          memberCount: memberIds.length,      // 總會員數
+          activeMembers,                      // 活躍會員數
+          subAgentsCount                      // 下級代理數
         };
       } catch (queryError) {
         console.error('獲取代理統計 - 查詢錯誤:', queryError);
@@ -3792,3 +3774,32 @@ app.post(`${API_PREFIX}/sync-bet-transaction`, async (req, res) => {
     });
   }
 });
+
+// 手動修復Vue實例狀態
+const userData = JSON.parse(localStorage.getItem('agent_user'));
+
+// 修復用戶狀態
+app.user = userData;
+app.isLoggedIn = true;
+
+// 手動設置儀表板數據
+fetch(`https://bet-agent.onrender.com/api/agent/stats?agentId=${userData.id}`)
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // 手動更新Vue的響應式數據
+      app.$data.dashboardData = {
+        totalDeposit: data.data.totalDeposit || 0,
+        totalWithdraw: data.data.totalWithdraw || 0,
+        totalRevenue: data.data.totalRevenue || 0,
+        totalTransactions: data.data.totalTransactions || 0,
+        memberCount: data.data.memberCount || 0,
+        activeMembers: data.data.activeMembers || 0,
+        subAgentsCount: data.data.subAgentsCount || 0
+      };
+      console.log('✅ 已更新Vue響應式數據');
+      
+      // 強制Vue重新渲染
+      app.$forceUpdate();
+    }
+  });

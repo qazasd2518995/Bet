@@ -184,7 +184,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h5 class="card-title mb-1">今日交易量</h5>
+                                            <h5 class="card-title mb-1">今日投注額</h5>
                                             <h2 class="card-text mb-0">{{ formatMoney(dashboardData.totalTransactions) }}</h2>
                                         </div>
                                         <i class="fas fa-chart-line fa-2x opacity-75"></i>
@@ -227,8 +227,8 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">今日盈餘</h6>
-                                            <h4 class="text-success mb-0">{{ formatMoney(dashboardData.totalDeposit) }}</h4>
+                                                                        <h6 class="text-muted mb-1">代理盈利</h6>
+                            <h4 class="text-success mb-0">{{ formatMoney(dashboardData.totalDeposit) }}</h4>
                                         </div>
                                         <i class="fas fa-arrow-up fa-lg text-success"></i>
                                     </div>
@@ -240,8 +240,8 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">今日虧損</h6>
-                                            <h4 class="text-danger mb-0">{{ formatMoney(dashboardData.totalWithdraw) }}</h4>
+                                                                        <h6 class="text-muted mb-1">代理虧損</h6>
+                            <h4 class="text-danger mb-0">{{ formatMoney(dashboardData.totalWithdraw) }}</h4>
                                         </div>
                                 
                                         <i class="fas fa-arrow-down fa-lg text-danger"></i>
