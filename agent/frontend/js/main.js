@@ -65,18 +65,10 @@ const app = createApp({
             noticeCategories: [],
             selectedNoticeCategory: 'all',
             
-            // 新增公告相關
-            showCreateNoticeModal: false,
-            newNotice: {
-                title: '',
-                content: '',
-                category: '最新公告'
-            },
-            
-            // 編輯公告相關
-            showEditNoticeModal: false,
-            editNotice: {
-                id: null,
+            // 公告表單相關
+            showNoticeForm: false,
+            editingNoticeId: null,
+            noticeForm: {
                 title: '',
                 content: '',
                 category: '最新公告'
@@ -802,132 +794,110 @@ const app = createApp({
         },
         
         // 顯示新增公告模態框
-        showCreateNoticeModalFunc() {
-            if (!this.isCustomerService) {
-                this.showMessage('權限不足，只有總代理可以創建系統公告', 'error');
-                return;
-            }
-            
-            // 重置表單
-            this.newNotice = {
-                title: '',
-                content: '',
-                category: '最新公告'
-            };
-            
-            this.showCreateNoticeModal = true;
-        },
-        
-        // 提交新增公告
-        async submitCreateNotice() {
-            try {
-                // 驗證輸入
-                if (!this.newNotice.title.trim()) {
-                    this.showMessage('請輸入公告標題', 'error');
-                    return;
-                }
-                
-                if (!this.newNotice.content.trim()) {
-                    this.showMessage('請輸入公告內容', 'error');
-                    return;
-                }
-                
-                // 標題長度限制
-                if (this.newNotice.title.length > 100) {
-                    this.showMessage('公告標題不能超過100個字符', 'error');
-                    return;
-                }
-                
-                this.loading = true;
-                
-                const response = await axios.post(`${API_BASE_URL}/create-notice`, {
-                    operatorId: this.user.id,
-                    title: this.newNotice.title.trim(),
-                    content: this.newNotice.content.trim(),
-                    category: this.newNotice.category
-                });
-                
-                if (response.data.success) {
-                    this.showMessage('系統公告創建成功', 'success');
-                    this.showCreateNoticeModal = false;
-                    
-                    // 刷新公告列表
-                    await this.fetchNotices();
-                } else {
-                    this.showMessage(response.data.message || '創建公告失敗', 'error');
-                }
-                
-            } catch (error) {
-                console.error('創建公告出錯:', error);
-                this.showMessage('創建公告出錯，請稍後再試', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
-        
-        // 顯示編輯公告模態框
-        showEditNoticeModalFunc(notice) {
+        // 開始編輯公告
+        startEditNotice(notice) {
             if (!this.isCustomerService) {
                 this.showMessage('權限不足，只有總代理可以編輯系統公告', 'error');
                 return;
             }
             
             // 設置編輯數據
-            this.editNotice = {
-                id: notice.id,
+            this.editingNoticeId = notice.id;
+            this.noticeForm = {
                 title: notice.title,
                 content: notice.content,
                 category: notice.category
             };
+            this.showNoticeForm = true;
             
-            this.showEditNoticeModal = true;
+            // 滾動到表單
+            this.$nextTick(() => {
+                const formElement = document.querySelector('.card .card-header h5');
+                if (formElement) {
+                    formElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
         },
         
-        // 提交編輯公告
-        async submitEditNotice() {
+        // 取消編輯公告
+        cancelNoticeEdit() {
+            this.showNoticeForm = false;
+            this.editingNoticeId = null;
+            this.noticeForm = {
+                title: '',
+                content: '',
+                category: '最新公告'
+            };
+        },
+        
+        // 提交公告（新增或編輯）
+        async submitNotice() {
             try {
                 // 驗證輸入
-                if (!this.editNotice.title.trim()) {
+                if (!this.noticeForm.title.trim()) {
                     this.showMessage('請輸入公告標題', 'error');
                     return;
                 }
                 
-                if (!this.editNotice.content.trim()) {
+                if (!this.noticeForm.content.trim()) {
                     this.showMessage('請輸入公告內容', 'error');
                     return;
                 }
                 
                 // 標題長度限制
-                if (this.editNotice.title.length > 100) {
+                if (this.noticeForm.title.length > 100) {
                     this.showMessage('公告標題不能超過100個字符', 'error');
                     return;
                 }
                 
                 this.loading = true;
                 
-                const response = await axios.put(`${API_BASE_URL}/notice/${this.editNotice.id}`, {
-                    operatorId: this.user.id,
-                    title: this.editNotice.title.trim(),
-                    content: this.editNotice.content.trim(),
-                    category: this.editNotice.category
-                });
+                let response;
+                if (this.editingNoticeId) {
+                    // 編輯現有公告
+                    response = await axios.put(`${API_BASE_URL}/notice/${this.editingNoticeId}`, {
+                        operatorId: this.user.id,
+                        title: this.noticeForm.title.trim(),
+                        content: this.noticeForm.content.trim(),
+                        category: this.noticeForm.category
+                    });
+                } else {
+                    // 新增公告
+                    response = await axios.post(`${API_BASE_URL}/create-notice`, {
+                        operatorId: this.user.id,
+                        title: this.noticeForm.title.trim(),
+                        content: this.noticeForm.content.trim(),
+                        category: this.noticeForm.category
+                    });
+                }
                 
                 if (response.data.success) {
-                    this.showMessage('系統公告更新成功', 'success');
-                    this.showEditNoticeModal = false;
+                    this.showMessage(this.editingNoticeId ? '系統公告更新成功' : '系統公告創建成功', 'success');
+                    this.cancelNoticeEdit();
                     
                     // 刷新公告列表
                     await this.fetchNotices();
                 } else {
-                    this.showMessage(response.data.message || '更新公告失敗', 'error');
+                    this.showMessage(response.data.message || '操作失敗', 'error');
                 }
                 
             } catch (error) {
-                console.error('更新公告出錯:', error);
-                this.showMessage('更新公告出錯，請稍後再試', 'error');
+                console.error('公告操作出錯:', error);
+                this.showMessage('操作出錯，請稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
+        },
+        
+        // 獲取當前日期時間
+        getCurrentDateTime() {
+            return new Date().toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         },
         
         // 刪除公告

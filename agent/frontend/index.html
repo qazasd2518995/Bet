@@ -1303,9 +1303,80 @@
                 <div v-if="activeTab === 'notices'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2>系統公告</h2>
-                        <button v-if="isCustomerService" class="btn btn-success" @click="showCreateNoticeModalFunc">
-                            <i class="fas fa-plus me-1"></i>新增公告
+                        <button v-if="isCustomerService" class="btn btn-success" @click="showNoticeForm = !showNoticeForm">
+                            <i class="fas fa-plus me-1"></i>{{ showNoticeForm ? '取消新增' : '新增公告' }}
                         </button>
+                    </div>
+                    
+                    <!-- 新增/編輯公告表單 -->
+                    <div v-if="showNoticeForm" class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-bullhorn me-2"></i>{{ editingNoticeId ? '編輯公告' : '新增公告' }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form @submit.prevent="submitNotice">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="mb-3">
+                                            <label class="form-label">公告標題 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" v-model="noticeForm.title" 
+                                                   placeholder="請輸入公告標題" maxlength="100" required>
+                                            <div class="form-text">標題長度：{{ (noticeForm.title || '').length }}/100</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">公告分類</label>
+                                            <select class="form-select" v-model="noticeForm.category">
+                                                <option value="最新公告">最新公告</option>
+                                                <option value="維修">維修</option>
+                                                <option value="活動">活動</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">公告內容 <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" v-model="noticeForm.content" 
+                                              placeholder="請輸入公告內容" rows="5" required></textarea>
+                                    <div class="form-text">內容長度：{{ (noticeForm.content || '').length }} 字符</div>
+                                </div>
+                                
+                                <!-- 預覽區域 -->
+                                <div class="mb-3">
+                                    <label class="form-label">公告預覽</label>
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="badge me-2" 
+                                                  :class="{
+                                                      'bg-info': noticeForm.category === '最新公告',
+                                                      'bg-warning': noticeForm.category === '維修',
+                                                      'bg-success': noticeForm.category === '活動'
+                                                  }">
+                                                {{ noticeForm.category }}
+                                            </span>
+                                            <h6 class="mb-0">{{ noticeForm.title || '公告標題' }}</h6>
+                                        </div>
+                                        <p class="mb-0 text-muted">{{ noticeForm.content || '公告內容' }}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>{{ getCurrentDateTime() }}
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-secondary me-2" @click="cancelNoticeEdit">取消</button>
+                                    <button type="submit" class="btn btn-primary" :disabled="loading">
+                                        <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                        <i class="fas fa-save me-1" v-if="!loading"></i>
+                                        {{ editingNoticeId ? '更新公告' : '發布公告' }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                     
                     <!-- 分類篩選 -->
@@ -1363,7 +1434,7 @@
                                                 </small>
                                             </div>
                                             <div v-if="isCustomerService" class="btn-group">
-                                                <button class="btn btn-sm btn-outline-primary" @click="showEditNoticeModalFunc(notice)">
+                                                <button class="btn btn-sm btn-outline-primary" @click="startEditNotice(notice)">
                                                     <i class="fas fa-edit me-1"></i>編輯
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-danger" @click="deleteNotice(notice)">
@@ -1386,8 +1457,8 @@
                             <button class="btn btn-primary" @click="showCSOperationModalFunc">
                                 <i class="fas fa-exchange-alt me-1"></i>新增轉帳
                             </button>
-                            <button class="btn btn-success" @click="showCreateNoticeModalFunc">
-                                <i class="fas fa-bullhorn me-1"></i>新增公告
+                            <button class="btn btn-success" @click="showNoticeForm = !showNoticeForm">
+                                <i class="fas fa-bullhorn me-1"></i>{{ showNoticeForm ? '取消新增' : '新增公告' }}
                             </button>
                         </div>
                     </div>
@@ -1766,157 +1837,7 @@
         </div>
     </div>
 
-    <!-- 新增系統公告 Modal -->
-    <div v-if="showCreateNoticeModal" class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1055;" @click.self="showCreateNoticeModal = false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content" @click.stop>
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-bullhorn me-2"></i>新增系統公告
-                    </h5>
-                    <button type="button" class="btn-close" @click="showCreateNoticeModal = false" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="submitCreateNotice">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label class="form-label">公告標題 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" v-model="newNotice.title" 
-                                           placeholder="請輸入公告標題" maxlength="100" required>
-                                    <div class="form-text">標題長度限制：{{ newNotice.title.length }}/100</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">公告分類</label>
-                                    <select class="form-select" v-model="newNotice.category">
-                                        <option value="最新公告">最新公告</option>
-                                        <option value="維修">維修</option>
-                                        <option value="活動">活動</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">公告內容 <span class="text-danger">*</span></label>
-                            <textarea class="form-control" v-model="newNotice.content" 
-                                      placeholder="請輸入公告內容" rows="8" required></textarea>
-                            <div class="form-text">內容長度：{{ newNotice.content.length }} 字符</div>
-                        </div>
-                        
-                        <!-- 預覽區域 -->
-                        <div class="mb-3">
-                            <label class="form-label">公告預覽</label>
-                            <div class="border rounded p-3 bg-light">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge me-2" 
-                                          :class="{
-                                              'bg-info': newNotice.category === '最新公告',
-                                              'bg-warning': newNotice.category === '維修',
-                                              'bg-success': newNotice.category === '活動'
-                                          }">
-                                        {{ newNotice.category }}
-                                    </span>
-                                    <h6 class="mb-0">{{ newNotice.title || '公告標題' }}</h6>
-                                </div>
-                                <p class="mb-0 text-muted">{{ newNotice.content || '公告內容' }}</p>
-                                <small class="text-muted">
-                                    <i class="fas fa-clock me-1"></i>{{ formatDateTime(new Date()) }}
-                                </small>
-                            </div>
-                        </div>
-                        
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary me-2" @click="showCreateNoticeModal = false">取消</button>
-                            <button type="submit" class="btn btn-success" :disabled="loading">
-                                <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                <i class="fas fa-paper-plane me-1" v-if="!loading"></i>
-                                發布公告
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 編輯系統公告 Modal -->
-    <div v-if="showEditNoticeModal" class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1055;" @click.self="showEditNoticeModal = false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content" @click.stop>
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-edit me-2"></i>編輯系統公告
-                    </h5>
-                    <button type="button" class="btn-close" @click="showEditNoticeModal = false" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="submitEditNotice">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label class="form-label">公告標題 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" v-model="editNotice.title" 
-                                           placeholder="請輸入公告標題" maxlength="100" required>
-                                    <div class="form-text">標題長度限制：{{ editNotice.title.length }}/100</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">公告分類</label>
-                                    <select class="form-select" v-model="editNotice.category">
-                                        <option value="最新公告">最新公告</option>
-                                        <option value="維修">維修</option>
-                                        <option value="活動">活動</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">公告內容 <span class="text-danger">*</span></label>
-                            <textarea class="form-control" v-model="editNotice.content" 
-                                      placeholder="請輸入公告內容" rows="8" required></textarea>
-                            <div class="form-text">內容長度：{{ editNotice.content.length }} 字符</div>
-                        </div>
-                        
-                        <!-- 預覽區域 -->
-                        <div class="mb-3">
-                            <label class="form-label">公告預覽</label>
-                            <div class="border rounded p-3 bg-light">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge me-2" 
-                                          :class="{
-                                              'bg-info': editNotice.category === '最新公告',
-                                              'bg-warning': editNotice.category === '維修',
-                                              'bg-success': editNotice.category === '活動'
-                                          }">
-                                        {{ editNotice.category }}
-                                    </span>
-                                    <h6 class="mb-0">{{ editNotice.title || '公告標題' }}</h6>
-                                </div>
-                                <p class="mb-0 text-muted">{{ editNotice.content || '公告內容' }}</p>
-                                <small class="text-muted">
-                                    <i class="fas fa-clock me-1"></i>{{ formatDateTime(new Date()) }}
-                                </small>
-                            </div>
-                        </div>
-                        
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary me-2" @click="showEditNoticeModal = false">取消</button>
-                            <button type="submit" class="btn btn-primary" :disabled="loading">
-                                <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                <i class="fas fa-save me-1" v-if="!loading"></i>
-                                更新公告
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- 客服存款/提款操作 Modal -->
     <div class="modal fade" id="csOperationModal" tabindex="-1" aria-labelledby="csOperationModalLabel" aria-hidden="true">
