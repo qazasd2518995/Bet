@@ -458,19 +458,35 @@ const app = createApp({
             const userStr = localStorage.getItem('agent_user');
             console.log('檢查認證，localStorage中的user字符串:', userStr);
             
-            const user = JSON.parse(userStr || '{}');
-            console.log('解析後的user對象:', user);
-            
-            if (token && user.id) {
-                this.isLoggedIn = true;
-                this.user = user;
-                console.log('設置user對象成功:', this.user);
-                
-                // 設置 axios 身份驗證頭
-                axios.defaults.headers.common['Authorization'] = token;
-                return true;
+            if (!userStr || !token) {
+                console.log('認證失敗，缺少token或user數據');
+                return false;
             }
-            console.log('認證失敗，token:', !!token, 'user.id:', user.id);
+            
+            try {
+                const user = JSON.parse(userStr);
+                console.log('解析後的user對象:', user);
+                
+                if (user && user.id) {
+                    this.isLoggedIn = true;
+                    this.user = user;
+                    console.log('設置user對象成功:', this.user);
+                    
+                    // 設置 axios 身份驗證頭
+                    axios.defaults.headers.common['Authorization'] = token;
+                    
+                    // 強制Vue更新
+                    this.$forceUpdate();
+                    return true;
+                }
+            } catch (error) {
+                console.error('解析用戶數據失敗:', error);
+                // 清除損壞的數據
+                localStorage.removeItem('agent_token');
+                localStorage.removeItem('agent_user');
+            }
+            
+            console.log('認證失敗');
             return false;
         },
         
