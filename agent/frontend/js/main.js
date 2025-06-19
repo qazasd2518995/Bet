@@ -796,7 +796,7 @@ const app = createApp({
         // 顯示新增公告模態框
         // 開始編輯公告
         startEditNotice(notice) {
-            if (!this.isCustomerService) {
+            if (this.user.level !== 0) {
                 this.showMessage('權限不足，只有總代理可以編輯系統公告', 'error');
                 return;
             }
@@ -902,7 +902,7 @@ const app = createApp({
         
         // 刪除公告
         async deleteNotice(notice) {
-            if (!this.isCustomerService) {
+            if (this.user.level !== 0) {
                 this.showMessage('權限不足，只有總代理可以刪除系統公告', 'error');
                 return;
             }
@@ -3181,9 +3181,9 @@ const app = createApp({
             if (newTab === 'transactions' && this.transactionTab === 'transfers') {
                 this.loadPointTransfers();
             }
-            if (newTab === 'customer-service' && this.isCustomerService) {
-                this.loadCSTransactions();
-            }
+                                 if (newTab === 'customer-service' && this.user.level === 0) {
+                         this.loadCSTransactions();
+                     }
         },
         transactionTab(newTab, oldTab) {
             if (this.activeTab === 'transactions' && newTab === 'transfers') {
