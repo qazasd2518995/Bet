@@ -231,7 +231,7 @@ const app = createApp({
             agentTransferAmount: 0,
 
             // 客服專用數據
-            isCustomerService: false, // 是否為客服
+            isCustomerService: true, // 是否為客服 - 臨時設為 true 用於測試
             showCSOperationModal: false, // 客服操作模態框
             csOperation: {
                 targetAgentId: '',
@@ -304,6 +304,20 @@ const app = createApp({
     // 頁面載入時自動執行
     async mounted() {
         console.log('Vue應用已掛載');
+        console.log('初始數據檢查:', {
+            editNotice: this.editNotice,
+            showEditNoticeModal: this.showEditNoticeModal,
+            isCustomerService: this.isCustomerService
+        });
+        
+        // 測試模板插值功能
+        this.$nextTick(() => {
+            console.log('nextTick 檢查模板數據:', {
+                'editNotice.title': this.editNotice.title,
+                'editNotice.title.length': this.editNotice.title.length,
+                'editNotice.content.length': this.editNotice.content.length
+            });
+        });
         
         // 檢查是否已登入
         const isAuthenticated = await this.checkAuth();
@@ -3209,42 +3223,79 @@ const app = createApp({
     }
 });
 
-// 等待 DOM 加載完成後掛載 Vue 應用
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM加載完成，準備掛載Vue應用到 #app');
+// 延遲掛載 Vue 應用，確保所有依賴都已載入
+setTimeout(function() {
+    console.log('延遲掛載 Vue 應用');
+    console.log('Vue 可用性:', typeof Vue);
+    console.log('Document 狀態:', document.readyState);
+    
     const appElement = document.getElementById('app');
-    console.log('找到app元素:', appElement);
-
-    if (appElement) {
+    console.log('找到 app 元素:', appElement);
+    
+    if (appElement && typeof Vue !== 'undefined') {
         try {
+            // 檢查是否已經掛載過
+            if (appElement.__vue_app__) {
+                console.log('Vue 應用已經掛載過，跳過');
+                return;
+            }
+            
             const mountedApp = app.mount('#app');
-            console.log('Vue應用掛載成功:', mountedApp);
+            console.log('Vue 應用掛載成功:', mountedApp);
+            
+            // 添加全域調試函數
+            window.debugVue = function() {
+                console.log('=== Vue 除錯資訊 ===');
+                console.log('Vue 實例:', mountedApp);
+                console.log('showEditNoticeModal:', mountedApp.showEditNoticeModal);
+                console.log('editNotice:', mountedApp.editNotice);
+                console.log('isCustomerService:', mountedApp.isCustomerService);
+                
+                // 測試顯示編輯modal
+                console.log('測試顯示編輯modal...');
+                mountedApp.showEditNoticeModalFunc({
+                    id: 1,
+                    title: '測試公告',
+                    content: '這是測試內容',
+                    category: '最新公告'
+                });
+            };
+            
+            window.closeModal = function() {
+                mountedApp.showEditNoticeModal = false;
+                console.log('強制關閉modal');
+            };
+            
+            console.log('全域除錯函數已添加：debugVue() 和 closeModal()');
+            
+            // 額外檢查：確保響應式變數正常工作
+            setTimeout(() => {
+                if (mountedApp && mountedApp.editNotice) {
+                    console.log('Vue 響應式數據檢查:', {
+                        editNotice: mountedApp.editNotice,
+                        showEditNoticeModal: mountedApp.showEditNoticeModal
+                    });
+                }
+            }, 1000);
+            
         } catch (error) {
-            console.error('Vue應用掛載失敗:', error);
-            alert('Vue應用掛載失敗: ' + error.message);
+            console.error('Vue 應用掛載失敗:', error);
+            console.error('錯誤詳情:', error.stack);
+            
+            // 嘗試重新整理頁面
+            setTimeout(() => {
+                if (confirm('系統載入失敗，是否重新整理頁面？')) {
+                    window.location.reload();
+                }
+            }, 2000);
         }
     } else {
-        console.error('找不到 #app 元素！');
-        alert('找不到 #app 元素！');
+        console.error('條件不滿足:', {
+            appElement: !!appElement,
+            Vue: typeof Vue
+        });
+        
+        // 嘗試等待更長時間
+        setTimeout(arguments.callee, 500);
     }
-});
-
-// 如果 DOM 已經加載完成，直接執行掛載
-if (document.readyState === 'loading') {
-    // DOM 還在加載中，等待 DOMContentLoaded 事件
-} else {
-    // DOM 已經加載完成，直接執行
-    console.log('DOM已加載，直接掛載Vue應用');
-    const appElement = document.getElementById('app');
-    if (appElement) {
-        try {
-            const mountedApp = app.mount('#app');
-            console.log('Vue應用掛載成功:', mountedApp);
-        } catch (error) {
-            console.error('Vue應用掛載失敗:', error);
-            alert('Vue應用掛載失敗: ' + error.message);
-        }
-    } else {
-        console.error('找不到 #app 元素！');
-    }
-}
+}, 100);
