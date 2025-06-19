@@ -909,21 +909,40 @@
         /* 響應式設計 */
         @media (max-width: 768px) {
             .navbar-container {
-                grid-template-columns: 1fr;
-                gap: 15px;
-                text-align: center;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 10px;
+                padding: 8px 15px;
             }
             
-            .user-section {
-                justify-self: center;
+            .navbar-brand {
+                flex: 0 0 auto;
+            }
+            
+            .brand-title {
+                font-size: 16px;
             }
             
             .navbar-actions {
-                justify-content: center;
+                flex: 0 0 auto;
+                justify-content: flex-end;
+                margin-left: auto !important;
+            }
+            
+            .balance-info {
+                font-size: 14px !important;
+                padding: 6px 12px !important;
+            }
+            
+            .menu-btn {
+                padding: 8px !important;
+                width: 40px;
+                height: 40px;
             }
             
             .login-section {
-                justify-self: center;
+                flex: 0 0 auto;
             }
             
             .login-form {
@@ -932,9 +951,9 @@
             }
             
             .dropdown-panel {
-                right: auto;
-                left: 50%;
-                transform: translateX(-50%);
+                right: 0 !important;
+                left: auto !important;
+                transform: none !important;
             }
         }
         
@@ -1285,100 +1304,198 @@
             }
             
             .result-header {
-                padding: 15px;
+                padding: 12px;
             }
             
             .period-info-row {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .period-badges {
-                justify-content: center;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
                 gap: 8px;
             }
             
+            .period-badges {
+                flex: 1;
+                justify-content: flex-start;
+                gap: 6px;
+            }
+            
             .period-badge {
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 4px 8px;
+                font-size: 10px;
+                white-space: nowrap;
             }
             
             .period-number {
-                font-size: 14px;
+                font-size: 12px;
             }
             
             .period-label {
-                font-size: 10px;
+                font-size: 8px;
             }
             
             .countdown-section {
-                padding: 6px 12px;
+                flex: 0 0 auto;
+                padding: 4px 8px;
+                min-width: 120px;
             }
             
             .countdown-time {
-                font-size: 16px;
-            }
-            
-            .results-display {
-                padding: 20px 5px;
-            }
-            
-            .results-grid {
-                grid-template-columns: repeat(10, minmax(36px, 1fr));
-                gap: 2px;
-                min-width: 380px;
-            }
-            
-            .result-ball {
-                width: 36px;
-                height: 36px;
                 font-size: 14px;
             }
             
+            .countdown-label {
+                font-size: 10px;
+            }
+            
+            .results-display {
+                padding: 15px 5px;
+                overflow-x: auto;
+            }
+            
+            .results-grid {
+                display: flex !important;
+                flex-direction: row !important;
+                gap: 3px;
+                justify-content: space-between;
+                min-width: 100%;
+                max-width: 100%;
+            }
+            
+            .result-item {
+                flex: 1;
+                min-width: 30px;
+                max-width: 35px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2px;
+            }
+            
+            .result-ball {
+                width: 30px;
+                height: 30px;
+                font-size: 12px;
+                flex-shrink: 0;
+            }
+            
             .position-label {
-                font-size: 14px !important;
-                padding: 4px 5px;
-                min-height: 20px;
+                font-size: 10px !important;
+                padding: 2px 3px;
+                min-height: 16px;
+                white-space: nowrap;
+                text-align: center;
+                width: 100%;
+                box-sizing: border-box;
             }
         }
 
         @media (max-width: 480px) {
-            .period-display {
-                flex-direction: column;
-                gap: 10px;
-                align-items: stretch;
+            .navbar-container {
+                padding: 6px 10px;
+                gap: 5px;
             }
             
-            .status-indicator {
-                justify-content: center;
+            .brand-title {
+                font-size: 14px;
             }
             
-            .results-display {
-                padding: 15px 2px;
+            .balance-info {
+                font-size: 12px !important;
+                padding: 4px 8px !important;
             }
             
-            .results-grid {
-                grid-template-columns: repeat(10, minmax(32px, 1fr));
-                gap: 1px;
-                min-width: 340px;
+            .menu-btn {
+                width: 36px;
+                height: 36px;
+                padding: 6px !important;
             }
             
-            .result-ball {
-                width: 32px;
-                height: 32px;
-                font-size: 12px;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-            }
-            
-            .result-item {
+            .period-badges {
                 gap: 4px;
             }
             
+            .period-badge {
+                padding: 3px 6px;
+                font-size: 9px;
+            }
+            
+            .period-number {
+                font-size: 10px;
+            }
+            
+            .period-label {
+                font-size: 7px;
+            }
+            
+            .countdown-section {
+                min-width: 100px;
+                padding: 3px 6px;
+            }
+            
+            .countdown-time {
+                font-size: 12px;
+            }
+            
+            .countdown-label {
+                font-size: 9px;
+            }
+            
+            .results-display {
+                padding: 12px 3px;
+            }
+            
+            .result-item {
+                min-width: 28px;
+                max-width: 32px;
+                gap: 1px;
+            }
+            
+            .result-ball {
+                width: 28px;
+                height: 28px;
+                font-size: 11px;
+            }
+            
             .position-label {
-                font-size: 13px !important;
-                padding: 4px;
-                min-height: 18px;
-                border-radius: 4px;
+                font-size: 9px !important;
+                padding: 1px 2px;
+                min-height: 14px;
+            }
+            
+            .compact-bet-bar {
+                padding: 6px 8px;
+                gap: 6px;
+            }
+            
+            .compact-clear-btn {
+                padding: 5px 8px;
+                font-size: 11px;
+            }
+            
+            .compact-bet-count {
+                font-size: 11px;
+            }
+            
+            .compact-repeat-btn {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+            
+            .chips-toggle-btn {
+                padding: 5px 8px;
+                font-size: 11px;
+            }
+            
+            .compact-amount-input {
+                width: 50px;
+                padding: 5px 6px;
+                font-size: 11px;
+            }
+            
+            .compact-bet-btn {
+                padding: 5px 10px;
+                font-size: 11px;
             }
         }
             
@@ -1792,56 +1909,83 @@
         /* 響應式設計 */
         @media (max-width: 768px) {
             .compact-bet-bar {
-                flex-wrap: wrap;
-                padding: 10px 15px;
-                gap: 10px;
-            }
-            
-            .compact-bet-info {
-                order: 1;
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .chips-dropdown {
-                order: 2;
-            }
-            
-            .compact-chips {
-                position: relative;
-                bottom: auto;
-                left: auto;
-                transform: none;
-                min-width: auto;
-                margin-bottom: 0;
-                margin-top: 8px;
-                justify-content: center;
-                flex-wrap: wrap;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
-            .compact-chips::after,
-            .compact-chips::before {
-                display: none;
-            }
-            
-            .compact-amount-input {
-                order: 3;
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                padding: 8px 10px;
+                gap: 8px;
+                justify-content: space-between;
+                align-items: center;
             }
             
             .compact-clear-btn {
-                order: 4;
-                padding: 6px 12px;
+                flex: 0 0 auto;
+                padding: 6px 10px;
+                font-size: 12px;
             }
             
-            .compact-bet-btn {
-                order: 5;
-                padding: 8px 16px;
+            .compact-middle-section {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                flex-wrap: nowrap;
+            }
+            
+            .compact-bet-info {
+                flex: 0 0 auto;
+                gap: 5px;
+            }
+            
+            .compact-bet-count {
+                font-size: 12px;
+            }
+            
+            .compact-repeat-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            
+            .chips-dropdown {
+                flex: 0 0 auto;
+                position: relative;
+            }
+            
+            .chips-toggle-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .compact-chips {
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                margin-bottom: 8px;
+                flex-wrap: nowrap;
+                min-width: 200px;
+                max-width: 250px;
+                overflow-x: auto;
             }
             
             .compact-chip {
-                min-width: 35px;
-                padding: 4px 8px;
+                min-width: 30px;
+                padding: 4px 6px;
+                font-size: 11px;
+                flex-shrink: 0;
+            }
+            
+            .compact-amount-input {
+                flex: 0 0 auto;
+                width: 60px;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+            
+            .compact-bet-btn {
+                flex: 0 0 auto;
+                padding: 6px 12px;
                 font-size: 12px;
             }
         }
