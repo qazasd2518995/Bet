@@ -1757,8 +1757,7 @@
     </div>
 
     <!-- 新增系統公告 Modal -->
-    <div class="modal fade" :class="{show: showCreateNoticeModal}" :style="{display: showCreateNoticeModal ? 'block' : 'none'}" 
-         tabindex="-1" aria-labelledby="createNoticeModalLabel" aria-hidden="true">
+    <div v-if="showCreateNoticeModal" class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
