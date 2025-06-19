@@ -2498,6 +2498,56 @@ app.get(`${API_PREFIX}/notices`, async (req, res) => {
   }
 });
 
+// 新增系統公告 (僅總代理可用)
+app.post(`${API_PREFIX}/create-notice`, async (req, res) => {
+  try {
+    const { operatorId, title, content, category } = req.body;
+    
+    // 參數驗證
+    if (!operatorId || !title || !content) {
+      return res.json({
+        success: false,
+        message: '請提供操作員ID、標題和內容'
+      });
+    }
+    
+    // 檢查操作員是否為總代理（客服）
+    const isCS = await AgentModel.isCustomerService(operatorId);
+    if (!isCS) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有總代理可以創建系統公告'
+      });
+    }
+    
+    // 驗證分類
+    const validCategories = ['最新公告', '維修', '活動'];
+    const finalCategory = validCategories.includes(category) ? category : '最新公告';
+    
+    // 創建公告
+    const newNotice = await NoticeModel.create(
+      title.substring(0, 100), // 限制標題長度
+      content,
+      finalCategory
+    );
+    
+    console.log(`總代理 ${operatorId} 創建新公告: "${title}"`);
+    
+    res.json({
+      success: true,
+      message: '系統公告創建成功',
+      notice: newNotice
+    });
+    
+  } catch (error) {
+    console.error('創建系統公告出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '創建公告失敗，請稍後再試'
+    });
+  }
+});
+
 // 新增: 獲取總代理API端點
 app.get(`${API_PREFIX}/admin-agent`, async (req, res) => {
   try {

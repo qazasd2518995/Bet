@@ -65,6 +65,14 @@ const app = createApp({
             noticeCategories: [],
             selectedNoticeCategory: 'all',
             
+            // 新增公告相關
+            showCreateNoticeModal: false,
+            newNotice: {
+                title: '',
+                content: '',
+                category: '最新公告'
+            },
+            
             // 當前活動分頁
             activeTab: 'dashboard',
             transactionTab: 'transfers',
@@ -768,6 +776,70 @@ const app = createApp({
         async filterNoticesByCategory(category) {
             this.selectedNoticeCategory = category;
             await this.fetchNotices(category === 'all' ? null : category);
+        },
+        
+        // 顯示新增公告模態框
+        showCreateNoticeModalFunc() {
+            if (!this.isCustomerService) {
+                this.showMessage('權限不足，只有總代理可以創建系統公告', 'error');
+                return;
+            }
+            
+            // 重置表單
+            this.newNotice = {
+                title: '',
+                content: '',
+                category: '最新公告'
+            };
+            
+            this.showCreateNoticeModal = true;
+        },
+        
+        // 提交新增公告
+        async submitCreateNotice() {
+            try {
+                // 驗證輸入
+                if (!this.newNotice.title.trim()) {
+                    this.showMessage('請輸入公告標題', 'error');
+                    return;
+                }
+                
+                if (!this.newNotice.content.trim()) {
+                    this.showMessage('請輸入公告內容', 'error');
+                    return;
+                }
+                
+                // 標題長度限制
+                if (this.newNotice.title.length > 100) {
+                    this.showMessage('公告標題不能超過100個字符', 'error');
+                    return;
+                }
+                
+                this.loading = true;
+                
+                const response = await axios.post(`${API_BASE_URL}/create-notice`, {
+                    operatorId: this.user.id,
+                    title: this.newNotice.title.trim(),
+                    content: this.newNotice.content.trim(),
+                    category: this.newNotice.category
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('系統公告創建成功', 'success');
+                    this.showCreateNoticeModal = false;
+                    
+                    // 刷新公告列表
+                    await this.fetchNotices();
+                } else {
+                    this.showMessage(response.data.message || '創建公告失敗', 'error');
+                }
+                
+            } catch (error) {
+                console.error('創建公告出錯:', error);
+                this.showMessage('創建公告出錯，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
         },
         
         // 搜索代理

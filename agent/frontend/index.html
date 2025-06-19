@@ -1303,6 +1303,9 @@
                 <div v-if="activeTab === 'notices'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2>系統公告</h2>
+                        <button v-if="isCustomerService" class="btn btn-success" @click="showCreateNoticeModalFunc">
+                            <i class="fas fa-plus me-1"></i>新增公告
+                        </button>
                     </div>
                     
                     <!-- 分類篩選 -->
@@ -1369,14 +1372,19 @@
                 <div v-if="activeTab === 'customer-service' && isCustomerService">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2>客服功能</h2>
-                        <button class="btn btn-primary" @click="showCSOperationModalFunc">
-                            <i class="fas fa-plus me-1"></i>新增操作
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" @click="showCSOperationModalFunc">
+                                <i class="fas fa-exchange-alt me-1"></i>新增轉帳
+                            </button>
+                            <button class="btn btn-success" @click="showCreateNoticeModalFunc">
+                                <i class="fas fa-bullhorn me-1"></i>新增公告
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- 功能說明卡片 -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="card bg-info text-white">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
@@ -1391,7 +1399,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="card bg-warning text-white">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
@@ -1401,6 +1409,21 @@
                                         <div>
                                             <h5 class="card-title mb-1">完整記錄</h5>
                                             <p class="card-text mb-0">所有操作都會記錄在系統中</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-bullhorn fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="card-title mb-1">公告管理</h5>
+                                            <p class="card-text mb-0">可以新增和管理系統公告</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1728,6 +1751,83 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增系統公告 Modal -->
+    <div class="modal fade" :class="{show: showCreateNoticeModal}" :style="{display: showCreateNoticeModal ? 'block' : 'none'}" 
+         tabindex="-1" aria-labelledby="createNoticeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createNoticeModalLabel">
+                        <i class="fas fa-bullhorn me-2"></i>新增系統公告
+                    </h5>
+                    <button type="button" class="btn-close" @click="showCreateNoticeModal = false" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitCreateNotice">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">公告標題 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" v-model="newNotice.title" 
+                                           placeholder="請輸入公告標題" maxlength="100" required>
+                                    <div class="form-text">標題長度限制：{{ newNotice.title.length }}/100</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">公告分類</label>
+                                    <select class="form-select" v-model="newNotice.category">
+                                        <option value="最新公告">最新公告</option>
+                                        <option value="維修">維修</option>
+                                        <option value="活動">活動</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">公告內容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" v-model="newNotice.content" 
+                                      placeholder="請輸入公告內容" rows="8" required></textarea>
+                            <div class="form-text">內容長度：{{ newNotice.content.length }} 字符</div>
+                        </div>
+                        
+                        <!-- 預覽區域 -->
+                        <div class="mb-3">
+                            <label class="form-label">公告預覽</label>
+                            <div class="border rounded p-3 bg-light">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge me-2" 
+                                          :class="{
+                                              'bg-info': newNotice.category === '最新公告',
+                                              'bg-warning': newNotice.category === '維修',
+                                              'bg-success': newNotice.category === '活動'
+                                          }">
+                                        {{ newNotice.category }}
+                                    </span>
+                                    <h6 class="mb-0">{{ newNotice.title || '公告標題' }}</h6>
+                                </div>
+                                <p class="mb-0 text-muted">{{ newNotice.content || '公告內容' }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ new Date().toLocaleString() }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2" @click="showCreateNoticeModal = false">取消</button>
+                            <button type="submit" class="btn btn-success" :disabled="loading">
+                                <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                <i class="fas fa-paper-plane me-1" v-if="!loading"></i>
+                                發布公告
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
