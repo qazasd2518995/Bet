@@ -297,17 +297,17 @@ const app = createApp({
     async mounted() {
         console.log('Vue應用已掛載');
         console.log('初始數據檢查:', {
-            editNotice: this.editNotice,
-            showEditNoticeModal: this.showEditNoticeModal,
+            noticeForm: this.noticeForm,
+            showNoticeForm: this.showNoticeForm,
             isCustomerService: this.isCustomerService
         });
         
         // 測試模板插值功能
         this.$nextTick(() => {
             console.log('nextTick 檢查模板數據:', {
-                'editNotice.title': this.editNotice.title,
-                'editNotice.title.length': this.editNotice.title.length,
-                'editNotice.content.length': this.editNotice.content.length
+                'noticeForm.title': this.noticeForm.title,
+                'noticeForm.title.length': this.noticeForm.title.length,
+                'noticeForm.content.length': this.noticeForm.content.length
             });
         });
         
@@ -3217,13 +3217,13 @@ setTimeout(function() {
             window.debugVue = function() {
                 console.log('=== Vue 除錯資訊 ===');
                 console.log('Vue 實例:', mountedApp);
-                console.log('showEditNoticeModal:', mountedApp.showEditNoticeModal);
-                console.log('editNotice:', mountedApp.editNotice);
+                console.log('showNoticeForm:', mountedApp.showNoticeForm);
+                console.log('noticeForm:', mountedApp.noticeForm);
                 console.log('isCustomerService:', mountedApp.isCustomerService);
                 
-                // 測試顯示編輯modal
-                console.log('測試顯示編輯modal...');
-                mountedApp.showEditNoticeModalFunc({
+                // 測試顯示公告表單
+                console.log('測試顯示公告表單...');
+                mountedApp.startEditNotice({
                     id: 1,
                     title: '測試公告',
                     content: '這是測試內容',
@@ -3231,19 +3231,19 @@ setTimeout(function() {
                 });
             };
             
-            window.closeModal = function() {
-                mountedApp.showEditNoticeModal = false;
-                console.log('強制關閉modal');
+            window.closeForm = function() {
+                mountedApp.showNoticeForm = false;
+                console.log('強制關閉公告表單');
             };
             
-            console.log('全域除錯函數已添加：debugVue() 和 closeModal()');
+            console.log('全域除錯函數已添加：debugVue() 和 closeForm()');
             
             // 額外檢查：確保響應式變數正常工作
             setTimeout(() => {
-                if (mountedApp && mountedApp.editNotice) {
+                if (mountedApp && mountedApp.noticeForm) {
                     console.log('Vue 響應式數據檢查:', {
-                        editNotice: mountedApp.editNotice,
-                        showEditNoticeModal: mountedApp.showEditNoticeModal
+                        noticeForm: mountedApp.noticeForm,
+                        showNoticeForm: mountedApp.showNoticeForm
                     });
                 }
             }, 1000);
