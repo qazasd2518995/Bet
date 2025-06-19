@@ -1166,7 +1166,8 @@ const app = createApp({
         
         // 格式化交易類型
         formatTransactionType(transaction) {
-            switch (transaction.type) {
+            const type = transaction.transaction_type || transaction.type;
+            switch (type) {
                 case 'cs_deposit':
                     return '客服存款';
                 case 'cs_withdraw':
@@ -1179,8 +1180,16 @@ const app = createApp({
                     return '轉入';
                 case 'transfer_out':
                     return '轉出';
+                case 'adjustment':
+                    return '餘額調整';
+                case 'password_reset':
+                    return '密碼重設';
+                case 'game_bet':
+                    return '遊戲下注';
+                case 'game_win':
+                    return '遊戲中獎';
                 default:
-                    return transaction.type || '未知';
+                    return type || '未知';
             }
         },
         
