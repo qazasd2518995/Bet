@@ -144,11 +144,11 @@ body {
     font-weight: bold;
 }
 
-.race-result {
+.race-result, .results-grid {
     display: flex;
-    justify-content: space-evenly; /* 均勻分布 */
+    justify-content: space-between; /* 改為space-between */
     margin: 10px 0;
-    padding: 5px 0;  /* 減少左右內邊距 */
+    padding: 5px 8px;  /* 增加左右內邊距 */
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
     flex-wrap: nowrap;
@@ -1713,7 +1713,7 @@ body {
         font-size: 12px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 4px 10px !important;
         justify-content: space-between !important;
         overflow: visible !important;
@@ -1750,7 +1750,7 @@ body {
         font-size: 14px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 5px 15px !important;
         justify-content: space-between !important;
         overflow: visible !important;
@@ -1787,7 +1787,7 @@ body {
         font-size: 17px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 6px 20px !important;
         justify-content: space-between !important;
         overflow: visible !important;
@@ -1824,7 +1824,7 @@ body {
         font-size: 19px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 8px 25px !important;
         justify-content: space-between !important;
         overflow: visible !important;
@@ -1861,7 +1861,7 @@ body {
         font-size: 8px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 2px 3px !important;
         justify-content: space-between !important;
         gap: 1px !important;
@@ -1907,7 +1907,7 @@ body {
         font-size: 10px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 3px 6px !important;
         justify-content: space-between !important;
     }
@@ -1962,7 +1962,7 @@ body {
         font-size: 10px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 3px 7px !important;
         justify-content: space-between !important;
         gap: 1px !important;
@@ -1996,7 +1996,7 @@ body {
         font-size: 11px !important;
     }
     
-    .race-result {
+    .race-result, .results-grid {
         padding: 4px 8px !important;
         justify-content: space-between !important;
         gap: 1px !important;
