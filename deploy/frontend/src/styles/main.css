@@ -110,7 +110,7 @@ body {
 }
 
 .countdown-time {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     color: #ff4d4f;
 }
@@ -156,8 +156,8 @@ body {
 }
 
 .number-ball {
-    width: 28px; /* 進一步縮小球體 */
-    height: 28px;
+    width: 26px; /* 進一步縮小球體 */
+    height: 26px;
     margin: 0 1px; /* 減少間距 */
     flex-shrink: 0;
     border-radius: 50%;
@@ -165,7 +165,7 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 14px; /* 縮小字體 */
+    font-size: 12px; /* 縮小字體 */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
@@ -901,13 +901,13 @@ body {
 }
 
 .result-ball {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: bold;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
@@ -1693,6 +1693,48 @@ body {
     
     .user-info span {
         font-size: 12px;
+    }
+    
+    /* 手機版倒計時和彩球優化 */
+    .countdown-time {
+        font-size: 12px !important;
+    }
+    
+    .number-ball {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        margin: 0 1px !important;
+    }
+    
+    .result-ball {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+    }
+    
+    .race-result {
+        padding: 3px 0 !important;
+        gap: 1px !important;
+    }
+}
+
+/* 超小螢幕額外優化 */
+@media (max-width: 360px) {
+    .countdown-time {
+        font-size: 10px !important;
+    }
+    
+    .number-ball {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+    }
+    
+    .result-ball {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 8px !important;
     }
 }
 
