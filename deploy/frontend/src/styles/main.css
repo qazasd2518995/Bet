@@ -146,27 +146,29 @@ body {
 
 .race-result, .results-grid {
     display: grid !important;
-    grid-template-columns: repeat(10, minmax(0, 1fr)) !important; /* 修復Safari Grid問題 */
-    gap: 3px !important;                                          /* 統一間距 */
-    margin: 10px 0;
-    padding: 0 12px !important;                                   /* 左右留白 */
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 5px;
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+    gap: 2px !important;              /* 想要更緊就改小 */
+    padding: 0 6px !important;        /* 視覺上留一點左右邊 */
+    margin: 10px 0 !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 5px !important;
     overflow-x: visible !important;
 }
 
-.number-ball {
-    width: 100% !important;   /* 佔滿各自格子 */
-    aspect-ratio: 1 / 1;      /* 高度自動=寬度，保持正圓 */
-    margin: 0 !important;     /* 移除margin */
-    min-width: 0 !important;  /* 防止Safari Grid軌道被撐開 */
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 12px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+.number-ball,
+.result-ball {
+    width: 100% !important;           /* ← 不再用固定 px */
+    aspect-ratio: 1/1 !important;     /* 永遠正圓 */
+    font-size: clamp(8px, 2.8vw, 18px) !important; /* 螢幕越小字越小，最大18px */
+    line-height: 1 !important;        /* 保險 – 讓文字居中 */
+    margin: 0 !important;
+    min-width: 0 !important;          /* 防止Safari Grid軌道被撐開 */
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* 數字球顏色 - 確保顏色鮮明 */
@@ -2517,4 +2519,39 @@ body {
 
 .menu-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* =================================================================
+   🎯 通用Grid解決方案：確保任何螢幕都顯示完整10顆球
+   放在所有@media之後，保證最高優先級
+   ================================================================= */
+
+/* ① 所有寬度通用：結果區保持10格 */
+.race-result,
+.results-grid {
+    display: grid !important;
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+    gap: 2px !important;              /* 想要更緊就改小 */
+    padding: 0 6px !important;        /* 視覺上留一點左右邊 */
+    margin: 10px 0 !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 5px !important;
+    overflow-x: visible !important;
+}
+
+/* ② 球佔滿格子、自己等比縮放 */
+.number-ball,
+.result-ball {
+    width: 100% !important;           /* ← 不再用固定 px */
+    aspect-ratio: 1/1 !important;     /* 永遠正圓 */
+    font-size: clamp(8px, 2.8vw, 18px) !important; /* 螢幕越小字越小，最大18px */
+    line-height: 1 !important;        /* 保險 – 讓文字居中 */
+    margin: 0 !important;
+    min-width: 0 !important;          /* 防止Safari Grid軌道被撐開 */
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
 }
