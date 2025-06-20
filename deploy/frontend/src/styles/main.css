@@ -1701,21 +1701,22 @@ body {
     }
     
     .number-ball {
-        width: 22px !important;
-        height: 22px !important;
-        font-size: 10px !important;
-        margin: 0 1px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        margin: 0 0.5px !important;
     }
     
     .result-ball {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
     }
     
     .race-result {
-        padding: 3px 0 !important;
-        gap: 1px !important;
+        padding: 3px 2px !important;
+        justify-content: space-evenly !important;
+        overflow: visible !important;
     }
 }
 
@@ -1726,15 +1727,20 @@ body {
     }
     
     .number-ball {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        margin: 0 0.3px !important;
+    }
+    
+    .result-ball {
         width: 20px !important;
         height: 20px !important;
         font-size: 9px !important;
     }
     
-    .result-ball {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 8px !important;
+    .race-result {
+        padding: 2px 1px !important;
     }
 }
 
