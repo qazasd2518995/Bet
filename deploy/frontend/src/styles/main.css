@@ -146,10 +146,10 @@ body {
 
 .race-result, .results-grid {
     display: grid !important;
-    grid-template-columns: repeat(10, 1fr) !important; /* 10等分網格 */
-    gap: 3px !important;                               /* 統一間距 */
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important; /* 修復Safari Grid問題 */
+    gap: 3px !important;                                          /* 統一間距 */
     margin: 10px 0;
-    padding: 0 12px !important;                        /* 左右留白 */
+    padding: 0 12px !important;                                   /* 左右留白 */
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
     overflow-x: visible !important;
@@ -159,6 +159,7 @@ body {
     width: 100% !important;   /* 佔滿各自格子 */
     aspect-ratio: 1 / 1;      /* 高度自動=寬度，保持正圓 */
     margin: 0 !important;     /* 移除margin */
+    min-width: 0 !important;  /* 防止Safari Grid軌道被撐開 */
     border-radius: 50%;
     display: flex;
     align-items: center;
