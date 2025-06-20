@@ -1913,8 +1913,8 @@ body {
     }
 }
 
-/* iPhone 6/7/8/SE(2020) (375px) */
-@media (max-width: 375px) and (min-width: 361px) {
+/* iPhone 6/7/8/SE(2020) + iPhone X (375-389px) */
+@media (max-width: 389px) and (min-width: 361px) {
     .number-ball {
         width: 24px !important;
         height: 24px !important;
@@ -1947,8 +1947,46 @@ body {
     }
 }
 
-/* iPhone X/11 Pro/12/13 標準 (390-393px) */
-@media (max-width: 393px) and (min-width: 376px) {
+/* iPhone 14 專用 (390px) */
+@media (max-width: 390px) and (min-width: 390px) {
+    .number-ball {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        margin: 0 !important;
+    }
+    
+    .result-ball {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+    }
+    
+    .race-result, .results-grid {
+        padding: 2px 5px !important;
+        justify-content: space-between !important;
+        gap: 0px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: visible !important;
+        width: 100% !important;
+    }
+    
+    .countdown-time {
+        font-size: 11px !important;
+    }
+    
+    .period-number {
+        font-size: 11px !important;
+    }
+    
+    .period-label {
+        font-size: 8px !important;
+    }
+}
+
+/* iPhone X/11 Pro/12/13 標準 (391-393px) */
+@media (max-width: 393px) and (min-width: 391px) {
     .number-ball {
         width: 25px !important;
         height: 25px !important;
@@ -1966,6 +2004,10 @@ body {
         padding: 3px 7px !important;
         justify-content: space-between !important;
         gap: 1px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: visible !important;
+        width: 100% !important;
     }
     
     .countdown-time {
