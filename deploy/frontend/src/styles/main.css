@@ -144,32 +144,7 @@ body {
     font-weight: bold;
 }
 
-.race-result, .results-grid {
-    display: grid !important;
-    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
-    gap: 2px !important;              /* 想要更緊就改小 */
-    padding: 0 6px !important;        /* 視覺上留一點左右邊 */
-    margin: 10px 0 !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    border-radius: 5px !important;
-    overflow-x: visible !important;
-}
-
-.number-ball,
-.result-ball {
-    width: 100% !important;           /* ← 不再用固定 px */
-    aspect-ratio: 1/1 !important;     /* 永遠正圓 */
-    font-size: clamp(8px, 2.8vw, 18px) !important; /* 螢幕越小字越小，最大18px */
-    line-height: 1 !important;        /* 保險 – 讓文字居中 */
-    margin: 0 !important;
-    min-width: 0 !important;          /* 防止Safari Grid軌道被撐開 */
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-weight: bold !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
-}
+/* 主開獎區域Grid容器 - 移至文件末尾統一管理 */
 
 /* 數字球顏色 - 確保顏色鮮明 */
 .color-1 {
@@ -1750,13 +1725,9 @@ body {
 
 /* iPhone SE老款 (320px) */
 @media (max-width: 320px) {
-    .number-ball {
-        font-size: 9px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 18px !important;
-        height: 18px !important;
         font-size: 8px !important;
     }
     
@@ -1780,13 +1751,9 @@ body {
 
 /* iPhone 12/13 mini (321px - 360px) */
 @media (min-width: 321px) and (max-width: 360px) {
-    .number-ball {
-        font-size: 10px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 20px !important;
-        height: 20px !important;
         font-size: 9px !important;
     }
     
@@ -1810,13 +1777,9 @@ body {
 
 /* iPhone SE(2020), iPhone 6/7/8 (361px - 375px) */
 @media (min-width: 361px) and (max-width: 375px) {
-    .number-ball {
-        font-size: 11px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 22px !important;
-        height: 22px !important;
         font-size: 10px !important;
     }
     
@@ -1840,13 +1803,9 @@ body {
 
 /* iPhone 14, 12/13標準 (376px - 393px) */
 @media (min-width: 376px) and (max-width: 393px) {
-    .number-ball {
-        font-size: 11px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 23px !important;
-        height: 23px !important;
         font-size: 10px !important;
     }
     
@@ -1934,13 +1893,9 @@ body {
 
 /* iPhone 11/XR (394px - 414px) */
 @media (min-width: 394px) and (max-width: 414px) {
-    .number-ball {
-        font-size: 12px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 24px !important;
-        height: 24px !important;
         font-size: 11px !important;
     }
     
@@ -1964,13 +1919,9 @@ body {
 
 /* iPhone Pro Max系列 (415px - 430px) */
 @media (min-width: 415px) and (max-width: 430px) {
-    .number-ball {
-        font-size: 13px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 26px !important;
-        height: 26px !important;
         font-size: 12px !important;
     }
     
@@ -1994,13 +1945,9 @@ body {
 
 /* 小型平板 (431px - 767px) */
 @media (min-width: 431px) and (max-width: 767px) {
-    .number-ball {
-        font-size: 15px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 30px !important;
-        height: 30px !important;
         font-size: 14px !important;
     }
     
@@ -2024,13 +1971,9 @@ body {
 
 /* iPad Mini 和中型平板 (768px - 899px) */
 @media (min-width: 768px) and (max-width: 899px) {
-    .number-ball {
-        font-size: 18px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 34px !important;
-        height: 34px !important;
         font-size: 17px !important;
     }
     
@@ -2054,13 +1997,9 @@ body {
 
 /* iPad 標準和大型平板 (900px+) */
 @media (min-width: 900px) {
-    .number-ball {
-        font-size: 20px !important;
-    }
+    /* .number-ball 已由 clamp() 自動調整字體 */
     
     .result-ball {
-        width: 38px !important;
-        height: 38px !important;
         font-size: 19px !important;
     }
     
@@ -2456,77 +2395,14 @@ body {
     }
 }
 
-/* 導航欄樣式 */
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #0e6f3d;
-    color: white;
-    padding: 8px 12px; /* 減少頂部導航欄的內邊距 */
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.logo {
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap; /* 允許在小屏幕上換行 */
-}
-
-.user-info span {
-    margin-right: 8px;
-}
-
-.history-button, .record-button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-    padding: 4px 8px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    transition: background-color 0.2s;
-    width: 100%;
-    text-align: center;
-    margin: 2px 0;
-}
-
-.history-button:hover, .record-button:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.menu-button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 4px 8px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    margin-top: 5px;
-    width: 100%;
-    text-align: center;
-}
-
-.menu-button:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
+/* 導航欄樣式已在文件頂部定義，此處刪除重複 */
 
 /* =================================================================
    🎯 通用Grid解決方案：確保任何螢幕都顯示完整10顆球
    放在所有@media之後，保證最高優先級
    ================================================================= */
 
-/* ① 所有寬度通用：結果區保持10格 */
+/* ① 所有寬度通用：主開獎區域保持10格 */
 .race-result,
 .results-grid {
     display: grid !important;
@@ -2539,9 +2415,8 @@ body {
     overflow-x: visible !important;
 }
 
-/* ② 球佔滿格子、自己等比縮放 */
-.number-ball,
-.result-ball {
+/* ② 主開獎球：佔滿格子、自動縮放 */
+.number-ball {
     width: 100% !important;           /* ← 不再用固定 px */
     aspect-ratio: 1/1 !important;     /* 永遠正圓 */
     font-size: clamp(8px, 2.8vw, 18px) !important; /* 螢幕越小字越小，最大18px */
@@ -2554,4 +2429,18 @@ body {
     justify-content: center !important;
     font-weight: bold !important;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ③ 歷史記錄小球：固定22px，不受Grid影響 */
+.result-ball {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 10px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    margin: 0 !important;
 }
