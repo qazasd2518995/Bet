@@ -1698,8 +1698,8 @@ body {
     /* iPhone Pro Max 和更大手機 (428-440px) 的彩球優化 */
 }
 
-/* iPhone Pro Max 系列 (428px+) */
-@media (max-width: 480px) and (min-width: 415px) {
+/* iPhone Pro Max 系列 (421px+) */
+@media (max-width: 480px) and (min-width: 421px) {
     .number-ball {
         width: 28px !important;
         height: 28px !important;
@@ -1982,7 +1982,7 @@ body {
 }
 
 /* Android中大型手機 + iPhone 11/XR (394-414px) */
-@media (max-width: 414px) and (min-width: 394px) {
+@media (max-width: 420px) and (min-width: 394px) {
     .number-ball {
         width: 26px !important;
         height: 26px !important;
@@ -2000,6 +2000,9 @@ body {
         padding: 4px 8px !important;
         justify-content: space-between !important;
         gap: 1px !important;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: visible !important;
     }
     
     .countdown-time {
