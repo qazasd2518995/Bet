@@ -1013,7 +1013,8 @@
         .modern-result-section {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
-            margin: 15px;
+            margin-block: 15px;  /* 🎯 只保留上下margin */
+            margin-inline: 0;    /* 清除左右margin，讓賽果區寬度最大化 */
             border-radius: 16px;
             overflow: visible;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -1172,7 +1173,8 @@
         }
 
         .results-display {
-            padding: 25px 15px;
+            padding-block: 25px;  /* 🎯 只保留上下padding */
+            padding-inline: 0 !important;  /* 清除左右padding，讓10顆球有足夠空間 */
             overflow-x: auto;
         }
 
@@ -1302,7 +1304,8 @@
 
         @media (max-width: 768px) {
             .modern-result-section {
-                margin: 8px;
+                margin-block: 8px;  /* 🎯 只保留上下margin */
+                margin-inline: 0;   /* 清除左右margin */
                 border-radius: 12px;
             }
             
@@ -1352,7 +1355,8 @@
             }
             
             .results-display {
-                padding: 12px 5px;
+                padding-block: 12px;  /* 🎯 只保留上下padding */
+                padding-inline: 0 !important;  /* 清除左右padding */
                 overflow-x: hidden;
             }
             
@@ -1446,7 +1450,8 @@
             }
             
             .results-display {
-                padding: 10px 4px;
+                padding-block: 10px;  /* 🎯 只保留上下padding */
+                padding-inline: 0 !important;  /* 清除左右padding */
             }
             
             .results-grid {
@@ -1508,7 +1513,8 @@
         }
             
             .results-display {
-                padding: 15px 5px;
+                padding-block: 15px;  /* 🎯 只保留上下padding */
+                padding-inline: 0 !important;  /* 清除左右padding */
             }
             
             .results-grid {
@@ -2018,7 +2024,8 @@
             }
             
             .results-display {
-                padding: 8px 1px;
+                padding-block: 8px;  /* 🎯 只保留上下padding */
+                padding-inline: 0 !important;  /* 清除左右padding */
             }
             
             .results-grid {

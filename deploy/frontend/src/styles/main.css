@@ -125,7 +125,8 @@ body {
 .result-section {
     background-color: #1a1a1a;  /* 將背景改為更深的黑色 */
     color: white;
-    padding: 10px 12px;  /* 增加左右內邊距 */
+    padding-block: 10px;  /* 只保留上下內邊距 */
+    padding-inline: 0 !important;  /* 🎯 清除左右內邊距，讓10顆球有足夠空間 */
     border-bottom: 2px solid #0e6f3d;  /* 添加綠色邊框強調 */
 }
 
@@ -2410,7 +2411,8 @@ body {
     margin: 10px 0 !important;
     background-color: rgba(255, 255, 255, 0.05) !important;
     border-radius: 5px !important;
-    overflow-x: visible !important;
+    overflow-x: auto !important;              /* 🛡️ 柔性保險絲：極端窄螢幕時可水平捲動 */
+    -webkit-overflow-scrolling: touch !important; /* iOS 慣性滾動 */
 }
 
 /* ② 主開獎球：佔滿格子、自動縮放 */
