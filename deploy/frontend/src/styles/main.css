@@ -1695,43 +1695,82 @@ body {
         font-size: 12px;
     }
     
-    /* 手機版倒計時和彩球優化 */
-    .countdown-time {
-        font-size: 11px !important;
-    }
-    
-    .period-number {
-        font-size: 11px !important;
-    }
-    
-    .period-label {
-        font-size: 8px !important;
-    }
-    
+    /* iPhone Pro Max 和更大手機 (428-440px) 的彩球優化 */
+}
+
+/* iPhone Pro Max 系列 (428px+) */
+@media (max-width: 480px) and (min-width: 415px) {
     .number-ball {
-        width: 26px !important;
-        height: 26px !important;
-        font-size: 12px !important;
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 13px !important;
         margin: 0 !important;
     }
     
     .result-ball {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 11px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 12px !important;
     }
     
     .race-result {
-        padding: 4px 8px !important;
+        padding: 4px 10px !important;
         justify-content: space-between !important;
         overflow: visible !important;
         display: flex !important;
         align-items: center !important;
+        gap: 2px !important;
+    }
+    
+    .countdown-time {
+        font-size: 12px !important;
+    }
+    
+    .period-number {
+        font-size: 12px !important;
+    }
+    
+    .period-label {
+        font-size: 9px !important;
     }
 }
 
-/* 超小螢幕額外優化 */
-@media (max-width: 360px) {
+/* iPhone SE 老款 (320px) */
+@media (max-width: 320px) {
+    .number-ball {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        margin: 0 !important;
+    }
+    
+    .result-ball {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 8px !important;
+    }
+    
+    .race-result {
+        padding: 2px 3px !important;
+        justify-content: space-between !important;
+        gap: 1px !important;
+    }
+    
+    .countdown-time {
+        font-size: 9px !important;
+    }
+    
+    .period-number {
+        font-size: 9px !important;
+    }
+    
+    .period-label {
+        font-size: 6px !important;
+    }
+}
+
+/* iPhone 12/13 mini (360px) */
+@media (max-width: 360px) and (min-width: 321px) {
     .countdown-time {
         font-size: 10px !important;
     }
@@ -1760,6 +1799,108 @@ body {
     .race-result {
         padding: 3px 6px !important;
         justify-content: space-between !important;
+    }
+}
+
+/* iPhone 6/7/8/SE(2020) (375px) */
+@media (max-width: 375px) and (min-width: 361px) {
+    .number-ball {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        margin: 0 !important;
+    }
+    
+    .result-ball {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+    }
+    
+    .race-result {
+        padding: 3px 6px !important;
+        justify-content: space-between !important;
+        gap: 1px !important;
+    }
+    
+    .countdown-time {
+        font-size: 10px !important;
+    }
+    
+    .period-number {
+        font-size: 10px !important;
+    }
+    
+    .period-label {
+        font-size: 7px !important;
+    }
+}
+
+/* iPhone X/11 Pro/12/13 標準 (390-393px) */
+@media (max-width: 393px) and (min-width: 376px) {
+    .number-ball {
+        width: 25px !important;
+        height: 25px !important;
+        font-size: 11px !important;
+        margin: 0 !important;
+    }
+    
+    .result-ball {
+        width: 23px !important;
+        height: 23px !important;
+        font-size: 10px !important;
+    }
+    
+    .race-result {
+        padding: 3px 7px !important;
+        justify-content: space-between !important;
+        gap: 1px !important;
+    }
+    
+    .countdown-time {
+        font-size: 11px !important;
+    }
+    
+    .period-number {
+        font-size: 11px !important;
+    }
+    
+    .period-label {
+        font-size: 8px !important;
+    }
+}
+
+/* iPhone 11/XR (414px) */
+@media (max-width: 414px) and (min-width: 394px) {
+    .number-ball {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 12px !important;
+        margin: 0 !important;
+    }
+    
+    .result-ball {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+    }
+    
+    .race-result {
+        padding: 4px 8px !important;
+        justify-content: space-between !important;
+        gap: 1px !important;
+    }
+    
+    .countdown-time {
+        font-size: 11px !important;
+    }
+    
+    .period-number {
+        font-size: 11px !important;
+    }
+    
+    .period-label {
+        font-size: 8px !important;
     }
 }
 
