@@ -145,22 +145,20 @@ body {
 }
 
 .race-result, .results-grid {
-    display: flex !important;
-    justify-content: space-between !important;
+    display: grid !important;
+    grid-template-columns: repeat(10, 1fr) !important; /* 10等分網格 */
+    gap: 3px !important;                               /* 統一間距 */
     margin: 10px 0;
-    padding: 5px 12px !important;  /* 增加左右內邊距達到更均勻分佈 */
+    padding: 0 12px !important;                        /* 左右留白 */
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
-    flex-wrap: nowrap !important;
     overflow-x: visible !important;
-    gap: 2px !important; /* 減少彩球間距 */
 }
 
 .number-ball {
-    width: 26px;
-    height: 26px;
-    margin: 0 !important; /* 完全移除margin，由gap控制間距 */
-    flex-shrink: 0;
+    width: 100% !important;   /* 佔滿各自格子 */
+    aspect-ratio: 1 / 1;      /* 高度自動=寬度，保持正圓 */
+    margin: 0 !important;     /* 移除margin */
     border-radius: 50%;
     display: flex;
     align-items: center;
