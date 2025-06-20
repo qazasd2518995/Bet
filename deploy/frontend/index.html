@@ -1097,7 +1097,7 @@
         }
 
         .countdown-time {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 900;
             color: #ff4757 !important;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -1341,7 +1341,7 @@
             }
             
             .countdown-time {
-                font-size: 14px;
+                font-size: 12px;
             }
             
             .countdown-label {
@@ -1349,14 +1349,14 @@
             }
             
             .results-display {
-                padding: 15px 5px;
-                overflow-x: auto;
+                padding: 12px 3px;
+                overflow-x: hidden;
             }
             
             .results-grid {
                 display: flex !important;
                 flex-direction: row !important;
-                gap: 3px;
+                gap: 2px;
                 justify-content: space-between;
                 min-width: 100%;
                 max-width: 100%;
@@ -1364,8 +1364,8 @@
             
             .result-item {
                 flex: 1;
-                min-width: 30px;
-                max-width: 35px;
+                min-width: 26px;
+                max-width: 30px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -1373,9 +1373,9 @@
             }
             
             .result-ball {
-                width: 30px;
-                height: 30px;
-                font-size: 12px;
+                width: 26px;
+                height: 26px;
+                font-size: 11px;
                 flex-shrink: 0;
             }
             
@@ -1434,27 +1434,27 @@
             }
             
             .countdown-time {
-                font-size: 12px;
+                font-size: 10px;
             }
             
             .countdown-label {
-                font-size: 9px;
+                font-size: 8px;
             }
             
             .results-display {
-                padding: 12px 3px;
+                padding: 10px 2px;
             }
             
             .result-item {
-                min-width: 28px;
-                max-width: 32px;
+                min-width: 24px;
+                max-width: 28px;
                 gap: 1px;
             }
             
             .result-ball {
-                width: 28px;
-                height: 28px;
-                font-size: 11px;
+                width: 24px;
+                height: 24px;
+                font-size: 10px;
             }
             
             .position-label {
@@ -1987,6 +1987,50 @@
                 flex: 0 0 auto;
                 padding: 6px 12px;
                 font-size: 12px;
+            }
+        }
+        
+        /* 超小螢幕額外優化 */
+        @media (max-width: 360px) {
+            .result-item {
+                min-width: 22px;
+                max-width: 26px;
+            }
+            
+            .result-ball {
+                width: 22px;
+                height: 22px;
+                font-size: 9px;
+            }
+            
+            .position-label {
+                font-size: 8px !important;
+                padding: 1px;
+                min-height: 12px;
+            }
+            
+            .results-display {
+                padding: 8px 1px;
+            }
+            
+            .results-grid {
+                gap: 1px;
+            }
+            
+            .countdown-time {
+                font-size: 9px;
+            }
+            
+            .countdown-label {
+                font-size: 7px;
+            }
+            
+            .period-number {
+                font-size: 9px;
+            }
+            
+            .period-label {
+                font-size: 6px;
             }
         }
     </style>
