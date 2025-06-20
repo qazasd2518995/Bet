@@ -1,4 +1,10 @@
-/* 全局樣式 */
+/* 全局樣式與響應式變數 */
+:root {
+    /* 🎯 響應式彩球間距與邊距，確保10顆球永遠擠得下 */
+    --ball-gap: clamp(1px, 0.6vw, 4px);     /* 1px ~ 4px 之間自動伸縮 */
+    --ball-pad: clamp(0px, 1.6vw, 6px);     /* 0px ~ 6px 之間自動伸縮 */
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -1732,8 +1738,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 2px !important;
-        padding: 0 8px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1758,8 +1763,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 2px !important;
-        padding: 0 10px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1784,8 +1788,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 2px !important;
-        padding: 0 12px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1810,8 +1813,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 2px !important;
-        padding: 0 15px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1900,8 +1902,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 3px !important;
-        padding: 0 18px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1926,8 +1927,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 3px !important;
-        padding: 0 20px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1952,8 +1952,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 4px !important;
-        padding: 0 25px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -1978,8 +1977,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 5px !important;
-        padding: 0 30px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -2004,8 +2002,7 @@ body {
     }
     
     .race-result, .results-grid {
-        gap: 6px !important;
-        padding: 0 35px !important;
+        /* gap 和 padding 已由 CSS 變數統一控制 */
     }
     
     .countdown-time {
@@ -2407,8 +2404,9 @@ body {
 .results-grid {
     display: grid !important;
     grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
-    gap: 2px !important;              /* 想要更緊就改小 */
-    padding: 0 6px !important;        /* 視覺上留一點左右邊 */
+    gap: var(--ball-gap) !important;           /* 響應式間距：1px~4px自動調整 */
+    padding-inline: var(--ball-pad) !important; /* 響應式左右邊距：0px~6px自動調整 */
+    padding-block: 10px !important;            /* 上下邊距保持固定 */
     margin: 10px 0 !important;
     background-color: rgba(255, 255, 255, 0.05) !important;
     border-radius: 5px !important;
