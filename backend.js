@@ -323,16 +323,16 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
-// 賠率數據 - 根據極速賽車實際賠率設置
+// 賠率數據 - 根據極速賽車實際賠率設置 (包含退水0.41)
 let odds = {
-  // 冠亞和值賠率
+  // 冠亞和值賠率 (扣除退水0.41)
   sumValue: {
-    '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
-    '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
-    '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96 // 大小單雙
+    '3': 40.59, '4': 20.59, '5': 15.59, '6': 12.59, '7': 10.59, '8': 8.59,
+    '9': 7.59, '10': 6.59, '11': 6.59, '12': 7.59, '13': 8.59, '14': 10.59, 
+    '15': 12.59, '16': 15.59, '17': 20.59, '18': 40.59, '19': 80.59, 
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55 // 大小單雙
   },
-  // 單車號碼賠率
+  // 單車號碼賠率 (10.0 - 0.41 = 9.59)
   number: {
     first: 9.59,  // 冠軍號碼
     second: 9.59, // 亞軍號碼
@@ -345,39 +345,39 @@ let odds = {
     ninth: 9.59,  // 第九名
     tenth: 9.59   // 第十名
   },
-  // 冠亞軍單雙大小賠率
+  // 冠亞軍單雙大小賠率 (1.96 - 0.41 = 1.55)
   champion: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   runnerup: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   third: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   fourth: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   fifth: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   sixth: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   seventh: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   eighth: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   ninth: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
   tenth: {
-    big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
   },
-  // 龍虎賠率
-  dragonTiger: 1.96
+  // 龍虎賠率 (1.96 - 0.41 = 1.55)
+  dragonTiger: 1.55
 };
 
 // 初始化一個特定用戶的本地資料
@@ -2316,35 +2316,40 @@ startServer();
 // 獲取下注賠率函數
 function getOdds(betType, value) {
   try {
+    // 退水比例 0.41
+    const rebate = 0.41;
+    
     // 冠亞和值賠率
     if (betType === 'sumValue') {
       if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
-        return 1.96;  // 大小單雙賠率
+        return 1.96 - rebate;  // 大小單雙賠率：1.96 - 0.41 = 1.55
       } else {
-        // 和值賠率表
+        // 和值賠率表 (扣除退水0.41)
         const sumOdds = {
-          '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
-          '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
-          '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
-          '18': 41.0, '19': 81.0
+          '3': 41.0 - rebate, '4': 21.0 - rebate, '5': 16.0 - rebate, 
+          '6': 13.0 - rebate, '7': 11.0 - rebate, '8': 9.0 - rebate, 
+          '9': 8.0 - rebate, '10': 7.0 - rebate, '11': 7.0 - rebate, 
+          '12': 8.0 - rebate, '13': 9.0 - rebate, '14': 11.0 - rebate, 
+          '15': 13.0 - rebate, '16': 16.0 - rebate, '17': 21.0 - rebate,
+          '18': 41.0 - rebate, '19': 81.0 - rebate
         };
         return sumOdds[value] || 1.0;
       }
     } 
     // 單號投注
     else if (betType === 'number') {
-      return 9.8;
+      return 10.0 - rebate;  // 10.0 - 0.41 = 9.59
     }
     // 龍虎
     else if (betType === 'dragonTiger') {
-      return 1.96;
+      return 1.96 - rebate;  // 1.96 - 0.41 = 1.55
     } 
     // 冠軍、亞軍等位置的大小單雙
     else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
-        return 1.96;
+        return 1.96 - rebate;  // 1.96 - 0.41 = 1.55
       } else {
-        return 9.8;  // 單號投注
+        return 10.0 - rebate;  // 單號投注：10.0 - 0.41 = 9.59
       }
     }
     

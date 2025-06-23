@@ -4487,23 +4487,23 @@
                 },
                 getBetOdds(bet) {
                     if (bet.type === 'number') {
-                        return this.odds.number[this.positionToKey(bet.position)] || 9.8;
+                        return this.odds.number[this.positionToKey(bet.position)] || 9.59;
                     } else if (bet.type === 'dragonTiger') {
-                        return this.odds.dragonTiger[bet.value] || 1.96;
+                        return this.odds.dragonTiger[bet.value] || 1.55;
                     } else if (bet.type === 'position') {
                         // 位置投注使用固定賠率
-                        return bet.odds || this.getPropertyOdds(bet.property) || 1.96;
+                        return bet.odds || this.getPropertyOdds(bet.property) || 1.55;
                     } else if (bet.type === 'sumValue') {
                         // 冠亞和值投注
                         if (['big', 'small', 'odd', 'even'].includes(bet.value)) {
-                            return this.odds.sumValue[bet.value] || 1.96;
+                            return this.odds.sumValue[bet.value] || 1.55;
                         } else {
-                            // 具體數值 - 使用正確的賠率表
-                            return this.odds.sumValue[bet.value] || 7.0;
+                            // 具體數值 - 使用包含退水的賠率表
+                            return this.odds.sumValue[bet.value] || 6.59;
                         }
                     } else {
                         // 其他投注類型（冠軍、亞軍等）
-                        return this.odds[bet.type]?.[bet.value] || 1.96;
+                        return this.odds[bet.type]?.[bet.value] || 1.55;
                     }
                 },
                 calculateIndividualPotentialProfit(bet) {
@@ -4813,14 +4813,14 @@
 
                 getPropertyOdds(property) {
                     const baseOdds = {
-                        big: 1.98,
-                        small: 1.98,
-                        odd: 1.98,
-                        even: 1.98,
-                        dragon: 1.98,
-                        tiger: 1.98
+                        big: 1.55,    // 1.96 - 0.41 = 1.55
+                        small: 1.55,
+                        odd: 1.55,
+                        even: 1.55,
+                        dragon: 1.55,
+                        tiger: 1.55
                     };
-                    return baseOdds[property] || 1.98;
+                    return baseOdds[property] || 1.55;
                 },
                 getSumClass(sum) {
                     if (sum > 11) {

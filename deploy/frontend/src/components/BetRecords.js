@@ -90,7 +90,7 @@ Vue.component('bet-records', {
       return parseFloat(odds).toFixed(2);
     },
 
-    // 根據投注類型和值獲取正確的賠率 - 與後端一致
+    // 根據投注類型和值獲取正確的賠率 - 包含退水0.41，與後端一致
     getCorrectOdds(bet) {
       const betType = bet.betType || bet.type;
       const value = bet.value;
@@ -100,29 +100,29 @@ Vue.component('bet-records', {
         return bet.odds;
       }
       
-      // 根據投注類型計算賠率
+      // 根據投注類型計算賠率 (包含退水0.41)
       if (betType === 'sumValue') {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
-          return 1.96;
+          return 1.55;  // 1.96 - 0.41 = 1.55
         } else {
-          // 冠亞和值賠率表
+          // 冠亞和值賠率表 (扣除退水0.41)
           const sumOdds = {
-            '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
-            '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
-            '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
-            '18': 41.0, '19': 81.0
+            '3': 40.59, '4': 20.59, '5': 15.59, '6': 12.59, '7': 10.59,
+            '8': 8.59, '9': 7.59, '10': 6.59, '11': 6.59, '12': 7.59,
+            '13': 8.59, '14': 10.59, '15': 12.59, '16': 15.59, '17': 20.59,
+            '18': 40.59, '19': 80.59
           };
           return sumOdds[value] || 1.0;
         }
       } else if (betType === 'number') {
-        return 9.8;
+        return 9.59;  // 10.0 - 0.41 = 9.59
       } else if (betType === 'dragonTiger') {
-        return 1.96;
+        return 1.55;  // 1.96 - 0.41 = 1.55
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
-          return 1.96;
+          return 1.55;  // 1.96 - 0.41 = 1.55
         } else {
-          return 9.8;  // 單號投注
+          return 9.59;  // 單號投注：10.0 - 0.41 = 9.59
         }
       }
       
