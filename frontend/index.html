@@ -1371,13 +1371,12 @@
             }
             
             .result-item {
-                flex: 1;
-                min-width: 28px;
-                max-width: 32px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 gap: 2px;
+                min-width: 0 !important;
+                width: 100% !important;
             }
             
             .result-ball {
@@ -1459,8 +1458,8 @@
             }
             
             .result-item {
-                min-width: 26px;
-                max-width: 30px;
+                min-width: 0 !important;
+                width: 100% !important;
                 gap: 1px;
             }
             
@@ -2007,8 +2006,8 @@
         /* 超小螢幕額外優化 */
         @media (max-width: 360px) {
             .result-item {
-                min-width: 22px;
-                max-width: 26px;
+                min-width: 0 !important;
+                width: 100% !important;
             }
             
             .result-ball {
