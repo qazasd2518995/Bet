@@ -1874,46 +1874,61 @@
             filter: blur(1px);
         }
 
-        /* 🎨 球顏色 - 適用於新結構 */
-        .result-ball-new.color-1 {
+        /* 🎨 球顏色 - 適用於新結構和歷史記錄 */
+        .result-ball-new.color-1, .number-ball.color-1, .result-ball.color-1 {
             background: linear-gradient(135deg, #FFD700, #FFA500) !important;
             color: #2c3e50 !important;
         }
-        .result-ball-new.color-2 {
+        .result-ball-new.color-2, .number-ball.color-2, .result-ball.color-2 {
             background: linear-gradient(135deg, #4A90E2, #357ABD) !important;
             color: white !important;
         }
-        .result-ball-new.color-3 {
+        .result-ball-new.color-3, .number-ball.color-3, .result-ball.color-3 {
             background: linear-gradient(135deg, #8E8E93, #636366) !important;
             color: white !important;
         }
-        .result-ball-new.color-4 {
+        .result-ball-new.color-4, .number-ball.color-4, .result-ball.color-4 {
             background: linear-gradient(135deg, #FF8C42, #FF6347) !important;
             color: white !important;
         }
-        .result-ball-new.color-5 {
+        .result-ball-new.color-5, .number-ball.color-5, .result-ball.color-5 {
             background: linear-gradient(135deg, #00CED1, #20B2AA) !important;
             color: white !important;
         }
-        .result-ball-new.color-6 {
+        .result-ball-new.color-6, .number-ball.color-6, .result-ball.color-6 {
             background: linear-gradient(135deg, #9966CC, #8A2BE2) !important;
             color: white !important;
         }
-        .result-ball-new.color-7 {
+        .result-ball-new.color-7, .number-ball.color-7, .result-ball.color-7 {
             background: linear-gradient(135deg, #A8A8A8, #808080) !important;
             color: white !important;
         }
-        .result-ball-new.color-8 {
+        .result-ball-new.color-8, .number-ball.color-8, .result-ball.color-8 {
             background: linear-gradient(135deg, #FF4757, #FF3838) !important;
             color: white !important;
         }
-        .result-ball-new.color-9 {
+        .result-ball-new.color-9, .number-ball.color-9, .result-ball.color-9 {
             background: linear-gradient(135deg, #C44569, #B71540) !important;
             color: white !important;
         }
-        .result-ball-new.color-10 {
+        .result-ball-new.color-10, .number-ball.color-10, .result-ball.color-10 {
             background: linear-gradient(135deg, #26de81, #20bf6b) !important;
             color: white !important;
+        }
+
+        /* 確保所有球號樣式的基本屬性一致 */
+        .number-ball, .result-ball {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            margin: 0 2px;
         }
 
         .position-label {
@@ -4472,7 +4487,7 @@
                 },
                 getBetOdds(bet) {
                     if (bet.type === 'number') {
-                        return this.odds.number[this.positionToKey(bet.position)] || 9.59;
+                        return this.odds.number[this.positionToKey(bet.position)] || 9.8;
                     } else if (bet.type === 'dragonTiger') {
                         return this.odds.dragonTiger[bet.value] || 1.96;
                     } else if (bet.type === 'position') {
@@ -4483,8 +4498,8 @@
                         if (['big', 'small', 'odd', 'even'].includes(bet.value)) {
                             return this.odds.sumValue[bet.value] || 1.96;
                         } else {
-                            // 具體數值
-                            return this.odds.sumValue[bet.value] || 9;
+                            // 具體數值 - 使用正確的賠率表
+                            return this.odds.sumValue[bet.value] || 7.0;
                         }
                     } else {
                         // 其他投注類型（冠軍、亞軍等）

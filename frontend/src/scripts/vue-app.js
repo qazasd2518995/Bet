@@ -94,12 +94,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 自訂金額
                 customAmount: '',
                 
-                // 賠率數據
+                // 賠率數據 - 與後端一致
                 odds: {
                     sumValue: {
-                        '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
-                        '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
-                        '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
+                        '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
+                        '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
+                        '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
+                        '18': 41.0, '19': 81.0,
                         big: 1.96, small: 1.96, odd: 1.96, even: 1.96
                     },
                     champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
@@ -117,16 +118,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         tiger: 1.96 
                     },
                     number: {
-                        first: 9.59,
-                        second: 9.59,
-                        third: 9.59,
-                        fourth: 9.59,
-                        fifth: 9.59,
-                        sixth: 9.59,
-                        seventh: 9.59,
-                        eighth: 9.59,
-                        ninth: 9.59,
-                        tenth: 9.59
+                        first: 9.8,  // 與後端getOdds函數一致
+                        second: 9.8,
+                        third: 9.8,
+                        fourth: 9.8,
+                        fifth: 9.8,
+                        sixth: 9.8,
+                        seventh: 9.8,
+                        eighth: 9.8,
+                        ninth: 9.8,
+                        tenth: 9.8
                     }
                 },
                 longestStreak: { count: 0, name: '' },

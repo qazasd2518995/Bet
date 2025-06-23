@@ -89,6 +89,45 @@ Vue.component('bet-records', {
       if (!odds) return '1.00';
       return parseFloat(odds).toFixed(2);
     },
+
+    // 根據投注類型和值獲取正確的賠率 - 與後端一致
+    getCorrectOdds(bet) {
+      const betType = bet.betType || bet.type;
+      const value = bet.value;
+      
+      // 如果bet對象已經有正確的賠率，直接使用
+      if (bet.odds && bet.odds > 0) {
+        return bet.odds;
+      }
+      
+      // 根據投注類型計算賠率
+      if (betType === 'sumValue') {
+        if (['big', 'small', 'odd', 'even'].includes(value)) {
+          return 1.96;
+        } else {
+          // 冠亞和值賠率表
+          const sumOdds = {
+            '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
+            '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
+            '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
+            '18': 41.0, '19': 81.0
+          };
+          return sumOdds[value] || 1.0;
+        }
+      } else if (betType === 'number') {
+        return 9.8;
+      } else if (betType === 'dragonTiger') {
+        return 1.96;
+      } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
+        if (['big', 'small', 'odd', 'even'].includes(value)) {
+          return 1.96;
+        } else {
+          return 9.8;  // 單號投注
+        }
+      }
+      
+      return 1.0; // 預設賠率
+    },
     
     formatMoney(amount) {
       if (!amount) return '$0';
@@ -145,7 +184,7 @@ Vue.component('bet-records', {
                   ]),
                   h('div', { class: 'bet-detail-row' }, [
                     h('span', { class: 'bet-label' }, '賠率:'),
-                    h('span', { class: 'bet-value' }, this.formatOdds(bet.odds))
+                    h('span', { class: 'bet-value' }, this.formatOdds(this.getCorrectOdds(bet)))
                   ]),
                   // 開獎號碼顯示
                   bet.drawResult ? h('div', { class: 'bet-detail-row draw-result-row' }, [
