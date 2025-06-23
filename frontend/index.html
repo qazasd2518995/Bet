@@ -87,17 +87,168 @@
             );
         }
         
-        /* 🔒 最高優先級保護 - 防止任何CSS覆蓋我們的Grid設定 */
-        html .results-grid,
-        html body .results-grid,
-        html body div .results-grid,
-        html body div div .results-grid {
-            display: grid !important;
-            grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
-            min-width: 0 !important;
+        /* 🚫 禁用所有舊的CSS規則，避免衝突 */
+        .results-grid,
+        .results-display .results-grid,
+        .result-item,
+        .result-ball,
+        .position-label {
+            display: none !important;
+        }
+
+        /* 🎯 全新開獎結果佈局 - 確保任何寬度都能完整顯示10顆球 */
+        .results-display-new {
+            padding: 15px 5px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+
+        .results-container-new {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            justify-content: space-between !important;
+            align-items: center !important;
             width: 100% !important;
             max-width: 100% !important;
-            overflow: visible !important;
+            padding: 0 2px !important;
+            gap: 2px !important;
+        }
+
+        .result-slot-new {
+            flex: 1 1 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 0 !important;
+            max-width: none !important;
+        }
+
+        .result-ball-new {
+            width: calc(100% - 4px) !important;
+            max-width: 42px !important;
+            min-width: 24px !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: bold !important;
+            font-size: clamp(10px, 2.5vw, 16px) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            transition: transform 0.3s ease !important;
+            position: relative !important;
+            margin: 0 auto 4px auto !important;
+        }
+
+        .result-ball-new:hover {
+            transform: scale(1.05) !important;
+        }
+
+        .result-ball-new::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 15% !important;
+            left: 25% !important;
+            width: 30% !important;
+            height: 30% !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border-radius: 50% !important;
+            filter: blur(1px) !important;
+        }
+
+        .position-label-new {
+            font-size: clamp(8px, 1.8vw, 12px) !important;
+            font-weight: 600 !important;
+            color: white !important;
+            text-align: center !important;
+            line-height: 1 !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            border-radius: 4px !important;
+            padding: 2px 4px !important;
+            backdrop-filter: blur(5px) !important;
+            white-space: nowrap !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 🎯 響應式設計 - 針對不同螢幕尺寸優化球的顯示 */
+        @media (max-width: 320px) {
+            .results-display-new {
+                padding: 8px 2px !important;
+            }
+            .results-container-new {
+                gap: 1px !important;
+                padding: 0 1px !important;
+            }
+            .result-ball-new {
+                min-width: 20px !important;
+                font-size: 9px !important;
+                border-width: 1px !important;
+            }
+            .position-label-new {
+                font-size: 7px !important;
+                padding: 1px 2px !important;
+            }
+        }
+
+        @media (min-width: 321px) and (max-width: 375px) {
+            .results-display-new {
+                padding: 10px 3px !important;
+            }
+            .result-ball-new {
+                min-width: 22px !important;
+                font-size: 10px !important;
+            }
+            .position-label-new {
+                font-size: 8px !important;
+            }
+        }
+
+        @media (min-width: 376px) and (max-width: 430px) {
+            .results-display-new {
+                padding: 12px 4px !important;
+            }
+            .result-ball-new {
+                min-width: 26px !important;
+                font-size: 11px !important;
+            }
+            .position-label-new {
+                font-size: 9px !important;
+            }
+        }
+
+        @media (min-width: 431px) and (max-width: 768px) {
+            .results-display-new {
+                padding: 15px 5px !important;
+            }
+            .result-ball-new {
+                min-width: 30px !important;
+                font-size: 12px !important;
+            }
+            .position-label-new {
+                font-size: 10px !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .results-display-new {
+                padding: 20px 10px !important;
+            }
+            .result-ball-new {
+                min-width: 36px !important;
+                max-width: 48px !important;
+                font-size: 14px !important;
+            }
+            .position-label-new {
+                font-size: 12px !important;
+                padding: 3px 5px !important;
+            }
         }
 
         /* 確保開獎結果水平排列 */
@@ -1250,46 +1401,46 @@
             filter: blur(1px);
         }
 
-        /* 數字球顏色 - 現代化調色板 */
-        .color-1 {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            color: #2c3e50;
+        /* 🎨 球顏色 - 適用於新結構 */
+        .result-ball-new.color-1 {
+            background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+            color: #2c3e50 !important;
         }
-        .color-2 {
-            background: linear-gradient(135deg, #4A90E2, #357ABD);
-            color: white;
+        .result-ball-new.color-2 {
+            background: linear-gradient(135deg, #4A90E2, #357ABD) !important;
+            color: white !important;
         }
-        .color-3 {
-            background: linear-gradient(135deg, #8E8E93, #636366);
-            color: white;
+        .result-ball-new.color-3 {
+            background: linear-gradient(135deg, #8E8E93, #636366) !important;
+            color: white !important;
         }
-        .color-4 {
-            background: linear-gradient(135deg, #FF8C42, #FF6347);
-            color: white;
+        .result-ball-new.color-4 {
+            background: linear-gradient(135deg, #FF8C42, #FF6347) !important;
+            color: white !important;
         }
-        .color-5 {
-            background: linear-gradient(135deg, #00CED1, #20B2AA);
-            color: white;
+        .result-ball-new.color-5 {
+            background: linear-gradient(135deg, #00CED1, #20B2AA) !important;
+            color: white !important;
         }
-        .color-6 {
-            background: linear-gradient(135deg, #9966CC, #8A2BE2);
-            color: white;
+        .result-ball-new.color-6 {
+            background: linear-gradient(135deg, #9966CC, #8A2BE2) !important;
+            color: white !important;
         }
-        .color-7 {
-            background: linear-gradient(135deg, #A8A8A8, #808080);
-            color: white;
+        .result-ball-new.color-7 {
+            background: linear-gradient(135deg, #A8A8A8, #808080) !important;
+            color: white !important;
         }
-        .color-8 {
-            background: linear-gradient(135deg, #FF4757, #FF3838);
-            color: white;
+        .result-ball-new.color-8 {
+            background: linear-gradient(135deg, #FF4757, #FF3838) !important;
+            color: white !important;
         }
-        .color-9 {
-            background: linear-gradient(135deg, #C44569, #B71540);
-            color: white;
+        .result-ball-new.color-9 {
+            background: linear-gradient(135deg, #C44569, #B71540) !important;
+            color: white !important;
         }
-        .color-10 {
-            background: linear-gradient(135deg, #26de81, #20bf6b);
-            color: white;
+        .result-ball-new.color-10 {
+            background: linear-gradient(135deg, #26de81, #20bf6b) !important;
+            color: white !important;
         }
 
         .position-label {
@@ -2196,13 +2347,14 @@
                 </div>
             </div>
             
-            <div class="results-display">
-                <div class="results-grid">
+            <div class="results-display-new">
+                <div class="results-container-new">
                     <div v-for="(number, index) in lastResults" :key="index" 
-                         class="result-item">
-                        <div :class="['result-ball', `color-${number}`]">
+                         class="result-slot-new">
+                        <div :class="['result-ball-new', `color-${number}`]">
                             {{ number }}
                         </div>
+                        <div class="position-label-new">{{ getPositionName(index + 1) }}</div>
                     </div>
                 </div>
             </div>
@@ -3188,6 +3340,10 @@
                         return "0.00";
                     }
                     return odds.toFixed(2);
+                },
+                getPositionName(position) {
+                    const names = ['冠', '亞', '三', '四', '五', '六', '七', '八', '九', '十'];
+                    return names[position - 1] || position;
                 },
                 isSelected(betType, value, position = null) {
                     return this.selectedBets.some(bet => 
