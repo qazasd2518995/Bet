@@ -87,7 +87,11 @@
             );
         }
         
-        /* 🚫 禁用所有舊的CSS規則，避免衝突 */
+        /* 🚫 V2.0 - 強制隱藏舊結構，確保新結構顯示 */
+        .results-display:not(.results-display-new) {
+            display: none !important;
+        }
+        
         .results-grid,
         .results-display .results-grid,
         .result-item,
@@ -95,14 +99,23 @@
         .position-label {
             display: none !important;
         }
-
-        /* 🎯 全新開獎結果佈局 - 確保任何寬度都能完整顯示10顆球 */
+        
+        /* 🔥 強制緩存失效 - v2.0.1 */
         .results-display-new {
-            padding: 15px 5px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            margin: 10px 0;
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        /* 🎯 全新開獎結果佈局 v2.0 - 確保任何寬度都能完整顯示10顆球 */
+        .results-display-new {
+            padding: 15px 5px !important;
+            background: rgba(255, 100, 100, 0.3) !important; /* 紅色背景便於調試 */
+            backdrop-filter: blur(10px) !important;
+            border-radius: 12px !important;
+            margin: 10px 0 !important;
+            border: 3px solid red !important; /* 調試邊框 */
+            position: relative !important;
+            z-index: 9999 !important;
         }
 
         .results-container-new {
@@ -138,10 +151,11 @@
             font-weight: bold !important;
             font-size: clamp(10px, 2.5vw, 16px) !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
-            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border: 3px solid yellow !important; /* 調試邊框 */
             transition: transform 0.3s ease !important;
             position: relative !important;
             margin: 0 auto 4px auto !important;
+            background: orange !important; /* 調試背景 */
         }
 
         .result-ball-new:hover {
