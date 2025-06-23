@@ -262,17 +262,54 @@ app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
       });
     }
     
-    // 這裡需要從主遊戲系統獲取盈虧統計
-    // 暫時返回模擬數據
+    // 根據period設定時間範圍（台灣時間 UTC+8）
+    let timeCondition = '';
+    if (period === 'today') {
+      timeCondition = `AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') = DATE(NOW() AT TIME ZONE 'Asia/Taipei')`;
+    } else if (period === '7days') {
+      timeCondition = `AND created_at >= (NOW() AT TIME ZONE 'Asia/Taipei' - INTERVAL '7 days') AT TIME ZONE 'Asia/Taipei' AT TIME ZONE 'UTC'`;
+    } else if (period === '30days') {
+      timeCondition = `AND created_at >= (NOW() AT TIME ZONE 'Asia/Taipei' - INTERVAL '30 days') AT TIME ZONE 'Asia/Taipei' AT TIME ZONE 'UTC'`;
+    }
+    
+    // 查詢投注記錄並計算盈虧
+    const profitQuery = `
+      SELECT 
+        COUNT(*) as total_bets,
+        COUNT(CASE WHEN win = true THEN 1 END) as wins,
+        COALESCE(SUM(amount), 0) as total_bet_amount,
+        COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win_amount,
+        COALESCE(SUM(CASE WHEN win = true THEN win_amount - amount ELSE -amount END), 0) as net_profit
+      FROM bet_history 
+      WHERE username = $1 
+      AND settled = true
+      ${timeCondition}
+    `;
+    
+    console.log(`查詢用戶 ${username} 的盈虧統計，期間: ${period}`);
+    console.log('執行SQL:', profitQuery);
+    
+    const result = await db.one(profitQuery, [username]);
+    
+    console.log('查詢結果:', result);
+    
+    const totalBetAmount = parseFloat(result.total_bet_amount) || 0;
+    const totalWinAmount = parseFloat(result.total_win_amount) || 0;
+    const netProfit = parseFloat(result.net_profit) || 0;
+    const totalBets = parseInt(result.total_bets) || 0;
+    const wins = parseInt(result.wins) || 0;
+    
     res.json({
       success: true,
       data: {
-        profit: 0,
-        loss: 0,
-        net: 0,
-        bets: 0,
-        wins: 0,
-        period: period
+        profit: totalWinAmount > totalBetAmount ? totalWinAmount - totalBetAmount : 0,
+        loss: totalWinAmount < totalBetAmount ? totalBetAmount - totalWinAmount : 0,
+        net: netProfit,
+        bets: totalBets,
+        wins: wins,
+        period: period,
+        totalBetAmount: totalBetAmount,
+        totalWinAmount: totalWinAmount
       }
     });
     
