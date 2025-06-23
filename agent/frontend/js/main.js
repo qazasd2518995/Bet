@@ -112,7 +112,6 @@ const app = createApp({
                 password: '',
                 level: '1',
                 parent: '',
-                commission_rate: 20,
                 rebate_mode: 'percentage',
                 rebate_percentage: 2.0
             },
@@ -128,7 +127,7 @@ const app = createApp({
             },
             
             // 退水設定相關
-            showRebateSettingsModal: false,
+            showRebateModal: false,
             rebateAgent: {
                 id: null,
                 username: '',
@@ -453,7 +452,6 @@ const app = createApp({
                 password: '',
                 level: (this.currentManagingAgent.level + 1).toString(),
                 parent: this.currentManagingAgent.id,
-                commission_rate: 20,
                 rebate_mode: 'percentage',
                 rebate_percentage: 2.0
             };
@@ -1557,7 +1555,6 @@ const app = createApp({
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
                     parent: this.newAgent.parent,
-                    commission_rate: parseFloat(this.newAgent.commission_rate) / 100,
                     rebate_mode: this.newAgent.rebate_mode
                 };
                 
@@ -1579,7 +1576,6 @@ const app = createApp({
                         password: '',
                         level: '1',
                         parent: '',
-                        commission_rate: 20,
                         rebate_mode: 'percentage',
                         rebate_percentage: 2.0
                     };
@@ -1772,7 +1768,7 @@ const app = createApp({
                 rebate_percentage: (this.rebateAgent.rebate_percentage * 100).toFixed(1)
             };
             
-            this.showRebateSettingsModal = true;
+            this.showRebateModal = true;
             this.$nextTick(() => {
                 const modalEl = document.getElementById('rebateSettingsModal');
                 if (modalEl) {
@@ -1787,7 +1783,7 @@ const app = createApp({
             if (this.rebateSettingsModal) {
                 this.rebateSettingsModal.hide();
             }
-            this.showRebateSettingsModal = false;
+            this.showRebateModal = false;
         },
         
         // 更新退水設定

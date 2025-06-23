@@ -1141,9 +1141,6 @@ async function settleBets(period, winResult) {
       // 標記為已結算
       await BetModel.updateSettlement(bet.id, isWin, winAmount);
       
-      // 分配退水給代理層級（不論輸贏）
-      await distributeRebate(username, bet.amount);
-      
       // 如果贏了，直接增加會員餘額（不從代理扣除）
       if (isWin) {
         try {
@@ -2244,6 +2241,14 @@ app.post('/api/bet', async (req, res) => {
         // 如果記錄創建失敗，返還用戶餘額
         await UserModel.setBalance(username, currentBalance);
         return res.status(500).json({ success: false, message: `創建下注記錄失敗: ${dbError.message}` });
+      }
+      
+      // 立即分配退水給代理（不論輸贏）
+      try {
+        await distributeRebate(username, amountNum);
+        console.log(`已為會員 ${username} 的下注分配退水`);
+      } catch (rebateError) {
+        console.error('分配退水失敗，但下注仍然成功:', rebateError);
       }
       
       // 獲取新的餘額

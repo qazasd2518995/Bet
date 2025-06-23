@@ -568,12 +568,7 @@
                                                     </select>
                                                     <small class="form-text text-muted">您只能創建比目前層級低一級的代理</small>
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">佣金比例 (%)</label>
-                                                    <input type="number" class="form-control" v-model="newAgent.commission_rate" 
-                                                           step="0.01" min="0" max="100" required>
-                                                    <small class="form-text text-muted">代理可獲得的佣金比例</small>
-                                                </div>
+
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="mb-3">
@@ -623,7 +618,7 @@
                     </div>
 
                     <!-- 退水設定 Modal -->
-                    <div class="modal" id="rebateSettingsModal" tabindex="-1" v-if="showRebateSettingsModal">
+                    <div class="modal" id="rebateSettingsModal" tabindex="-1" v-if="showRebateModal">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
