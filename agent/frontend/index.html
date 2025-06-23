@@ -418,7 +418,7 @@
                             <button v-if="agentBreadcrumbs.length > 0" class="btn btn-secondary me-2" @click="goBackToParentLevel">
                                 <i class="fas fa-arrow-left me-1"></i>返回上級
                             </button>
-                            <button class="btn btn-success me-2" @click="showMemberModal">
+                            <button v-if="agentBreadcrumbs.length > 0" class="btn btn-success me-2" @click="showMemberModal">
                                 <i class="fas fa-user-plus me-1"></i>新增會員
                             </button>
                             <button class="btn btn-primary" @click="showAgentModal">

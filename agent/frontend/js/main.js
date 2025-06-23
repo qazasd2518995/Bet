@@ -602,6 +602,10 @@ const app = createApp({
                     await this.fetchDashboardData();
                     await this.fetchNotices();
                     
+                    // 載入當前代理的下級代理和會員列表
+                    await this.searchAgents();
+                    await this.searchMembers();
+                    
                     this.showMessage('登入成功', 'success');
                 } else {
                     this.showMessage(response.data.message || '登入失敗', 'error');
@@ -640,9 +644,9 @@ const app = createApp({
             this.loading = true;
             
             try {
-                console.log('嘗試獲取儀表板數據，代理ID:', this.user.id);
+                console.log('嘗試獲取儀表板數據，代理ID:', this.currentManagingAgent.id);
                 const response = await axios.get(`${API_BASE_URL}/stats`, {
-                    params: { agentId: this.user.id }
+                    params: { agentId: this.currentManagingAgent.id }
                 });
                 
                 if (response.data.success) {
@@ -1031,11 +1035,11 @@ const app = createApp({
         async searchMembers() {
             this.loading = true;
             try {
-                console.log('搜索會員...');
+                console.log('搜索會員...當前管理代理ID:', this.currentManagingAgent.id);
                 const params = new URLSearchParams();
                 if (this.memberFilters.status !== '-1') params.append('status', this.memberFilters.status);
                 if (this.memberFilters.keyword) params.append('keyword', this.memberFilters.keyword);
-                params.append('agentId', this.user.id);
+                params.append('agentId', this.currentManagingAgent.id); // 使用當前管理代理的ID
                 
                 const url = `${API_BASE_URL}/members?${params.toString()}`;
                 const response = await fetch(url);
@@ -1100,12 +1104,12 @@ const app = createApp({
         async searchBets() {
             this.loading = true;
             try {
-                console.log('搜索下注記錄...');
+                console.log('搜索下注記錄...當前管理代理ID:', this.currentManagingAgent.id);
                 const params = new URLSearchParams();
                 if (this.betFilters.member) params.append('username', this.betFilters.member);
                 if (this.betFilters.date) params.append('date', this.betFilters.date);
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
-                params.append('agentId', this.user.id);
+                params.append('agentId', this.currentManagingAgent.id); // 使用當前管理代理的ID
                 
                 // 添加分頁參數
                 params.append('page', this.betPagination.currentPage);
@@ -1506,12 +1510,18 @@ const app = createApp({
                 const response = await axios.post(`${API_BASE_URL}/create-member`, {
                     username: this.newMember.username,
                     password: this.newMember.password,
-                    agentId: this.user.id // 使用當前登入代理的ID
+                    agentId: this.currentManagingAgent.id // 使用當前管理代理的ID而非登入代理
                 });
                 if (response.data.success) {
                     this.showMessage('會員創建成功!', 'success');
                     this.hideCreateMemberModal();
-                    this.searchMembers(); // 刷新會員列表
+                    // 重置新增會員表單
+                    this.newMember = {
+                        username: '',
+                        password: '',
+                        confirmPassword: ''
+                    };
+                    await this.searchMembers(); // 刷新會員列表
                 } else {
                     this.showMessage(response.data.message || '會員創建失敗', 'error');
                 }
@@ -1715,8 +1725,9 @@ const app = createApp({
                 max_rebate_percentage: agent.max_rebate_percentage || 0.041
             };
             
-            // 重新載入代理列表（該代理的下級）
+            // 重新載入代理列表和會員列表（該代理的下級）
             await this.searchAgents();
+            await this.searchMembers();
         },
         
         // 導航到指定代理層級
@@ -1745,8 +1756,9 @@ const app = createApp({
                 };
             }
             
-            // 重新載入代理列表
+            // 重新載入代理列表和會員列表
             await this.searchAgents();
+            await this.searchMembers();
         },
         
         // 返回上級代理
@@ -1769,8 +1781,9 @@ const app = createApp({
                 };
             }
             
-            // 重新載入代理列表
+            // 重新載入代理列表和會員列表
             await this.searchAgents();
+            await this.searchMembers();
         },
         
         // 顯示退水設定模態框
