@@ -17,14 +17,24 @@
     <script src="./src/components/BetRecords.js?v=2025061901"></script>
           <script src="./src/components/DrawHistory.js?v=2025061901"></script>
     <script>
-        // 自動登入處理
+        // 登入檢查處理
         document.addEventListener('DOMContentLoaded', function() {
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
             if (!isLoggedIn) {
-                // 自動登入為遊客
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('username', 'Guest');
-                sessionStorage.setItem('balance', '50000');
+                // 重定向到登入頁面
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // 檢查是否有必要的登入資訊
+            const username = sessionStorage.getItem('username');
+            const memberId = sessionStorage.getItem('memberId');
+            
+            if (!username || !memberId) {
+                // 登入資訊不完整，重新登入
+                sessionStorage.clear();
+                window.location.href = 'login.html';
+                return;
             }
         });
     </script>
@@ -3391,8 +3401,11 @@
                 },
                 checkLoginStatus() {
                     const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-                    if (isLoggedIn) {
-                        this.username = sessionStorage.getItem('username');
+                    const username = sessionStorage.getItem('username');
+                    const memberId = sessionStorage.getItem('memberId');
+                    
+                    if (isLoggedIn && username && memberId) {
+                        this.username = username;
                         // 確保初始化時就轉換為數字類型
                         this.balance = parseFloat(sessionStorage.getItem('balance') || '0');
                         this.isLoggedIn = true;
@@ -3403,24 +3416,22 @@
                         // 獲取今日盈虧
                         this.updateDailyProfit();
                     } else {
-                        // 自動登入為遊客
-                        sessionStorage.setItem('isLoggedIn', 'true');
-                        sessionStorage.setItem('username', 'Guest');
-                        sessionStorage.setItem('balance', '50000');
-                        this.username = 'Guest';
-                        this.balance = 50000;
+                        // 登入資訊不完整，重定向到登入頁面
+                        sessionStorage.clear();
+                        window.location.href = 'login.html';
                     }
                 },
                 logout() {
-                    // 重新設置為遊客模式而非跳轉登入頁
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('username', 'Guest');
-                    sessionStorage.setItem('balance', '50000');
-                    this.username = 'Guest';
-                    this.balance = 50000;
+                    // 清除所有登入資訊並跳轉到登入頁面
+                    sessionStorage.clear();
+                    this.username = '';
+                    this.balance = 0;
                     this.selectedBets = [];
                     this.betHistory = [];
-                    this.displayNotification('已重置為遊客模式');
+                    this.isLoggedIn = false;
+                    
+                    // 跳轉到登入頁面
+                    window.location.href = 'login.html';
                 },
                 showGameRules() {
                     // 顯示遊戲規則
@@ -3472,7 +3483,13 @@
                 },
                 updateBalance() {
                     console.log('開始刷新餘額...');
-                    fetch(`${this.API_BASE_URL}/api/balance?username=${this.username}`)
+                    const username = sessionStorage.getItem('username');
+                    if (!username) {
+                        console.error('用戶未登入');
+                        return;
+                    }
+                    
+                    fetch(`${this.API_BASE_URL}/api/member/balance/${username}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
@@ -3511,7 +3528,7 @@
                                     }, 2000);
                                 }
                                 
-                                console.log('餘額更新成功：', this.balance, '來源：', data.source);
+                                console.log('餘額更新成功：', this.balance);
                                 
                                 // 同時更新今日盈虧
                                 this.updateDailyProfit();
@@ -3527,11 +3544,11 @@
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
                     
-                    fetch(`${this.API_BASE_URL}/api/daily-profit?username=${username}`)
+                    fetch(`${this.API_BASE_URL}/api/member/profit-loss/${username}?period=today`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                this.dailyProfit = parseFloat(data.profit) || 0;
+                                this.dailyProfit = parseFloat(data.data.net) || 0;
                             } else {
                                 console.error('獲取今日盈虧失敗:', data.message);
                             }

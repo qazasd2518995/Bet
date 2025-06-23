@@ -125,6 +125,166 @@ app.get('/api/check-profile-table', async (req, res) => {
 // 代理API路由前綴
 const API_PREFIX = '/api/agent';
 
+// 會員登入驗證API
+app.post(`${API_PREFIX}/member/verify-login`, async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    console.log(`會員登入驗證請求: ${username}`);
+    
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供帳號和密碼'
+      });
+    }
+    
+    // 查詢會員資訊
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      console.log(`會員不存在: ${username}`);
+      return res.status(400).json({
+        success: false,
+        message: '帳號或密碼錯誤'
+      });
+    }
+    
+    // 驗證密碼（這裡簡化處理，實際應該使用加密）
+    if (member.password !== password) {
+      console.log(`密碼錯誤: ${username}`);
+      return res.status(400).json({
+        success: false,
+        message: '帳號或密碼錯誤'
+      });
+    }
+    
+    console.log(`會員登入驗證成功: ${username}, ID: ${member.id}`);
+    
+    res.json({
+      success: true,
+      message: '驗證成功',
+      member: {
+        id: member.id,
+        username: member.username,
+        balance: member.balance,
+        agent_id: member.agent_id,
+        status: member.status
+      }
+    });
+    
+  } catch (error) {
+    console.error('會員登入驗證錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '驗證服務暫時不可用'
+    });
+  }
+});
+
+// 獲取會員餘額API
+app.get(`${API_PREFIX}/member/balance/:username`, async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      balance: member.balance,
+      username: member.username
+    });
+    
+  } catch (error) {
+    console.error('獲取會員餘額錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取餘額失敗'
+    });
+  }
+});
+
+// 會員投注記錄API
+app.get(`${API_PREFIX}/member/bet-records/:username`, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶不存在'
+      });
+    }
+    
+    // 這裡需要從主遊戲系統獲取投注記錄
+    // 暫時返回空數據
+    res.json({
+      success: true,
+      records: [],
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取會員投注記錄錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取投注記錄失敗'
+    });
+  }
+});
+
+// 會員盈虧統計API
+app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { period = 'today' } = req.query;
+    
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶不存在'
+      });
+    }
+    
+    // 這裡需要從主遊戲系統獲取盈虧統計
+    // 暫時返回模擬數據
+    res.json({
+      success: true,
+      data: {
+        profit: 0,
+        loss: 0,
+        net: 0,
+        bets: 0,
+        wins: 0,
+        period: period
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取會員盈虧統計錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取盈虧統計失敗'
+    });
+  }
+});
+
 // 接收遊戲端的即時開獎同步
 app.post(`${API_PREFIX}/sync-draw-record`, async (req, res) => {
   try {

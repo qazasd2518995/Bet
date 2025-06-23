@@ -89,6 +89,181 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 會員登入API
+app.post('/api/member/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    console.log(`會員登入請求: ${username}`);
+    
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供帳號和密碼'
+      });
+    }
+    
+    // 向代理系統查詢會員資訊
+    const response = await fetch(`${AGENT_API_URL}/member/verify-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      })
+    });
+    
+    if (!response.ok) {
+      console.error(`代理系統驗證失敗: ${response.status}`);
+      return res.status(400).json({
+        success: false,
+        message: '帳號或密碼錯誤'
+      });
+    }
+    
+    const memberData = await response.json();
+    
+    if (!memberData.success) {
+      return res.status(400).json({
+        success: false,
+        message: memberData.message || '帳號或密碼錯誤'
+      });
+    }
+    
+    // 檢查會員狀態
+    if (memberData.member.status !== 1) {
+      return res.status(400).json({
+        success: false,
+        message: '帳號已被停用，請聯繫客服'
+      });
+    }
+    
+    console.log(`會員登入成功: ${username}, ID: ${memberData.member.id}`);
+    
+    res.json({
+      success: true,
+      message: '登入成功',
+      member: {
+        id: memberData.member.id,
+        username: memberData.member.username,
+        balance: memberData.member.balance,
+        agent_id: memberData.member.agent_id,
+        status: memberData.member.status
+      }
+    });
+    
+  } catch (error) {
+    console.error('會員登入錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '登入服務暫時不可用，請稍後再試'
+    });
+  }
+});
+
+// 獲取會員餘額API
+app.get('/api/member/balance/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    // 向代理系統查詢會員餘額
+    const response = await fetch(`${AGENT_API_URL}/member/balance/${username}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶不存在'
+      });
+    }
+    
+    const balanceData = await response.json();
+    
+    res.json(balanceData);
+    
+  } catch (error) {
+    console.error('獲取會員餘額錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取餘額失敗'
+    });
+  }
+});
+
+// 會員投注記錄API
+app.get('/api/member/bet-records/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    
+    // 向代理系統查詢會員投注記錄
+    const response = await fetch(`${AGENT_API_URL}/member/bet-records/${username}?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      return res.status(400).json({
+        success: false,
+        message: '獲取投注記錄失敗'
+      });
+    }
+    
+    const recordsData = await response.json();
+    
+    res.json(recordsData);
+    
+  } catch (error) {
+    console.error('獲取會員投注記錄錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取投注記錄失敗'
+    });
+  }
+});
+
+// 會員盈虧統計API
+app.get('/api/member/profit-loss/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { period = 'today' } = req.query;
+    
+    // 向代理系統查詢會員盈虧
+    const response = await fetch(`${AGENT_API_URL}/member/profit-loss/${username}?period=${period}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      return res.status(400).json({
+        success: false,
+        message: '獲取盈虧統計失敗'
+      });
+    }
+    
+    const profitData = await response.json();
+    
+    res.json(profitData);
+    
+  } catch (error) {
+    console.error('獲取會員盈虧統計錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取盈虧統計失敗'
+    });
+  }
+});
+
 // 新增重啟遊戲循環端點 - 用於手動重啟遊戲循環
 app.get('/api/restart-game-cycle', async (req, res) => {
   try {
