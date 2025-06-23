@@ -137,8 +137,8 @@
             align-items: center !important;
             width: 100% !important;
             max-width: 100% !important;
-            padding: 0 2px !important;
-            gap: 2px !important;
+            padding: 0 4px !important;
+            gap: 6px !important;
         }
 
         .result-slot-new {
@@ -152,16 +152,16 @@
         }
 
         .result-ball-new {
-            width: calc(100% - 4px) !important;
-            max-width: 42px !important;
-            min-width: 24px !important;
+            width: calc(100% - 8px) !important;
+            max-width: 38px !important;
+            min-width: 22px !important;
             aspect-ratio: 1 / 1 !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             font-weight: bold !important;
-            font-size: clamp(10px, 2.5vw, 16px) !important;
+            font-size: clamp(12px, 3vw, 18px) !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
             border: 2px solid rgba(255, 255, 255, 0.3) !important;
             transition: transform 0.3s ease !important;
@@ -1681,7 +1681,7 @@
         }
         
         .countdown-inline .countdown-label {
-            font-size: 14px;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.9);
             font-weight: 600;
         }
@@ -2151,10 +2151,12 @@
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: 500;
+            min-width: 70px;
+            height: 40px;
         }
 
         .compact-clear-btn:hover {
@@ -2186,11 +2188,13 @@
             background: #17a2b8;
             color: white;
             border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
-            font-size: 12px;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: 500;
+            min-width: 70px;
+            height: 40px;
         }
 
         .compact-repeat-btn:disabled {
@@ -2212,7 +2216,7 @@
             color: #212529;
             border: none;
             border-radius: 6px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -2220,6 +2224,8 @@
             align-items: center;
             gap: 8px;
             transition: all 0.2s ease;
+            min-width: 70px;
+            height: 40px;
         }
 
         .chips-toggle-btn:hover {
@@ -2322,14 +2328,20 @@
             border-color: #0056b3;
         }
 
+        .compact-amount-input {
+            margin-right: 15px;
+        }
+        
         .compact-amount-input input {
             width: 80px;
-            padding: 6px 10px;
+            padding: 10px 12px;
             border: 2px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
             text-align: center;
             font-weight: 500;
+            height: 40px;
+            box-sizing: border-box;
         }
 
         .compact-amount-input input:focus {
@@ -2345,9 +2357,11 @@
             border-radius: 6px;
             padding: 10px 20px;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
+            min-width: 70px;
+            height: 40px;
         }
 
         .compact-bet-btn:disabled {
@@ -2769,19 +2783,19 @@
                 <div class="betting-group">
                     <div class="group-title">冠軍</div>
                     <div class="betting-options">
-                        <div class="option big-option" :class="{ selected: isSelected('champion', 'big') }" @click="selectBet('champion', 'big')" data-type="big">
+                        <div class="option" :class="{ selected: isSelected('champion', 'big') }" @click="selectBet('champion', 'big')">
                             <span>大</span>
                             <span class="odds">{{ formatOdds(odds.champion.big) }}</span>
                         </div>
-                        <div class="option small-option" :class="{ selected: isSelected('champion', 'small') }" @click="selectBet('champion', 'small')" data-type="small">
+                        <div class="option" :class="{ selected: isSelected('champion', 'small') }" @click="selectBet('champion', 'small')">
                             <span>小</span>
                             <span class="odds">{{ formatOdds(odds.champion.small) }}</span>
                         </div>
-                        <div class="option odd-option" :class="{ selected: isSelected('champion', 'odd') }" @click="selectBet('champion', 'odd')" data-type="odd">
+                        <div class="option" :class="{ selected: isSelected('champion', 'odd') }" @click="selectBet('champion', 'odd')">
                             <span>單</span>
                             <span class="odds">{{ formatOdds(odds.champion.odd) }}</span>
                         </div>
-                        <div class="option even-option" :class="{ selected: isSelected('champion', 'even') }" @click="selectBet('champion', 'even')" data-type="even">
+                        <div class="option" :class="{ selected: isSelected('champion', 'even') }" @click="selectBet('champion', 'even')">
                             <span>雙</span>
                             <span class="odds">{{ formatOdds(odds.champion.even) }}</span>
                         </div>
@@ -2791,19 +2805,19 @@
                 <div class="betting-group">
                     <div class="group-title">亞軍</div>
                     <div class="betting-options">
-                        <div class="option big-option" :class="{ selected: isSelected('runnerup', 'big') }" @click="selectBet('runnerup', 'big')" data-type="big">
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'big') }" @click="selectBet('runnerup', 'big')">
                             <span>大</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.big) }}</span>
                         </div>
-                        <div class="option small-option" :class="{ selected: isSelected('runnerup', 'small') }" @click="selectBet('runnerup', 'small')" data-type="small">
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'small') }" @click="selectBet('runnerup', 'small')">
                             <span>小</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.small) }}</span>
                         </div>
-                        <div class="option odd-option" :class="{ selected: isSelected('runnerup', 'odd') }" @click="selectBet('runnerup', 'odd')" data-type="odd">
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'odd') }" @click="selectBet('runnerup', 'odd')">
                             <span>單</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.odd) }}</span>
                         </div>
-                        <div class="option even-option" :class="{ selected: isSelected('runnerup', 'even') }" @click="selectBet('runnerup', 'even')" data-type="even">
+                        <div class="option" :class="{ selected: isSelected('runnerup', 'even') }" @click="selectBet('runnerup', 'even')">
                             <span>雙</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.even) }}</span>
                         </div>
@@ -2813,19 +2827,19 @@
                 <div class="betting-group">
                     <div class="group-title">第三名</div>
                     <div class="betting-options">
-                        <div class="option big-option" :class="{ selected: isSelected('third', 'big') }" @click="selectBet('third', 'big')" data-type="big">
+                        <div class="option" :class="{ selected: isSelected('third', 'big') }" @click="selectBet('third', 'big')">
                             <span>大</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.big : 1.9) }}</span>
                         </div>
-                        <div class="option small-option" :class="{ selected: isSelected('third', 'small') }" @click="selectBet('third', 'small')" data-type="small">
+                        <div class="option" :class="{ selected: isSelected('third', 'small') }" @click="selectBet('third', 'small')">
                             <span>小</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.small : 1.9) }}</span>
                         </div>
-                        <div class="option odd-option" :class="{ selected: isSelected('third', 'odd') }" @click="selectBet('third', 'odd')" data-type="odd">
+                        <div class="option" :class="{ selected: isSelected('third', 'odd') }" @click="selectBet('third', 'odd')">
                             <span>單</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.odd : 1.9) }}</span>
                         </div>
-                        <div class="option even-option" :class="{ selected: isSelected('third', 'even') }" @click="selectBet('third', 'even')" data-type="even">
+                        <div class="option" :class="{ selected: isSelected('third', 'even') }" @click="selectBet('third', 'even')">
                             <span>雙</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.even : 1.9) }}</span>
                         </div>
