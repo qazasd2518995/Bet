@@ -170,19 +170,7 @@ const app = createApp({
                 confirmPassword: ''
             },
             
-            // 代為新增會員相關
-            showCreateMemberForAgentModal: false,
-            targetAgent: {
-                id: null,
-                username: '',
-                level: 0
-            },
-            newMemberForAgent: {
-                username: '',
-                password: '',
-                confirmPassword: '',
-                initialBalance: 0
-            },
+
             
             // 會員餘額調整相關
             showAdjustBalanceModal: false,
@@ -515,40 +503,7 @@ const app = createApp({
             this.showCreateMemberModal = false;
         },
         
-        // 顯示代為新增會員模態框
-        showCreateMemberForAgentModal(agent) {
-            // 檢查代理層級是否達到最大值 (15層)
-            if (agent.level >= 15) {
-                this.showMessage('該代理已達到最大層級（15層），無法再創建下級會員', 'error');
-                return;
-            }
-            
-            this.targetAgent = {
-                id: agent.id,
-                username: agent.username,
-                level: agent.level
-            };
-            
-            // 重置表單數據
-            this.newMemberForAgent = {
-                username: '',
-                password: '',
-                confirmPassword: '',
-                initialBalance: 0
-            };
-            
-            this.showCreateMemberForAgentModal = true;
-        },
-        
-        // 隱藏代為新增會員模態框
-        hideCreateMemberForAgentModal() {
-            this.showCreateMemberForAgentModal = false;
-            this.targetAgent = {
-                id: null,
-                username: '',
-                level: 0
-            };
-        },
+
         
         // 設置活動標籤並關閉漢堡選單
         setActiveTab(tab) {
@@ -1568,67 +1523,7 @@ const app = createApp({
             }
         },
         
-        // 代為新增會員方法
-        async createMemberForAgent() {
-            console.log('createMemberForAgent 方法被調用', this.newMemberForAgent);
-            
-            // 驗證必填欄位
-            if (!this.newMemberForAgent.username || !this.newMemberForAgent.password || !this.newMemberForAgent.confirmPassword) {
-                this.showMessage('請填寫所有必填欄位', 'error');
-                return;
-            }
-            
-            // 驗證密碼一致性
-            if (this.newMemberForAgent.password !== this.newMemberForAgent.confirmPassword) {
-                this.showMessage('兩次輸入的密碼不一致', 'error');
-                return;
-            }
-            
-            // 驗證初始餘額
-            const initialBalance = parseFloat(this.newMemberForAgent.initialBalance) || 0;
-            if (initialBalance < 0) {
-                this.showMessage('初始餘額不能為負數', 'error');
-                return;
-            }
-            
-            // 如果設定了初始餘額，檢查當前用戶餘額是否足夠
-            if (initialBalance > 0 && initialBalance > parseFloat(this.user.balance)) {
-                this.showMessage('您的餘額不足以設定該初始餘額', 'error');
-                return;
-            }
-            
-            this.loading = true;
-            try {
-                const response = await axios.post(`${API_BASE_URL}/create-member-for-agent`, {
-                    username: this.newMemberForAgent.username,
-                    password: this.newMemberForAgent.password,
-                    agentId: this.targetAgent.id, // 使用目標代理的ID
-                    initialBalance: initialBalance,
-                    createdBy: this.user.id // 創建者（當前登入的代理）
-                });
-                
-                if (response.data.success) {
-                    this.showMessage(`成功為代理 ${this.targetAgent.username} 創建會員!`, 'success');
-                    this.hideCreateMemberForAgentModal();
-                    
-                    // 更新當前用戶餘額（如果設定了初始餘額）
-                    if (initialBalance > 0) {
-                        this.user.balance = response.data.newBalance || (parseFloat(this.user.balance) - initialBalance);
-                        localStorage.setItem('agent_user', JSON.stringify(this.user));
-                    }
-                    
-                    // 刷新代理列表
-                    this.searchAgents();
-                } else {
-                    this.showMessage(response.data.message || '創建會員失敗', 'error');
-                }
-            } catch (error) {
-                console.error('代為創建會員出錯:', error);
-                this.showMessage(error.response?.data?.message || '創建會員出錯，請稍後再試', 'error');
-            } finally {
-                this.loading = false;
-            }
-        },
+
         async fetchParentAgents() {
             // 實際獲取上級代理列表的邏輯需要您來實現
             console.log('fetchParentAgents 方法被調用');

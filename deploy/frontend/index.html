@@ -2308,7 +2308,7 @@
             background: #138496;
         }
 
-        .chips-dropdown {
+        .chips-container {
             position: relative;
             display: inline-block;
         }
@@ -2345,73 +2345,77 @@
             transform: rotate(180deg);
         }
 
-        .compact-chips {
-            position: absolute;
-            bottom: 100%;
+        .chips-popup {
+            position: fixed;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%) translateY(10px);
+            transform: translate(-50%, -50%);
             background: white;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-            padding: 8px;
-            margin-bottom: 8px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            z-index: 99999;
-            min-width: 250px;
-            white-space: nowrap;
+            border: 2px solid #007bff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            padding: 20px;
+            z-index: 999999;
+            min-width: 300px;
             opacity: 0;
+            scale: 0.8;
             transition: all 0.3s ease;
             pointer-events: none;
         }
 
-        .compact-chips.show {
-            transform: translateX(-50%) translateY(0);
+        .chips-popup.show {
+            opacity: 1;
+            scale: 1;
+            pointer-events: auto;
+        }
+
+        .chips-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 999998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .chips-popup-overlay.show {
             opacity: 1;
             pointer-events: auto;
         }
 
-        .compact-chips::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid white;
-            z-index: 1001;
+        .chips-header {
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
         }
 
-        .compact-chips::before {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-top: 10px solid #dee2e6;
-            z-index: 1000;
+        .chips-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
         .compact-chip {
             background: #f8f9fa;
             border: 2px solid #dee2e6;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 13px;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            min-width: 40px;
             text-align: center;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
         }
 
         .compact-chip.active {
@@ -2419,16 +2423,35 @@
             color: white;
             border-color: #007bff;
             transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
         }
 
         .compact-chip:hover {
             background: #e9ecef;
-            border-color: #adb5bd;
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .compact-chip.active:hover {
             background: #0056b3;
             border-color: #0056b3;
+            transform: scale(1.05) translateY(-2px);
+        }
+
+        .chips-close-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .chips-close-btn:hover {
+            background: #5a6268;
         }
 
         .compact-amount-input {
@@ -2749,7 +2772,7 @@
                 font-size: 11px;
             }
             
-            .chips-dropdown {
+            .chips-container {
                 flex: 0 0 auto;
                 position: relative;
             }
@@ -2759,23 +2782,20 @@
                 font-size: 12px;
             }
             
-            .compact-chips {
-                position: absolute;
-                bottom: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                margin-bottom: 8px;
-                flex-wrap: nowrap;
-                min-width: 200px;
-                max-width: 250px;
-                overflow-x: auto;
+            .chips-popup {
+                min-width: 280px;
+                max-width: 90vw;
+            }
+            
+            .chips-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
             }
             
             .compact-chip {
-                min-width: 30px;
-                padding: 4px 6px;
-                font-size: 11px;
-                flex-shrink: 0;
+                padding: 8px 12px;
+                font-size: 14px;
+                min-height: 40px;
             }
             
             .compact-amount-input {
@@ -3608,18 +3628,11 @@
                         <button class="compact-repeat-btn" @click="repeatLastBets" :disabled="!hasLastBets">續押</button>
                     </div>
                     
-                    <!-- 籌碼按鈕（可展開） -->
-                    <div class="chips-dropdown">
+                    <!-- 籌碼按鈕（彈窗模式） -->
+                    <div class="chips-container">
                         <button class="chips-toggle-btn" @click="showChips = !showChips">
                             籌碼 <span class="dropdown-arrow" :class="{ open: showChips }">▼</span>
                         </button>
-                        <div class="compact-chips" :class="{ show: showChips }">
-                            <div class="compact-chip" :class="{ active: betAmount === 5 }" @click="setBetAmount(5); showChips = false">5</div>
-                            <div class="compact-chip" :class="{ active: betAmount === 10 }" @click="setBetAmount(10); showChips = false">10</div>
-                            <div class="compact-chip" :class="{ active: betAmount === 50 }" @click="setBetAmount(50); showChips = false">50</div>
-                            <div class="compact-chip" :class="{ active: betAmount === 100 }" @click="setBetAmount(100); showChips = false">100</div>
-                            <div class="compact-chip" :class="{ active: betAmount === 500 }" @click="setBetAmount(500); showChips = false">500</div>
-                        </div>
                     </div>
                     
                     <!-- 金額輸入框 -->
@@ -3634,6 +3647,21 @@
                 </button>
             </div>
         </section>
+
+        <!-- 籌碼選擇彈窗 -->
+        <div class="chips-popup-overlay" :class="{ show: showChips }" @click="showChips = false"></div>
+        <div class="chips-popup" :class="{ show: showChips }">
+            <div class="chips-header">選擇籌碼金額</div>
+            <div class="chips-grid">
+                <div class="compact-chip" :class="{ active: betAmount === 5 }" @click="setBetAmount(5); showChips = false">5</div>
+                <div class="compact-chip" :class="{ active: betAmount === 10 }" @click="setBetAmount(10); showChips = false">10</div>
+                <div class="compact-chip" :class="{ active: betAmount === 50 }" @click="setBetAmount(50); showChips = false">50</div>
+                <div class="compact-chip" :class="{ active: betAmount === 100 }" @click="setBetAmount(100); showChips = false">100</div>
+                <div class="compact-chip" :class="{ active: betAmount === 500 }" @click="setBetAmount(500); showChips = false">500</div>
+                <div class="compact-chip" :class="{ active: betAmount === 1000 }" @click="setBetAmount(1000); showChips = false">1000</div>
+            </div>
+            <button class="chips-close-btn" @click="showChips = false">關閉</button>
+        </div>
 
         <!-- 下注確認彈窗 -->
         <div class="modal" v-if="showBetModal">
@@ -5788,9 +5816,12 @@
                         this.showDropdownMenu = false;
                     }
                     
-                    // 檢查是否點擊在籌碼選單外部
-                    const chipsDropdown = document.querySelector('.chips-dropdown');
-                    if (chipsDropdown && !chipsDropdown.contains(event.target)) {
+                    // 檢查是否點擊在籌碼容器外部
+                    const chipsContainer = document.querySelector('.chips-container');
+                    const chipsPopup = document.querySelector('.chips-popup');
+                    if (chipsContainer && chipsPopup && 
+                        !chipsContainer.contains(event.target) && 
+                        !chipsPopup.contains(event.target)) {
                         this.showChips = false;
                     }
                 },
