@@ -2263,7 +2263,7 @@
                 <!-- User info section is removed from here -->
                 
                 <!-- 右側：功能按鈕 -->
-                <div class="navbar-actions" v-if="isLoggedIn" style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
+                <div class="navbar-actions" style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
                      <!-- Balance display -->
                     <div class="balance-info" style="color: white; background: rgba(255, 255, 255, 0.15); padding: 8px 15px; border-radius: 20px;">
                         <span style="font-weight: 700;">{{ formatMoney(balance) }}</span>
@@ -2323,15 +2323,6 @@
                                 <span>登出</span>
                             </button>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- 登入區域 -->
-                <div class="login-section" v-else>
-                    <div class="login-form">
-                        <input type="text" v-model="loginUsername" placeholder="用戶名" class="login-input" @keyup.enter="login">
-                        <input type="password" v-model="loginPassword" placeholder="密碼" class="login-input" @keyup.enter="login">
-                        <button @click="login" class="login-btn">登入</button>
                     </div>
                 </div>
             </div>
