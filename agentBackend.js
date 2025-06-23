@@ -486,6 +486,9 @@ async function initDatabase() {
         balance DECIMAL(15, 2) DEFAULT 0,
         commission_rate DECIMAL(5, 4) DEFAULT 0.2,
         commission_balance DECIMAL(15, 2) DEFAULT 0,
+        rebate_percentage DECIMAL(5, 4) DEFAULT 0.041,
+        rebate_mode VARCHAR(20) DEFAULT 'percentage',
+        max_rebate_percentage DECIMAL(5, 4) DEFAULT 0.041,
         status INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -558,6 +561,22 @@ async function initDatabase() {
     } catch (error) {
       // 如果字段已存在，忽略錯誤
       console.log('公告分類字段已存在或添加失敗:', error.message);
+    }
+
+    // 檢查並添加代理退水相關字段
+    try {
+      await db.none(`
+        ALTER TABLE agents ADD COLUMN IF NOT EXISTS rebate_percentage DECIMAL(5, 4) DEFAULT 0.041
+      `);
+      await db.none(`
+        ALTER TABLE agents ADD COLUMN IF NOT EXISTS rebate_mode VARCHAR(20) DEFAULT 'percentage'
+      `);
+      await db.none(`
+        ALTER TABLE agents ADD COLUMN IF NOT EXISTS max_rebate_percentage DECIMAL(5, 4) DEFAULT 0.041
+      `);
+      console.log('代理退水字段添加成功');
+    } catch (error) {
+      console.log('代理退水字段已存在或添加失敗:', error.message);
     }
     
     // 創建開獎記錄表
@@ -859,14 +878,14 @@ const AgentModel = {
   
   // 創建代理
   async create(agentData) {
-    const { username, password, parent_id, level, commission_rate } = agentData;
+    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage } = agentData;
     
     try {
       return await db.one(`
-        INSERT INTO agents (username, password, parent_id, level, commission_rate) 
-        VALUES ($1, $2, $3, $4, $5) 
+        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *
-      `, [username, password, parent_id, level, commission_rate]);
+      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041]);
     } catch (error) {
       console.error('創建代理出錯:', error);
       throw error;
@@ -1023,6 +1042,33 @@ const AgentModel = {
       return result;
     } catch (error) {
       console.error('更新代理密碼出錯:', error);
+      throw error;
+    }
+  },
+
+  // 更新代理退水設定
+  async updateRebateSettings(id, rebateSettings) {
+    try {
+      const agent = await this.findById(id);
+      if (!agent) throw new Error('代理不存在');
+      
+      const { rebate_percentage, rebate_mode, max_rebate_percentage } = rebateSettings;
+      
+      // 驗證退水設定
+      if (parseFloat(rebate_percentage) > parseFloat(max_rebate_percentage)) {
+        throw new Error('退水比例不能超過最大允許比例');
+      }
+      
+      const result = await db.one(`
+        UPDATE agents 
+        SET rebate_percentage = $1, rebate_mode = $2, max_rebate_percentage = $3 
+        WHERE id = $4 
+        RETURNING *
+      `, [rebate_percentage, rebate_mode, max_rebate_percentage, id]);
+      
+      return result;
+    } catch (error) {
+      console.error('更新代理退水設定出錯:', error);
       throw error;
     }
   }
@@ -1938,7 +1984,7 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
 
 // 創建代理 - 修改路由名稱
 app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
-  const { username, password, level, parent, commission_rate } = req.body; // 添加 commission_rate
+  const { username, password, level, parent, commission_rate, rebate_mode, rebate_percentage } = req.body;
   
   try {
     // 檢查用戶名是否已存在
@@ -1962,6 +2008,8 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     // 獲取上級代理ID 和 上級代理信息
     let parentId = null;
     let parentAgent = null; 
+    let maxRebatePercentage = 0.041; // 預設最大退水比例 4.1%
+    
     if (parent) {
       parentAgent = await AgentModel.findById(parent);
       if (!parentAgent) {
@@ -1988,6 +2036,8 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
           });
       }
 
+      // 設定最大退水比例（不能超過上級代理的退水比例）
+      maxRebatePercentage = Math.min(parentAgent.max_rebate_percentage || 0.041, 0.041);
     } else {
          // 如果沒有指定上級，檢查是否正在創建總代理
          if (parsedLevel !== 0) {
@@ -1998,13 +2048,38 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
          }
     }
     
+    // 處理退水設定
+    let finalRebatePercentage = 0.041;
+    let finalRebateMode = rebate_mode || 'percentage';
+    
+    if (rebate_mode === 'all') {
+      // 全拿所有退水
+      finalRebatePercentage = maxRebatePercentage;
+    } else if (rebate_mode === 'none') {
+      // 全退給下級
+      finalRebatePercentage = 0;
+    } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
+      // 設定具體百分比
+      const parsedRebatePercentage = parseFloat(rebate_percentage);
+      if (parsedRebatePercentage > maxRebatePercentage) {
+        return res.json({
+          success: false,
+          message: `退水比例不能超過 ${(maxRebatePercentage * 100).toFixed(1)}%`
+        });
+      }
+      finalRebatePercentage = parsedRebatePercentage;
+    }
+    
     // 創建代理
     const newAgent = await AgentModel.create({
       username,
       password,
       parent_id: parentId,
       level: parsedLevel,
-      commission_rate: parseFloat(commission_rate) // 使用傳入的佣金比例
+      commission_rate: parseFloat(commission_rate),
+      rebate_percentage: finalRebatePercentage,
+      rebate_mode: finalRebateMode,
+      max_rebate_percentage: maxRebatePercentage
     });
     
     res.json({
@@ -2012,7 +2087,9 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       agent: {
         id: newAgent.id,
         username: newAgent.username,
-        level: newAgent.level
+        level: newAgent.level,
+        rebate_percentage: newAgent.rebate_percentage,
+        rebate_mode: newAgent.rebate_mode
       }
     });
   } catch (error) {
@@ -2023,6 +2100,198 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     });
   }
 });
+
+// 更新代理退水設定
+app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const { rebate_mode, rebate_percentage } = req.body;
+    
+    if (!agentId) {
+      return res.json({
+        success: false,
+        message: '缺少代理ID'
+      });
+    }
+    
+    // 獲取代理資訊
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 處理退水設定
+    let finalRebatePercentage = agent.rebate_percentage;
+    let finalRebateMode = rebate_mode || agent.rebate_mode;
+    const maxRebatePercentage = agent.max_rebate_percentage || 0.041;
+    
+    if (rebate_mode === 'all') {
+      // 全拿所有退水
+      finalRebatePercentage = maxRebatePercentage;
+    } else if (rebate_mode === 'none') {
+      // 全退給下級
+      finalRebatePercentage = 0;
+    } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
+      // 設定具體百分比
+      const parsedRebatePercentage = parseFloat(rebate_percentage);
+      if (parsedRebatePercentage > maxRebatePercentage) {
+        return res.json({
+          success: false,
+          message: `退水比例不能超過 ${(maxRebatePercentage * 100).toFixed(1)}%`
+        });
+      }
+      finalRebatePercentage = parsedRebatePercentage;
+    }
+    
+    // 更新退水設定
+    const updatedAgent = await AgentModel.updateRebateSettings(agentId, {
+      rebate_percentage: finalRebatePercentage,
+      rebate_mode: finalRebateMode,
+      max_rebate_percentage: maxRebatePercentage
+    });
+    
+    res.json({
+      success: true,
+      message: '退水設定更新成功',
+      agent: {
+        id: updatedAgent.id,
+        username: updatedAgent.username,
+        rebate_percentage: updatedAgent.rebate_percentage,
+        rebate_mode: updatedAgent.rebate_mode,
+        max_rebate_percentage: updatedAgent.max_rebate_percentage
+      }
+    });
+    
+  } catch (error) {
+    console.error('更新代理退水設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新退水設定失敗',
+      error: error.message
+    });
+  }
+});
+
+// 獲取會員的代理鏈
+app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
+  try {
+    const { username } = req.query;
+    
+    if (!username) {
+      return res.json({
+        success: false,
+        message: '缺少會員用戶名'
+      });
+    }
+    
+    // 獲取會員資訊
+    const member = await MemberModel.findByUsername(username);
+    if (!member) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 獲取代理鏈
+    const agentChain = await getAgentChainForMember(member.agent_id);
+    
+    res.json({
+      success: true,
+      agentChain: agentChain
+    });
+  } catch (error) {
+    console.error('獲取會員代理鏈錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤'
+    });
+  }
+});
+
+// 分配退水給代理
+app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
+  try {
+    const { agentId, agentUsername, rebateAmount, memberUsername, betAmount, reason } = req.body;
+    
+    if (!agentId || !rebateAmount || rebateAmount <= 0) {
+      return res.json({
+        success: false,
+        message: '無效的退水分配請求'
+      });
+    }
+    
+    // 獲取代理資訊
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 增加代理餘額
+    const newBalance = parseFloat(agent.balance) + parseFloat(rebateAmount);
+    await AgentModel.updateBalance(agentId, newBalance);
+    
+    // 記錄交易
+    await TransactionModel.create({
+      user_id: agentId,
+      user_type: 'agent',
+      amount: parseFloat(rebateAmount),
+      type: 'rebate',
+      description: `${reason} - 會員: ${memberUsername}, 下注: ${betAmount}`,
+      balance_after: newBalance
+    });
+    
+    console.log(`成功分配退水 ${rebateAmount} 給代理 ${agentUsername}`);
+    
+    res.json({
+      success: true,
+      message: '退水分配成功'
+    });
+  } catch (error) {
+    console.error('分配退水錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤'
+    });
+  }
+});
+
+// 獲取代理鏈的輔助函數
+async function getAgentChainForMember(agentId) {
+  const agentChain = [];
+  
+  try {
+    let currentAgentId = agentId;
+    
+    while (currentAgentId) {
+      const agent = await AgentModel.findById(currentAgentId);
+      if (!agent) break;
+      
+      agentChain.push({
+        id: agent.id,
+        username: agent.username,
+        level: agent.level,
+        rebate_mode: agent.rebate_mode || 'percentage',
+        rebate_percentage: agent.rebate_percentage || 0.041,
+        max_rebate_percentage: agent.max_rebate_percentage || 0.041
+      });
+      
+      // 移動到上級代理
+      currentAgentId = agent.parent_id;
+    }
+    
+    return agentChain;
+  } catch (error) {
+    console.error('獲取代理鏈時發生錯誤:', error);
+    return [];
+  }
+}
 
 // 設置儀表板路由
 app.get(`${API_PREFIX}/stats`, async (req, res) => {

@@ -97,25 +97,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 賠率數據 - 包含退水0.41，與後端一致
                 odds: {
                     sumValue: {
-                        '3': 40.59, '4': 20.59, '5': 15.59, '6': 12.59, '7': 10.59,
-                        '8': 8.59, '9': 7.59, '10': 6.59, '11': 6.59, '12': 7.59,
-                        '13': 8.59, '14': 10.59, '15': 12.59, '16': 15.59, '17': 20.59,
-                        '18': 40.59, '19': 80.59,
-                        big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+                        '3': 39.319, '4': 20.139, '5': 15.344, '6': 12.467, '7': 10.549,
+                        '8': 8.631, '9': 7.672, '10': 6.713, '11': 6.713, '12': 7.672,
+                        '13': 8.631, '14': 10.549, '15': 12.467, '16': 15.344, '17': 20.139,
+                        '18': 39.319, '19': 77.679,
+                        big: 1.88, small: 1.88, odd: 1.88, even: 1.88
                     },
-                    champion: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    runnerup: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    third: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    fourth: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    fifth: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    sixth: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    seventh: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    eighth: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    ninth: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
-                    tenth: { big: 1.55, small: 1.55, odd: 1.55, even: 1.55 },
+                    champion: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    runnerup: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    third: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    fourth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    fifth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    sixth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    seventh: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    eighth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    ninth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                    tenth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
                     dragonTiger: { 
-                        dragon: 1.55, 
-                        tiger: 1.55 
+                        dragon: 1.88, 
+                        tiger: 1.88 
                     },
                     number: {
                         first: 9.59,  // 10.0 - 0.41 = 9.59

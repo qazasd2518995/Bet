@@ -111,9 +111,35 @@ const app = createApp({
                 username: '',
                 password: '',
                 level: '1',
-                parent: ''
+                parent: '',
+                commission_rate: 20,
+                rebate_mode: 'percentage',
+                rebate_percentage: 2.0
             },
             parentAgents: [],
+            
+            // 代理層級導航相關
+            agentBreadcrumbs: [],
+            currentManagingAgent: {
+                id: null,
+                username: '',
+                level: 0,
+                max_rebate_percentage: 0.041
+            },
+            
+            // 退水設定相關
+            showRebateSettingsModal: false,
+            rebateAgent: {
+                id: null,
+                username: '',
+                rebate_mode: '',
+                rebate_percentage: 0,
+                max_rebate_percentage: 0
+            },
+            rebateSettings: {
+                rebate_mode: '',
+                rebate_percentage: 0
+            },
             
             // 編輯代理相關
             showEditAgentModal: false,
@@ -421,13 +447,15 @@ const app = createApp({
         showAgentModal() {
             this.showCreateAgentModal = true;
             
-            // 根據當前代理級別，設置默認的下級代理級別
-            // 只能創建比自己高一級的代理
+            // 根據當前管理代理級別，設置默認的下級代理級別
             this.newAgent = {
                 username: '',
                 password: '',
-                level: (this.user.level + 1).toString(), // 設置為上級代理的下一級
-                parent: this.user.id
+                level: (this.currentManagingAgent.level + 1).toString(),
+                parent: this.currentManagingAgent.id,
+                commission_rate: 20,
+                rebate_mode: 'percentage',
+                rebate_percentage: 2.0
             };
             
             this.$nextTick(() => {
@@ -494,6 +522,14 @@ const app = createApp({
                     this.isLoggedIn = true;
                     this.user = user;
                     console.log('設置user對象成功:', this.user);
+                    
+                    // 初始化當前管理代理為自己
+                    this.currentManagingAgent = {
+                        id: this.user.id,
+                        username: this.user.username,
+                        level: this.user.level,
+                        max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    };
                     
                     // 設置 axios 身份驗證頭
                     axios.defaults.headers.common['Authorization'] = token;
@@ -944,10 +980,10 @@ const app = createApp({
             try {
                 console.log('搜索代理...');
                 const params = new URLSearchParams();
-                if (this.agentFilters.level !== '-1') params.append('level', this.agentFilters.level);
                 if (this.agentFilters.status !== '-1') params.append('status', this.agentFilters.status);
                 if (this.agentFilters.keyword) params.append('keyword', this.agentFilters.keyword);
-                params.append('parentId', this.user.id);
+                // 使用當前管理代理的ID作為parentId
+                params.append('parentId', this.currentManagingAgent.id);
                 
                 const url = `${API_BASE_URL}/sub-agents?${params.toString()}`;
                 const response = await fetch(url);
@@ -1503,15 +1539,32 @@ const app = createApp({
                 return;
             }
             
+            // 驗證退水設定
+            if (this.newAgent.rebate_mode === 'percentage') {
+                const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
+                const maxRebate = this.currentManagingAgent.max_rebate_percentage * 100;
+                
+                if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
+                    this.showMessage(`退水比例必須在 0% - ${maxRebate.toFixed(1)}% 之間`, 'error');
+                    return;
+                }
+            }
+            
             this.loading = true;
             try {
-                // 由於級別和上級已在模態框開啟時確定，只需發送到後端
                 const payload = {
                     username: this.newAgent.username,
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
-                    parent: this.newAgent.parent
+                    parent: this.newAgent.parent,
+                    commission_rate: parseFloat(this.newAgent.commission_rate) / 100,
+                    rebate_mode: this.newAgent.rebate_mode
                 };
+                
+                // 只有在選擇具體比例時才傳送退水比例
+                if (this.newAgent.rebate_mode === 'percentage') {
+                    payload.rebate_percentage = parseFloat(this.newAgent.rebate_percentage) / 100;
+                }
                 
                 console.log('創建代理請求數據:', payload);
                 
@@ -1519,6 +1572,18 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('代理創建成功!', 'success');
                     this.hideCreateAgentModal();
+                    
+                    // 重置表單
+                    this.newAgent = {
+                        username: '',
+                        password: '',
+                        level: '1',
+                        parent: '',
+                        commission_rate: 20,
+                        rebate_mode: 'percentage',
+                        rebate_percentage: 2.0
+                    };
+                    
                     this.searchAgents(); // 刷新代理列表
                 } else {
                     this.showMessage(response.data.message || '代理創建失敗', 'error');
@@ -1615,6 +1680,157 @@ const app = createApp({
                     this.showMessage('系統錯誤，請稍後再試', 'error');
                 }
             });
+        },
+
+        // 進入代理管理（導航到下級代理）
+        async enterAgentManagement(agent) {
+            // 添加到面包屑導航
+            this.agentBreadcrumbs.push({
+                id: this.currentManagingAgent.id,
+                username: this.currentManagingAgent.username,
+                level: this.currentManagingAgent.level
+            });
+            
+            // 更新當前管理代理
+            this.currentManagingAgent = {
+                id: agent.id,
+                username: agent.username,
+                level: agent.level,
+                max_rebate_percentage: agent.max_rebate_percentage || 0.041
+            };
+            
+            // 重新載入代理列表（該代理的下級）
+            await this.searchAgents();
+        },
+        
+        // 導航到指定代理層級
+        async navigateToAgentLevel(agentId, username) {
+            // 查找面包屑中的位置
+            const targetIndex = this.agentBreadcrumbs.findIndex(b => b.id === agentId);
+            
+            if (agentId === this.user.id) {
+                // 返回到自己
+                this.agentBreadcrumbs = [];
+                this.currentManagingAgent = {
+                    id: this.user.id,
+                    username: this.user.username,
+                    level: this.user.level,
+                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                };
+            } else if (targetIndex >= 0) {
+                // 移除該位置之後的所有面包屑
+                const targetBreadcrumb = this.agentBreadcrumbs[targetIndex];
+                this.agentBreadcrumbs = this.agentBreadcrumbs.slice(0, targetIndex);
+                this.currentManagingAgent = {
+                    id: targetBreadcrumb.id,
+                    username: targetBreadcrumb.username,
+                    level: targetBreadcrumb.level,
+                    max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || 0.041
+                };
+            }
+            
+            // 重新載入代理列表
+            await this.searchAgents();
+        },
+        
+        // 返回上級代理
+        async goBackToParentLevel() {
+            if (this.agentBreadcrumbs.length > 0) {
+                const parentBreadcrumb = this.agentBreadcrumbs.pop();
+                this.currentManagingAgent = {
+                    id: parentBreadcrumb.id,
+                    username: parentBreadcrumb.username,
+                    level: parentBreadcrumb.level,
+                    max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || 0.041
+                };
+            } else {
+                // 返回到自己
+                this.currentManagingAgent = {
+                    id: this.user.id,
+                    username: this.user.username,
+                    level: this.user.level,
+                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                };
+            }
+            
+            // 重新載入代理列表
+            await this.searchAgents();
+        },
+        
+        // 顯示退水設定模態框
+        showRebateSettingsModal(agent) {
+            this.rebateAgent = {
+                id: agent.id,
+                username: agent.username,
+                rebate_mode: agent.rebate_mode || 'percentage',
+                rebate_percentage: agent.rebate_percentage || 0,
+                max_rebate_percentage: agent.max_rebate_percentage || 0.041
+            };
+            
+            this.rebateSettings = {
+                rebate_mode: this.rebateAgent.rebate_mode,
+                rebate_percentage: (this.rebateAgent.rebate_percentage * 100).toFixed(1)
+            };
+            
+            this.showRebateSettingsModal = true;
+            this.$nextTick(() => {
+                const modalEl = document.getElementById('rebateSettingsModal');
+                if (modalEl) {
+                    this.rebateSettingsModal = new bootstrap.Modal(modalEl);
+                    this.rebateSettingsModal.show();
+                }
+            });
+        },
+        
+        // 隱藏退水設定模態框
+        hideRebateSettingsModal() {
+            if (this.rebateSettingsModal) {
+                this.rebateSettingsModal.hide();
+            }
+            this.showRebateSettingsModal = false;
+        },
+        
+        // 更新退水設定
+        async updateRebateSettings() {
+            this.loading = true;
+            try {
+                const payload = {
+                    rebate_mode: this.rebateSettings.rebate_mode
+                };
+                
+                if (this.rebateSettings.rebate_mode === 'percentage') {
+                    payload.rebate_percentage = parseFloat(this.rebateSettings.rebate_percentage) / 100;
+                }
+                
+                const response = await axios.put(`${API_BASE_URL}/update-rebate-settings/${this.rebateAgent.id}`, payload);
+                
+                if (response.data.success) {
+                    this.showMessage('退水設定更新成功', 'success');
+                    this.hideRebateSettingsModal();
+                    await this.searchAgents(); // 刷新代理列表
+                } else {
+                    this.showMessage(response.data.message || '更新退水設定失敗', 'error');
+                }
+            } catch (error) {
+                console.error('更新退水設定錯誤:', error);
+                this.showMessage(error.response?.data?.message || '更新退水設定失敗', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 獲取退水模式文本
+        getRebateModeText(mode) {
+            switch (mode) {
+                case 'all':
+                    return '全拿退水';
+                case 'none':
+                    return '全退下級';
+                case 'percentage':
+                    return '自定比例';
+                default:
+                    return '未設定';
+            }
         },
 
         // 新增：切換會員狀態

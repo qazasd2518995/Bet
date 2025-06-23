@@ -2355,7 +2355,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            z-index: 10000;
+            z-index: 99999;
             min-width: 250px;
             white-space: nowrap;
             opacity: 0;
@@ -2474,6 +2474,90 @@
             background: #218838;
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(40,167,69,0.3);
+        }
+
+        /* 歷史開獎搜尋樣式 */
+        .history-search {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .search-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .search-item label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .search-item input {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .search-item input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-btn, .clear-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .search-btn {
+            background: #007bff;
+            color: white;
+        }
+
+        .search-btn:hover {
+            background: #0056b3;
+        }
+
+        .clear-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #545b62;
+        }
+
+        @media (max-width: 768px) {
+            .search-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-actions {
+                justify-content: center;
+            }
         }
 
         /* 下注確認彈窗樣式 */
@@ -3745,6 +3829,24 @@
                     <button class="close-btn" @click="showHistory = false">×</button>
                 </div>
                 
+                <!-- 新增日期搜尋功能 -->
+                <div class="history-search">
+                    <div class="search-row">
+                        <div class="search-item">
+                            <label>日期搜尋:</label>
+                            <input type="date" v-model="historySearchDate" @change="searchHistoryByDate">
+                        </div>
+                        <div class="search-item">
+                            <label>期數搜尋:</label>
+                            <input type="text" v-model="historySearchPeriod" placeholder="輸入期數" @input="searchHistoryByPeriod">
+                        </div>
+                        <div class="search-actions">
+                            <button class="search-btn" @click="searchTodayHistory">今日開獎</button>
+                            <button class="clear-btn" @click="clearHistorySearch">清除搜尋</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 簡易開獎記錄列表 -->
                 <div class="history-list">
                     <div v-if="recentResults.length === 0" class="no-records">
@@ -3899,6 +4001,10 @@
                         pageSize: 20,
                         total: 0
                     },
+                    
+                    // 歷史開獎搜尋
+                    historySearchDate: '',
+                    historySearchPeriod: '',
                     
                     // 統計數據
                     dailyBetCount: 0,
@@ -4486,24 +4592,27 @@
                     return valueMap[bet.value] || bet.value;
                 },
                 getBetOdds(bet) {
+                    // 退水比例 4.1%
+                    const rebatePercentage = 0.041;
+                    
                     if (bet.type === 'number') {
-                        return this.odds.number[this.positionToKey(bet.position)] || 9.59;
+                        return this.odds.number[this.positionToKey(bet.position)] || parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));
                     } else if (bet.type === 'dragonTiger') {
-                        return this.odds.dragonTiger[bet.value] || 1.55;
+                        return this.odds.dragonTiger[bet.value] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
                     } else if (bet.type === 'position') {
                         // 位置投注使用固定賠率
-                        return bet.odds || this.getPropertyOdds(bet.property) || 1.55;
+                        return bet.odds || this.getPropertyOdds(bet.property) || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
                     } else if (bet.type === 'sumValue') {
                         // 冠亞和值投注
                         if (['big', 'small', 'odd', 'even'].includes(bet.value)) {
-                            return this.odds.sumValue[bet.value] || 1.55;
+                            return this.odds.sumValue[bet.value] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
                         } else {
                             // 具體數值 - 使用包含退水的賠率表
-                            return this.odds.sumValue[bet.value] || 6.59;
+                            return this.odds.sumValue[bet.value] || parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3));
                         }
                     } else {
                         // 其他投注類型（冠軍、亞軍等）
-                        return this.odds[bet.type]?.[bet.value] || 1.55;
+                        return this.odds[bet.type]?.[bet.value] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
                     }
                 },
                 calculateIndividualPotentialProfit(bet) {
@@ -4812,15 +4921,17 @@
                 },
 
                 getPropertyOdds(property) {
+                    // 退水比例 4.1%
+                    const rebatePercentage = 0.041;
                     const baseOdds = {
-                        big: 1.55,    // 1.96 - 0.41 = 1.55
-                        small: 1.55,
-                        odd: 1.55,
-                        even: 1.55,
-                        dragon: 1.55,
-                        tiger: 1.55
+                        big: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3)),    // 1.96 × (1-4.1%) = 1.88
+                        small: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3)),
+                        odd: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3)),
+                        even: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3)),
+                        dragon: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3)),
+                        tiger: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3))
                     };
-                    return baseOdds[property] || 1.55;
+                    return baseOdds[property] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
                 },
                 getSumClass(sum) {
                     if (sum > 11) {
@@ -4998,8 +5109,14 @@
                             this.betRecords = [];
                         });
                 },
-                updateHistoryRecords(page = 1) {
-                    fetch(`${this.API_BASE_URL}/api/history?page=${page}`)
+                updateHistoryRecords(page = 1, date = '', period = '') {
+                    // 構建查詢參數
+                    const params = new URLSearchParams();
+                    params.append('page', page);
+                    if (date) params.append('date', date);
+                    if (period) params.append('period', period);
+                    
+                    fetch(`${this.API_BASE_URL}/api/history?${params.toString()}`)
                         .then(response => response.json())
                         .then(data => {
                             console.log('開獎歷史API返回數據:', JSON.stringify(data).substring(0, 200) + '...');
@@ -5393,6 +5510,37 @@
                     this.updateHistoryRecords();
                     this.showHistory = true;
                     this.showDropdownMenu = false; // 關閉選單
+                },
+
+                // 按日期搜尋歷史開獎
+                searchHistoryByDate() {
+                    if (this.historySearchDate) {
+                        this.updateHistoryRecords(1, this.historySearchDate, '');
+                    }
+                },
+
+                // 按期數搜尋歷史開獎
+                searchHistoryByPeriod() {
+                    if (this.historySearchPeriod) {
+                        this.updateHistoryRecords(1, '', this.historySearchPeriod);
+                    } else {
+                        this.updateHistoryRecords(1, this.historySearchDate, '');
+                    }
+                },
+
+                // 搜尋今日開獎
+                searchTodayHistory() {
+                    const today = new Date().toISOString().split('T')[0];
+                    this.historySearchDate = today;
+                    this.historySearchPeriod = '';
+                    this.updateHistoryRecords(1, today, '');
+                },
+
+                // 清除搜尋條件
+                clearHistorySearch() {
+                    this.historySearchDate = '';
+                    this.historySearchPeriod = '';
+                    this.updateHistoryRecords();
                 },
                 
                 // 下注記錄展示

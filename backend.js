@@ -345,39 +345,39 @@ let odds = {
     ninth: 9.59,  // 第九名
     tenth: 9.59   // 第十名
   },
-  // 冠亞軍單雙大小賠率 (1.96 - 0.41 = 1.55)
+  // 冠亞軍單雙大小賠率 (1.96 × (1-4.1%) = 1.88)
   champion: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   runnerup: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   third: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   fourth: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   fifth: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   sixth: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   seventh: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   eighth: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   ninth: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
   tenth: {
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55
+    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
   },
-  // 龍虎賠率 (1.96 - 0.41 = 1.55)
-  dragonTiger: 1.55
+  // 龍虎賠率 (1.96 × (1-4.1%) = 1.88)
+  dragonTiger: 1.88
 };
 
 // 初始化一個特定用戶的本地資料
@@ -1106,7 +1106,7 @@ async function calculateRecentProfitLoss(periods = 10) {
   }
 }
 
-// 在遊戲結算邏輯中處理點數發放
+// 在遊戲結算邏輯中處理點數發放和退水分配
 async function settleBets(period, winResult) {
   console.log(`結算第${period}期注單...`);
   
@@ -1140,6 +1140,9 @@ async function settleBets(period, winResult) {
       
       // 標記為已結算
       await BetModel.updateSettlement(bet.id, isWin, winAmount);
+      
+      // 分配退水給代理層級（不論輸贏）
+      await distributeRebate(username, bet.amount);
       
       // 如果贏了，直接增加會員餘額（不從代理扣除）
       if (isWin) {
@@ -1179,6 +1182,115 @@ async function settleBets(period, winResult) {
     }
     
     console.log(`第${period}期注單結算完成`);
+}
+
+// 退水分配函數
+async function distributeRebate(username, betAmount) {
+  try {
+    console.log(`開始為會員 ${username} 分配退水，下注金額: ${betAmount}`);
+    
+    // 計算總退水金額（4.1% 的下注金額）
+    const totalRebateAmount = parseFloat(betAmount) * 0.041;
+    
+    // 獲取會員的代理鏈
+    const agentChain = await getAgentChain(username);
+    if (!agentChain || agentChain.length === 0) {
+      console.log(`會員 ${username} 沒有代理鏈，退水歸平台所有`);
+      return;
+    }
+    
+    console.log(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(${a.level})`));
+    
+    // 從最下級代理開始分配退水
+    let remainingRebate = totalRebateAmount;
+    
+    for (let i = 0; i < agentChain.length; i++) {
+      const agent = agentChain[i];
+      let agentRebateAmount = 0;
+      
+      if (agent.rebate_mode === 'all') {
+        // 全拿模式：該代理拿走所有剩餘退水
+        agentRebateAmount = remainingRebate;
+        remainingRebate = 0;
+      } else if (agent.rebate_mode === 'percentage') {
+        // 比例模式：按設定比例從總退水中分配
+        agentRebateAmount = totalRebateAmount * parseFloat(agent.rebate_percentage);
+        remainingRebate -= agentRebateAmount;
+      } else if (agent.rebate_mode === 'none') {
+        // 全退模式：該代理不拿退水，留給上級
+        agentRebateAmount = 0;
+      }
+      
+      // 確保不會分配負數或超過剩餘金額
+      agentRebateAmount = Math.max(0, Math.min(agentRebateAmount, remainingRebate));
+      
+      if (agentRebateAmount > 0) {
+        // 分配退水給代理
+        await allocateRebateToAgent(agent.id, agent.username, agentRebateAmount, username, betAmount);
+        console.log(`分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username}`);
+        
+        // 如果是全拿模式，直接結束分配
+        if (agent.rebate_mode === 'all') {
+          break;
+        }
+      }
+    }
+    
+    // 剩餘退水歸平台所有
+    if (remainingRebate > 0.01) { // 考慮浮點數精度問題
+      console.log(`剩餘退水 ${remainingRebate.toFixed(2)} 歸平台所有`);
+    }
+    
+  } catch (error) {
+    console.error('分配退水時發生錯誤:', error);
+  }
+}
+
+// 獲取會員的代理鏈（從直屬代理到總代理）
+async function getAgentChain(username) {
+  try {
+    // 從代理系統獲取會員所屬的代理
+    const response = await fetch(`${AGENT_API_URL}/member-agent-chain?username=${username}`);
+    const data = await response.json();
+    
+    if (data.success && data.agentChain) {
+      return data.agentChain;
+    }
+    
+    console.log(`無法獲取會員 ${username} 的代理鏈`);
+    return [];
+  } catch (error) {
+    console.error('獲取代理鏈時發生錯誤:', error);
+    return [];
+  }
+}
+
+// 分配退水給代理
+async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, memberUsername, betAmount) {
+  try {
+    // 調用代理系統的退水分配API
+    const response = await fetch(`${AGENT_API_URL}/allocate-rebate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        agentId: agentId,
+        agentUsername: agentUsername,
+        rebateAmount: rebateAmount,
+        memberUsername: memberUsername,
+        betAmount: betAmount,
+        reason: '會員投注退水'
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.success) {
+      console.error(`分配退水給代理 ${agentUsername} 失敗:`, result.message);
+    }
+  } catch (error) {
+    console.error(`分配退水給代理 ${agentUsername} 時發生錯誤:`, error);
+  }
 }
 
 // 修改獲取餘額的API端點
@@ -2316,40 +2428,51 @@ startServer();
 // 獲取下注賠率函數
 function getOdds(betType, value) {
   try {
-    // 退水比例 0.41
-    const rebate = 0.41;
+    // 退水比例 4.1%
+    const rebatePercentage = 0.041;
     
     // 冠亞和值賠率
     if (betType === 'sumValue') {
       if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
-        return 1.96 - rebate;  // 大小單雙賠率：1.96 - 0.41 = 1.55
+        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙賠率：1.96 × (1-4.1%) = 1.88
       } else {
-        // 和值賠率表 (扣除退水0.41)
+        // 和值賠率表 (扣除退水4.1%)
         const sumOdds = {
-          '3': 41.0 - rebate, '4': 21.0 - rebate, '5': 16.0 - rebate, 
-          '6': 13.0 - rebate, '7': 11.0 - rebate, '8': 9.0 - rebate, 
-          '9': 8.0 - rebate, '10': 7.0 - rebate, '11': 7.0 - rebate, 
-          '12': 8.0 - rebate, '13': 9.0 - rebate, '14': 11.0 - rebate, 
-          '15': 13.0 - rebate, '16': 16.0 - rebate, '17': 21.0 - rebate,
-          '18': 41.0 - rebate, '19': 81.0 - rebate
+          '3': parseFloat((41.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '4': parseFloat((21.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '5': parseFloat((16.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '6': parseFloat((13.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '7': parseFloat((11.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '8': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '9': parseFloat((8.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '10': parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '11': parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '12': parseFloat((8.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '13': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '14': parseFloat((11.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '15': parseFloat((13.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '16': parseFloat((16.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '17': parseFloat((21.0 * (1 - rebatePercentage)).toFixed(3)),
+          '18': parseFloat((41.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '19': parseFloat((81.0 * (1 - rebatePercentage)).toFixed(3))
         };
         return sumOdds[value] || 1.0;
       }
     } 
     // 單號投注
     else if (betType === 'number') {
-      return 10.0 - rebate;  // 10.0 - 0.41 = 9.59
+      return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 10.0 × (1-4.1%) = 9.59
     }
     // 龍虎
     else if (betType === 'dragonTiger') {
-      return 1.96 - rebate;  // 1.96 - 0.41 = 1.55
+      return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
     } 
     // 冠軍、亞軍等位置的大小單雙
     else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
-        return 1.96 - rebate;  // 1.96 - 0.41 = 1.55
+        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
       } else {
-        return 10.0 - rebate;  // 單號投注：10.0 - 0.41 = 9.59
+        return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 單號投注：10.0 × (1-4.1%) = 9.59
       }
     }
     

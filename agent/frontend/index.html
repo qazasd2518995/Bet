@@ -388,11 +388,40 @@
 
                 <!-- 代理管理 -->
                 <div v-if="activeTab === 'agents'">
+                    <!-- 導航路徑 -->
+                    <nav aria-label="breadcrumb" class="mb-3">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="#" @click.prevent="navigateToAgentLevel(user.id, user.username)" 
+                                   class="text-decoration-none">
+                                    {{ user.username }} ({{ getLevelName(user.level) }})
+                                </a>
+                            </li>
+                            <li v-for="(breadcrumb, index) in agentBreadcrumbs" :key="breadcrumb.id" 
+                                class="breadcrumb-item" 
+                                :class="{ active: index === agentBreadcrumbs.length - 1 }">
+                                <a v-if="index !== agentBreadcrumbs.length - 1" 
+                                   href="#" @click.prevent="navigateToAgentLevel(breadcrumb.id, breadcrumb.username)" 
+                                   class="text-decoration-none">
+                                    {{ breadcrumb.username }} ({{ getLevelName(breadcrumb.level) }})
+                                </a>
+                                <span v-else>{{ breadcrumb.username }} ({{ getLevelName(breadcrumb.level) }})</span>
+                            </li>
+                        </ol>
+                    </nav>
+
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2>代理管理</h2>
-                        <button class="btn btn-primary" @click="showAgentModal">
-                            <i class="fas fa-plus me-1"></i>新增代理
-                        </button>
+                        <h2>
+                            {{ currentManagingAgent.id === user.id ? '我的下級代理' : currentManagingAgent.username + ' 的下級管理' }}
+                        </h2>
+                        <div>
+                            <button v-if="agentBreadcrumbs.length > 0" class="btn btn-secondary me-2" @click="goBackToParentLevel">
+                                <i class="fas fa-arrow-left me-1"></i>返回上級
+                            </button>
+                            <button class="btn btn-primary" @click="showAgentModal">
+                                <i class="fas fa-plus me-1"></i>新增代理
+                            </button>
+                        </div>
                     </div>
 
                     <div class="card mb-4">
@@ -402,28 +431,6 @@
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-3">
-                                    <label class="form-label">代理級別</label>
-                                    <select class="form-select" v-model="agentFilters.level">
-                                        <option value="-1">全部</option>
-                                        <option value="0">總代理</option>
-                                        <option value="1">一級代理</option>
-                                        <option value="2">二級代理</option>
-                                        <option value="3">三級代理</option>
-                                        <option value="4">四級代理</option>
-                                        <option value="5">五級代理</option>
-                                        <option value="6">六級代理</option>
-                                        <option value="7">七級代理</option>
-                                        <option value="8">八級代理</option>
-                                        <option value="9">九級代理</option>
-                                        <option value="10">十級代理</option>
-                                        <option value="11">十一級代理</option>
-                                        <option value="12">十二級代理</option>
-                                        <option value="13">十三級代理</option>
-                                        <option value="14">十四級代理</option>
-                                        <option value="15">十五級代理</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
                                     <label class="form-label">狀態</label>
                                     <select class="form-select" v-model="agentFilters.status">
                                         <option value="-1">全部</option>
@@ -431,11 +438,11 @@
                                         <option value="0">停用</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label class="form-label">關鍵字</label>
                                     <input type="text" class="form-control" placeholder="用戶名/ID" v-model="agentFilters.keyword">
                                 </div>
-                                <div class="col-md-2 d-flex align-items-end">
+                                <div class="col-md-3 d-flex align-items-end">
                                     <button class="btn btn-primary w-100" @click="searchAgents">搜尋</button>
                                 </div>
                             </div>
@@ -451,9 +458,8 @@
                                             <th>ID</th>
                                             <th>用戶名</th>
                                             <th>級別</th>
-                                            <th>上級</th>
                                             <th>餘額</th>
-
+                                            <th>退水設定</th>
                                             <th>創建時間</th>
                                             <th>狀態</th>
                                             <th>操作</th>
@@ -462,11 +468,21 @@
                                     <tbody>
                                         <tr v-for="agent in agents" :key="agent.id">
                                             <td>{{ agent.id }}</td>
-                                            <td>{{ agent.username }}</td>
+                                            <td>
+                                                <a href="#" @click.prevent="enterAgentManagement(agent)" 
+                                                   class="text-decoration-none fw-bold">
+                                                    {{ agent.username }}
+                                                    <i class="fas fa-arrow-right ms-1 text-muted"></i>
+                                                </a>
+                                            </td>
                                             <td>{{ getLevelName(agent.level) }}</td>
-                                            <td>{{ agent.parent_username || '-' }}</td>
                                             <td>{{ formatMoney(agent.balance) }}</td>
-
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ getRebateModeText(agent.rebate_mode) }}
+                                                    {{ agent.rebate_mode === 'percentage' ? ` ${(agent.rebate_percentage * 100).toFixed(1)}%` : '' }}
+                                                </span>
+                                            </td>
                                             <td>{{ formatDate(agent.created_at) }}</td>
                                             <td>
                                                 <span :class="agent.status === 1 ? 'badge bg-success' : 'badge bg-danger'">
@@ -474,19 +490,22 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <div class="btn-group">
-                                                    <button class="btn btn-sm btn-outline-primary" @click="adjustAgentBalance(agent)">
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" @click="adjustAgentBalance(agent)">
                                                         <i class="fas fa-exchange-alt me-1"></i>點數轉移
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-warning" @click="resetAgentPassword(agent)">
+                                                    <button class="btn btn-outline-info" @click="showRebateSettingsModal(agent)">
+                                                        <i class="fas fa-percent me-1"></i>退水設定
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" @click="resetAgentPassword(agent)">
                                                         <i class="fas fa-key me-1"></i>重設密碼
                                                     </button>
-                                                    <button class="btn btn-sm" :class="agent.status === 1 ? 'btn-outline-danger' : 'btn-outline-success'" 
+                                                    <button class="btn" :class="agent.status === 1 ? 'btn-outline-danger' : 'btn-outline-success'" 
                                                             @click="toggleAgentStatus(agent)">
                                                         <i class="fas" :class="agent.status === 1 ? 'fa-ban' : 'fa-check'"></i>
                                                         {{ agent.status === 1 ? '停用' : '啟用' }}
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-danger" @click="deleteAgent(agent.id, agent.username)">
+                                                    <button class="btn btn-outline-danger" @click="deleteAgent(agent.id, agent.username)">
                                                         <i class="fas fa-trash-alt me-1"></i>刪除
                                                     </button>
                                                 </div>
@@ -494,6 +513,14 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <div v-if="agents.length === 0" class="text-center py-4">
+                                <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">目前沒有下級代理</p>
+                                <button class="btn btn-primary" @click="showAgentModal">
+                                    <i class="fas fa-plus me-1"></i>立即新增代理
+                                </button>
                             </div>
 
                             <nav v-if="agentPagination.totalPages > 1">
@@ -514,7 +541,7 @@
 
                     <!-- 新增代理 Modal -->
                     <div class="modal" id="createAgentModal" tabindex="-1" v-if="showCreateAgentModal">
-                        <div class="modal-dialog">
+                        <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title">新增代理</h5>
@@ -522,22 +549,63 @@
                                 </div>
                                 <div class="modal-body">
                                     <form @submit.prevent="createAgent">
-                                        <div class="mb-3">
-                                            <label class="form-label">用戶名</label>
-                                            <input type="text" class="form-control" v-model="newAgent.username" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">密碼</label>
-                                            <input type="password" class="form-control" v-model="newAgent.password" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">代理級別</label>
-                                            <select class="form-select" v-model="newAgent.level" required disabled>
-                                                <option v-for="i in 16" :key="i-1" :value="(i-1).toString()" v-if="i-1 === user.level + 1">
-                                                    {{ getLevelName(i-1) }}
-                                                </option>
-                                            </select>
-                                            <small class="form-text text-muted">您只能創建比自己低一級的代理</small>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">用戶名</label>
+                                                    <input type="text" class="form-control" v-model="newAgent.username" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">密碼</label>
+                                                    <input type="password" class="form-control" v-model="newAgent.password" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">代理級別</label>
+                                                    <select class="form-select" v-model="newAgent.level" required disabled>
+                                                        <option v-for="i in 16" :key="i-1" :value="(i-1).toString()" v-if="i-1 === currentManagingAgent.level + 1">
+                                                            {{ getLevelName(i-1) }}
+                                                        </option>
+                                                    </select>
+                                                    <small class="form-text text-muted">您只能創建比目前層級低一級的代理</small>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">佣金比例 (%)</label>
+                                                    <input type="number" class="form-control" v-model="newAgent.commission_rate" 
+                                                           step="0.01" min="0" max="100" required>
+                                                    <small class="form-text text-muted">代理可獲得的佣金比例</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">退水模式</label>
+                                                    <select class="form-select" v-model="newAgent.rebate_mode" required>
+                                                        <option value="all">全拿所有退水</option>
+                                                        <option value="percentage">設定具體比例</option>
+                                                        <option value="none">全退給下級</option>
+                                                    </select>
+                                                    <small class="form-text text-muted">退水分配方式</small>
+                                                </div>
+                                                <div class="mb-3" v-if="newAgent.rebate_mode === 'percentage'">
+                                                    <label class="form-label">退水比例 (%)</label>
+                                                    <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
+                                                           step="0.01" min="0" :max="currentManagingAgent.max_rebate_percentage * 100" required>
+                                                    <small class="form-text text-muted">
+                                                        可設定範圍：0% - {{ (currentManagingAgent.max_rebate_percentage * 100).toFixed(1) }}%
+                                                    </small>
+                                                </div>
+                                                <div class="card bg-light">
+                                                    <div class="card-header">
+                                                        <h6 class="mb-0">退水說明</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <ul class="mb-0 small">
+                                                            <li><strong>全拿所有退水：</strong>該代理獲得所有可得退水 ({{ (currentManagingAgent.max_rebate_percentage * 100).toFixed(1) }}%)</li>
+                                                            <li><strong>設定具體比例：</strong>該代理獲得指定比例的退水</li>
+                                                            <li><strong>全退給下級：</strong>該代理不獲得退水，全部給下級代理</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         <input type="hidden" v-model="newAgent.parent">
 
@@ -546,6 +614,52 @@
                                             <button type="submit" class="btn btn-primary" :disabled="loading">
                                                 <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
                                                 建立
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 退水設定 Modal -->
+                    <div class="modal" id="rebateSettingsModal" tabindex="-1" v-if="showRebateSettingsModal">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">退水設定 - {{ rebateAgent.username }}</h5>
+                                    <button type="button" class="btn-close" @click="hideRebateSettingsModal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form @submit.prevent="updateRebateSettings">
+                                        <div class="mb-3">
+                                            <label class="form-label">退水模式</label>
+                                            <select class="form-select" v-model="rebateSettings.rebate_mode" required>
+                                                <option value="all">全拿所有退水</option>
+                                                <option value="percentage">設定具體比例</option>
+                                                <option value="none">全退給下級</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3" v-if="rebateSettings.rebate_mode === 'percentage'">
+                                            <label class="form-label">退水比例 (%)</label>
+                                            <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
+                                                   step="0.01" min="0" :max="rebateAgent.max_rebate_percentage * 100" required>
+                                            <small class="form-text text-muted">
+                                                可設定範圍：0% - {{ (rebateAgent.max_rebate_percentage * 100).toFixed(1) }}%
+                                            </small>
+                                        </div>
+                                        <div class="alert alert-info">
+                                            <h6>目前設定：</h6>
+                                            <p class="mb-0">
+                                                {{ getRebateModeText(rebateAgent.rebate_mode) }}
+                                                {{ rebateAgent.rebate_mode === 'percentage' ? ` ${(rebateAgent.rebate_percentage * 100).toFixed(1)}%` : '' }}
+                                            </p>
+                                        </div>
+                                        <div class="text-end">
+                                            <button type="button" class="btn btn-secondary me-2" @click="hideRebateSettingsModal">取消</button>
+                                            <button type="submit" class="btn btn-primary" :disabled="loading">
+                                                <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
+                                                更新
                                             </button>
                                         </div>
                                     </form>
