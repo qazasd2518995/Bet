@@ -35,39 +35,64 @@ Vue.component('bet-records', {
         'sumValue': '冠亞和',
         'champion': '冠軍',
         'runnerup': '亞軍',
-        'number': `第${bet.position}名`,
+        'third': '第三名',
+        'fourth': '第四名',
+        'fifth': '第五名',
+        'sixth': '第六名',
+        'seventh': '第七名',
+        'eighth': '第八名',
+        'ninth': '第九名',
+        'tenth': '第十名',
+        'number': `第${bet.position || ''}名號碼`,
         'dragonTiger': '龍虎'
       };
-      return typeMap[bet.type] || bet.type;
+      return typeMap[bet.betType || bet.type] || (bet.betType || bet.type);
     },
     
     getBetValueDesc(bet) {
-      if (bet.type === 'sumValue') {
-        if (['big', 'small', 'odd', 'even'].includes(bet.value)) {
+      const value = bet.value;
+      const betType = bet.betType || bet.type;
+      
+      if (betType === 'sumValue') {
+        if (['big', 'small', 'odd', 'even'].includes(value)) {
           const valueMap = {
             'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
           };
-          return valueMap[bet.value];
+          return valueMap[value];
         } else {
-          return `和值 ${bet.value}`;
+          return `和值 ${value}`;
         }
-      } else if (bet.type === 'champion' || bet.type === 'runnerup') {
+      } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         const valueMap = {
           'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
         };
-        return valueMap[bet.value] || bet.value;
-      } else if (bet.type === 'number') {
-        return `號碼 ${bet.value}`;
-      } else if (bet.type === 'dragonTiger') {
-        return bet.value === 'dragon' ? '龍' : '虎';
+        return valueMap[value] || `號碼 ${value}`;
+      } else if (betType === 'number') {
+        return `號碼 ${value}`;
+      } else if (betType === 'dragonTiger') {
+        return value === 'dragon' ? '龍' : '虎';
       }
-      return bet.value;
+      return value;
     },
     
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${month}/${day} ${hours}:${minutes}`;
+    },
+    
+    formatOdds(odds) {
+      if (!odds) return '1.00';
+      return parseFloat(odds).toFixed(2);
+    },
+    
+    formatMoney(amount) {
+      if (!amount) return '$0';
+      return `$${parseFloat(amount).toFixed(2)}`;
     }
   },
   
@@ -100,7 +125,7 @@ Vue.component('bet-records', {
         ? h('div', { class: 'record-list' }, 
             this.filteredRecords.map(bet => 
               h('div', { class: 'record-item', key: bet.id }, [
-                // 頂部信息
+                // 頂部信息：期數和狀態
                 h('div', { class: 'record-top' }, [
                   h('div', { class: 'period' }, `${bet.period}期`),
                   h('div', { 
@@ -108,20 +133,53 @@ Vue.component('bet-records', {
                   }, this.getBetStatus(bet))
                 ]),
                 
-                // 內容區域
-                h('div', { class: 'record-content' }, [
-                  h('div', { class: 'bet-type' }, this.getBetTypeDesc(bet)),
-                  h('div', { class: 'bet-value' }, this.getBetValueDesc(bet))
+                // 投注資訊區域：投注類型和選項
+                h('div', { class: 'record-bet-info' }, [
+                  h('div', { class: 'bet-detail-row' }, [
+                    h('span', { class: 'bet-label' }, '投注類型:'),
+                    h('span', { class: 'bet-value' }, this.getBetTypeDesc(bet))
+                  ]),
+                  h('div', { class: 'bet-detail-row' }, [
+                    h('span', { class: 'bet-label' }, '投注選項:'),
+                    h('span', { class: 'bet-value' }, this.getBetValueDesc(bet))
+                  ]),
+                  h('div', { class: 'bet-detail-row' }, [
+                    h('span', { class: 'bet-label' }, '賠率:'),
+                    h('span', { class: 'bet-value' }, this.formatOdds(bet.odds))
+                  ]),
+                  // 開獎號碼顯示
+                  bet.drawResult ? h('div', { class: 'bet-detail-row draw-result-row' }, [
+                    h('span', { class: 'bet-label' }, '開獎號碼:'),
+                    h('div', { class: 'draw-result-balls' }, 
+                      bet.drawResult.map((number, index) => 
+                        h('div', { 
+                          class: ['result-ball', `color-${number}`],
+                          key: index 
+                        }, number)
+                      )
+                    )
+                  ]) : null
                 ]),
                 
-                // 底部信息
+                // 底部信息：金額和時間
                 h('div', { class: 'record-bottom' }, [
-                  h('div', { class: 'bet-time' }, this.formatTime(bet.time)),
-                  h('div', { class: 'bet-amount' }, [
-                    h('span', {}, `下注金額: $${bet.amount ? bet.amount : 0}`),
-                    bet.settled && bet.win && bet.winAmount
-                      ? h('span', {}, `派彩: $${bet.winAmount}`)
-                      : null
+                  // 時間信息
+                  h('div', { class: 'bet-time-info' }, [
+                    h('span', { class: 'bet-label' }, '下注時間:'),
+                    h('span', { class: 'time-value' }, this.formatTime(bet.time))
+                  ]),
+                  
+                  // 金額信息
+                  h('div', { class: 'bet-amount-info' }, [
+                    h('div', { class: 'amount-row' }, [
+                      h('span', { class: 'amount-label' }, '下注金額:'),
+                      h('span', { class: 'amount-value' }, this.formatMoney(bet.amount))
+                    ]),
+                    bet.settled && bet.win && bet.winAmount ? 
+                      h('div', { class: 'amount-row win-amount' }, [
+                        h('span', { class: 'amount-label' }, '派彩金額:'),
+                        h('span', { class: 'amount-value' }, this.formatMoney(bet.winAmount))
+                      ]) : null
                   ])
                 ])
               ])
