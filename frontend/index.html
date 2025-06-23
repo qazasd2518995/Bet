@@ -1179,12 +1179,23 @@
         }
 
         .results-grid {
-            display: grid;
+            display: grid !important;
             grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
-            gap: 4px;
+            gap: 4px !important;
             min-width: 0 !important;   /* 強制以容器寬度為準 */
+            max-width: 100% !important; 
             width: 100% !important;    /* （保險） */
-            margin: 0 auto;
+            margin: 0 auto !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 強制覆蓋任何可能的外部CSS衝突 */
+        .results-display .results-grid {
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+            min-width: 0 !important;
+            width: 100% !important;
         }
 
         .result-item {
@@ -1289,10 +1300,13 @@
 
         /* 響應式設計 */
         @media (max-width: 1200px) {
-            .results-grid {
+            .results-grid, .results-display .results-grid {
+                display: grid !important;
                 grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
-                gap: 3px;
+                gap: 3px !important;
                 min-width: 0 !important;   /* 防止超寬 */
+                width: 100% !important;
+                max-width: 100% !important;
             }
             
             .result-ball {
@@ -1360,14 +1374,15 @@
                 overflow-x: hidden;
             }
             
-            .results-grid {
+            .results-grid, .results-display .results-grid {
                 display: grid !important;
                 grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
-                gap: 1px;
+                gap: 1px !important;
                 min-width: 0 !important;
                 max-width: 100% !important;
                 width: 100% !important;
-                padding: 0 2px;
+                padding: 0 2px !important;
+                overflow: visible !important;
             }
             
             .result-item {
@@ -1453,7 +1468,12 @@
                 padding-inline: 0 !important;  /* 清除左右padding */
             }
             
-            .results-grid {
+            .results-grid, .results-display .results-grid {
+                display: grid !important;
+                grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+                min-width: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 padding: 0 1px !important;
             }
             
