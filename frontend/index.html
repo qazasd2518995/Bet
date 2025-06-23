@@ -17,11 +17,14 @@
     <script src="./src/components/BetRecords.js?v=2025061901"></script>
           <script src="./src/components/DrawHistory.js?v=2025061901"></script>
     <script>
-        // 登入檢查，如果用戶未登入，則重定向到登入頁面
+        // 自動登入處理
         document.addEventListener('DOMContentLoaded', function() {
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
             if (!isLoggedIn) {
-                window.location.href = 'login.html';
+                // 自動登入為遊客
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('username', 'Guest');
+                sessionStorage.setItem('balance', '50000');
             }
         });
     </script>
@@ -3409,14 +3412,24 @@
                         // 獲取今日盈虧
                         this.updateDailyProfit();
                     } else {
-                        window.location.href = 'login.html';
+                        // 自動登入為遊客
+                        sessionStorage.setItem('isLoggedIn', 'true');
+                        sessionStorage.setItem('username', 'Guest');
+                        sessionStorage.setItem('balance', '50000');
+                        this.username = 'Guest';
+                        this.balance = 50000;
                     }
                 },
                 logout() {
-                    sessionStorage.removeItem('isLoggedIn');
-                    sessionStorage.removeItem('username');
-                    sessionStorage.removeItem('balance');
-                    window.location.href = 'login.html';
+                    // 重新設置為遊客模式而非跳轉登入頁
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('username', 'Guest');
+                    sessionStorage.setItem('balance', '50000');
+                    this.username = 'Guest';
+                    this.balance = 50000;
+                    this.selectedBets = [];
+                    this.betHistory = [];
+                    this.displayNotification('已重置為遊客模式');
                 },
                 showGameRules() {
                     // 顯示遊戲規則
