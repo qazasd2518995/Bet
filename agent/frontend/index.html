@@ -2054,7 +2054,7 @@
             console.log('頁面完全載入，Vue可用性:', typeof Vue);
             if (typeof Vue !== 'undefined') {
                 const script = document.createElement('script');
-                                 script.src = 'js/main.js';
+                                 script.src = 'js/main.js?v=' + Date.now();
                 script.onload = function() {
                     console.log('main.js 載入完成');
                 };

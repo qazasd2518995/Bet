@@ -494,19 +494,19 @@ const app = createApp({
             
             this.showCreateMemberModal = true;
             
-            // 使用雙重 $nextTick 確保 Vue 有足夠時間重新渲染 DOM
-            this.$nextTick(() => {
-                this.$nextTick(() => {
-                    const modalEl = document.getElementById('createMemberModal');
-                    if (modalEl) {
-                        this.memberModal = new bootstrap.Modal(modalEl);
-                        this.memberModal.show();
-                    } else {
-                        console.error('找不到會員模態框元素');
-                        this.showMessage('系統錯誤，請稍後再試', 'error');
-                    }
-                });
-            });
+            // 使用 setTimeout 確保 Vue 有足夠時間重新渲染 DOM
+            setTimeout(() => {
+                const modalEl = document.getElementById('createMemberModal');
+                if (modalEl) {
+                    console.log('找到會員模態框元素，正在初始化...');
+                    this.memberModal = new bootstrap.Modal(modalEl);
+                    this.memberModal.show();
+                } else {
+                    console.error('找不到會員模態框元素');
+                    console.log('DOM中的所有元素:', document.querySelectorAll('*[id]'));
+                    this.showMessage('系統錯誤，請稍後再試', 'error');
+                }
+            }, 100);
         },
         
         // 隱藏創建會員模態框
