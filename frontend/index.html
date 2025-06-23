@@ -1182,8 +1182,8 @@
             display: grid;
             grid-template-columns: repeat(10, minmax(45px, 1fr));
             gap: 4px;
-            min-width: 480px;
-            width: 100%;
+            min-width: 0 !important;   /* 強制以容器寬度為準 */
+            width: 100% !important;    /* （保險） */
             margin: 0 auto;
         }
 
@@ -1292,7 +1292,7 @@
             .results-grid {
                 grid-template-columns: repeat(10, minmax(42px, 1fr));
                 gap: 3px;
-                min-width: 460px;
+                min-width: 0 !important;   /* 防止超寬 */
             }
             
             .result-ball {
@@ -1520,7 +1520,7 @@
             .results-grid {
                 grid-template-columns: repeat(10, minmax(45px, 1fr));
                 gap: 3px;
-                min-width: 480px;
+                min-width: 0 !important;   /* 防止超寬 */
             }
             
             .result-item {
@@ -2925,8 +2925,7 @@
                     username: '',
                     balance: 0,
                     balanceChanged: false,
-                    loginUsername: '',
-                    loginPassword: '',
+
                     
                     // 遊戲狀態
                     gameStatus: 'betting', // betting or drawing
