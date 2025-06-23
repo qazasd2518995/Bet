@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登入 - 極速賽車</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         body {
             margin: 0;
@@ -210,12 +209,10 @@
                 return;
             }
 
-            console.log('開始登入請求...'); // 添加日誌
+            console.log('開始登入請求...');
 
             // 發送登入請求到後端
-            const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                ? 'http://localhost:3002' : '';
-            fetch(`${apiBase}/api/login`, {
+            fetch('/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -227,16 +224,16 @@
                 })
             })
             .then(response => {
-                console.log('登入回應狀態:', response.status); // 添加日誌
+                console.log('登入回應狀態:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('登入回應數據:', data); // 添加日誌
+                console.log('登入回應數據:', data);
                 if (data.success) {
-                    console.log('登入成功，準備跳轉...'); // 添加日誌
+                    console.log('登入成功，準備跳轉...');
                     // 儲存登入狀態到 sessionStorage
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('username', username);
@@ -245,7 +242,7 @@
                     // 導向到主頁
                     window.location.href = 'index.html';
                 } else {
-                    console.log('登入失敗:', data.message); // 添加日誌
+                    console.log('登入失敗:', data.message);
                     alert(data.message || '帳號或密碼錯誤');
                     // 重新產生驗證碼
                     currentCaptcha = generateCaptcha();
@@ -253,7 +250,7 @@
                 }
             })
             .catch(error => {
-                console.error('登入錯誤:', error); // 添加錯誤日誌
+                console.error('登入錯誤:', error);
                 alert('登入失敗，請稍後再試');
                 // 重新產生驗證碼
                 currentCaptcha = generateCaptcha();

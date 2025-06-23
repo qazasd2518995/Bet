@@ -87,8 +87,186 @@
             );
         }
         
+        /* 🚫 V2.0 - 強制隱藏舊結構，確保新結構顯示 */
+        .results-display:not(.results-display-new) {
+            display: none !important;
+        }
+        
+        .results-grid,
+        .results-display .results-grid,
+        .result-item,
+        .result-ball,
+        .position-label {
+            display: none !important;
+        }
+        
+        /* 🔥 強制緩存失效 - v2.0.1 */
+        .results-display-new {
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        /* 🎯 全新開獎結果佈局 v2.0 - 確保任何寬度都能完整顯示10顆球 */
+        .results-display-new {
+            padding: 15px 5px !important;
+            background: rgba(255, 100, 100, 0.3) !important; /* 紅色背景便於調試 */
+            backdrop-filter: blur(10px) !important;
+            border-radius: 12px !important;
+            margin: 10px 0 !important;
+            border: 3px solid red !important; /* 調試邊框 */
+            position: relative !important;
+            z-index: 9999 !important;
+        }
+
+        .results-container-new {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 2px !important;
+            gap: 2px !important;
+        }
+
+        .result-slot-new {
+            flex: 1 1 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 0 !important;
+            max-width: none !important;
+        }
+
+        .result-ball-new {
+            width: calc(100% - 4px) !important;
+            max-width: 42px !important;
+            min-width: 24px !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: bold !important;
+            font-size: clamp(10px, 2.5vw, 16px) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+            border: 3px solid yellow !important; /* 調試邊框 */
+            transition: transform 0.3s ease !important;
+            position: relative !important;
+            margin: 0 auto 4px auto !important;
+            background: orange !important; /* 調試背景 */
+        }
+
+        .result-ball-new:hover {
+            transform: scale(1.05) !important;
+        }
+
+        .result-ball-new::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 15% !important;
+            left: 25% !important;
+            width: 30% !important;
+            height: 30% !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border-radius: 50% !important;
+            filter: blur(1px) !important;
+        }
+
+        .position-label-new {
+            font-size: clamp(8px, 1.8vw, 12px) !important;
+            font-weight: 600 !important;
+            color: white !important;
+            text-align: center !important;
+            line-height: 1 !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            border-radius: 4px !important;
+            padding: 2px 4px !important;
+            backdrop-filter: blur(5px) !important;
+            white-space: nowrap !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 🎯 響應式設計 - 針對不同螢幕尺寸優化球的顯示 */
+        @media (max-width: 320px) {
+            .results-display-new {
+                padding: 8px 2px !important;
+            }
+            .results-container-new {
+                gap: 1px !important;
+                padding: 0 1px !important;
+            }
+            .result-ball-new {
+                min-width: 20px !important;
+                font-size: 9px !important;
+                border-width: 1px !important;
+            }
+            .position-label-new {
+                font-size: 7px !important;
+                padding: 1px 2px !important;
+            }
+        }
+
+        @media (min-width: 321px) and (max-width: 375px) {
+            .results-display-new {
+                padding: 10px 3px !important;
+            }
+            .result-ball-new {
+                min-width: 22px !important;
+                font-size: 10px !important;
+            }
+            .position-label-new {
+                font-size: 8px !important;
+            }
+        }
+
+        @media (min-width: 376px) and (max-width: 430px) {
+            .results-display-new {
+                padding: 12px 4px !important;
+            }
+            .result-ball-new {
+                min-width: 26px !important;
+                font-size: 11px !important;
+            }
+            .position-label-new {
+                font-size: 9px !important;
+            }
+        }
+
+        @media (min-width: 431px) and (max-width: 768px) {
+            .results-display-new {
+                padding: 15px 5px !important;
+            }
+            .result-ball-new {
+                min-width: 30px !important;
+                font-size: 12px !important;
+            }
+            .position-label-new {
+                font-size: 10px !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .results-display-new {
+                padding: 20px 10px !important;
+            }
+            .result-ball-new {
+                min-width: 36px !important;
+                max-width: 48px !important;
+                font-size: 14px !important;
+            }
+            .position-label-new {
+                font-size: 12px !important;
+                padding: 3px 5px !important;
+            }
+        }
+
         /* 確保開獎結果水平排列 */
-        .current-result, .results-grid, .race-result {
+        .current-result, .race-result {
             display: flex !important;
             flex-direction: row !important;
             justify-content: space-between !important;
@@ -1179,12 +1357,23 @@
         }
 
         .results-grid {
-            display: grid;
-            grid-template-columns: repeat(10, minmax(45px, 1fr));
-            gap: 4px;
-            min-width: 480px;
-            width: 100%;
-            margin: 0 auto;
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+            gap: 4px !important;
+            min-width: 0 !important;   /* 強制以容器寬度為準 */
+            max-width: 100% !important; 
+            width: 100% !important;    /* （保險） */
+            margin: 0 auto !important;
+            overflow: visible !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 強制覆蓋任何可能的外部CSS衝突 */
+        .results-display .results-grid {
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+            min-width: 0 !important;
+            width: 100% !important;
         }
 
         .result-item {
@@ -1226,46 +1415,46 @@
             filter: blur(1px);
         }
 
-        /* 數字球顏色 - 現代化調色板 */
-        .color-1 {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            color: #2c3e50;
+        /* 🎨 球顏色 - 適用於新結構 */
+        .result-ball-new.color-1 {
+            background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+            color: #2c3e50 !important;
         }
-        .color-2 {
-            background: linear-gradient(135deg, #4A90E2, #357ABD);
-            color: white;
+        .result-ball-new.color-2 {
+            background: linear-gradient(135deg, #4A90E2, #357ABD) !important;
+            color: white !important;
         }
-        .color-3 {
-            background: linear-gradient(135deg, #8E8E93, #636366);
-            color: white;
+        .result-ball-new.color-3 {
+            background: linear-gradient(135deg, #8E8E93, #636366) !important;
+            color: white !important;
         }
-        .color-4 {
-            background: linear-gradient(135deg, #FF8C42, #FF6347);
-            color: white;
+        .result-ball-new.color-4 {
+            background: linear-gradient(135deg, #FF8C42, #FF6347) !important;
+            color: white !important;
         }
-        .color-5 {
-            background: linear-gradient(135deg, #00CED1, #20B2AA);
-            color: white;
+        .result-ball-new.color-5 {
+            background: linear-gradient(135deg, #00CED1, #20B2AA) !important;
+            color: white !important;
         }
-        .color-6 {
-            background: linear-gradient(135deg, #9966CC, #8A2BE2);
-            color: white;
+        .result-ball-new.color-6 {
+            background: linear-gradient(135deg, #9966CC, #8A2BE2) !important;
+            color: white !important;
         }
-        .color-7 {
-            background: linear-gradient(135deg, #A8A8A8, #808080);
-            color: white;
+        .result-ball-new.color-7 {
+            background: linear-gradient(135deg, #A8A8A8, #808080) !important;
+            color: white !important;
         }
-        .color-8 {
-            background: linear-gradient(135deg, #FF4757, #FF3838);
-            color: white;
+        .result-ball-new.color-8 {
+            background: linear-gradient(135deg, #FF4757, #FF3838) !important;
+            color: white !important;
         }
-        .color-9 {
-            background: linear-gradient(135deg, #C44569, #B71540);
-            color: white;
+        .result-ball-new.color-9 {
+            background: linear-gradient(135deg, #C44569, #B71540) !important;
+            color: white !important;
         }
-        .color-10 {
-            background: linear-gradient(135deg, #26de81, #20bf6b);
-            color: white;
+        .result-ball-new.color-10 {
+            background: linear-gradient(135deg, #26de81, #20bf6b) !important;
+            color: white !important;
         }
 
         .position-label {
@@ -1289,10 +1478,13 @@
 
         /* 響應式設計 */
         @media (max-width: 1200px) {
-            .results-grid {
-                grid-template-columns: repeat(10, minmax(42px, 1fr));
-                gap: 3px;
-                min-width: 460px;
+            .results-grid, .results-display .results-grid {
+                display: grid !important;
+                grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+                gap: 3px !important;
+                min-width: 0 !important;   /* 防止超寬 */
+                width: 100% !important;
+                max-width: 100% !important;
             }
             
             .result-ball {
@@ -1357,27 +1549,27 @@
             .results-display {
                 padding-block: 12px;  /* 🎯 只保留上下padding */
                 padding-inline: 0 !important;  /* 清除左右padding */
-                overflow-x: hidden;
+                overflow-x: visible !important;  /* 確保不會切掉球 */
             }
             
-            .results-grid {
-                display: flex !important;
-                flex-direction: row !important;
-                gap: 1px;
-                justify-content: space-evenly;
-                min-width: 100%;
-                max-width: 100%;
-                padding: 0 2px;
+            .results-grid, .results-display .results-grid {
+                display: grid !important;
+                grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+                gap: 1px !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 2px !important;
+                overflow: visible !important;
             }
             
             .result-item {
-                flex: 1;
-                min-width: 28px;
-                max-width: 32px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 gap: 2px;
+                min-width: 0 !important;
+                width: 100% !important;
             }
             
             .result-ball {
@@ -1454,13 +1646,18 @@
                 padding-inline: 0 !important;  /* 清除左右padding */
             }
             
-            .results-grid {
+            .results-grid, .results-display .results-grid {
+                display: grid !important;
+                grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+                min-width: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 padding: 0 1px !important;
             }
             
             .result-item {
-                min-width: 26px;
-                max-width: 30px;
+                min-width: 0 !important;
+                width: 100% !important;
                 gap: 1px;
             }
             
@@ -1518,9 +1715,9 @@
             }
             
             .results-grid {
-                grid-template-columns: repeat(10, minmax(45px, 1fr));
+                grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
                 gap: 3px;
-                min-width: 480px;
+                min-width: 0 !important;   /* 防止超寬 */
             }
             
             .result-item {
@@ -2007,8 +2204,8 @@
         /* 超小螢幕額外優化 */
         @media (max-width: 360px) {
             .result-item {
-                min-width: 22px;
-                max-width: 26px;
+                min-width: 0 !important;
+                width: 100% !important;
             }
             
             .result-ball {
@@ -2164,13 +2361,14 @@
                 </div>
             </div>
             
-            <div class="results-display">
-                <div class="results-grid">
+            <div class="results-display-new">
+                <div class="results-container-new">
                     <div v-for="(number, index) in lastResults" :key="index" 
-                         class="result-item">
-                        <div :class="['result-ball', `color-${number}`]">
+                         class="result-slot-new">
+                        <div :class="['result-ball-new', `color-${number}`]">
                             {{ number }}
                         </div>
+                        <div class="position-label-new">{{ getPositionName(index + 1) }}</div>
                     </div>
                 </div>
             </div>
@@ -2925,8 +3123,7 @@
                     username: '',
                     balance: 0,
                     balanceChanged: false,
-                    loginUsername: '',
-                    loginPassword: '',
+
                     
                     // 遊戲狀態
                     gameStatus: 'betting', // betting or drawing
@@ -3157,6 +3354,10 @@
                         return "0.00";
                     }
                     return odds.toFixed(2);
+                },
+                getPositionName(position) {
+                    const names = ['冠', '亞', '三', '四', '五', '六', '七', '八', '九', '十'];
+                    return names[position - 1] || position;
                 },
                 isSelected(betType, value, position = null) {
                     return this.selectedBets.some(bet => 

@@ -215,21 +215,24 @@ Vue.component('draw-history', {
         // 格式化日期為YYYYMMDD格式
         const dateStr = this.formatDateForApi(this.selectedDate);
         
-                        const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                    ? 'http://localhost:3002' : '';
-                const response = await fetch(`${apiBase}/api/history?date=${dateStr}&page=${this.page}&limit=${this.itemsPerPage}`);
-        const data = await response.json();
+        const response = await axios.get(`${API_BASE_URL}/history`, {
+          params: {
+            date: dateStr,
+            page: this.page,
+            limit: this.itemsPerPage
+          }
+        });
         
         if (this.page === 1) {
           // 首次載入替換所有記錄
-          this.historyRecords = data.records || [];
+          this.historyRecords = response.data || [];
         } else {
           // 加載更多時追加記錄
-          this.historyRecords = [...this.historyRecords, ...(data.records || [])];
+          this.historyRecords = [...this.historyRecords, ...(response.data || [])];
         }
         
         // 判斷是否還有更多記錄
-        this.hasMoreHistory = (data.records || []).length >= this.itemsPerPage;
+        this.hasMoreHistory = (response.data || []).length >= this.itemsPerPage;
       } catch (error) {
         console.error('獲取歷史記錄失敗:', error);
       }
