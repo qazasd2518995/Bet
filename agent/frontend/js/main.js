@@ -167,7 +167,9 @@ const app = createApp({
             newMember: {
                 username: '',
                 password: '',
-                confirmPassword: ''
+                confirmPassword: '',
+                balance: 0,
+                status: 1
             },
             
 
@@ -481,17 +483,29 @@ const app = createApp({
         
         // 顯示創建會員模態框
         showMemberModal() {
+            // 重置會員數據
+            this.newMember = { 
+                username: '', 
+                password: '', 
+                confirmPassword: '',
+                balance: 0,
+                status: 1
+            };
+            
             this.showCreateMemberModal = true;
+            
+            // 使用雙重 $nextTick 確保 Vue 有足夠時間重新渲染 DOM
             this.$nextTick(() => {
-                // 確保模態框元素已經被渲染到DOM後再初始化和顯示
-                const modalEl = document.getElementById('createMemberModal');
-                if (modalEl) {
-                    this.memberModal = new bootstrap.Modal(modalEl);
-                    this.memberModal.show();
-                } else {
-                    console.error('找不到會員模態框元素');
-                    this.showMessage('系統錯誤，請稍後再試', 'error');
-                }
+                this.$nextTick(() => {
+                    const modalEl = document.getElementById('createMemberModal');
+                    if (modalEl) {
+                        this.memberModal = new bootstrap.Modal(modalEl);
+                        this.memberModal.show();
+                    } else {
+                        console.error('找不到會員模態框元素');
+                        this.showMessage('系統錯誤，請稍後再試', 'error');
+                    }
+                });
             });
         },
         

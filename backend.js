@@ -2569,28 +2569,22 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
     let agentSystemSuccess = false;
     if (adminAgent) {
       try {
-        console.log(`向代理系統發送下注/中獎同步請求: ${AGENT_API_URL}/sync-bet-transaction`);
+        console.log(`向代理系統發送餘額同步請求: ${AGENT_API_URL}/sync-member-balance`);
         console.log(`請求體:`, JSON.stringify({
-          agentId: adminAgent.id,
           username: username,
-          amount: amount,
-          newBalance: newBalance,
-          type: amount > 0 ? 'win' : 'bet',
-          description: reason
+          balance: newBalance,
+          reason: reason
         }));
         
-        const response = await fetch(`${AGENT_API_URL}/sync-bet-transaction`, {
+        const response = await fetch(`${AGENT_API_URL}/sync-member-balance`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            agentId: adminAgent.id,
             username: username,
-            amount: amount,
-            newBalance: newBalance,
-            type: amount > 0 ? 'win' : 'bet',
-            description: reason
+            balance: newBalance,
+            reason: reason
         })
       });
       
@@ -2600,10 +2594,10 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
         console.log(`代理系統響應數據:`, JSON.stringify(data));
         
         if (!data.success) {
-          console.error('代理系統同步下注/中獎失敗:', data.message);
+          console.error('代理系統同步餘額失敗:', data.message);
           // 即使代理系統失敗，我們也繼續使用本地更新的餘額
         } else {
-          console.log(`代理系統成功處理下注/中獎同步`);
+          console.log(`代理系統成功同步餘額`);
           agentSystemSuccess = true;
         }
       } catch (error) {
