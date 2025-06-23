@@ -1180,7 +1180,7 @@
 
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(10, minmax(45px, 1fr));
+            grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
             gap: 4px;
             min-width: 0 !important;   /* 強制以容器寬度為準 */
             width: 100% !important;    /* （保險） */
@@ -1290,7 +1290,7 @@
         /* 響應式設計 */
         @media (max-width: 1200px) {
             .results-grid {
-                grid-template-columns: repeat(10, minmax(42px, 1fr));
+                grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
                 gap: 3px;
                 min-width: 0 !important;   /* 防止超寬 */
             }
@@ -1361,12 +1361,12 @@
             }
             
             .results-grid {
-                display: flex !important;
-                flex-direction: row !important;
+                display: grid !important;
+                grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
                 gap: 1px;
-                justify-content: space-evenly;
-                min-width: 100%;
-                max-width: 100%;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
                 padding: 0 2px;
             }
             
@@ -1518,7 +1518,7 @@
             }
             
             .results-grid {
-                grid-template-columns: repeat(10, minmax(45px, 1fr));
+                grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
                 gap: 3px;
                 min-width: 0 !important;   /* 防止超寬 */
             }
