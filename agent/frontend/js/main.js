@@ -550,6 +550,20 @@ const app = createApp({
             };
         },
         
+        // 設置活動標籤並關閉漢堡選單
+        setActiveTab(tab) {
+            this.activeTab = tab;
+            
+            // 關閉Bootstrap漢堡選單
+            const navbarCollapse = document.getElementById('navbarNav');
+            if (navbarCollapse && navbarCollapse.classList.contains('show')) {
+                const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                    toggle: false
+                });
+                bsCollapse.hide();
+            }
+        },
+        
         // 檢查身份驗證狀態
         async checkAuth() {
             const token = localStorage.getItem('agent_token');

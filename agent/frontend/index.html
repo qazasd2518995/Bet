@@ -98,28 +98,28 @@
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'dashboard'}" href="#" @click="activeTab = 'dashboard'">儀表板</a>
+                                <a class="nav-link" :class="{active: activeTab === 'dashboard'}" href="#" @click="setActiveTab('dashboard')">儀表板</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'agents'}" href="#" @click="activeTab = 'agents'">代理管理</a>
+                                <a class="nav-link" :class="{active: activeTab === 'agents'}" href="#" @click="setActiveTab('agents')">代理管理</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'members'}" href="#" @click="activeTab = 'members'">會員管理</a>
+                                <a class="nav-link" :class="{active: activeTab === 'members'}" href="#" @click="setActiveTab('members')">會員管理</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'transactions'}" href="#" @click="activeTab = 'transactions'">交易記錄</a>
+                                <a class="nav-link" :class="{active: activeTab === 'transactions'}" href="#" @click="setActiveTab('transactions')">交易記錄</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'stats'}" href="#" @click="activeTab = 'stats'">下注記錄</a>
+                                <a class="nav-link" :class="{active: activeTab === 'stats'}" href="#" @click="setActiveTab('stats')">下注記錄</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'draw'}" href="#" @click="activeTab = 'draw'">開獎記錄</a>
+                                <a class="nav-link" :class="{active: activeTab === 'draw'}" href="#" @click="setActiveTab('draw')">開獎記錄</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'notices'}" href="#" @click="activeTab = 'notices'">系統公告</a>
+                                <a class="nav-link" :class="{active: activeTab === 'notices'}" href="#" @click="setActiveTab('notices')">系統公告</a>
                             </li>
                             <li class="nav-item" v-if="user.level === 0">
-                                <a class="nav-link" :class="{active: activeTab === 'customer-service'}" href="#" @click="activeTab = 'customer-service'">客服功能</a>
+                                <a class="nav-link" :class="{active: activeTab === 'customer-service'}" href="#" @click="setActiveTab('customer-service')">客服功能</a>
                             </li>
                         </ul>
                         <ul class="navbar-nav ms-auto">
@@ -283,7 +283,7 @@
                             <div class="card h-100">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">系統公告</h5>
-                                    <button class="btn btn-sm btn-outline-primary" @click="activeTab = 'notices'">
+                                    <button class="btn btn-sm btn-outline-primary" @click="setActiveTab('notices')">
                                         查看全部
                                     </button>
                                 </div>
@@ -321,25 +321,25 @@
                                 <div class="card-body">
                                     <div class="row g-2">
                                         <div class="col-6">
-                                            <button class="btn btn-outline-primary w-100" @click="activeTab = 'agents'">
+                                            <button class="btn btn-outline-primary w-100" @click="setActiveTab('agents')">
                                                 <i class="fas fa-users-cog mb-1"></i><br>
                                                 <small>代理管理</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
-                                            <button class="btn btn-outline-success w-100" @click="activeTab = 'members'">
+                                            <button class="btn btn-outline-success w-100" @click="setActiveTab('members')">
                                                 <i class="fas fa-user-friends mb-1"></i><br>
                                                 <small>會員管理</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
-                                            <button class="btn btn-outline-info w-100" @click="activeTab = 'transactions'">
+                                            <button class="btn btn-outline-info w-100" @click="setActiveTab('transactions')">
                                                 <i class="fas fa-exchange-alt mb-1"></i><br>
                                                 <small>交易記錄</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
-                                            <button class="btn btn-outline-warning w-100" @click="activeTab = 'stats'">
+                                            <button class="btn btn-outline-warning w-100" @click="setActiveTab('stats')">
                                                 <i class="fas fa-dice mb-1"></i><br>
                                                 <small>下注記錄</small>
                                             </button>
