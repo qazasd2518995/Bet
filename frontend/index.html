@@ -87,6 +87,19 @@
             );
         }
         
+        /* 🔒 最高優先級保護 - 防止任何CSS覆蓋我們的Grid設定 */
+        html .results-grid,
+        html body .results-grid,
+        html body div .results-grid,
+        html body div div .results-grid {
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(28px, 1fr)) !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+        }
+
         /* 確保開獎結果水平排列 */
         .current-result, .race-result {
             display: flex !important;
