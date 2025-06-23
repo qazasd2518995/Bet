@@ -1521,10 +1521,72 @@
                 font-size: 14px;
             }
             
-            .betting-options.numbers .option .odds {
-                font-size: 9px;
-            }
-        }
+                         .betting-options.numbers .option .odds {
+                 font-size: 9px;
+             }
+             
+             /* 下注區域響應式設計 */
+             .compact-bet-bar {
+                 padding: 10px 8px !important;
+                 gap: 8px !important;
+                 justify-content: flex-start !important;
+                 min-width: 0 !important;
+             }
+             
+             .compact-clear-btn {
+                 min-width: 50px !important;
+                 padding: 8px 12px !important;
+                 font-size: 12px !important;
+                 height: 36px !important;
+             }
+             
+             .compact-bet-count {
+                 font-size: 11px !important;
+                 min-width: 0 !important;
+                 flex-shrink: 1 !important;
+             }
+             
+             .chips-repeat-group {
+                 min-width: 50px !important;
+                 height: 36px !important;
+             }
+             
+             .chips-toggle-btn-small {
+                 min-width: 50px !important;
+                 font-size: 9px !important;
+                 padding: 2px 4px !important;
+                 height: 16px !important;
+             }
+             
+             .compact-repeat-btn-small {
+                 min-width: 50px !important;
+                 font-size: 9px !important;
+                 padding: 2px 4px !important;
+                 height: 16px !important;
+             }
+             
+             .compact-amount-input {
+                 margin-right: 6px !important;
+             }
+             
+             .compact-amount-input input {
+                 width: 60px !important;
+                 padding: 8px 6px !important;
+                 font-size: 12px !important;
+                 height: 36px !important;
+             }
+             
+             .compact-bet-btn {
+                 min-width: 50px !important;
+                 padding: 8px 12px !important;
+                 font-size: 12px !important;
+                 height: 36px !important;
+             }
+             
+             .dropdown-arrow {
+                 font-size: 8px !important;
+             }
+         }
         
         /* 個別投注金額輸入框樣式 */
         .amount-input-small {
@@ -2140,10 +2202,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 12px 20px;
-            gap: 15px;
+            padding: 12px 15px;
+            gap: 12px;
             max-width: 1200px;
             margin: 0 auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .compact-clear-btn {
@@ -2157,6 +2221,7 @@
             cursor: pointer;
             min-width: 70px;
             height: 40px;
+            flex-shrink: 0;
         }
 
         .compact-clear-btn:hover {
@@ -2171,38 +2236,69 @@
             justify-content: center;
         }
 
-        .compact-bet-info {
+        .compact-bet-count {
+            font-size: 13px;
+            color: #333;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* 籌碼和續押按鈕組 */
+        .chips-repeat-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            height: 40px;
+            min-width: 70px;
+            flex-shrink: 0;
+        }
+
+        /* 小尺寸籌碼按鈕 */
+        .chips-toggle-btn-small {
+            background: #ffc107;
+            color: #212529;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            height: 18px;
+            width: 100%;
+            min-width: 70px;
         }
 
-        .compact-bet-count {
-            font-size: 14px;
-            color: #333;
-            font-weight: 500;
-            white-space: nowrap;
+        .chips-toggle-btn-small:hover {
+            background: #e0a800;
         }
 
-        .compact-repeat-btn {
+        /* 小尺寸續押按鈕 */
+        .compact-repeat-btn-small {
             background: #17a2b8;
             color: white;
             border: none;
-            border-radius: 6px;
-            padding: 10px 20px;
-            font-size: 14px;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
+            height: 18px;
+            width: 100%;
             min-width: 70px;
-            height: 40px;
         }
 
-        .compact-repeat-btn:disabled {
+        .compact-repeat-btn-small:disabled {
             background: #ccc;
             cursor: not-allowed;
         }
 
-        .compact-repeat-btn:hover:not(:disabled) {
+        .compact-repeat-btn-small:hover:not(:disabled) {
             background: #138496;
         }
 
@@ -2234,7 +2330,7 @@
         }
 
         .dropdown-arrow {
-            font-size: 12px;
+            font-size: 10px;
             transition: transform 0.2s ease;
         }
 
@@ -2329,7 +2425,8 @@
         }
 
         .compact-amount-input {
-            margin-right: 15px;
+            margin-right: 12px;
+            flex-shrink: 0;
         }
         
         .compact-amount-input input {
@@ -2362,6 +2459,7 @@
             transition: all 0.2s ease;
             min-width: 70px;
             height: 40px;
+            flex-shrink: 0;
         }
 
         .compact-bet-btn:disabled {
@@ -3191,24 +3289,26 @@
                 <!-- 左側：清除按鈕 -->
                 <button class="compact-clear-btn" @click="clearBets">清除</button>
                 
-                <!-- 中間：已選注數和續押 -->
-                <div class="compact-bet-info">
-                    <span class="compact-bet-count">已選：{{ selectedBets.length }}注</span>
-                    <button class="compact-repeat-btn" @click="repeatLastBets" :disabled="!hasLastBets">續押</button>
-                </div>
+                <!-- 已選注數顯示 -->
+                <span class="compact-bet-count">已選：{{ selectedBets.length }}注</span>
                 
-                <!-- 籌碼按鈕（可展開） -->
-                <div class="chips-dropdown">
-                    <button class="chips-toggle-btn" @click="showChips = !showChips">
-                        籌碼 <span class="dropdown-arrow" :class="{ open: showChips }">▼</span>
-                    </button>
-                    <div class="compact-chips" :class="{ show: showChips }">
-                        <div class="compact-chip" :class="{ active: betAmount === 5 }" @click="setBetAmount(5); showChips = false">5</div>
-                        <div class="compact-chip" :class="{ active: betAmount === 10 }" @click="setBetAmount(10); showChips = false">10</div>
-                        <div class="compact-chip" :class="{ active: betAmount === 50 }" @click="setBetAmount(50); showChips = false">50</div>
-                        <div class="compact-chip" :class="{ active: betAmount === 100 }" @click="setBetAmount(100); showChips = false">100</div>
-                        <div class="compact-chip" :class="{ active: betAmount === 500 }" @click="setBetAmount(500); showChips = false">500</div>
+                <!-- 籌碼和續押按鈕組（上下排列） -->
+                <div class="chips-repeat-group">
+                    <!-- 籌碼按鈕（可展開） -->
+                    <div class="chips-dropdown">
+                        <button class="chips-toggle-btn-small" @click="showChips = !showChips">
+                            籌碼 <span class="dropdown-arrow" :class="{ open: showChips }">▼</span>
+                        </button>
+                        <div class="compact-chips" :class="{ show: showChips }">
+                            <div class="compact-chip" :class="{ active: betAmount === 5 }" @click="setBetAmount(5); showChips = false">5</div>
+                            <div class="compact-chip" :class="{ active: betAmount === 10 }" @click="setBetAmount(10); showChips = false">10</div>
+                            <div class="compact-chip" :class="{ active: betAmount === 50 }" @click="setBetAmount(50); showChips = false">50</div>
+                            <div class="compact-chip" :class="{ active: betAmount === 100 }" @click="setBetAmount(100); showChips = false">100</div>
+                            <div class="compact-chip" :class="{ active: betAmount === 500 }" @click="setBetAmount(500); showChips = false">500</div>
+                        </div>
                     </div>
+                    <!-- 續押按鈕 -->
+                    <button class="compact-repeat-btn-small" @click="repeatLastBets" :disabled="!hasLastBets">續押</button>
                 </div>
                 
                 <!-- 金額輸入框 -->
