@@ -1529,8 +1529,11 @@
              .compact-bet-bar {
                  padding: 10px 8px !important;
                  gap: 8px !important;
-                 justify-content: flex-start !important;
                  min-width: 0 !important;
+             }
+             
+             .compact-center-group {
+                 gap: 8px !important;
              }
              
              .compact-clear-btn {
@@ -1546,23 +1549,18 @@
                  flex-shrink: 1 !important;
              }
              
-             .chips-repeat-group {
+             .compact-repeat-btn {
                  min-width: 50px !important;
+                 padding: 8px 12px !important;
+                 font-size: 12px !important;
                  height: 36px !important;
              }
              
-             .chips-toggle-btn-small {
+             .chips-toggle-btn {
                  min-width: 50px !important;
-                 font-size: 9px !important;
-                 padding: 2px 4px !important;
-                 height: 16px !important;
-             }
-             
-             .compact-repeat-btn-small {
-                 min-width: 50px !important;
-                 font-size: 9px !important;
-                 padding: 2px 4px !important;
-                 height: 16px !important;
+                 padding: 8px 12px !important;
+                 font-size: 12px !important;
+                 height: 36px !important;
              }
              
              .compact-amount-input {
@@ -1584,7 +1582,7 @@
              }
              
              .dropdown-arrow {
-                 font-size: 8px !important;
+                 font-size: 10px !important;
              }
          }
         
@@ -2201,17 +2199,25 @@
         .compact-bet-bar {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 12px 15px;
-            gap: 12px;
+            justify-content: space-between;
+            padding: 12px 20px;
+            gap: 15px;
             max-width: 1200px;
             margin: 0 auto;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
+        
+        .compact-center-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex: 1;
+        }
 
         .compact-clear-btn {
-            background: #6c757d;
+            background: #dc3545;
             color: white;
             border: none;
             border-radius: 6px;
@@ -2225,7 +2231,7 @@
         }
 
         .compact-clear-btn:hover {
-            background: #5a6268;
+            background: #c82333;
         }
 
         .compact-middle-section {
@@ -2236,69 +2242,39 @@
             justify-content: center;
         }
 
-        .compact-bet-count {
-            font-size: 13px;
-            color: #333;
-            font-weight: 600;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        /* 籌碼和續押按鈕組 */
-        .chips-repeat-group {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            height: 40px;
-            min-width: 70px;
-            flex-shrink: 0;
-        }
-
-        /* 小尺寸籌碼按鈕 */
-        .chips-toggle-btn-small {
-            background: #ffc107;
-            color: #212529;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
+        .compact-bet-info {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 4px;
-            transition: all 0.2s ease;
-            height: 18px;
-            width: 100%;
-            min-width: 70px;
+            gap: 10px;
         }
 
-        .chips-toggle-btn-small:hover {
-            background: #e0a800;
+        .compact-bet-count {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            white-space: nowrap;
         }
 
-        /* 小尺寸續押按鈕 */
-        .compact-repeat-btn-small {
+        .compact-repeat-btn {
             background: #17a2b8;
             color: white;
             border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 11px;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            height: 18px;
-            width: 100%;
             min-width: 70px;
+            height: 40px;
+            flex-shrink: 0;
         }
 
-        .compact-repeat-btn-small:disabled {
+        .compact-repeat-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
         }
 
-        .compact-repeat-btn-small:hover:not(:disabled) {
+        .compact-repeat-btn:hover:not(:disabled) {
             background: #138496;
         }
 
@@ -2322,6 +2298,7 @@
             transition: all 0.2s ease;
             min-width: 70px;
             height: 40px;
+            flex-shrink: 0;
         }
 
         .chips-toggle-btn:hover {
@@ -2330,7 +2307,7 @@
         }
 
         .dropdown-arrow {
-            font-size: 10px;
+            font-size: 12px;
             transition: transform 0.2s ease;
         }
 
@@ -2425,7 +2402,7 @@
         }
 
         .compact-amount-input {
-            margin-right: 12px;
+            margin-right: 15px;
             flex-shrink: 0;
         }
         
@@ -3289,14 +3266,17 @@
                 <!-- 左側：清除按鈕 -->
                 <button class="compact-clear-btn" @click="clearBets">清除</button>
                 
-                <!-- 已選注數顯示 -->
-                <span class="compact-bet-count">已選：{{ selectedBets.length }}注</span>
-                
-                <!-- 籌碼和續押按鈕組（上下排列） -->
-                <div class="chips-repeat-group">
+                <!-- 中間容器：居中顯示 -->
+                <div class="compact-center-group">
+                    <!-- 已選注數和續押 -->
+                    <div class="compact-bet-info">
+                        <span class="compact-bet-count">已選：{{ selectedBets.length }}注</span>
+                        <button class="compact-repeat-btn" @click="repeatLastBets" :disabled="!hasLastBets">續押</button>
+                    </div>
+                    
                     <!-- 籌碼按鈕（可展開） -->
                     <div class="chips-dropdown">
-                        <button class="chips-toggle-btn-small" @click="showChips = !showChips">
+                        <button class="chips-toggle-btn" @click="showChips = !showChips">
                             籌碼 <span class="dropdown-arrow" :class="{ open: showChips }">▼</span>
                         </button>
                         <div class="compact-chips" :class="{ show: showChips }">
@@ -3307,13 +3287,11 @@
                             <div class="compact-chip" :class="{ active: betAmount === 500 }" @click="setBetAmount(500); showChips = false">500</div>
                         </div>
                     </div>
-                    <!-- 續押按鈕 -->
-                    <button class="compact-repeat-btn-small" @click="repeatLastBets" :disabled="!hasLastBets">續押</button>
-                </div>
-                
-                <!-- 金額輸入框 -->
-                <div class="compact-amount-input">
-                    <input type="number" v-model="betAmount" min="1" step="1" placeholder="金額">
+                    
+                    <!-- 金額輸入框 -->
+                    <div class="compact-amount-input">
+                        <input type="number" v-model="betAmount" min="1" step="1" placeholder="金額">
+                    </div>
                 </div>
                 
                 <!-- 右側：下注按鈕 -->
