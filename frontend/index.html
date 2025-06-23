@@ -1098,6 +1098,308 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
+        /* ========================= 投注選項區域樣式 ========================= */
+        
+        /* 投注標籤頁 */
+        .betting-tabs {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            margin: 20px 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        
+        /* 標籤頁導航 */
+        .tabs {
+            display: flex;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px 12px;
+            text-align: center;
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            background: transparent;
+            position: relative;
+            white-space: nowrap;
+            min-width: 100px;
+        }
+        
+        .tab:hover {
+            color: #495057;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        
+        .tab.active {
+            color: #007bff;
+            background: rgba(0, 123, 255, 0.1);
+            border-bottom-color: #007bff;
+            box-shadow: inset 0 -2px 0 #007bff;
+        }
+        
+        /* 標籤頁內容 */
+        .tab-content {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* 投注組別 */
+        .betting-group {
+            margin-bottom: 25px;
+            padding: 18px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .betting-group:hover {
+            background: rgba(248, 249, 250, 1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .group-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #495057;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+            text-align: center;
+            position: relative;
+        }
+        
+        .group-title::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(45deg, #007bff, #28a745);
+            border-radius: 1px;
+        }
+        
+        /* 投注選項容器 */
+        .betting-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        /* 數字選項特殊布局 */
+        .betting-options.numbers {
+            grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+            gap: 8px;
+        }
+        
+        /* 和值選項特殊布局 */
+        .betting-options.sum-values {
+            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+            gap: 6px;
+        }
+        
+        /* 屬性選項布局 */
+        .betting-options.properties {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        /* 投注選項按鈕 */
+        .option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 60px;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .option:hover {
+            border-color: #007bff;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.2);
+            color: #1565c0;
+        }
+        
+        .option.selected {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border-color: #0056b3;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+        }
+        
+        .option.selected:hover {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            border-color: #004085;
+        }
+        
+        /* 投注項目文字 */
+        .option span:first-child {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        
+        /* 賠率顯示 */
+        .option .odds {
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0.8;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 6px;
+            min-width: 35px;
+            text-align: center;
+        }
+        
+        .option.selected .odds {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        /* 數字按鈕特殊樣式 */
+        .betting-options.numbers .option {
+            min-height: 45px;
+            padding: 8px 4px;
+            border-radius: 8px;
+        }
+        
+        .betting-options.numbers .option span:first-child {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+        
+        .betting-options.numbers .option .odds {
+            font-size: 10px;
+            padding: 1px 4px;
+            min-width: 30px;
+        }
+        
+        /* 和值按鈕特殊樣式 */
+        .betting-options.sum-values .option {
+            min-height: 50px;
+            padding: 6px 4px;
+        }
+        
+        .betting-options.sum-values .option span:first-child {
+            font-size: 15px;
+            font-weight: 800;
+        }
+        
+        .betting-options.sum-values .option .odds {
+            font-size: 9px;
+            padding: 1px 3px;
+            min-width: 25px;
+        }
+        
+        /* 龍虎按鈕特殊樣式 */
+        .option.dragon {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border-color: #ee5a24;
+            color: white;
+        }
+        
+        .option.dragon:hover {
+            background: linear-gradient(135deg, #ee5a24, #d63031);
+            border-color: #d63031;
+        }
+        
+        .option.tiger {
+            background: linear-gradient(135deg, #ffd93d, #ffb74d);
+            border-color: #ffb74d;
+            color: #5d4037;
+        }
+        
+        .option.tiger:hover {
+            background: linear-gradient(135deg, #ffb74d, #ff9800);
+            border-color: #ff9800;
+        }
+        
+        /* 大小單雙特殊顏色樣式 */
+        .option.big-option {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            border-color: #388e3c;
+            color: white;
+        }
+        
+        .option.big-option:hover {
+            background: linear-gradient(135deg, #388e3c, #2e7d32);
+            border-color: #2e7d32;
+        }
+        
+        .option.small-option {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            border-color: #1976d2;
+            color: white;
+        }
+        
+        .option.small-option:hover {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            border-color: #1565c0;
+        }
+        
+        .option.odd-option {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border-color: #f57c00;
+            color: white;
+        }
+        
+        .option.odd-option:hover {
+            background: linear-gradient(135deg, #f57c00, #ef6c00);
+            border-color: #ef6c00;
+        }
+        
+        .option.even-option {
+            background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+            border-color: #7b1fa2;
+            color: white;
+        }
+        
+        .option.even-option:hover {
+            background: linear-gradient(135deg, #7b1fa2, #6a1b9a);
+            border-color: #6a1b9a;
+        }
+        
+        /* 當選中時保持原有的藍色樣式，但增加陰影效果 */
+        .option.big-option.selected,
+        .option.small-option.selected,
+        .option.odd-option.selected,
+        .option.even-option.selected {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border-color: #0056b3;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 123, 255, 0.5);
+        }
+        
         /* 響應式設計 */
         @media (max-width: 768px) {
             .navbar-container {
@@ -1146,6 +1448,81 @@
                 right: 0 !important;
                 left: auto !important;
                 transform: none !important;
+            }
+            
+            /* 投注選項響應式設計 */
+            .betting-tabs {
+                margin: 15px 10px;
+                border-radius: 12px;
+            }
+            
+            .tabs {
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+            }
+            
+            .tab {
+                padding: 12px 8px;
+                font-size: 12px;
+                min-width: 80px;
+                flex: 0 0 auto;
+            }
+            
+            .tab-content {
+                padding: 15px;
+            }
+            
+            .betting-group {
+                margin-bottom: 20px;
+                padding: 15px;
+            }
+            
+            .group-title {
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+            
+            .betting-options {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .betting-options.numbers {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+            }
+            
+            .betting-options.sum-values {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 5px;
+            }
+            
+            .option {
+                padding: 10px 6px;
+                min-height: 50px;
+                font-size: 13px;
+            }
+            
+            .option span:first-child {
+                font-size: 13px;
+            }
+            
+            .option .odds {
+                font-size: 10px;
+                padding: 1px 4px;
+            }
+            
+            .betting-options.numbers .option {
+                min-height: 40px;
+                padding: 6px 3px;
+            }
+            
+            .betting-options.numbers .option span:first-child {
+                font-size: 14px;
+            }
+            
+            .betting-options.numbers .option .odds {
+                font-size: 9px;
             }
         }
         
@@ -2392,19 +2769,19 @@
                 <div class="betting-group">
                     <div class="group-title">冠軍</div>
                     <div class="betting-options">
-                        <div class="option" :class="{ selected: isSelected('champion', 'big') }" @click="selectBet('champion', 'big')">
+                        <div class="option big-option" :class="{ selected: isSelected('champion', 'big') }" @click="selectBet('champion', 'big')" data-type="big">
                             <span>大</span>
                             <span class="odds">{{ formatOdds(odds.champion.big) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('champion', 'small') }" @click="selectBet('champion', 'small')">
+                        <div class="option small-option" :class="{ selected: isSelected('champion', 'small') }" @click="selectBet('champion', 'small')" data-type="small">
                             <span>小</span>
                             <span class="odds">{{ formatOdds(odds.champion.small) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('champion', 'odd') }" @click="selectBet('champion', 'odd')">
+                        <div class="option odd-option" :class="{ selected: isSelected('champion', 'odd') }" @click="selectBet('champion', 'odd')" data-type="odd">
                             <span>單</span>
                             <span class="odds">{{ formatOdds(odds.champion.odd) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('champion', 'even') }" @click="selectBet('champion', 'even')">
+                        <div class="option even-option" :class="{ selected: isSelected('champion', 'even') }" @click="selectBet('champion', 'even')" data-type="even">
                             <span>雙</span>
                             <span class="odds">{{ formatOdds(odds.champion.even) }}</span>
                         </div>
@@ -2414,19 +2791,19 @@
                 <div class="betting-group">
                     <div class="group-title">亞軍</div>
                     <div class="betting-options">
-                        <div class="option" :class="{ selected: isSelected('runnerup', 'big') }" @click="selectBet('runnerup', 'big')">
+                        <div class="option big-option" :class="{ selected: isSelected('runnerup', 'big') }" @click="selectBet('runnerup', 'big')" data-type="big">
                             <span>大</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.big) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('runnerup', 'small') }" @click="selectBet('runnerup', 'small')">
+                        <div class="option small-option" :class="{ selected: isSelected('runnerup', 'small') }" @click="selectBet('runnerup', 'small')" data-type="small">
                             <span>小</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.small) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('runnerup', 'odd') }" @click="selectBet('runnerup', 'odd')">
+                        <div class="option odd-option" :class="{ selected: isSelected('runnerup', 'odd') }" @click="selectBet('runnerup', 'odd')" data-type="odd">
                             <span>單</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.odd) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('runnerup', 'even') }" @click="selectBet('runnerup', 'even')">
+                        <div class="option even-option" :class="{ selected: isSelected('runnerup', 'even') }" @click="selectBet('runnerup', 'even')" data-type="even">
                             <span>雙</span>
                             <span class="odds">{{ formatOdds(odds.runnerup.even) }}</span>
                         </div>
@@ -2436,19 +2813,19 @@
                 <div class="betting-group">
                     <div class="group-title">第三名</div>
                     <div class="betting-options">
-                        <div class="option" :class="{ selected: isSelected('third', 'big') }" @click="selectBet('third', 'big')">
+                        <div class="option big-option" :class="{ selected: isSelected('third', 'big') }" @click="selectBet('third', 'big')" data-type="big">
                             <span>大</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.big : 1.9) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('third', 'small') }" @click="selectBet('third', 'small')">
+                        <div class="option small-option" :class="{ selected: isSelected('third', 'small') }" @click="selectBet('third', 'small')" data-type="small">
                             <span>小</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.small : 1.9) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('third', 'odd') }" @click="selectBet('third', 'odd')">
+                        <div class="option odd-option" :class="{ selected: isSelected('third', 'odd') }" @click="selectBet('third', 'odd')" data-type="odd">
                             <span>單</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.odd : 1.9) }}</span>
                         </div>
-                        <div class="option" :class="{ selected: isSelected('third', 'even') }" @click="selectBet('third', 'even')">
+                        <div class="option even-option" :class="{ selected: isSelected('third', 'even') }" @click="selectBet('third', 'even')" data-type="even">
                             <span>雙</span>
                             <span class="odds">{{ formatOdds(odds.third ? odds.third.even : 1.9) }}</span>
                         </div>
