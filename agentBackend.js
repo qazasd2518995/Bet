@@ -2518,6 +2518,114 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
   }
 });
 
+// 代為創建會員
+app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
+  const { username, password, agentId, initialBalance, createdBy } = req.body;
+  
+  try {
+    console.log(`代為創建會員請求: 用戶名=${username}, 代理ID=${agentId}, 初始餘額=${initialBalance}, 創建者=${createdBy}`);
+    
+    // 檢查用戶名是否已存在
+    const existingMember = await MemberModel.findByUsername(username);
+    if (existingMember) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用'
+      });
+    }
+    
+    // 檢查目標代理是否存在
+    const targetAgent = await AgentModel.findById(agentId);
+    if (!targetAgent) {
+      return res.json({
+        success: false,
+        message: '目標代理不存在'
+      });
+    }
+    
+    // 檢查創建者是否存在
+    const creator = await AgentModel.findById(createdBy);
+    if (!creator) {
+      return res.json({
+        success: false,
+        message: '創建者代理不存在'
+      });
+    }
+    
+    // 檢查代理層級是否達到最大值 (15層)
+    if (targetAgent.level >= 15) {
+      return res.json({
+        success: false,
+        message: '該代理已達到最大層級（15層），無法再創建下級會員'
+      });
+    }
+    
+    const initialBal = parseFloat(initialBalance) || 0;
+    
+    // 如果設定了初始餘額，檢查創建者餘額是否足夠
+    if (initialBal > 0) {
+      if (parseFloat(creator.balance) < initialBal) {
+        return res.json({
+          success: false,
+          message: '您的餘額不足以設定該初始餘額'
+        });
+      }
+    }
+    
+    // 開始數據庫事務
+    await db.tx(async t => {
+      // 創建會員
+      const newMember = await t.one(`
+        INSERT INTO members (username, password, agent_id, balance, status, created_at)
+        VALUES ($1, $2, $3, $4, 1, NOW())
+        RETURNING id, username, balance
+      `, [username, password, agentId, initialBal]);
+      
+      // 如果設定了初始餘額，從創建者餘額中扣除
+      if (initialBal > 0) {
+        // 扣除創建者餘額
+        await t.none(`
+          UPDATE agents 
+          SET balance = balance - $1, updated_at = NOW()
+          WHERE id = $2
+        `, [initialBal, createdBy]);
+        
+        // 記錄點數轉移
+        await t.none(`
+          INSERT INTO point_transfers (from_user_type, from_user_id, to_user_type, to_user_id, amount, transfer_type, description, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        `, ['agent', createdBy, 'member', newMember.id, initialBal, 'agent_to_member', `代為創建會員 ${username} 的初始餘額`]);
+      }
+      
+      return newMember;
+    });
+    
+    // 獲取更新後的創建者餘額
+    const updatedCreator = await AgentModel.findById(createdBy);
+    
+    console.log(`成功代為創建會員: ${username}, 代理: ${targetAgent.username}, 初始餘額: ${initialBal}`);
+    
+    res.json({
+      success: true,
+      message: `成功為代理 ${targetAgent.username} 創建會員 ${username}`,
+      member: {
+        id: newMember.id,
+        username: newMember.username,
+        balance: initialBal,
+        agent_id: agentId
+      },
+      newBalance: updatedCreator.balance
+    });
+    
+  } catch (error) {
+    console.error('代為創建會員出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
 // 更新會員狀態
 app.put(`${API_PREFIX}/update-member-status`, async (req, res) => {
   const { id, status } = req.body;
