@@ -487,16 +487,30 @@ const app = createApp({
             this.showCreateAgentModal = false;
         },
         
-        // 顯示創建會員模態框 - 修復響應式更新問題
+        // 顯示創建會員模態框 - 強化錯誤處理版本
         showMemberModal() {
             console.log('📝 顯示新增會員模態框');
             console.log('當前管理代理:', this.currentManagingAgent);
+            console.log('當前用戶:', this.user);
+            console.log('當前頁籤:', this.activeTab);
             
             // 檢查當前管理代理是否存在
             if (!this.currentManagingAgent || !this.currentManagingAgent.id) {
-                console.error('❌ 當前管理代理信息缺失');
-                this.showMessage('無法確定當前管理代理，請重新整理頁面', 'error');
-                return;
+                console.error('❌ 當前管理代理信息缺失，嘗試重新初始化');
+                
+                // 嘗試重新初始化當前管理代理
+                if (this.user && this.user.id) {
+                    this.currentManagingAgent = {
+                        id: this.user.id,
+                        username: this.user.username,
+                        level: this.user.level,
+                        max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    };
+                    console.log('✅ 重新初始化管理代理為:', this.currentManagingAgent);
+                } else {
+                    this.showMessage('無法確定當前管理代理，請重新整理頁面', 'error');
+                    return;
+                }
             }
             
             // 重置會員數據
@@ -510,9 +524,12 @@ const app = createApp({
             
             console.log('✅ 會員數據已重置:', this.newMember);
             
-            // 直接設置屬性（屬性已在data中定義）
+            // 強制設置顯示狀態
             this.showCreateMemberModal = true;
-            console.log('✅ showCreateMemberModal 設置為 true');
+            console.log('✅ showCreateMemberModal 設置為:', this.showCreateMemberModal);
+            
+            // 強制Vue更新
+            this.$forceUpdate();
             
             // 使用nextTick確保DOM更新後再檢查
             this.$nextTick(() => {
@@ -521,23 +538,78 @@ const app = createApp({
                 console.log('- currentManagingAgent:', this.currentManagingAgent);
                 console.log('- user:', this.user);
                 
-                const modal = document.getElementById('createMemberModal');
-                if (modal) {
-                    console.log('✅ 模態框DOM元素已找到:', modal);
-                    console.log('✅ 模態框顯示狀態:', modal.style.display);
-                    console.log('✅ 模態框可見性:', window.getComputedStyle(modal).visibility);
-                    console.log('✅ 模態框z-index:', window.getComputedStyle(modal).zIndex);
-                } else {
-                    console.error('❌ 模態框DOM元素未找到');
-                    // 檢查是否有v-if條件導致模態框未渲染
-                    console.log('🔍 檢查條件:', {
-                        showCreateMemberModal: this.showCreateMemberModal,
-                        hasCurrentAgent: !!this.currentManagingAgent,
-                        hasAgentId: !!this.currentManagingAgent?.id
-                    });
-                }
-                console.log('✅ 模態框已顯示');
+                // 稍微延遲後檢查DOM元素
+                setTimeout(() => {
+                    const modal = document.getElementById('createMemberModal');
+                    if (modal) {
+                        console.log('✅ 模態框DOM元素已找到:', modal);
+                        console.log('✅ 模態框顯示狀態:', modal.style.display);
+                        console.log('✅ 模態框可見性:', window.getComputedStyle(modal).visibility);
+                        console.log('✅ 模態框z-index:', window.getComputedStyle(modal).zIndex);
+                        
+                        // 確保模態框可見
+                        if (window.getComputedStyle(modal).display === 'none') {
+                            console.log('⚠️ 模態框被隱藏，強制顯示');
+                            modal.style.display = 'flex';
+                        }
+                    } else {
+                        console.error('❌ 模態框DOM元素未找到');
+                        console.log('🔍 檢查條件:', {
+                            showCreateMemberModal: this.showCreateMemberModal,
+                            hasCurrentAgent: !!this.currentManagingAgent,
+                            hasAgentId: !!this.currentManagingAgent?.id,
+                            hasUser: !!this.user,
+                            hasUserId: !!this.user?.id
+                        });
+                        
+                        // 嘗試再次強制更新
+                        console.log('🔄 嘗試強制更新Vue組件');
+                        this.$forceUpdate();
+                        
+                        // 最後一次檢查
+                        setTimeout(() => {
+                            const retryModal = document.getElementById('createMemberModal');
+                            if (!retryModal) {
+                                console.error('❌ 重試後仍無法找到模態框，可能是模板條件問題');
+                                this.showMessage('模態框載入失敗，請重新整理頁面後再試', 'error');
+                            } else {
+                                console.log('✅ 重試成功找到模態框');
+                            }
+                        }, 500);
+                    }
+                }, 100);
+                
+                console.log('✅ 模態框顯示流程完成');
             });
+        },
+        
+        // 快速新增會員 - 專為會員管理頁面設計
+        quickCreateMember() {
+            console.log('⚡ 快速新增會員');
+            
+            // 重置表單
+            this.newMember = { 
+                username: '', 
+                password: '', 
+                confirmPassword: '',
+                balance: 0,
+                status: 1
+            };
+            
+            // 確保當前管理代理設置正確
+            if (!this.currentManagingAgent || this.currentManagingAgent.id !== this.user.id) {
+                this.currentManagingAgent = {
+                    id: this.user.id,
+                    username: this.user.username,
+                    level: this.user.level,
+                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                };
+            }
+            
+            // 直接顯示模態框
+            this.showCreateMemberModal = true;
+            
+            console.log('✅ 快速新增會員模態框已顯示');
         },
         
         // 隱藏創建會員模態框 - 重新實現版本

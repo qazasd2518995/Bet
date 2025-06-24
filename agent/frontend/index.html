@@ -714,7 +714,7 @@
                 <div v-if="activeTab === 'members'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2>會員管理</h2>
-                        <button class="btn btn-primary" @click="showMemberModal">
+                        <button class="btn btn-primary" @click="quickCreateMember">
                             <i class="fas fa-plus me-1"></i>新增會員
                         </button>
                     </div>
@@ -813,14 +813,14 @@
 
 
 
-                    <!-- 新增會員 Modal - 修復顯示問題 -->
-                    <div id="createMemberModal" tabindex="-1" v-if="showCreateMemberModal" 
+                    <!-- 新增會員 Modal - 強化顯示邏輯 -->
+                    <div id="createMemberModal" tabindex="-1" v-if="showCreateMemberModal && (currentManagingAgent || user)" 
                          style="background-color: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: flex; align-items: center; justify-content: center;">
                         <div class="modal-dialog modal-dialog-centered" style="margin: 0 auto !important; max-width: 500px; width: 90%; position: relative;">
                             <div class="modal-content" style="border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
                                  <div class="modal-header">
                                     <h5 class="modal-title">
-                                        {{ currentManagingAgent.id === user.id ? '新增會員' : '為 ' + currentManagingAgent.username + ' 新增會員' }}
+                                        {{ (currentManagingAgent && currentManagingAgent.id === user.id) || !currentManagingAgent ? '新增會員' : '為 ' + (currentManagingAgent ? currentManagingAgent.username : '') + ' 新增會員' }}
                                     </h5>
                                     <button type="button" class="btn-close" @click="hideCreateMemberModal"></button>
                                 </div>
