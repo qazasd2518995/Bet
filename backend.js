@@ -778,6 +778,17 @@ async function startGameCycle() {
         if (memoryGameState.countdown_seconds > 0) {
           // 只更新內存計數器
           memoryGameState.countdown_seconds--;
+          
+          // 每10秒同步一次到數據庫，確保數據一致性
+          if (memoryGameState.countdown_seconds % 10 === 0) {
+            await GameModel.updateState({
+              current_period: memoryGameState.current_period,
+              countdown_seconds: memoryGameState.countdown_seconds,
+              last_result: memoryGameState.last_result,
+              status: memoryGameState.status
+            });
+            console.log(`同步遊戲狀態到數據庫: 期數=${memoryGameState.current_period}, 倒計時=${memoryGameState.countdown_seconds}`);
+          }
         } else {
           // 倒計時結束，開獎
           if (memoryGameState.status === 'betting') {
@@ -811,12 +822,12 @@ async function startGameCycle() {
                 await settleBets(memoryGameState.current_period, newResult);
                 
                 // 更新期數和內存狀態
-                memoryGameState.current_period++;
+                memoryGameState.current_period = parseInt(memoryGameState.current_period) + 1;
                 memoryGameState.countdown_seconds = 60;
                 memoryGameState.last_result = newResult;
                 memoryGameState.status = 'betting';
                 
-                // 寫入數據庫（重要狀態變更）
+                // 立即寫入數據庫（重要狀態變更）
                 await GameModel.updateState({
                   current_period: memoryGameState.current_period,
                   countdown_seconds: 60,
@@ -824,7 +835,7 @@ async function startGameCycle() {
                   status: 'betting'
                 });
                 
-                console.log(`第${memoryGameState.current_period}期開始，可以下注`);
+                console.log(`第${memoryGameState.current_period}期開始，可以下注，倒計時重置為60秒`);
                 
                 // 每5期執行一次系統監控與自動調整
                 if (memoryGameState.current_period % 5 === 0) {
@@ -832,6 +843,9 @@ async function startGameCycle() {
                 }
               } catch (error) {
                 console.error('開獎過程出錯:', error);
+                // 如果開獎出錯，重置狀態
+                memoryGameState.status = 'betting';
+                memoryGameState.countdown_seconds = 60;
               }
             }, 3000);
           }
@@ -1900,20 +1914,43 @@ function positionToKey(position) {
 // 獲取當前遊戲數據
 app.get('/api/game-data', async (req, res) => {
   try {
-    const gameState = await GameModel.getCurrentState();
+    // 優先使用內存狀態，確保實時性
+    let currentGameState = memoryGameState;
+    
+    // 如果內存狀態不存在，從數據庫獲取
+    if (!currentGameState.current_period) {
+      const dbGameState = await GameModel.getCurrentState();
+      if (dbGameState) {
+        currentGameState = {
+          current_period: dbGameState.current_period,
+          countdown_seconds: dbGameState.countdown_seconds,
+          last_result: dbGameState.last_result,
+          status: dbGameState.status
+        };
+        // 同步到內存
+        memoryGameState = currentGameState;
+      }
+    }
     
     // 解析JSON格式的last_result
-    let last_result = gameState.last_result;
+    let last_result = currentGameState.last_result;
     if (typeof last_result === 'string') {
-      last_result = JSON.parse(last_result);
+      try {
+        last_result = JSON.parse(last_result);
+      } catch (e) {
+        console.warn('解析last_result失敗:', e);
+        last_result = [1,2,3,4,5,6,7,8,9,10]; // 默認值
+      }
     }
     
     const gameData = {
-      currentPeriod: gameState.current_period,
-      countdownSeconds: gameState.countdown_seconds,
+      currentPeriod: currentGameState.current_period,
+      countdownSeconds: currentGameState.countdown_seconds,
       lastResult: last_result,
-      status: gameState.status
+      status: currentGameState.status
     };
+    
+    console.log(`API返回遊戲數據: 期數=${gameData.currentPeriod}, 倒計時=${gameData.countdownSeconds}, 狀態=${gameData.status}`);
     
     res.json({
       gameData,

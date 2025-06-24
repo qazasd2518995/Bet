@@ -4329,33 +4329,49 @@
                     fetch(`${this.API_BASE_URL}/api/game-data`)
                         .then(response => response.json())
                         .then(data => {
-                            this.countdownSeconds = data.gameData.countdownSeconds;
-                            this.currentPeriod = data.gameData.currentPeriod;
-                            this.lastResult = data.gameData.lastResult;
-                            this.lastResults = data.gameData.lastResult;
+                            const serverCountdown = data.gameData.countdownSeconds;
+                            const serverPeriod = data.gameData.currentPeriod;
+                            const serverStatus = data.gameData.status;
                             
-                            this.nextPeriod = (parseInt(data.gameData.currentPeriod) + 1).toString();
+                            console.log(`服務器遊戲數據: 期數=${serverPeriod}, 倒計時=${serverCountdown}, 狀態=${serverStatus}`);
+                            console.log(`本地遊戲數據: 期數=${this.currentPeriod}, 倒計時=${this.countdownSeconds}, 狀態=${this.gameStatus}`);
                             
-                            const previousStatus = this.gameStatus;
-                            this.gameStatus = data.gameData.status;
-                            
-                            if (previousStatus === 'drawing' && this.gameStatus === 'betting') {
-                                console.log('開獎完成，更新餘額和注單');
+                            // 如果期數改變了，說明開獎完成，需要完全同步
+                            if (this.currentPeriod !== serverPeriod) {
+                                console.log('期數已變更，完全同步服務器狀態');
+                                this.countdownSeconds = serverCountdown;
+                                this.currentPeriod = serverPeriod;
+                                this.gameStatus = serverStatus;
                                 this.updateBalance();
                                 this.updateBetHistory();
                                 this.updateHistoryRecords();
-                            } else if (previousStatus === 'betting' && this.gameStatus === 'drawing') {
-                                console.log('開始開獎，等待結果');
+                            } 
+                            // 如果狀態改變了（比如從betting到drawing），也要同步
+                            else if (this.gameStatus !== serverStatus) {
+                                console.log('遊戲狀態已變更，同步狀態');
+                                this.gameStatus = serverStatus;
+                                this.countdownSeconds = serverCountdown;
                                 
-                                // 開始播放開獎動畫
-                                // this.playDrawAnimation(); // 已禁用複雜動畫，直接顯示結果
-                                
-                                // 播放音效
-                                // this.playSound('draw'); // 已禁用避免404錯誤
-                                
-                                // 立即更新歷史記錄以確保即時性
-                                this.updateHistoryRecords();
+                                if (serverStatus === 'drawing') {
+                                    console.log('開始開獎，等待結果');
+                                    this.updateHistoryRecords();
+                                } else if (serverStatus === 'betting') {
+                                    console.log('開獎完成，更新餘額和注單');
+                                    this.updateBalance();
+                                    this.updateBetHistory();
+                                    this.updateHistoryRecords();
+                                }
                             }
+                            // 如果倒計時差異太大（超過5秒），進行同步
+                            else if (Math.abs(this.countdownSeconds - serverCountdown) > 5) {
+                                console.log(`倒計時差異過大，同步: 本地=${this.countdownSeconds}, 服務器=${serverCountdown}`);
+                                this.countdownSeconds = serverCountdown;
+                            }
+                            
+                            // 更新其他數據
+                            this.lastResult = data.gameData.lastResult;
+                            this.lastResults = data.gameData.lastResult;
+                            this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
                             this.updateCountdownDisplay();
                         })
@@ -5211,12 +5227,12 @@
                         }
                     }, 1000);
                     
-                    // 每3秒更新遊戲數據
-                    this.gameDataTimer = setInterval(() => {
-                        this.updateGameData();
-                        // 每次更新遊戲數據時也更新歷史記錄
-                        this.updateHistoryRecords();
-                    }, 3000);
+                                    // 每5秒更新遊戲數據（避免太頻繁覆蓋本地倒計時）
+                this.gameDataTimer = setInterval(() => {
+                    this.updateGameData();
+                    // 每次更新遊戲數據時也更新歷史記錄
+                    this.updateHistoryRecords();
+                }, 5000);
                     
                     // 每10秒更新余額和下注記錄
                     this.balanceTimer = setInterval(() => {
