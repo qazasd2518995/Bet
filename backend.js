@@ -8,12 +8,18 @@ import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import fs from 'fs';
 
+// 導入統一賠率配置 - 使用 __dirname 確保路徑正確
+const oddsConfig = JSON.parse(fs.readFileSync(path.resolve(path.dirname(new URL(import.meta.url).pathname), 'odds.json'), 'utf8'));
+
 // 導入數據庫模型
 import db from './db/config.js';
 import initDatabase from './db/init.js';
 import UserModel from './db/models/user.js';
 import BetModel from './db/models/bet.js';
 import GameModel from './db/models/game.js';
+
+// 導入熱門投注管理器
+import hotBetsManager from './cache/hotBetsManager.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -87,6 +93,40 @@ app.get('/favicon.ico', (req, res) => {
 // 健康檢查端點 - 用於 Render 監控
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// 統一賠率配置API端點
+app.get('/api/odds', (req, res) => {
+  try {
+    // 計算實際賠率（基礎賠率 × (1 - 退水比例)）
+    const { rebatePercentage, baseOdds } = oddsConfig;
+    const actualOdds = {};
+    
+    // 處理各種投注類型的賠率
+    for (const [type, odds] of Object.entries(baseOdds)) {
+      if (typeof odds === 'object' && odds !== null) {
+        actualOdds[type] = {};
+        for (const [key, value] of Object.entries(odds)) {
+          actualOdds[type][key] = parseFloat((value * (1 - rebatePercentage)).toFixed(3));
+        }
+      } else {
+        actualOdds[type] = parseFloat((odds * (1 - rebatePercentage)).toFixed(3));
+      }
+    }
+    
+    res.json({
+      success: true,
+      odds: actualOdds,
+      rebatePercentage: rebatePercentage,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('獲取賠率配置錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取賠率配置失敗'
+    });
+  }
 });
 
 // 會員登入API
@@ -323,62 +363,7 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
-// 賠率數據 - 根據極速賽車實際賠率設置 (包含退水0.41)
-let odds = {
-  // 冠亞和值賠率 (扣除退水0.41)
-  sumValue: {
-    '3': 40.59, '4': 20.59, '5': 15.59, '6': 12.59, '7': 10.59, '8': 8.59,
-    '9': 7.59, '10': 6.59, '11': 6.59, '12': 7.59, '13': 8.59, '14': 10.59, 
-    '15': 12.59, '16': 15.59, '17': 20.59, '18': 40.59, '19': 80.59, 
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55 // 大小單雙
-  },
-  // 單車號碼賠率 (10.0 - 0.41 = 9.59)
-  number: {
-    first: 9.59,  // 冠軍號碼
-    second: 9.59, // 亞軍號碼
-    third: 9.59,  // 第三名
-    fourth: 9.59, // 第四名
-    fifth: 9.59,  // 第五名
-    sixth: 9.59,  // 第六名
-    seventh: 9.59,// 第七名
-    eighth: 9.59, // 第八名
-    ninth: 9.59,  // 第九名
-    tenth: 9.59   // 第十名
-  },
-  // 冠亞軍單雙大小賠率 (1.96 × (1-4.1%) = 1.88)
-  champion: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  runnerup: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  third: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  fourth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  fifth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  sixth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  seventh: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  eighth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  ninth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  tenth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  // 龍虎賠率 (1.96 × (1-4.1%) = 1.88)
-  dragonTiger: 1.88
-};
+// 舊的賠率常數已移除，現在使用統一的 oddsConfig 配置
 
 // 初始化一個特定用戶的本地資料
 async function initializeUserData(username) {
@@ -536,14 +521,14 @@ app.post('/api/register', async (req, res) => {
 // 全局變量
 let gameLoopInterval = null;
 let drawingTimeoutId = null;
-let hotBetsInterval = null;
 
 // 內存遊戲狀態（減少數據庫I/O）
 let memoryGameState = {
   current_period: null,
   countdown_seconds: 60,
   last_result: null,
-  status: 'betting'
+  status: 'betting',
+  phase_start_time: null  // 新增：記錄當前階段開始時間
 };
 
 // 清理定時器
@@ -558,12 +543,6 @@ function cleanupTimers() {
     clearTimeout(drawingTimeoutId);
     drawingTimeoutId = null;
     console.log('開獎定時器已清理');
-  }
-  
-  if (hotBetsInterval) {
-    clearInterval(hotBetsInterval);
-    hotBetsInterval = null;
-    console.log('熱門投注定時器已清理');
   }
 }
 
@@ -635,21 +614,27 @@ async function startGameCycle() {
       current_period: gameState.current_period,
       countdown_seconds: gameState.countdown_seconds,
       last_result: gameState.last_result,
-      status: gameState.status
+      status: gameState.status,
+      phase_start_time: Date.now()  // 記錄階段開始時間
     };
     
     console.log(`啟動遊戲循環: 當前期數=${memoryGameState.current_period}, 狀態=${memoryGameState.status}`);
     
-    // 每秒更新內存狀態，減少數據庫寫入
+    // 每秒更新內存狀態，使用基於時間戳的精確計算防止漂移
     gameLoopInterval = setInterval(async () => {
       try {
-        if (memoryGameState.countdown_seconds > 0) {
-          // 只更新內存計數器
-          memoryGameState.countdown_seconds--;
-        } else {
+        // 計算實際經過的時間，防止累積誤差
+        const currentTime = Date.now();
+        const elapsedSeconds = Math.floor((currentTime - memoryGameState.phase_start_time) / 1000);
+        const remainingSeconds = Math.max(0, 60 - elapsedSeconds);
+        
+        memoryGameState.countdown_seconds = remainingSeconds;
+        
+        if (remainingSeconds <= 0) {
           // 倒計時結束，開獎
           if (memoryGameState.status === 'betting') {
             memoryGameState.status = 'drawing';
+            memoryGameState.phase_start_time = currentTime; // 重設階段開始時間
             console.log('開獎中...');
             
             // 寫入數據庫（關鍵狀態變更）
@@ -683,6 +668,7 @@ async function startGameCycle() {
                 memoryGameState.countdown_seconds = 60;
                 memoryGameState.last_result = newResult;
                 memoryGameState.status = 'betting';
+                memoryGameState.phase_start_time = Date.now(); // 重設新期數開始時間
                 
                 // 寫入數據庫（重要狀態變更）
                 await GameModel.updateState({
@@ -1783,9 +1769,25 @@ app.get('/api/game-data', async (req, res) => {
       status: gameState.status
     };
     
+    // 計算實際賠率（使用統一配置）
+    const { rebatePercentage, baseOdds } = oddsConfig;
+    const actualOdds = {};
+    
+    // 處理各種投注類型的賠率
+    for (const [type, odds] of Object.entries(baseOdds)) {
+      if (typeof odds === 'object' && odds !== null) {
+        actualOdds[type] = {};
+        for (const [key, value] of Object.entries(odds)) {
+          actualOdds[type][key] = parseFloat((value * (1 - rebatePercentage)).toFixed(3));
+        }
+      } else {
+        actualOdds[type] = parseFloat((odds * (1 - rebatePercentage)).toFixed(3));
+      }
+    }
+
     res.json({
       gameData,
-      odds
+      odds: actualOdds
     });
   } catch (error) {
     console.error('獲取遊戲數據出錯:', error);
@@ -2308,6 +2310,20 @@ app.post('/api/bet', async (req, res) => {
       // 移除立即退水分配 - 退水將在結算階段處理
       console.log(`用戶 ${username} 下注 ${amountNum} 元成功，退水將在結算後分配`);
       
+      // 記錄到熱門投注統計
+      try {
+        await hotBetsManager.recordBet({
+          bet_type: betType,
+          bet_value: value,
+          position: position,
+          amount: amountNum
+        });
+        console.log('熱門投注統計記錄成功');
+      } catch (hotBetError) {
+        console.warn('記錄熱門投注統計失敗:', hotBetError.message);
+        // 不影響主要下注流程
+      }
+      
       // 獲取新的餘額
       const newBalance = await getBalance(username);
       
@@ -2418,24 +2434,8 @@ async function startServer() {
     // 初始化數據庫
     await initDatabase();
     
-    console.log('開始初始化熱門投注數據...');
-    // 更新熱門投注數據
-    try {
-      await updateHotBets();
-      console.log('熱門投注數據初始化成功');
-    } catch (hotBetsError) {
-      console.error('初始化熱門投注數據時出錯:', hotBetsError);
-    }
-    
-    // 設置定時更新熱門投注（每10分鐘）
-    hotBetsInterval = setInterval(async () => {
-      try {
-        console.log('定時更新熱門投注數據...');
-        await updateHotBets();
-      } catch (error) {
-        console.error('定時更新熱門投注數據時出錯:', error);
-      }
-    }, 10 * 60 * 1000);
+    console.log('使用Redis熱門投注管理系統...');
+    // 新的Redis熱門投注系統已在API端點中實現，無需單獨初始化
     
     // 啟動服務器
     app.listen(port, () => {
@@ -2457,59 +2457,47 @@ async function startServer() {
 // 啟動服務器
 startServer();
 
-// 獲取下注賠率函數
+// 獲取下注賠率函數 - 使用統一賠率配置
 function getOdds(betType, value) {
   try {
-    // 退水比例 4.1%
-    const rebatePercentage = 0.041;
+    const { rebatePercentage, baseOdds } = oddsConfig;
     
     // 冠亞和值賠率
     if (betType === 'sumValue') {
-      if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙賠率：1.96 × (1-4.1%) = 1.88
-      } else {
-        // 和值賠率表 (扣除退水4.1%)
-        const sumOdds = {
-          '3': parseFloat((41.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '4': parseFloat((21.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '5': parseFloat((16.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '6': parseFloat((13.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '7': parseFloat((11.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '8': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '9': parseFloat((8.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '10': parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '11': parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '12': parseFloat((8.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '13': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '14': parseFloat((11.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '15': parseFloat((13.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '16': parseFloat((16.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '17': parseFloat((21.0 * (1 - rebatePercentage)).toFixed(3)),
-          '18': parseFloat((41.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '19': parseFloat((81.0 * (1 - rebatePercentage)).toFixed(3))
-        };
-        return sumOdds[value] || 1.0;
+      if (baseOdds.sumValue[value] !== undefined) {
+        return parseFloat((baseOdds.sumValue[value] * (1 - rebatePercentage)).toFixed(3));
       }
+      return 1.0;
     } 
     // 單號投注
     else if (betType === 'number') {
-      return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 10.0 × (1-4.1%) = 9.59
+      return parseFloat((baseOdds.number * (1 - rebatePercentage)).toFixed(3));
     }
     // 龍虎
     else if (betType === 'dragonTiger') {
-      return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+      if (baseOdds.dragonTiger[value] !== undefined) {
+        return parseFloat((baseOdds.dragonTiger[value] * (1 - rebatePercentage)).toFixed(3));
+      }
+      return 1.0;
     } 
     // 冠軍、亞軍等位置投注
     else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙：1.96 × (1-4.1%) = 1.88
+        // 改進的 positionKey 判斷邏輯，支持所有位置
+        const normalizedBetType = betType.toLowerCase();
+        const positionKey = ['champion', 'runnerup'].includes(normalizedBetType) ? 
+                           normalizedBetType : normalizedBetType;
+        
+        if (baseOdds[positionKey] && baseOdds[positionKey][value] !== undefined) {
+          return parseFloat((baseOdds[positionKey][value] * (1 - rebatePercentage)).toFixed(3));
+        }
+        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
       } else {
-        // 指定號碼投注：10.0 × (1-4.1%) = 9.59 (與單號投注相同賠率)
+        // 指定號碼投注：使用統一的number賠率
         const numValue = parseInt(value);
         if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
-          return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));
+          return parseFloat((baseOdds.number * (1 - rebatePercentage)).toFixed(3));
         } else {
-          // 無效值，返回最低賠率並記錄警告
           console.warn(`位置投注 ${betType} 收到無效值: ${value}，返回默認賠率 1.0`);
           return 1.0;
         }
@@ -2652,241 +2640,18 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
   }
 }
 
-// 初始化全局熱門投注數據結構
-const hotBetsData = {
-  // 按下注類型和值保存熱門程度
-  byType: {
-    sumValue: {}, // 冠亞和值
-    dragonTiger: {}, // 龍虎
-    champion: {}, // 冠軍位置
-    runnerup: {}, // 亞軍位置
-    number: {} // 單號投注
-  },
-  // 熱門投注排行榜（按下注次數排序）
-  topBets: [],
-  // 最後更新時間
-  lastUpdate: null
-};
-
-// 定期更新熱門投注數據
-async function updateHotBets() {
-  try {
-    console.log('開始更新熱門投注數據');
-    const now = new Date();
-    
-    // 獲取最近24小時的下注數據
-    const period = 24 * 60 * 60 * 1000; // 24小時的毫秒數
-    const startTime = new Date(now.getTime() - period);
-    
-    // 查詢數據庫，獲取最近下注
-    let recentBets = [];
-    try {
-      recentBets = await db.any(`
-        SELECT 
-          bet_type, 
-          bet_value, 
-          position,
-          COUNT(*) as bet_count,
-          SUM(amount) as total_amount
-        FROM bet_history
-        WHERE created_at > $1
-        GROUP BY bet_type, bet_value, position
-        ORDER BY bet_count DESC
-      `, [startTime]);
-      
-      console.log(`查詢到 ${recentBets.length} 條近期投注數據`);
-    } catch (dbError) {
-      console.error('查詢數據庫獲取熱門投注數據失敗:', dbError);
-      // 如果數據庫查詢失敗，設置為空數組
-      recentBets = [];
-      throw new Error('查詢數據庫獲取熱門投注數據失敗');
-    }
-    
-    // 重置熱門投注數據
-    for (const type in hotBetsData.byType) {
-      hotBetsData.byType[type] = {};
-    }
-    
-    // 如果沒有數據，則直接返回空數組
-    if (recentBets.length === 0) {
-      console.log('沒有查詢到投注數據，返回空數據');
-      hotBetsData.topBets = [];
-      hotBetsData.lastUpdate = now;
-      return;
-    }
-    
-    // 正常處理查詢結果
-    recentBets.forEach(bet => {
-      const betType = bet.bet_type;
-      const betValue = bet.bet_value;
-      const position = bet.position;
-      const count = parseInt(bet.bet_count);
-      const amount = parseFloat(bet.total_amount);
-      
-      if (betType === 'number' && position) {
-        // 單號投注需要考慮位置
-        const key = `${position}_${betValue}`;
-        hotBetsData.byType.number[key] = { count, amount, position, value: betValue };
-      } else if (hotBetsData.byType[betType]) {
-        // 其他投注類型
-        hotBetsData.byType[betType][betValue] = { count, amount, value: betValue };
-      }
-    });
-    
-    // 整理熱門投注排行榜
-    const allBets = [];
-    
-    // 處理號碼投注
-    Object.entries(hotBetsData.byType.number).forEach(([key, data]) => {
-      const [position, value] = key.split('_');
-      allBets.push({
-        type: 'number',
-        typeLabel: '單號',
-        position: parseInt(position),
-        value,
-        count: data.count,
-        amount: data.amount,
-        label: `第${position}名 ${value}號`
-      });
-    });
-    
-    // 處理冠亞和值
-    Object.entries(hotBetsData.byType.sumValue).forEach(([value, data]) => {
-      let label = '';
-      if (['big', 'small', 'odd', 'even'].includes(value)) {
-        const valueMap = {
-          'big': '大',
-          'small': '小',
-          'odd': '單',
-          'even': '雙'
-        };
-        label = `冠亞和 ${valueMap[value]}`;
-      } else {
-        label = `冠亞和 ${value}`;
-      }
-      
-      allBets.push({
-        type: 'sumValue',
-        typeLabel: '冠亞和',
-        value,
-        count: data.count,
-        amount: data.amount,
-        label
-      });
-    });
-    
-    // 處理龍虎
-    Object.entries(hotBetsData.byType.dragonTiger).forEach(([value, data]) => {
-      const valueMap = {
-        'dragon': '龍',
-        'tiger': '虎'
-      };
-      
-      allBets.push({
-        type: 'dragonTiger',
-        typeLabel: '龍虎',
-        value,
-        count: data.count,
-        amount: data.amount,
-        label: `龍虎 ${valueMap[value] || value}`
-      });
-    });
-    
-    // 處理冠軍
-    Object.entries(hotBetsData.byType.champion).forEach(([value, data]) => {
-      let label = '';
-      if (['big', 'small', 'odd', 'even'].includes(value)) {
-        const valueMap = {
-          'big': '大',
-          'small': '小',
-          'odd': '單',
-          'even': '雙'
-        };
-        label = `冠軍 ${valueMap[value]}`;
-      } else {
-        label = `冠軍 ${value}號`;
-      }
-      
-      allBets.push({
-        type: 'champion',
-        typeLabel: '冠軍',
-        value,
-        count: data.count,
-        amount: data.amount,
-        label
-      });
-    });
-    
-    // 處理亞軍
-    Object.entries(hotBetsData.byType.runnerup).forEach(([value, data]) => {
-      let label = '';
-      if (['big', 'small', 'odd', 'even'].includes(value)) {
-        const valueMap = {
-          'big': '大',
-          'small': '小',
-          'odd': '單',
-          'even': '雙'
-        };
-        label = `亞軍 ${valueMap[value]}`;
-      } else {
-        label = `亞軍 ${value}號`;
-      }
-      
-      allBets.push({
-        type: 'runnerup',
-        typeLabel: '亞軍',
-        value,
-        count: data.count,
-        amount: data.amount,
-        label
-      });
-    });
-    
-    // 排序並只保留前10個
-    hotBetsData.topBets = allBets
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-    
-    hotBetsData.lastUpdate = now;
-    console.log(`熱門投注數據更新完成，共有 ${hotBetsData.topBets.length} 個熱門選項`);
-  } catch (error) {
-    console.error('更新熱門投注數據失敗:', error);
-    // 出錯時不產生默認數據，將topBets保持為原來的值，不影響已有數據
-  }
-}
-
 // REST API端點 - 獲取熱門投注
-app.get('/api/hot-bets', (req, res) => {
+app.get('/api/hot-bets', async (req, res) => {
   console.log('收到熱門投注API請求');
   try {
-    // 如果hotBetsData.topBets為空或未初始化，返回空數據
-    if (!hotBetsData.topBets || hotBetsData.topBets.length === 0) {
-      console.log('熱門投注數據為空，返回空數組');
-      return res.json({
-        success: true,
-        message: '暫無熱門投注數據',
-        hotBets: [],
-        lastUpdate: null
-      });
-    }
-    
-    // 正常數據處理
-    const hotBets = hotBetsData.topBets.map(bet => ({
-      type: bet.type,
-      typeLabel: bet.typeLabel,
-      value: bet.value,
-      position: bet.position,
-      count: bet.count,
-      label: bet.label,
-      isHot: true
-    }));
+    const hotBets = await hotBetsManager.getHotBets(10);
     
     console.log(`熱門投注API返回 ${hotBets.length} 個數據`);
     
     res.json({
       success: true,
       hotBets,
-      lastUpdate: hotBetsData.lastUpdate
+      lastUpdate: new Date().toISOString()
     });
   } catch (error) {
     console.error('獲取熱門投注數據失敗:', error);

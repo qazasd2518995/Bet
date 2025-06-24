@@ -4061,27 +4061,28 @@
                     // 自訂金額
                     customAmount: '',
                     
-                    // 賠率數據
+                    // 賠率數據 - 將從API動態獲取
                     odds: {
                         sumValue: {
-                            '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
-                            '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
-                            '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
-                            big: 1.96, small: 1.96, odd: 1.96, even: 1.96
+                            '3': 39.32, '4': 20.14, '5': 15.34, '6': 12.47, '7': 10.55,
+                            '8': 8.63, '9': 7.67, '10': 6.71, '11': 6.71, '12': 7.67,
+                            '13': 8.63, '14': 10.55, '15': 12.47, '16': 15.34, '17': 20.14,
+                            '18': 39.32, '19': 77.68,
+                            big: 1.88, small: 1.88, odd: 1.88, even: 1.88
                         },
-                        champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        runnerup: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        third: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        fourth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        fifth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        sixth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        seventh: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        eighth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        ninth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
-                        tenth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        champion: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        runnerup: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        third: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        fourth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        fifth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        sixth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        seventh: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        eighth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        ninth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        tenth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
                         dragonTiger: { 
-                            dragon: 1.96, 
-                            tiger: 1.96 
+                            dragon: 1.88, 
+                            tiger: 1.88 
                         },
                         number: {
                             first: 9.59,
@@ -5423,6 +5424,25 @@
                         });
                 },
                 
+                // 獲取統一賠率數據
+                fetchOdds() {
+                    fetch(`${this.API_BASE_URL}/api/odds`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.odds) {
+                                // 更新賠率數據
+                                this.odds = data.odds;
+                                console.log('統一賠率數據獲取成功，退水比例:', data.rebatePercentage);
+                            } else {
+                                console.error('獲取賠率數據失敗:', data ? data.message : '無數據');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取賠率數據出錯:', error);
+                            // 繼續使用預設賠率值
+                        });
+                },
+                
                 // 選擇熱門投注項目
                 selectHotBet(bet) {
                     console.log('選擇熱門投注:', bet);
@@ -5834,6 +5854,7 @@
                 this.initCountdown();
                 this.updateGameData();
                 this.fetchHotBets();  // 加載熱門投注數據
+                this.fetchOdds();     // 加載統一賠率數據
                 
                 // 每隔10秒刷新一次遊戲數據
                 setInterval(() => {

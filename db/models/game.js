@@ -28,6 +28,24 @@ const GameModel = {
     } = stateData;
     
     try {
+      // 標準化 JSON 處理 - 確保 last_result 始終是正確的 JSON 字符串
+      let jsonResult;
+      if (last_result === null || last_result === undefined) {
+        jsonResult = null;
+      } else if (typeof last_result === 'string') {
+        // 如果已經是字符串，先解析再重新序列化確保格式正確
+        try {
+          const parsed = JSON.parse(last_result);
+          jsonResult = JSON.stringify(parsed);
+        } catch (e) {
+          // 如果解析失敗，直接使用原字符串
+          jsonResult = last_result;
+        }
+      } else {
+        // 如果是數組或對象，序列化為 JSON
+        jsonResult = JSON.stringify(last_result);
+      }
+      
       // 檢查是否已存在遊戲狀態記錄
       const existingState = await this.getCurrentState();
       
@@ -42,7 +60,7 @@ const GameModel = {
               updated_at = CURRENT_TIMESTAMP 
           WHERE id = $5 
           RETURNING *
-        `, [current_period, countdown_seconds, JSON.stringify(last_result), status, existingState.id]);
+        `, [current_period, countdown_seconds, jsonResult, status, existingState.id]);
       } else {
         // 創建新狀態記錄
         return await db.one(`
@@ -51,7 +69,7 @@ const GameModel = {
           ) 
           VALUES ($1, $2, $3, $4) 
           RETURNING *
-        `, [current_period, countdown_seconds, JSON.stringify(last_result), status]);
+        `, [current_period, countdown_seconds, jsonResult, status]);
       }
     } catch (error) {
       console.error('更新遊戲狀態出錯:', error);
@@ -62,11 +80,26 @@ const GameModel = {
   // 添加新的開獎結果
   async addResult(period, result) {
     try {
+      // 標準化 JSON 處理
+      let jsonResult;
+      if (result === null || result === undefined) {
+        jsonResult = null;
+      } else if (typeof result === 'string') {
+        try {
+          const parsed = JSON.parse(result);
+          jsonResult = JSON.stringify(parsed);
+        } catch (e) {
+          jsonResult = result;
+        }
+      } else {
+        jsonResult = JSON.stringify(result);
+      }
+      
       return await db.one(`
         INSERT INTO result_history (period, result) 
         VALUES ($1, $2) 
         RETURNING *
-      `, [period, JSON.stringify(result)]);
+      `, [period, jsonResult]);
     } catch (error) {
       console.error('添加開獎結果出錯:', error);
       throw error;
