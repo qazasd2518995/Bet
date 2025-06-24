@@ -1490,15 +1490,24 @@ async function distributeRebate(username, betAmount) {
       }
       
       if (agent.rebate_mode === 'all') {
-        // 全拿模式：該代理拿走所有剩餘退水（不需要安全截斷）
+        // 全拿模式：該代理拿走所有剩餘退水
         agentRebateAmount = remainingRebate;
         remainingRebate = 0;
       } else if (agent.rebate_mode === 'percentage') {
-        // 比例模式：從剩餘退水中按比例分配（修復超發問題）
-        agentRebateAmount = remainingRebate * parseFloat(agent.rebate_percentage);
-        remainingRebate -= agentRebateAmount;
-        // 只對比例模式做安全截斷
-        agentRebateAmount = Math.max(0, Math.min(agentRebateAmount, remainingRebate + agentRebateAmount));
+        // 比例模式：從總退水中按比例分配（修復計算錯誤）
+        const rebatePercentage = parseFloat(agent.rebate_percentage);
+        if (isNaN(rebatePercentage) || rebatePercentage < 0) {
+          console.warn(`代理 ${agent.username} 的退水比例無效: ${agent.rebate_percentage}，跳過`);
+          agentRebateAmount = 0;
+        } else {
+          // 從總退水金額計算，而不是剩餘退水
+          agentRebateAmount = totalRebateAmount * rebatePercentage;
+          // 確保不超過剩餘退水
+          agentRebateAmount = Math.min(agentRebateAmount, remainingRebate);
+          // 四捨五入到小數點後2位
+          agentRebateAmount = Math.round(agentRebateAmount * 100) / 100;
+          remainingRebate -= agentRebateAmount;
+        }
       } else if (agent.rebate_mode === 'none') {
         // 全退模式：該代理不拿退水，留給上級
         agentRebateAmount = 0;

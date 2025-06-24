@@ -508,34 +508,53 @@ const app = createApp({
             
             this.showCreateMemberModal = true;
             
-            // 強制Vue更新並等待渲染完成
-            this.$forceUpdate();
+            // 使用更可靠的模態框初始化方式
             this.$nextTick(() => {
+                // 等待DOM更新
                 setTimeout(() => {
                     const modalEl = document.getElementById('createMemberModal');
                     if (modalEl) {
                         console.log('找到會員模態框元素，正在初始化...');
                         console.log('模態框所屬的代理:', this.currentManagingAgent.username);
-                        this.memberModal = new bootstrap.Modal(modalEl);
-                        this.memberModal.show();
+                        
+                        try {
+                            this.memberModal = new bootstrap.Modal(modalEl, {
+                                backdrop: 'static',
+                                keyboard: false
+                            });
+                            this.memberModal.show();
+                        } catch (modalError) {
+                            console.error('初始化模態框失敗:', modalError);
+                            this.showMessage('模態框初始化失敗，請重新整理頁面', 'error');
+                        }
                     } else {
                         console.error('找不到會員模態框元素');
                         console.log('showCreateMemberModal狀態:', this.showCreateMemberModal);
-                        console.log('DOM中含有ID的元素數量:', document.querySelectorAll('*[id]').length);
+                        console.log('DOM中的模態框:', document.querySelectorAll('#createMemberModal'));
                         
-                        // 延遲重試一次
+                        // 強制重新渲染並再次嘗試
+                        this.$forceUpdate();
                         setTimeout(() => {
                             const retryModalEl = document.getElementById('createMemberModal');
                             if (retryModalEl) {
                                 console.log('重試成功，找到會員模態框元素');
-                                this.memberModal = new bootstrap.Modal(retryModalEl);
-                                this.memberModal.show();
+                                try {
+                                    this.memberModal = new bootstrap.Modal(retryModalEl, {
+                                        backdrop: 'static',
+                                        keyboard: false
+                                    });
+                                    this.memberModal.show();
+                                } catch (retryError) {
+                                    console.error('重試模態框初始化失敗:', retryError);
+                                    this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
+                                }
                             } else {
+                                console.error('重試仍然找不到會員模態框元素');
                                 this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
                             }
-                        }, 200);
+                        }, 300);
                     }
-                }, 150);
+                }, 100);
             });
         },
         
@@ -1456,6 +1475,8 @@ const app = createApp({
                     return '遊戲下注';
                 case 'game_win':
                     return '遊戲中獎';
+                case 'rebate':
+                    return '退水';
                 default:
                     return type || '未知';
             }

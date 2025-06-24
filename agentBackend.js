@@ -2217,10 +2217,23 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
   try {
     const { agentId, agentUsername, rebateAmount, memberUsername, betAmount, reason } = req.body;
     
+    console.log(`收到退水分配請求: 代理=${agentUsername}(${agentId}), 退水金額=${rebateAmount}, 會員=${memberUsername}, 下注=${betAmount}`);
+    
     if (!agentId || !rebateAmount || rebateAmount <= 0) {
+      console.warn('無效的退水分配請求:', { agentId, rebateAmount });
       return res.json({
         success: false,
         message: '無效的退水分配請求'
+      });
+    }
+    
+    // 驗證退水金額是否合理（防止異常大額）
+    const maxReasonableRebate = parseFloat(betAmount) * 0.1; // 最多10%下注金額作為安全閾值
+    if (parseFloat(rebateAmount) > maxReasonableRebate) {
+      console.error(`退水金額異常: ${rebateAmount} 超過安全閾值 ${maxReasonableRebate}`);
+      return res.json({
+        success: false,
+        message: '退水金額異常，請檢查計算邏輯'
       });
     }
     
@@ -2233,21 +2246,26 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       });
     }
     
+    // 保證金額精度，四捨五入到小數點後2位
+    const roundedRebateAmount = Math.round(parseFloat(rebateAmount) * 100) / 100;
+    
     // 增加代理餘額
-    const newBalance = parseFloat(agent.balance) + parseFloat(rebateAmount);
+    const currentBalance = parseFloat(agent.balance) || 0;
+    const newBalance = currentBalance + roundedRebateAmount;
+    
     await AgentModel.updateBalance(agentId, newBalance);
     
     // 記錄交易
     await TransactionModel.create({
       user_id: agentId,
       user_type: 'agent',
-      amount: parseFloat(rebateAmount),
+      amount: roundedRebateAmount,
       type: 'rebate',
       description: `${reason} - 會員: ${memberUsername}, 下注: ${betAmount}`,
       balance_after: newBalance
     });
     
-    console.log(`成功分配退水 ${rebateAmount} 給代理 ${agentUsername}`);
+    console.log(`成功分配退水 ${roundedRebateAmount} 給代理 ${agentUsername}，餘額: ${currentBalance} → ${newBalance}`);
     
     res.json({
       success: true,
@@ -2292,6 +2310,43 @@ async function getAgentChainForMember(agentId) {
     return [];
   }
 }
+
+// 獲取會員的代理鏈
+app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
+  try {
+    const { username } = req.query;
+    
+    if (!username) {
+      return res.json({
+        success: false,
+        message: '請提供會員用戶名'
+      });
+    }
+    
+    // 查找會員
+    const member = await MemberModel.findByUsername(username);
+    if (!member) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 獲取代理鏈
+    const agentChain = await getAgentChainForMember(member.agent_id);
+    
+    res.json({
+      success: true,
+      agentChain: agentChain
+    });
+  } catch (error) {
+    console.error('獲取會員代理鏈錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤'
+    });
+  }
+});
 
 // 設置儀表板路由
 app.get(`${API_PREFIX}/stats`, async (req, res) => {
