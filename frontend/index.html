@@ -3375,8 +3375,8 @@
 
                         </div>
                         <div class="countdown-section" :class="gameStatus">
-                            <button class="draw-animation-btn" @click="manualPlayAnimation" :disabled="gameStatus === 'drawing'">
-                                {{ gameStatus === 'betting' ? '🎬 開獎動畫' : '🎲 開獎中...' }}
+                            <button class="draw-animation-btn" @click="toggleAnimation">
+                                {{ gameStatus === 'betting' ? (isAnimationEnabled ? ' 開獎動畫 開' : ' 開獎動畫 關') : (isAnimationEnabled ? ' 動畫播放中' : ' 僅顯示結果') }}
                             </button>
                             <div class="countdown-inline">
                                 <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
@@ -4185,6 +4185,7 @@
                     // 遊戲狀態
                     gameStatus: 'betting', // betting or drawing
                     currentPeriod: '',
+                    isAnimationEnabled: true, // 開獎動畫開關
                     nextPeriod: '',
                     countdownSeconds: 0,
                     
@@ -5464,26 +5465,22 @@
                         console.log('音效播放錯誤，但不影響系統運行', error);
                     }
                 },
-                // 🎬 手動播放開獎動畫
-                manualPlayAnimation() {
-                    if (this.gameStatus === 'betting') {
-                        // 在封盤期間顯示提示
-                        this.$message({
-                            message: '⏰ 尚未開獎，請等待封盤倒計時結束',
-                            type: 'warning',
-                            duration: 2000
-                        });
-                        return;
-                    }
+                // 🎬 動畫開關控制
+                toggleAnimation() {
+                    this.isAnimationEnabled = !this.isAnimationEnabled;
+                    console.log(` 動畫${this.isAnimationEnabled ? '開啟' : '關閉'}`);
                     
-                    // 手動觸發開獎動畫
-                    console.log('🎬 手動觸發開獎動畫');
-                    this.playDrawAnimation();
+                    // 如果當前正在開獎且剛開啟動畫，立即播放
+                    if (this.gameStatus === 'drawing' && this.isAnimationEnabled) {
+                        console.log(' 開獎中且動畫已開啟，播放動畫');
+                        this.playDrawAnimation();
+                    }
                 },
                 // 🎊 增強版開獎動畫系統
                 playDrawAnimation() {
-                    console.log('🎬 嘗試播放開獎動畫，當前狀態:', this.gameStatus);
-                    console.log('📊 開獎結果數據:', this.lastResults);
+                    console.log(' 嘗試播放開獎動畫，當前狀態:', this.gameStatus);
+                    console.log(' 開獎結果數據:', this.lastResults);
+                    console.log(' 動畫開關狀態:', this.isAnimationEnabled);
                     
                     if (this.gameStatus !== 'drawing') {
                         console.log('❌ 遊戲狀態不是drawing，跳過動畫');
@@ -5495,7 +5492,19 @@
                         return;
                     }
                     
-                    console.log('🎬 開始播放增強版開獎動畫...');
+                    // 如果動畫關閉，直接顯示結果球
+                    if (!this.isAnimationEnabled) {
+                        console.log(' 動畫已關閉，直接顯示開獎結果');
+                        setTimeout(() => {
+                            const resultContainer = document.querySelector('.results-display-new') || document.querySelector('.race-result');
+                            if (resultContainer) {
+                                this.showEnhancedNumberBalls(resultContainer);
+                            }
+                        }, 500);
+                        return;
+                    }
+                    
+                    console.log(' 開始播放增強版開獎動畫...');
                     
                     // 播放開獎音效
                     this.playSound('draw');
@@ -5506,7 +5515,7 @@
                         resultContainer = document.querySelector('.results-display-new');
                     }
                     if (!resultContainer) {
-                        console.error('❌ 找不到結果顯示容器');
+                        console.error(' 找不到結果顯示容器');
                         return;
                     }
                     
@@ -5527,7 +5536,7 @@
                     // 添加開獎狀態指示器
                     const indicator = document.createElement('div');
                     indicator.className = 'drawing-indicator';
-                    indicator.textContent = '🎲 開獎中...';
+                    indicator.textContent = ' 開獎中...';
                     animationContainer.appendChild(indicator);
                     
                     // 添加終點線
@@ -5598,7 +5607,7 @@
                         margin: 10px 0;
                     `;
                     
-                    console.log('🎲 顯示開獎結果:', this.lastResults);
+                    console.log(' 顯示開獎結果:', this.lastResults);
                     
                     // 動畫顯示結果球
                     this.lastResults.forEach((number, index) => {
@@ -5636,24 +5645,7 @@
                                 z-index: ${10 - index};
                             `;
                             
-                            // 添加排名標籤
-                            const rankLabel = document.createElement('div');
-                            rankLabel.textContent = this.getRankLabel(index);
-                            rankLabel.style.cssText = `
-                                position: absolute;
-                                top: -8px;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                background: ${this.getRankColor(index)};
-                                color: white;
-                                font-size: 10px;
-                                padding: 2px 6px;
-                                border-radius: 8px;
-                                font-weight: bold;
-                                white-space: nowrap;
-                                z-index: 20;
-                            `;
-                            ball.appendChild(rankLabel);
+                            // 移除排名標籤顯示，只保留數字球
                             
                             resultDiv.appendChild(ball);
                             
@@ -5739,12 +5731,12 @@
                         const carNumber = parseInt(car.dataset.number);
                         const finishPosition = results.indexOf(carNumber);
                         
-                        // 計算到達時間（添加隨機性讓比賽更生動）
-                        const baseDelay = (finishPosition * 100) + Math.random() * 200;
+                        // 計算到達時間（增加間距讓排名更明顯）
+                        const baseDelay = (finishPosition * 250) + Math.random() * 150;
                         const arrivalTime = raceDuration - baseDelay;
                         
-                        // 計算終點位置
-                        const distanceFromRight = 60 + (finishPosition * 8);
+                        // 計算終點位置（增加間距）
+                        const distanceFromRight = 60 + (finishPosition * 25);
                         
                         setTimeout(() => {
                             car.style.left = `calc(100% - ${distanceFromRight}px)`;

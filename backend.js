@@ -880,7 +880,7 @@ function generateRaceResult() {
   return result;
 }
 
-// 智能期號管理 - 確保期號正確遞增並在每日重置
+// 智能期號管理 - 確保期號正確遞增並在每日重置，支持超過999場
 function getNextPeriod(currentPeriod) {
   const today = new Date();
   const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
@@ -891,9 +891,17 @@ function getNextPeriod(currentPeriod) {
   if (currentPeriodStr.startsWith(todayStr)) {
     // 提取期號後綴並遞增
     const suffix = parseInt(currentPeriodStr.substring(8)) + 1;
-    const newPeriod = parseInt(`${todayStr}${suffix.toString().padStart(3, '0')}`);
-    console.log(`🔄 期號遞增: ${currentPeriod} → ${newPeriod}`);
-    return newPeriod;
+    
+    // 如果超過999場，使用4位數字，但保持日期部分不變
+    if (suffix > 999) {
+      const newPeriod = `${todayStr}${suffix.toString().padStart(4, '0')}`;
+      console.log(`🔄 期號遞增(超過999): ${currentPeriod} → ${newPeriod}`);
+      return newPeriod;
+    } else {
+      const newPeriod = parseInt(`${todayStr}${suffix.toString().padStart(3, '0')}`);
+      console.log(`🔄 期號遞增: ${currentPeriod} → ${newPeriod}`);
+      return newPeriod;
+    }
   } else {
     // 新的一天，重置期號為001
     const newPeriod = parseInt(`${todayStr}001`);

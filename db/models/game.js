@@ -62,6 +62,16 @@ const GameModel = {
   // 添加新的開獎結果
   async addResult(period, result) {
     try {
+      // 先檢查該期號是否已存在
+      const existing = await db.oneOrNone(`
+        SELECT period FROM result_history WHERE period = $1
+      `, [period]);
+      
+      if (existing) {
+        console.log(`⚠️ 期號 ${period} 的開獎結果已存在，跳過插入`);
+        return existing;
+      }
+      
       return await db.one(`
         INSERT INTO result_history (period, result) 
         VALUES ($1, $2) 
