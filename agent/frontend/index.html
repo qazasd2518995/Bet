@@ -418,7 +418,7 @@
                             <button v-if="agentBreadcrumbs.length > 0" class="btn btn-secondary me-2" @click="goBackToParentLevel">
                                 <i class="fas fa-arrow-left me-1"></i>返回上級
                             </button>
-                            <button v-if="agentBreadcrumbs.length > 0" class="btn btn-success me-2" @click="showMemberModal">
+                            <button v-if="agentBreadcrumbs.length > 0" class="btn btn-success me-2" @click="quickCreateMember">
                                 <i class="fas fa-user-plus me-1"></i>新增會員
                             </button>
                             <button class="btn btn-primary" @click="showAgentModal">
@@ -813,36 +813,94 @@
 
 
 
-                    <!-- 新增會員 Modal - 強化顯示邏輯 -->
-                    <div id="createMemberModal" tabindex="-1" v-if="showCreateMemberModal && (currentManagingAgent || user)" 
-                         style="background-color: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                        <div class="modal-dialog modal-dialog-centered" style="margin: 0 auto !important; max-width: 500px; width: 90%; position: relative;">
-                            <div class="modal-content" style="border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                                 <div class="modal-header">
-                                    <h5 class="modal-title">
+                    <!-- 新增會員 Modal - 全新設計高可視度版本 -->
+                    <div id="createMemberModal" v-if="showCreateMemberModal" 
+                         style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
+                        
+                        <!-- 模態框主體 -->
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3px; border-radius: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); max-width: 500px; width: 90%; max-height: 90vh; overflow: auto;">
+                            <div style="background: white; border-radius: 12px; overflow: hidden;">
+                                
+                                <!-- 模態框標題 -->
+                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; position: relative;">
+                                    <h4 style="margin: 0; font-weight: 600; text-align: center;">
+                                        <i class="fas fa-user-plus me-2"></i>
                                         {{ (currentManagingAgent && currentManagingAgent.id === user.id) || !currentManagingAgent ? '新增會員' : '為 ' + (currentManagingAgent ? currentManagingAgent.username : '') + ' 新增會員' }}
-                                    </h5>
-                                    <button type="button" class="btn-close" @click="hideCreateMemberModal"></button>
+                                    </h4>
+                                    <button type="button" @click="hideCreateMemberModal" 
+                                            style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                                            onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                            onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
-                                <div class="modal-body">
+                                
+                                <!-- 模態框內容 -->
+                                <div style="padding: 30px;">
+                                    <!-- 代理信息顯示 -->
+                                    <div v-if="currentManagingAgent" style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 25px; border-left: 4px solid #667eea;">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-crown me-2 text-warning"></i>
+                                            <span class="fw-bold">代理:</span>
+                                            <span class="ms-2 text-primary fw-bold">{{ currentManagingAgent.username }}</span>
+                                            <span class="badge bg-info ms-2">{{ getLevelName(currentManagingAgent.level || 1) }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 表單 -->
                                     <form @submit.prevent="createMember">
-                                        <div class="mb-3">
-                                            <label class="form-label">用戶名</label>
-                                            <input type="text" class="form-control" v-model="newMember.username" required>
+                                        <div class="mb-4">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-user me-1 text-primary"></i>用戶名
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg" 
+                                                   v-model="newMember.username" 
+                                                   placeholder="請輸入會員用戶名" 
+                                                   style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s;"
+                                                   onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                                   onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
+                                                   required>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">密碼</label>
-                                            <input type="password" class="form-control" v-model="newMember.password" required>
+                                        
+                                        <div class="mb-4">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-lock me-1 text-primary"></i>密碼
+                                            </label>
+                                            <input type="password" class="form-control form-control-lg" 
+                                                   v-model="newMember.password" 
+                                                   placeholder="請輸入密碼" 
+                                                   style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s;"
+                                                   onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                                   onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
+                                                   required>
                                         </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">確認密碼</label>
-                                            <input type="password" class="form-control" v-model="newMember.confirmPassword" required>
+                                        
+                                        <div class="mb-4">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-lock me-1 text-primary"></i>確認密碼
+                                            </label>
+                                            <input type="password" class="form-control form-control-lg" 
+                                                   v-model="newMember.confirmPassword" 
+                                                   placeholder="請再次輸入密碼" 
+                                                   style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s;"
+                                                   onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                                   onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
+                                                   required>
                                         </div>
-                                        <div class="text-end">
-                                            <button type="button" class="btn btn-secondary me-2" @click="hideCreateMemberModal">取消</button>
-                                            <button type="submit" class="btn btn-primary" :disabled="loading">
-                                                <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
-                                                建立
+                                        
+                                        <!-- 按鈕區域 -->
+                                        <div class="d-flex justify-content-end gap-3 mt-4">
+                                            <button type="button" class="btn btn-outline-secondary btn-lg px-4" 
+                                                    @click="hideCreateMemberModal"
+                                                    style="border-radius: 8px; font-weight: 500;">
+                                                <i class="fas fa-times me-1"></i>取消
+                                            </button>
+                                            <button type="submit" class="btn btn-lg px-4" 
+                                                    :disabled="loading"
+                                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; border-radius: 8px; font-weight: 500; min-width: 120px;">
+                                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                <i v-else class="fas fa-plus me-1"></i>
+                                                {{ loading ? '建立中...' : '建立會員' }}
                                             </button>
                                         </div>
                                     </form>
