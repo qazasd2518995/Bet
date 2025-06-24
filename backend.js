@@ -626,68 +626,70 @@ async function startGameCycle() {
         // 計算實際經過的時間，防止累積誤差
         const currentTime = Date.now();
         const elapsedSeconds = Math.floor((currentTime - memoryGameState.phase_start_time) / 1000);
-        const remainingSeconds = Math.max(0, 60 - elapsedSeconds);
+        
+        // 根據遊戲狀態決定倒計時長度
+        const totalDuration = memoryGameState.status === 'betting' ? 60 : 3;
+        const remainingSeconds = Math.max(0, totalDuration - elapsedSeconds);
         
         memoryGameState.countdown_seconds = remainingSeconds;
         
         if (remainingSeconds <= 0) {
-          // 倒計時結束，開獎
+          // 根據當前狀態處理倒計時結束
           if (memoryGameState.status === 'betting') {
+            // 投注階段結束，進入開獎階段
             memoryGameState.status = 'drawing';
             memoryGameState.phase_start_time = currentTime; // 重設階段開始時間
-            console.log('開獎中...');
+            memoryGameState.countdown_seconds = 3; // 設定開獎倒計時為3秒
+            console.log('封盤，開獎中...');
             
             // 寫入數據庫（關鍵狀態變更）
             await GameModel.updateState({
               current_period: memoryGameState.current_period,
-              countdown_seconds: 0,
+              countdown_seconds: 3,
               last_result: memoryGameState.last_result,
               status: 'drawing'
             });
+          } else if (memoryGameState.status === 'drawing') {
+            // 開獎階段結束，產生結果並開始新期
+            console.log('開獎完成，產生結果...');
             
-            // 模擬開獎過程(3秒後產生結果)
-            drawingTimeoutId = setTimeout(async () => {
-              try {
-                // 清除timeoutId
-                drawingTimeoutId = null;
-                
-                // 隨機產生新的遊戲結果(1-10的不重複隨機數)
-                const newResult = await generateSmartRaceResult(memoryGameState.current_period);
-                
-                // 將結果添加到歷史記錄
-                await GameModel.addResult(memoryGameState.current_period, newResult);
-                
-                // 立即同步到代理系統
-                await syncToAgentSystem(memoryGameState.current_period, newResult);
-                
-                // 結算注單
-                await settleBets(memoryGameState.current_period, newResult);
-                
-                // 更新期數和內存狀態
-                memoryGameState.current_period++;
-                memoryGameState.countdown_seconds = 60;
-                memoryGameState.last_result = newResult;
-                memoryGameState.status = 'betting';
-                memoryGameState.phase_start_time = Date.now(); // 重設新期數開始時間
-                
-                // 寫入數據庫（重要狀態變更）
-                await GameModel.updateState({
-                  current_period: memoryGameState.current_period,
-                  countdown_seconds: 60,
-                  last_result: newResult,
-                  status: 'betting'
-                });
-                
-                console.log(`第${memoryGameState.current_period}期開始，可以下注`);
-                
-                // 每5期執行一次系統監控與自動調整
-                if (memoryGameState.current_period % 5 === 0) {
-                  monitorAndAdjustSystem();
-                }
-              } catch (error) {
-                console.error('開獎過程出錯:', error);
+            try {
+              // 隨機產生新的遊戲結果(1-10的不重複隨機數)
+              const newResult = await generateSmartRaceResult(memoryGameState.current_period);
+              
+              // 將結果添加到歷史記錄
+              await GameModel.addResult(memoryGameState.current_period, newResult);
+              
+              // 立即同步到代理系統
+              await syncToAgentSystem(memoryGameState.current_period, newResult);
+              
+              // 結算注單
+              await settleBets(memoryGameState.current_period, newResult);
+              
+              // 更新期數和內存狀態
+              memoryGameState.current_period++;
+              memoryGameState.countdown_seconds = 60;
+              memoryGameState.last_result = newResult;
+              memoryGameState.status = 'betting';
+              memoryGameState.phase_start_time = Date.now(); // 重設新期數開始時間
+              
+              // 寫入數據庫（重要狀態變更）
+              await GameModel.updateState({
+                current_period: memoryGameState.current_period,
+                countdown_seconds: 60,
+                last_result: newResult,
+                status: 'betting'
+              });
+              
+              console.log(`第${memoryGameState.current_period}期開始，可以下注`);
+              
+              // 每5期執行一次系統監控與自動調整
+              if (memoryGameState.current_period % 5 === 0) {
+                monitorAndAdjustSystem();
               }
-            }, 3000);
+            } catch (error) {
+              console.error('開獎過程出錯:', error);
+            }
           }
         }
       } catch (error) {

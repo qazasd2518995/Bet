@@ -4325,10 +4325,10 @@
                                 console.log('開始開獎，等待結果');
                                 
                                 // 開始播放開獎動畫
-                                // this.playDrawAnimation(); // 已禁用複雜動畫，直接顯示結果
+                                this.playDrawAnimation(); // 重新啟用開獎動畫
                                 
                                 // 播放音效
-                                // this.playSound('draw'); // 已禁用避免404錯誤
+                                this.playSound('draw'); // 重新啟用音效
                                 
                                 // 立即更新歷史記錄以確保即時性
                                 this.updateHistoryRecords();
@@ -5237,62 +5237,178 @@
                     console.log('播放開獎動畫...');
                     
                     // 獲取結果容器
-                    const resultContainer = document.querySelector('.race-result');
-                    if (!resultContainer) return;
-                    
-                    // 清空現有內容並添加動畫容器
-                    const animationContainer = document.createElement('div');
-                    animationContainer.className = 'race-animation-container';
-                    
-                    // 添加終點線
-                    const finishLine = document.createElement('div');
-                    finishLine.className = 'race-finish-line';
-                    animationContainer.appendChild(finishLine);
-                    
-                    // 創建賽車元素
-                    const cars = [];
-                    for (let i = 0; i < 10; i++) {
-                        const car = document.createElement('div');
-                        car.className = 'car-racer';
-                        car.style.backgroundColor = this.getColorForNumber(i);
-                        car.style.top = `${10 + i * 10}px`;
-                        car.style.left = '10px';
-                        car.dataset.number = i;
-                        car.textContent = i;
-                        car.style.color = 'white';
-                        car.style.textAlign = 'center';
-                        car.style.fontSize = '12px';
-                        car.style.fontWeight = 'bold';
-                        animationContainer.appendChild(car);
-                        cars.push(car);
+                    const resultContainer = document.querySelector('.results-display-new .results-container-new');
+                    if (!resultContainer) {
+                        console.warn('找不到結果容器，使用備用容器');
+                        const backupContainer = document.querySelector('.results-display-new');
+                        if (backupContainer) {
+                            this.showNumberBalls(backupContainer);
+                        }
+                        return;
                     }
                     
-                    // 先展示動畫容器
-                    resultContainer.innerHTML = '';
-                    resultContainer.appendChild(animationContainer);
+                    // 第一階段：搖球動畫
+                    this.playBallShuffleAnimation(resultContainer);
                     
-                    // 等待DOM更新後啟動動畫
+                    // 2秒後開始開獎
                     setTimeout(() => {
-                        // 開始賽車動畫
-                        const raceDuration = 3000; // 3秒
-                        const results = [...this.lastResults]; // 複製結果順序
-                        
-                        // 使賽車移動到適當位置
-                        cars.forEach((car, index) => {
-                            // 計算終點位置
-                            const finishPosition = results.indexOf(index);
-                            // 計算距離右側的百分比（越小的名次距離越近）
-                            const distanceFromRight = 50 + (finishPosition * 5);
-                            // 設置終點位置
-                            car.style.left = `calc(100% - ${distanceFromRight}px)`;
-                        });
-                        
-                        // 動畫結束後顯示結果
+                        this.playDrawResultAnimation(resultContainer);
+                    }, 2000);
+                },
+                
+                // 搖球動畫
+                playBallShuffleAnimation(container) {
+                    container.innerHTML = '';
+                    
+                    // 創建搖球容器
+                    const shuffleContainer = document.createElement('div');
+                    shuffleContainer.className = 'ball-shuffle-container';
+                    shuffleContainer.style.cssText = `
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 80px;
+                        background: linear-gradient(45deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2));
+                        border-radius: 10px;
+                        overflow: hidden;
+                        position: relative;
+                    `;
+                    
+                    // 創建搖球機效果
+                    const shuffleText = document.createElement('div');
+                    shuffleText.textContent = '🎲 搖獎中... 🎲';
+                    shuffleText.style.cssText = `
+                        font-size: 20px;
+                        font-weight: bold;
+                        color: #ff6b35;
+                        animation: pulse 0.5s infinite alternate;
+                        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                    `;
+                    
+                    // 創建隨機飛舞的小球
+                    for (let i = 1; i <= 10; i++) {
+                        const ball = document.createElement('div');
+                        ball.textContent = i;
+                        ball.className = `color-${i}`;
+                        ball.style.cssText = `
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 50%;
+                            position: absolute;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 12px;
+                            font-weight: bold;
+                            color: white;
+                            animation: ballShuffle 1s infinite linear;
+                            animation-delay: ${i * 0.1}s;
+                            left: ${Math.random() * 80 + 10}%;
+                            top: ${Math.random() * 60 + 20}%;
+                        `;
+                        shuffleContainer.appendChild(ball);
+                    }
+                    
+                    shuffleContainer.appendChild(shuffleText);
+                    container.appendChild(shuffleContainer);
+                    
+                    // 添加搖球動畫樣式
+                    if (!document.getElementById('shuffleAnimationStyles')) {
+                        const style = document.createElement('style');
+                        style.id = 'shuffleAnimationStyles';
+                        style.textContent = `
+                            @keyframes ballShuffle {
+                                0% { transform: translateX(0) rotate(0deg); }
+                                25% { transform: translateX(20px) rotate(90deg); }
+                                50% { transform: translateX(0) rotate(180deg); }
+                                75% { transform: translateX(-20px) rotate(270deg); }
+                                100% { transform: translateX(0) rotate(360deg); }
+                            }
+                            @keyframes pulse {
+                                0% { transform: scale(1); }
+                                100% { transform: scale(1.1); }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                },
+                
+                // 開獎結果動畫
+                playDrawResultAnimation(container) {
+                    container.innerHTML = '';
+                    
+                    // 創建開獎結果容器
+                    const resultContainer = document.createElement('div');
+                    resultContainer.className = 'draw-result-container';
+                    resultContainer.style.cssText = `
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px;
+                        background: linear-gradient(45deg, rgba(255,215,0,0.1), rgba(255,165,0,0.1));
+                        border-radius: 10px;
+                        min-height: 60px;
+                    `;
+                    
+                    // 逐一顯示開獎結果球
+                    this.lastResults.forEach((number, index) => {
                         setTimeout(() => {
-                            // 恢復結果顯示
-                            this.showNumberBalls(resultContainer);
-                        }, raceDuration);
-                    }, 100);
+                            const ball = document.createElement('div');
+                            ball.textContent = number;
+                            ball.className = `result-ball-new color-${number} animating`;
+                            ball.style.cssText = `
+                                width: 40px;
+                                height: 40px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 16px;
+                                font-weight: bold;
+                                margin: 0 2px;
+                                opacity: 0;
+                                transform: scale(0);
+                                transition: all 0.5s ease;
+                            `;
+                            
+                            resultContainer.appendChild(ball);
+                            
+                            // 觸發入場動畫
+                            setTimeout(() => {
+                                ball.style.opacity = '1';
+                                ball.style.transform = 'scale(1)';
+                                
+                                // 添加位置標籤
+                                const positionLabel = document.createElement('div');
+                                positionLabel.textContent = this.getPositionName(index + 1);
+                                positionLabel.className = 'position-label-new';
+                                positionLabel.style.cssText = `
+                                    font-size: 10px;
+                                    text-align: center;
+                                    margin-top: 4px;
+                                    color: #666;
+                                `;
+                                
+                                const ballContainer = document.createElement('div');
+                                ballContainer.style.cssText = `
+                                    display: flex;
+                                    flex-direction: column;
+                                    align-items: center;
+                                `;
+                                
+                                ball.parentNode.insertBefore(ballContainer, ball);
+                                ballContainer.appendChild(ball);
+                                ballContainer.appendChild(positionLabel);
+                                
+                                // 前三名添加特效
+                                if (index < 3) {
+                                    ball.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
+                                    ball.style.animation = 'pulse 1s infinite alternate';
+                                }
+                            }, 100);
+                        }, index * 300); // 每300ms顯示一個球
+                    });
+                    
+                    container.appendChild(resultContainer);
                 },
                 
                 // 顯示結果球

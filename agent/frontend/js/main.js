@@ -508,9 +508,9 @@ const app = createApp({
             
             this.showCreateMemberModal = true;
             
-            // 強制Vue更新並等待渲染完成
-            this.$forceUpdate();
+            // 等待 Vue 渲染完成後再初始化模態框
             this.$nextTick(() => {
+                // 額外延遲確保 DOM 更新完成
                 setTimeout(() => {
                     const modalEl = document.getElementById('createMemberModal');
                     if (modalEl) {
@@ -523,19 +523,25 @@ const app = createApp({
                         console.log('showCreateMemberModal狀態:', this.showCreateMemberModal);
                         console.log('DOM中含有ID的元素數量:', document.querySelectorAll('*[id]').length);
                         
-                        // 延遲重試一次
-                        setTimeout(() => {
+                        // 延遲重試多次
+                        let retryCount = 0;
+                        const maxRetries = 5;
+                        const retryInterval = setInterval(() => {
+                            retryCount++;
                             const retryModalEl = document.getElementById('createMemberModal');
                             if (retryModalEl) {
-                                console.log('重試成功，找到會員模態框元素');
+                                console.log('重試成功，找到會員模態框元素，重試次數:', retryCount);
                                 this.memberModal = new bootstrap.Modal(retryModalEl);
                                 this.memberModal.show();
-                            } else {
+                                clearInterval(retryInterval);
+                            } else if (retryCount >= maxRetries) {
+                                console.error('重試失敗，超過最大重試次數');
                                 this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
+                                clearInterval(retryInterval);
                             }
-                        }, 200);
+                        }, 100);
                     }
-                }, 150);
+                }, 200);
             });
         },
         
