@@ -677,8 +677,8 @@ async function startGameCycle() {
               const existingResult = await GameModel.getResultByPeriod(memoryGameState.current_period);
               if (existingResult) {
                 console.log(`第${memoryGameState.current_period}期已經開過獎，跳過結算`);
-                // 直接進入下一期
-                memoryGameState.current_period++;
+                // 直接進入下一期 - 修復期數運算問題
+                memoryGameState.current_period = parseInt(memoryGameState.current_period) + 1;
                 memoryGameState.countdown_seconds = 60;
                 memoryGameState.last_result = existingResult.result;
                 memoryGameState.status = 'betting';
@@ -708,8 +708,8 @@ async function startGameCycle() {
               // 結算注單
               await settleBets(memoryGameState.current_period, newResult);
               
-              // 更新期數和內存狀態
-              const nextPeriod = memoryGameState.current_period + 1;
+              // 更新期數和內存狀態 - 修復期數運算問題
+              const nextPeriod = parseInt(memoryGameState.current_period) + 1;
               memoryGameState.current_period = nextPeriod;
               memoryGameState.countdown_seconds = 60;
               memoryGameState.last_result = newResult;

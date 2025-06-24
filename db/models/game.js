@@ -174,11 +174,36 @@ const GameModel = {
       `, [period]);
       
       if (result && result.result) {
-        // 解析 JSON 結果
+        // 解析 JSON 結果 - 支持多種格式
         try {
-          result.result = JSON.parse(result.result);
+          if (typeof result.result === 'string') {
+            // 如果是字符串，嘗試解析 JSON
+            result.result = JSON.parse(result.result);
+          } else if (Array.isArray(result.result)) {
+            // 如果已經是數組，直接使用
+            // result.result = result.result;
+          } else if (typeof result.result === 'object' && result.result.length !== undefined) {
+            // 如果是類似 {0: "2", 1: "5", ...} 的對象，轉換為數組
+            const arr = [];
+            for (let i = 0; i < result.result.length; i++) {
+              arr.push(parseInt(result.result[i]));
+            }
+            result.result = arr;
+          } else {
+            // 嘗試其他格式
+            console.warn('未知的結果格式:', typeof result.result, result.result);
+          }
         } catch (e) {
           console.warn('解析結果 JSON 失敗:', e);
+          // 嘗試其他解析方法
+          try {
+            if (typeof result.result === 'string') {
+              // 嘗試解析逗號分隔的字符串
+              result.result = result.result.split(',').map(x => parseInt(x.trim()));
+            }
+          } catch (e2) {
+            console.warn('備用解析也失敗:', e2);
+          }
         }
       }
       
