@@ -220,20 +220,13 @@
             z-index: 10;
         }
         
-        /* 🌟 特殊排名樣式 */
-        .number-ball.champion {
-            animation: highlightWinner 1.5s ease-in-out infinite;
-            box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.8) !important;
-        }
-        
-        .number-ball.runner-up {
-            animation: highlightWinner 2s ease-in-out infinite;
-            box-shadow: 0 0 15px 3px rgba(192, 192, 192, 0.8) !important;
-        }
-        
+        /* 🌟 特殊排名樣式 - 移除發光效果，保持與主畫面一致 */
+        .number-ball.champion,
+        .number-ball.runner-up,
         .number-ball.third-place {
-            animation: highlightWinner 2.5s ease-in-out infinite;
-            box-shadow: 0 0 12px 2px rgba(205, 127, 50, 0.8) !important;
+            /* 移除發光動畫，與主畫面球號樣式保持一致 */
+            animation: none !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
         }
         
         /* 🎊 開獎狀態指示器 */
@@ -4355,12 +4348,14 @@
                     return /Mobi|Android/i.test(navigator.userAgent);
                 },
                 formattedCurrentPeriod() {
-                    // 格式化期號顯示，如果期號太長，只顯示最後8位
+                    // 格式化期號顯示，確保顯示完整期號
                     if (!this.currentPeriod) return '';
                     const period = this.currentPeriod.toString();
-                    if (period.length > 8) {
-                        return period.slice(-8); // 顯示最後8位
+                    // 如果期號以數字日期開頭且長度大於11位，可能是錯誤格式，只取後8位
+                    if (period.length > 11 && /^\d{8}/.test(period)) {
+                        return period.slice(-8);
                     }
+                    // 否則顯示完整期號
                     return period;
                 }
             },
@@ -5467,26 +5462,36 @@
                 },
                 // 🎬 動畫開關控制
                 toggleAnimation() {
-                    this.isAnimationEnabled = !this.isAnimationEnabled;
-                    console.log(` 動畫${this.isAnimationEnabled ? '開啟' : '關閉'}`);
+                    // 如果在封盤期間點擊，顯示提示
+                    if (this.gameStatus === 'betting') {
+                        this.displayNotification('🎯 尚未開獎，請等待開獎後再播放動畫');
+                        return;
+                    }
                     
-                    // 如果當前正在開獎且剛開啟動畫，立即播放
-                    if (this.gameStatus === 'drawing' && this.isAnimationEnabled) {
-                        console.log(' 開獎中且動畫已開啟，播放動畫');
-                        this.playDrawAnimation();
+                    this.isAnimationEnabled = !this.isAnimationEnabled;
+                    console.log(`🎬 動畫${this.isAnimationEnabled ? '開啟' : '關閉'}`);
+                    
+                    // 如果剛開啟動畫且有結果數據，立即播放
+                    if (this.isAnimationEnabled && this.lastResults && this.lastResults.length > 0) {
+                        console.log('✨ 動畫已開啟且有結果數據，立即播放動畫');
+                        setTimeout(() => {
+                            this.playDrawAnimation();
+                        }, 100);
                     }
                 },
                 // 🎊 增強版開獎動畫系統
                 playDrawAnimation() {
-                    console.log(' 嘗試播放開獎動畫，當前狀態:', this.gameStatus);
-                    console.log(' 開獎結果數據:', this.lastResults);
-                    console.log(' 動畫開關狀態:', this.isAnimationEnabled);
+                    console.log('🎬 嘗試播放開獎動畫，當前狀態:', this.gameStatus);
+                    console.log('📊 開獎結果數據:', this.lastResults);
+                    console.log('🎮 動畫開關狀態:', this.isAnimationEnabled);
                     
-                    if (this.gameStatus !== 'drawing') {
-                        console.log('❌ 遊戲狀態不是drawing，跳過動畫');
+                    // 檢查遊戲狀態或最近的結果數據
+                    if (this.gameStatus !== 'drawing' && (!this.lastResults || this.lastResults.length === 0)) {
+                        console.log('❌ 遊戲狀態不是drawing且沒有結果數據，跳過動畫');
                         return;
                     }
                     
+                    // 如果有結果數據但狀態不是drawing，仍然允許播放動畫（用於手動觸發）
                     if (!this.lastResults || this.lastResults.length === 0) {
                         console.log('❌ 沒有開獎結果數據，跳過動畫');
                         return;
@@ -5614,22 +5619,11 @@
                         setTimeout(() => {
                             const ball = document.createElement('div');
                             
-                            // 基礎樣式
-                            let ballClasses = `number-ball color-${number} animating`;
-                            
-                            // 為不同排名添加特殊樣式
-                            if (index === 0) {
-                                ballClasses += ' champion'; // 冠軍
-                            } else if (index === 1) {
-                                ballClasses += ' runner-up'; // 亞軍
-                            } else if (index === 2) {
-                                ballClasses += ' third-place'; // 季軍
-                            }
-                            
-                            ball.className = ballClasses;
+                            // 使用與主畫面一致的球號樣式
+                            ball.className = `number-ball color-${number}`;
                             ball.textContent = number;
                             
-                            // 增強球的樣式
+                            // 使用與主畫面一致的基本樣式，確保樣式統一
                             ball.style.cssText = `
                                 width: 42px;
                                 height: 42px;
@@ -5638,11 +5632,10 @@
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
-                                border: 3px solid rgba(255,255,255,0.8);
-                                box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-                                position: relative;
+                                border-radius: 50%;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
                                 margin: 0 3px;
-                                z-index: ${10 - index};
+                                color: white !important;
                             `;
                             
                             // 移除排名標籤顯示，只保留數字球
@@ -5663,26 +5656,17 @@
                     }, this.lastResults.length * 200 + 1000);
                 },
                 
-                // 🎭 球動畫序列
+                // 🎭 球動畫序列 - 簡化動畫，保持樣式一致
                 playBallAnimationSequence(ball, index) {
-                    // 第一階段：彈跳入場
+                    // 簡單的入場動畫
+                    ball.style.transform = 'scale(0)';
+                    ball.style.transition = 'all 0.5s ease-out';
+                    
                     setTimeout(() => {
-                        ball.classList.remove('animating');
-                        ball.classList.add('spinning');
-                        
-                        // 第二階段：旋轉
-                        setTimeout(() => {
-                            ball.classList.remove('spinning');
-                            
-                            // 第三階段：根據排名添加持續效果
-                            if (index < 3) {
-                                ball.classList.add('winning');
-                                
-                                // 為前三名添加額外的視覺效果
-                                this.addSpecialEffects(ball, index);
-                            }
-                        }, 1000);
-                    }, 600);
+                        ball.style.transform = 'scale(1)';
+                    }, 100);
+                    
+                    // 移除複雜的動畫效果，保持樣式與主畫面一致
                 },
                 
                 // ✨ 為前三名添加特殊效果
