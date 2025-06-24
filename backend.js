@@ -824,8 +824,9 @@ async function startGameCycle() {
                 // 結算注單
                 await settleBets(memoryGameState.current_period, newResult);
                 
-                // 更新期數和內存狀態
-                memoryGameState.current_period = parseInt(memoryGameState.current_period) + 1;
+                // 更新期數和內存狀態 - 智能期號管理
+                const newPeriod = getNextPeriod(memoryGameState.current_period);
+                memoryGameState.current_period = newPeriod;
                 memoryGameState.countdown_seconds = 60;
                 memoryGameState.last_result = newResult;
                 memoryGameState.status = 'betting';
@@ -877,6 +878,28 @@ function generateRaceResult() {
   }
   
   return result;
+}
+
+// 智能期號管理 - 確保期號正確遞增並在每日重置
+function getNextPeriod(currentPeriod) {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+  
+  const currentPeriodStr = currentPeriod.toString();
+  
+  // 檢查當前期號是否為今天
+  if (currentPeriodStr.startsWith(todayStr)) {
+    // 提取期號後綴並遞增
+    const suffix = parseInt(currentPeriodStr.substring(8)) + 1;
+    const newPeriod = parseInt(`${todayStr}${suffix.toString().padStart(3, '0')}`);
+    console.log(`🔄 期號遞增: ${currentPeriod} → ${newPeriod}`);
+    return newPeriod;
+  } else {
+    // 新的一天，重置期號為001
+    const newPeriod = parseInt(`${todayStr}001`);
+    console.log(`🌅 新的一天，期號重置: ${currentPeriod} → ${newPeriod}`);
+    return newPeriod;
+  }
 }
 
 // 控制參數 - 決定殺大賠小策略的強度和平衡
