@@ -59,6 +59,35 @@ async function initDatabase() {
       )
     `);
 
+    // 檢查並添加 phase_start_time 欄位（用於倒數同步修正）
+    const phaseStartTimeExists = await db.oneOrNone(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'game_state' AND column_name = 'phase_start_time'
+    `);
+    
+    if (!phaseStartTimeExists) {
+      console.log('📋 添加 phase_start_time 欄位...');
+      await db.none(`
+        ALTER TABLE game_state 
+        ADD COLUMN phase_start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      
+      // 更新現有記錄
+      await db.none(`
+        UPDATE game_state 
+        SET phase_start_time = CURRENT_TIMESTAMP 
+        WHERE phase_start_time IS NULL
+      `);
+      
+      // 設置非空約束
+      await db.none(`
+        ALTER TABLE game_state 
+        ALTER COLUMN phase_start_time SET NOT NULL
+      `);
+      console.log('✅ phase_start_time 欄位添加完成');
+    }
+
     // 創建代理表
     await db.none(`
       CREATE TABLE IF NOT EXISTS agents (

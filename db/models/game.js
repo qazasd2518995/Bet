@@ -51,27 +51,68 @@ const GameModel = {
       const existingState = await this.getCurrentState();
       
       if (existingState) {
-        // 更新現有狀態
-        return await db.one(`
-          UPDATE game_state 
-          SET current_period = $1, 
-              countdown_seconds = $2, 
-              last_result = $3, 
-              status = $4,
-              phase_start_time = $5,
-              updated_at = CURRENT_TIMESTAMP 
-          WHERE id = $6 
-          RETURNING *
-        `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date(), existingState.id]);
+        // 檢查是否有 phase_start_time 欄位
+        const hasPhaseStartTime = await db.oneOrNone(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'game_state' AND column_name = 'phase_start_time'
+        `);
+        
+        if (hasPhaseStartTime) {
+          // 更新現有狀態（包含 phase_start_time）
+          return await db.one(`
+            UPDATE game_state 
+            SET current_period = $1, 
+                countdown_seconds = $2, 
+                last_result = $3, 
+                status = $4,
+                phase_start_time = $5,
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $6 
+            RETURNING *
+          `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date(), existingState.id]);
+        } else {
+          // 更新現有狀態（不包含 phase_start_time）
+          console.warn('⚠️ phase_start_time 欄位不存在，使用舊版更新');
+          return await db.one(`
+            UPDATE game_state 
+            SET current_period = $1, 
+                countdown_seconds = $2, 
+                last_result = $3, 
+                status = $4,
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $5 
+            RETURNING *
+          `, [current_period, countdown_seconds, jsonResult, status, existingState.id]);
+        }
       } else {
-        // 創建新狀態記錄
-        return await db.one(`
-          INSERT INTO game_state (
-            current_period, countdown_seconds, last_result, status, phase_start_time
-          ) 
-          VALUES ($1, $2, $3, $4, $5) 
-          RETURNING *
-        `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date()]);
+        // 檢查是否有 phase_start_time 欄位
+        const hasPhaseStartTime = await db.oneOrNone(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'game_state' AND column_name = 'phase_start_time'
+        `);
+        
+        if (hasPhaseStartTime) {
+          // 創建新狀態記錄（包含 phase_start_time）
+          return await db.one(`
+            INSERT INTO game_state (
+              current_period, countdown_seconds, last_result, status, phase_start_time
+            ) 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING *
+          `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date()]);
+        } else {
+          // 創建新狀態記錄（不包含 phase_start_time）
+          console.warn('⚠️ phase_start_time 欄位不存在，使用舊版插入');
+          return await db.one(`
+            INSERT INTO game_state (
+              current_period, countdown_seconds, last_result, status
+            ) 
+            VALUES ($1, $2, $3, $4) 
+            RETURNING *
+          `, [current_period, countdown_seconds, jsonResult, status]);
+        }
       }
     } catch (error) {
       console.error('更新遊戲狀態出錯:', error);

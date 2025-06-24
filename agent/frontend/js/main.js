@@ -615,6 +615,14 @@ const app = createApp({
                     this.user = agent;
                     this.isLoggedIn = true;
                     
+                    // 初始化當前管理代理（登入時默認為自己）
+                    this.currentManagingAgent = {
+                        id: agent.id,
+                        username: agent.username,
+                        level: agent.level,
+                        max_rebate_percentage: agent.max_rebate_percentage || 0.041
+                    };
+                    
                     // 檢查是否為客服
                     this.isCustomerService = this.user.level === 0;
                     console.log('登入後是否為客服:', this.isCustomerService, '用戶級別:', this.user.level);
@@ -1438,6 +1446,8 @@ const app = createApp({
                     return '遊戲下注';
                 case 'game_win':
                     return '遊戲中獎';
+                case 'rebate':
+                    return '退水';
                 default:
                     return type || '未知';
             }

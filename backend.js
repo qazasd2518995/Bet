@@ -1845,6 +1845,8 @@ app.get('/api/game-data', async (req, res) => {
       console.log(`⏰ 倒數計算: 階段=${gameState.status}, 結束時間=${new Date(endsAt).toISOString()}, 真實倒數=${realCountdownSeconds}秒`);
     } else {
       console.warn('⚠️ 缺少 phase_start_time，使用數據庫倒數秒數');
+      // 當沒有 phase_start_time 時，使用當前時間 + 剩餘秒數作為結束時間
+      endsAt = Date.now() + (realCountdownSeconds * 1000);
     }
     
     const gameData = {
