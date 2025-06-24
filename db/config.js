@@ -33,7 +33,7 @@ if (process.env.DATABASE_URL) {
   databaseConfig = process.env.DATABASE_URL;
   console.log('使用環境變量數據庫連接 (DATABASE_URL)');
 } else if (isRenderEnvironment || process.env.DB_HOST) {
-  // 使用提供的 PostgreSQL 資料庫資訊
+  // 使用提供的 Render PostgreSQL 資料庫資訊
   databaseConfig = {
     host: process.env.DB_HOST || 'dpg-d0e2imc9c44c73che3kg-a',
     port: parseInt(process.env.DB_PORT || '5432'),
@@ -46,14 +46,19 @@ if (process.env.DATABASE_URL) {
     // 增加連接穩定性的參數
     max: 30, // 連接池最大連接數
     idleTimeoutMillis: 30000, // 連接最大閒置時間
-    connectionTimeoutMillis: 10000, // 連接超時
-    query_timeout: 10000 // 查詢超時
+    connectionTimeoutMillis: 15000, // 連接超時增加到15秒
+    query_timeout: 15000, // 查詢超時增加到15秒
+    // Render 專用設置
+    application_name: 'bet_game_app',
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 0
   };
   console.log('使用 Render PostgreSQL 配置:', {
     host: databaseConfig.host,
     port: databaseConfig.port,
     database: databaseConfig.database,
-    user: databaseConfig.user
+    user: databaseConfig.user,
+    ssl: '已啟用'
   });
 } else {
   // 本地開發環境

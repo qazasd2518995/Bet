@@ -483,6 +483,10 @@ const app = createApp({
         
         // 顯示創建會員模態框
         showMemberModal() {
+            console.log('showMemberModal 被調用');
+            console.log('當前管理代理:', this.currentManagingAgent);
+            console.log('面包屑導航:', this.agentBreadcrumbs);
+            
             // 重置會員數據
             this.newMember = { 
                 username: '', 
@@ -492,21 +496,47 @@ const app = createApp({
                 status: 1
             };
             
+            // 如果之前存在模態框實例，先銷毀它
+            if (this.memberModal) {
+                try {
+                    this.memberModal.dispose();
+                } catch (error) {
+                    console.log('銷毀舊模態框實例時發生錯誤:', error);
+                }
+                this.memberModal = null;
+            }
+            
             this.showCreateMemberModal = true;
             
-            // 使用 setTimeout 確保 Vue 有足夠時間重新渲染 DOM
-            setTimeout(() => {
-                const modalEl = document.getElementById('createMemberModal');
-                if (modalEl) {
-                    console.log('找到會員模態框元素，正在初始化...');
-                    this.memberModal = new bootstrap.Modal(modalEl);
-                    this.memberModal.show();
-                } else {
-                    console.error('找不到會員模態框元素');
-                    console.log('DOM中的所有元素:', document.querySelectorAll('*[id]'));
-                    this.showMessage('系統錯誤，請稍後再試', 'error');
-                }
-            }, 100);
+            // 強制Vue更新並等待渲染完成
+            this.$forceUpdate();
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    const modalEl = document.getElementById('createMemberModal');
+                    if (modalEl) {
+                        console.log('找到會員模態框元素，正在初始化...');
+                        console.log('模態框所屬的代理:', this.currentManagingAgent.username);
+                        this.memberModal = new bootstrap.Modal(modalEl);
+                        this.memberModal.show();
+                    } else {
+                        console.error('找不到會員模態框元素');
+                        console.log('showCreateMemberModal狀態:', this.showCreateMemberModal);
+                        console.log('DOM中含有ID的元素數量:', document.querySelectorAll('*[id]').length);
+                        
+                        // 延遲重試一次
+                        setTimeout(() => {
+                            const retryModalEl = document.getElementById('createMemberModal');
+                            if (retryModalEl) {
+                                console.log('重試成功，找到會員模態框元素');
+                                this.memberModal = new bootstrap.Modal(retryModalEl);
+                                this.memberModal.show();
+                            } else {
+                                this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
+                            }
+                        }, 200);
+                    }
+                }, 150);
+            });
         },
         
         // 隱藏創建會員模態框
@@ -1527,13 +1557,20 @@ const app = createApp({
                     agentId: this.currentManagingAgent.id // 使用當前管理代理的ID而非登入代理
                 });
                 if (response.data.success) {
-                    this.showMessage('會員創建成功!', 'success');
+                    const agentName = this.currentManagingAgent.username;
+                    const isCurrentUser = this.currentManagingAgent.id === this.user.id;
+                    const message = isCurrentUser ? 
+                        `會員 ${this.newMember.username} 創建成功!` : 
+                        `已為代理 ${agentName} 創建會員 ${this.newMember.username}`;
+                    this.showMessage(message, 'success');
                     this.hideCreateMemberModal();
                     // 重置新增會員表單
                     this.newMember = {
                         username: '',
                         password: '',
-                        confirmPassword: ''
+                        confirmPassword: '',
+                        balance: 0,
+                        status: 1
                     };
                     await this.searchMembers(); // 刷新會員列表
                 } else {

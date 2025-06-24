@@ -818,7 +818,9 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">新增會員</h5>
+                                    <h5 class="modal-title">
+                                        {{ currentManagingAgent.id === user.id ? '新增會員' : '為 ' + currentManagingAgent.username + ' 新增會員' }}
+                                    </h5>
                                     <button type="button" class="btn-close" @click="hideCreateMemberModal"></button>
                                 </div>
                                 <div class="modal-body">

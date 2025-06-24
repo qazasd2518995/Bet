@@ -1173,6 +1173,14 @@ async function settleBets(period, winResult) {
           console.error(`更新用戶 ${username} 中獎餘額失敗:`, error);
         }
       }
+      
+      // 在結算時分配退水給代理（不論輸贏，基於下注金額）
+      try {
+        await distributeRebate(username, parseFloat(bet.amount));
+        console.log(`已為會員 ${username} 的注單 ${bet.id} 分配退水到代理`);
+      } catch (rebateError) {
+        console.error(`分配退水失敗 (注單ID=${bet.id}):`, rebateError);
+      }
         } catch (error) {
       console.error(`結算用戶注單出錯 (ID=${bet.id}):`, error);
       }
@@ -2243,13 +2251,8 @@ app.post('/api/bet', async (req, res) => {
         return res.status(500).json({ success: false, message: `創建下注記錄失敗: ${dbError.message}` });
       }
       
-      // 立即分配退水給代理（不論輸贏）
-      try {
-        await distributeRebate(username, amountNum);
-        console.log(`已為會員 ${username} 的下注分配退水`);
-      } catch (rebateError) {
-        console.error('分配退水失敗，但下注仍然成功:', rebateError);
-      }
+      // 移除立即退水分配 - 退水將在結算階段處理
+      console.log(`用戶 ${username} 下注 ${amountNum} 元成功，退水將在結算後分配`);
       
       // 獲取新的餘額
       const newBalance = await getBalance(username);
