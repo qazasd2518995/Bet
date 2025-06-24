@@ -24,7 +24,8 @@ const GameModel = {
       current_period, 
       countdown_seconds, 
       last_result, 
-      status 
+      status,
+      phase_start_time 
     } = stateData;
     
     try {
@@ -56,20 +57,21 @@ const GameModel = {
           SET current_period = $1, 
               countdown_seconds = $2, 
               last_result = $3, 
-              status = $4, 
+              status = $4,
+              phase_start_time = $5,
               updated_at = CURRENT_TIMESTAMP 
-          WHERE id = $5 
+          WHERE id = $6 
           RETURNING *
-        `, [current_period, countdown_seconds, jsonResult, status, existingState.id]);
+        `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date(), existingState.id]);
       } else {
         // 創建新狀態記錄
         return await db.one(`
           INSERT INTO game_state (
-            current_period, countdown_seconds, last_result, status
+            current_period, countdown_seconds, last_result, status, phase_start_time
           ) 
-          VALUES ($1, $2, $3, $4) 
+          VALUES ($1, $2, $3, $4, $5) 
           RETURNING *
-        `, [current_period, countdown_seconds, jsonResult, status]);
+        `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date()]);
       }
     } catch (error) {
       console.error('更新遊戲狀態出錯:', error);

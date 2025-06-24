@@ -584,7 +584,8 @@ async function startGameCycle() {
         current_period: 202505081001, // 更新為今天的日期+期數
         countdown_seconds: 60,
         last_result: [4, 2, 7, 9, 8, 10, 6, 3, 5, 1],
-        status: 'betting'
+        status: 'betting',
+        phase_start_time: new Date() // ★ 初始化階段開始時間
       });
       console.log('創建初始遊戲狀態成功');
     } else {
@@ -600,7 +601,8 @@ async function startGameCycle() {
           current_period,
           countdown_seconds: 60,
           last_result: newResult,
-          status: 'betting'
+          status: 'betting',
+          phase_start_time: new Date() // ★ 記錄重啟後的階段開始時間
         });
         
         // 更新遊戲狀態
@@ -615,7 +617,7 @@ async function startGameCycle() {
       countdown_seconds: gameState.countdown_seconds,
       last_result: gameState.last_result,
       status: gameState.status,
-      phase_start_time: Date.now()  // 記錄階段開始時間
+      phase_start_time: gameState.phase_start_time ? new Date(gameState.phase_start_time).getTime() : Date.now()  // 使用數據庫的階段開始時間
     };
     
     console.log(`啟動遊戲循環: 當前期數=${memoryGameState.current_period}, 狀態=${memoryGameState.status}`);
@@ -663,7 +665,8 @@ async function startGameCycle() {
               current_period: memoryGameState.current_period,
               countdown_seconds: 3,
               last_result: memoryGameState.last_result,
-              status: 'drawing'
+              status: 'drawing',
+              phase_start_time: new Date() // ★ 記錄階段開始時間
             });
           } else if (memoryGameState.status === 'drawing') {
             // 開獎階段結束，產生結果並開始新期
@@ -685,7 +688,8 @@ async function startGameCycle() {
                   current_period: memoryGameState.current_period,
                   countdown_seconds: 60,
                   last_result: existingResult.result,
-                  status: 'betting'
+                  status: 'betting',
+                  phase_start_time: new Date() // ★ 記錄階段開始時間
                 });
                 
                 console.log(`跳轉到第${memoryGameState.current_period}期，可以下注`);
@@ -717,7 +721,8 @@ async function startGameCycle() {
                 current_period: nextPeriod,
                 countdown_seconds: 60,
                 last_result: newResult,
-                status: 'betting'
+                status: 'betting',
+                phase_start_time: new Date() // ★ 記錄新期開始時間
               });
               
               console.log(`第${nextPeriod}期開始，可以下注`);
@@ -1824,9 +1829,28 @@ app.get('/api/game-data', async (req, res) => {
       last_result = JSON.parse(last_result);
     }
     
+    // 計算階段結束時間戳
+    let endsAt = null;
+    let realCountdownSeconds = gameState.countdown_seconds; // 默認值
+    
+    if (gameState.phase_start_time) {
+      const phaseStartTime = new Date(gameState.phase_start_time).getTime();
+      const totalDuration = gameState.status === 'betting' ? 60 : 3; // betting 60秒，result 3秒
+      endsAt = phaseStartTime + totalDuration * 1000;
+      
+      const currentTime = Date.now();
+      const elapsedSeconds = Math.floor((currentTime - phaseStartTime) / 1000);
+      realCountdownSeconds = Math.max(0, totalDuration - elapsedSeconds);
+      
+      console.log(`⏰ 倒數計算: 階段=${gameState.status}, 結束時間=${new Date(endsAt).toISOString()}, 真實倒數=${realCountdownSeconds}秒`);
+    } else {
+      console.warn('⚠️ 缺少 phase_start_time，使用數據庫倒數秒數');
+    }
+    
     const gameData = {
       currentPeriod: gameState.current_period,
-      countdownSeconds: gameState.countdown_seconds,
+      countdownSeconds: realCountdownSeconds,
+      endsAt: endsAt,
       lastResult: last_result,
       status: gameState.status
     };

@@ -3981,6 +3981,7 @@
                     currentPeriod: '',
                     nextPeriod: '',
                     countdownSeconds: 0,
+                    endsAt: null, // 階段結束時間戳
                     
                     // 開獎結果
                     lastResult: [],
@@ -4151,10 +4152,11 @@
             methods: {
                 // 初始化倒計時功能
                 initCountdown() {
-                    // 每秒更新倒計時
+                    // 每秒更新倒計時，使用絕對時間計算
                     this.countdownTimer = setInterval(() => {
-                        if (this.countdownSeconds > 0) {
-                            this.countdownSeconds--;
+                        if (this.endsAt) {
+                            const remainingTime = Math.max(0, Math.floor((this.endsAt - Date.now()) / 1000));
+                            this.countdownSeconds = remainingTime;
                             this.updateCountdownDisplay();
                         }
                     }, 1000);
@@ -4305,13 +4307,29 @@
                     fetch(`${this.API_BASE_URL}/api/game-data`)
                         .then(response => response.json())
                         .then(data => {
-                            // 直接使用服務器的倒計時，不做本地遞減
-                            this.countdownSeconds = data.gameData.countdownSeconds;
-                            this.currentPeriod = data.gameData.currentPeriod;
+                            const newPeriod = data.gameData.currentPeriod;
+                            const newEndsAt = data.gameData.endsAt;
+                            
+                            // 智能同步：當期數變了，或新的結束時間比目前時間提前超過1秒時才更新
+                            if (newPeriod !== this.currentPeriod || 
+                                (newEndsAt && (!this.endsAt || newEndsAt < this.endsAt - 1000))) {
+                                
+                                console.log(`🔄 同步遊戲狀態: 期數=${newPeriod}, 結束時間=${new Date(newEndsAt).toISOString()}`);
+                                
+                                this.currentPeriod = newPeriod;
+                                this.endsAt = newEndsAt;
+                                
+                                // 使用絕對時間計算當前倒數
+                                if (this.endsAt) {
+                                    this.countdownSeconds = Math.max(0, Math.floor((this.endsAt - Date.now()) / 1000));
+                                } else {
+                                    this.countdownSeconds = data.gameData.countdownSeconds;
+                                }
+                            }
+                            
                             this.lastResult = data.gameData.lastResult;
                             this.lastResults = data.gameData.lastResult;
-                            
-                            this.nextPeriod = (parseInt(data.gameData.currentPeriod) + 1).toString();
+                            this.nextPeriod = (parseInt(newPeriod) + 1).toString();
                             
                             const previousStatus = this.gameStatus;
                             this.gameStatus = data.gameData.status;
