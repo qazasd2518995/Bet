@@ -817,7 +817,18 @@ async function startGameCycle() {
                 const newResult = await generateSmartRaceResult(memoryGameState.current_period);
                 
                 // 將結果添加到歷史記錄
-                await GameModel.addResult(memoryGameState.current_period, newResult);
+                const addResultResponse = await GameModel.addResult(memoryGameState.current_period, newResult);
+                
+                // 檢查是否為重複期號，如果是則強制遞增期號
+                if (addResultResponse && addResultResponse.isDuplicate) {
+                  console.log(`🔄 檢測到重複期號 ${memoryGameState.current_period}，強制遞增到下一期`);
+                  // 強制遞增期號，避免卡住
+                  const nextPeriod = getNextPeriod(memoryGameState.current_period);
+                  memoryGameState.current_period = nextPeriod;
+                  console.log(`🔄 強制更新期號為: ${memoryGameState.current_period}`);
+                } else {
+                  console.log(`✅ 期號 ${memoryGameState.current_period} 開獎結果已成功保存`);
+                }
                 
                 // 立即同步到代理系統
                 await syncToAgentSystem(memoryGameState.current_period, newResult);
@@ -825,7 +836,7 @@ async function startGameCycle() {
                 // 結算注單
                 await settleBets(memoryGameState.current_period, newResult);
                 
-                // 更新期數和內存狀態 - 智能期號管理
+                // 更新期數和內存狀態 - 智能期號管理（確保期號正確遞增）
                 const newPeriod = getNextPeriod(memoryGameState.current_period);
                 memoryGameState.current_period = newPeriod;
                 memoryGameState.countdown_seconds = 60;

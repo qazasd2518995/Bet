@@ -251,6 +251,19 @@
             50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
         }
         
+        /* 洗球動畫效果 */
+        @keyframes ballShake {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            25% { transform: translateY(-5px) rotate(5deg) scale(1.1); }
+            50% { transform: translateY(5px) rotate(-5deg) scale(1.05); }
+            75% { transform: translateY(-3px) rotate(3deg) scale(1.1); }
+        }
+        
+        @keyframes containerGlow {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); }
+        }
+        
         /* 🎭 開獎完成慶祝效果 */
         .celebration-overlay {
             position: absolute;
@@ -3437,7 +3450,7 @@
                         </div>
                         <div class="controls-container">
                             <button class="draw-animation-btn-standalone" @click="toggleAnimation">
-                                {{ gameStatus === 'betting' ? (isAnimationEnabled ? '🎬 開獎動畫 開' : '🎬 開獎動畫 關') : (isAnimationEnabled ? '🎬 動畫播放中' : '🎬 僅顯示結果') }}
+                                {{ gameStatus === 'betting' ? '🎬 賽車動畫' : '🏁 播放賽車' }}
                             </button>
                             <div class="countdown-section" :class="gameStatus">
                                 <div class="countdown-inline">
@@ -4616,10 +4629,9 @@
                                 this.countdownSeconds = serverCountdown;
                                 
                                 if (serverStatus === 'drawing' && previousStatus === 'betting') {
-                                    console.log('🎬 狀態變更為開獎中，播放開獎動畫');
-                                    setTimeout(() => {
-                                        this.playDrawAnimation();
-                                    }, 100);
+                                    console.log('🎬 狀態變更為開獎中，播放簡單洗球動畫');
+                                    // 只播放洗球動畫，不替換主畫面彩球
+                                    this.playSimpleDrawEffect();
                                     this.updateHistoryRecords();
                                 } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
                                     console.log('✅ 開獎完成，更新餘額和注單');
@@ -5543,65 +5555,97 @@
                         return;
                     }
                     
-                    this.isAnimationEnabled = !this.isAnimationEnabled;
-                    console.log(`🎬 動畫${this.isAnimationEnabled ? '開啟' : '關閉'}`);
-                    
-                    // 如果剛開啟動畫且有結果數據，立即播放
-                    if (this.isAnimationEnabled && this.lastResults && this.lastResults.length > 0) {
-                        console.log('✨ 動畫已開啟且有結果數據，立即播放動畫');
-                        setTimeout(() => {
-                            this.playDrawAnimation();
-                        }, 100);
+                    // 如果有結果數據，直接播放賽車動畫
+                    if (this.lastResults && this.lastResults.length > 0) {
+                        console.log('🏁 手動觸發賽車動畫播放');
+                        this.playRaceAnimation();
+                    } else {
+                        this.displayNotification('🎯 暫無開獎結果，無法播放動畫');
                     }
                 },
-                // 🎊 增強版開獎動畫系統
-                playDrawAnimation() {
-                    console.log('🎬 嘗試播放開獎動畫，當前狀態:', this.gameStatus);
-                    console.log('📊 開獎結果數據:', this.lastResults);
-                    console.log('🎮 動畫開關狀態:', this.isAnimationEnabled);
+                // 🎲 簡單的洗球動畫效果（開獎時自動播放）
+                playSimpleDrawEffect() {
+                    console.log('🎲 播放簡單洗球動畫效果');
                     
-                    // 檢查遊戲狀態或最近的結果數據
-                    if (this.gameStatus !== 'drawing' && (!this.lastResults || this.lastResults.length === 0)) {
-                        console.log('❌ 遊戲狀態不是drawing且沒有結果數據，跳過動畫');
+                    // 找到主畫面的結果球
+                    const resultBalls = document.querySelectorAll('.results-display .number-ball');
+                    if (resultBalls.length === 0) {
+                        console.log('❌ 找不到結果球，跳過洗球動畫');
                         return;
                     }
                     
-                    // 如果有結果數據但狀態不是drawing，仍然允許播放動畫（用於手動觸發）
-                    if (!this.lastResults || this.lastResults.length === 0) {
-                        console.log('❌ 沒有開獎結果數據，跳過動畫');
-                        return;
-                    }
+                    // 播放洗球音效
+                    this.playSound('draw');
                     
-                    // 如果動畫關閉，直接顯示結果球
-                    if (!this.isAnimationEnabled) {
-                        console.log(' 動畫已關閉，直接顯示開獎結果');
+                    // 為每個球添加洗球動畫
+                    resultBalls.forEach((ball, index) => {
                         setTimeout(() => {
-                            const resultContainer = document.querySelector('.results-display-new') || document.querySelector('.race-result');
-                            if (resultContainer) {
-                                this.showEnhancedNumberBalls(resultContainer);
-                            }
-                        }, 500);
+                            // 添加洗球動畫類
+                            ball.style.animation = 'ballShake 0.8s ease-in-out';
+                            ball.style.transform = 'scale(1.1)';
+                            ball.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.5)';
+                            
+                            // 動畫結束後恢復
+                            setTimeout(() => {
+                                ball.style.animation = '';
+                                ball.style.transform = '';
+                                ball.style.boxShadow = '';
+                            }, 800);
+                        }, index * 100); // 每個球延遲100ms
+                    });
+                    
+                    // 添加整體閃爍效果
+                    const resultContainer = document.querySelector('.results-display');
+                    if (resultContainer) {
+                        resultContainer.style.animation = 'containerGlow 2s ease-in-out';
+                        setTimeout(() => {
+                            resultContainer.style.animation = '';
+                        }, 2000);
+                    }
+                },
+                // 🏁 專門的賽車動畫（只在按鈕點擊時播放）
+                playRaceAnimation() {
+                    console.log('🏁 開始播放賽車動畫...');
+                    
+                    if (!this.lastResults || this.lastResults.length === 0) {
+                        console.log('❌ 沒有開獎結果數據，跳過賽車動畫');
                         return;
                     }
-                    
-                    console.log(' 開始播放增強版開獎動畫...');
                     
                     // 播放開獎音效
                     this.playSound('draw');
                     
-                    // 獲取結果容器（優先使用race-result，如果不存在則使用results-display-new）
-                    let resultContainer = document.querySelector('.race-result');
-                    if (!resultContainer) {
-                        resultContainer = document.querySelector('.results-display-new');
-                    }
-                    if (!resultContainer) {
-                        console.error(' 找不到結果顯示容器');
-                        return;
+                    // 創建臨時賽車動畫容器（不覆蓋主畫面結果）
+                    let raceContainer = document.querySelector('.race-animation-overlay');
+                    if (!raceContainer) {
+                        raceContainer = document.createElement('div');
+                        raceContainer.className = 'race-animation-overlay';
+                        raceContainer.style.cssText = `
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.8);
+                            z-index: 10000;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        `;
+                        document.body.appendChild(raceContainer);
                     }
                     
                     // 清空現有內容並創建動畫容器
                     const animationContainer = document.createElement('div');
                     animationContainer.className = 'race-animation-container';
+                    animationContainer.style.cssText = `
+                        width: 80%;
+                        height: 60%;
+                        background: linear-gradient(135deg, #1e3c72, #2a5298);
+                        border-radius: 15px;
+                        position: relative;
+                        overflow: hidden;
+                    `;
                     
                     // 添加跑道軌道線
                     const trackLines = document.createElement('div');
@@ -5639,8 +5683,28 @@
                     }
                     
                     // 顯示動畫容器
-                    resultContainer.innerHTML = '';
-                    resultContainer.appendChild(animationContainer);
+                    raceContainer.innerHTML = '';
+                    raceContainer.appendChild(animationContainer);
+                    
+                    // 添加關閉按鈕
+                    const closeBtn = document.createElement('button');
+                    closeBtn.innerHTML = '✕ 關閉';
+                    closeBtn.style.cssText = `
+                        position: absolute;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: none;
+                        padding: 10px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        z-index: 10001;
+                    `;
+                    closeBtn.onclick = () => {
+                        raceContainer.remove();
+                    };
+                    animationContainer.appendChild(closeBtn);
                     
                     // 開始粒子效果
                     this.startParticleEffect(particlesContainer);
@@ -5658,10 +5722,10 @@
                                 // 添加慶祝效果
                                 this.addCelebrationEffect(animationContainer);
                                 
-                                // 顯示結果球
+                                // 5秒後自動關閉賽車動畫
                                 setTimeout(() => {
-                                    this.showEnhancedNumberBalls(resultContainer);
-                                }, 800);
+                                    raceContainer.remove();
+                                }, 5000);
                             }, 500);
                         });
                     }, 1000);

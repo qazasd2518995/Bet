@@ -59,22 +59,28 @@ const GameModel = {
     }
   },
   
-  // 添加新的開獎結果 - 增強重複檢查和錯誤處理
+  // 添加新的開獎結果 - 修正重複期號導致卡住的問題
   async addResult(period, result) {
     try {
+      console.log(`🎲 嘗試添加開獎結果: 期號=${period}, 結果=${JSON.stringify(result)}`);
+      
       // 先檢查該期號是否已存在
       const existing = await db.oneOrNone(`
         SELECT period, result FROM result_history WHERE period = $1
       `, [period]);
       
       if (existing) {
-        console.log(`⚠️ 期號 ${period} 的開獎結果已存在，跳過插入`);
-        return existing;
+        console.log(`⚠️ 期號 ${period} 的開獎結果已存在，返回現有結果`);
+        // 重要：不要阻止程序繼續，讓調用者知道這個期號已經處理過
+        return {
+          ...existing,
+          isDuplicate: true // 標記為重複期號
+        };
       }
       
       // 嘗試使用INSERT ... ON CONFLICT來處理併發情況
       try {
-        return await db.one(`
+        const insertedResult = await db.one(`
           INSERT INTO result_history (period, result) 
           VALUES ($1, $2) 
           ON CONFLICT (period) DO UPDATE SET
@@ -82,26 +88,40 @@ const GameModel = {
             created_at = EXCLUDED.created_at
           RETURNING *
         `, [period, JSON.stringify(result)]);
+        
+        console.log(`✅ 成功添加期號 ${period} 的開獎結果`);
+        return insertedResult;
       } catch (onConflictError) {
         // 如果ON CONFLICT失敗（約束不存在），使用普通INSERT
         if (onConflictError.code === '42P10') {
           console.log(`⚠️ 約束不存在，使用普通INSERT插入期號 ${period}`);
-          return await db.one(`
+          const insertedResult = await db.one(`
             INSERT INTO result_history (period, result) 
             VALUES ($1, $2) 
             RETURNING *
           `, [period, JSON.stringify(result)]);
+          
+          console.log(`✅ 成功添加期號 ${period} 的開獎結果（普通INSERT）`);
+          return insertedResult;
         }
         throw onConflictError;
       }
     } catch (error) {
-      // 如果是唯一約束違反，再次檢查是否已存在
+      // 如果是唯一約束違反，不要返回null，而是重新檢查
       if (error.code === '23505') {
-        console.log(`⚠️ 期號 ${period} 的開獎結果已存在，跳過插入`);
-        return await db.oneOrNone(`
+        console.log(`⚠️ 唯一約束違反，期號 ${period} 可能已被其他進程插入`);
+        const existing = await db.oneOrNone(`
           SELECT period, result FROM result_history WHERE period = $1
         `, [period]);
+        
+        if (existing) {
+          return {
+            ...existing,
+            isDuplicate: true
+          };
+        }
       }
+      
       console.error('添加開獎結果出錯:', error);
       throw error;
     }
