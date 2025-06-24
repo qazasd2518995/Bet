@@ -1,27 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-tw">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>極速賽車 - 登入</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-    <script>
-        // 登入檢查處理
-        document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-            const username = sessionStorage.getItem('username');
-
-            if (isLoggedIn && username) {
-                // 已登入，直接跳轉到首頁
-                window.location.href = 'index.html';
-            }
-        });
-    </script>
+    <title>極速賽車 - 會員登入</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <style>
         * {
             margin: 0;
@@ -34,59 +17,65 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            color: #333;
+            align-items: center;
+            padding: 20px;
         }
 
         .login-container {
             background: rgba(255, 255, 255, 0.95);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 400px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 40px;
             width: 100%;
-            margin: 20px;
+            max-width: 420px;
+            text-align: center;
         }
 
-        .login-header {
-            text-align: center;
+        .logo {
             margin-bottom: 30px;
         }
 
-        .login-title {
+        .logo h1 {
+            color: #333;
             font-size: 28px;
             font-weight: 700;
-            color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
-        .login-subtitle {
+        .logo p {
             color: #666;
             font-size: 14px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .form-label {
+        .form-group {
+            position: relative;
+            text-align: left;
+        }
+
+        .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
             color: #333;
+            font-weight: 500;
+            font-size: 14px;
         }
 
         .form-input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e8ed;
-            border-radius: 10px;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
             font-size: 16px;
             transition: all 0.3s ease;
-            background: white;
+            background: #fff;
         }
 
         .form-input:focus {
@@ -95,229 +84,424 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .login-button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
+        .captcha-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .captcha-input {
+            flex: 1;
+        }
+
+        .captcha-display {
+            width: 120px;
+            height: 50px;
+            background: linear-gradient(45deg, #f0f2f5, #e8eaf0);
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .captcha-display:hover {
+            background: linear-gradient(45deg, #e8eaf0, #dde0e8);
+            transform: translateY(-1px);
+        }
+
+        .refresh-btn {
+            padding: 12px;
+            background: #667eea;
             color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 20px;
+            margin-top: 10px;
         }
 
-        .login-button:hover {
+        .login-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
         }
 
-        .login-button:disabled {
-            opacity: 0.6;
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            background: #ccc;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
 
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #ff4757;
-            color: white;
-            padding: 15px 20px;
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(231, 76, 60, 0.1);
             border-radius: 8px;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            z-index: 1000;
+            border-left: 4px solid #e74c3c;
         }
 
-        .notification.visible {
-            transform: translateX(0);
+        .loading {
+            display: none;
+            margin-top: 10px;
         }
 
-        .notification.success {
-            background: #2ed573;
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .remember-me input {
+            width: auto;
+            margin: 0;
         }
 
         .footer-links {
-            text-align: center;
-            color: #666;
-            font-size: 14px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
         }
 
         .footer-links a {
             color: #667eea;
             text-decoration: none;
+            font-size: 14px;
+            margin: 0 10px;
         }
 
         .footer-links a:hover {
             text-decoration: underline;
         }
 
+        /* 響應式設計 */
         @media (max-width: 480px) {
             .login-container {
                 padding: 30px 20px;
                 margin: 10px;
             }
+            
+            .logo h1 {
+                font-size: 24px;
+            }
+            
+            .captcha-group {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .captcha-display {
+                width: 100%;
+                height: 45px;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <div class="login-container">
-            <div class="login-header">
-                <h1 class="login-title">極速賽車</h1>
-                <p class="login-subtitle">請登入您的帳戶</p>
-            </div>
-
-            <form @submit.prevent="login">
-                <div class="form-group">
-                    <label class="form-label">帳號</label>
-                    <input 
-                        type="text" 
-                        class="form-input" 
-                        v-model="loginForm.username"
-                        placeholder="請輸入帳號"
-                        required
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">密碼</label>
-                    <input 
-                        type="password" 
-                        class="form-input" 
-                        v-model="loginForm.password"
-                        placeholder="請輸入密碼"
-                        required
-                    >
-                </div>
-
-                <button type="submit" class="login-button" :disabled="isLogging">
-                    {{ isLogging ? '登入中...' : '登入' }}
-                </button>
-            </form>
-
-            <div class="footer-links">
-                <p>遇到問題？<a href="#">聯繫客服</a></p>
-            </div>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🏁 極速賽車</h1>
+            <p>會員登入系統</p>
         </div>
 
-        <!-- 通知元素 -->
-        <div class="notification" :class="{visible: notificationVisible, success: notificationSuccess}">
-            {{ notificationText }}
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="username">會員帳號</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="請輸入您的會員帳號"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">登入密碼</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="請輸入您的密碼"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="captcha">驗證碼</label>
+                <div class="captcha-group">
+                    <input 
+                        type="text" 
+                        id="captcha" 
+                        name="captcha" 
+                        class="form-input captcha-input" 
+                        placeholder="請輸入驗證碼"
+                        required
+                        maxlength="4"
+                    >
+                    <div class="captcha-display" id="captchaDisplay" onclick="refreshCaptcha()">
+                        <!-- 驗證碼將通過JavaScript生成 -->
+                    </div>
+                    <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理驗證碼">
+                        🔄
+                    </button>
+                </div>
+            </div>
+
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <label for="rememberMe">記住我的登入狀態</label>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                立即登入
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <span>登入中，請稍候...</span>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </form>
+
+        <div class="footer-links">
+            <a href="#" onclick="showContactInfo()">聯繫客服</a>
+            <a href="#" onclick="showHelp()">使用說明</a>
         </div>
     </div>
 
     <script>
-        new Vue({
-            el: '#app',
-            data() {
-                return {
-                    API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                        ? 'http://localhost:3002' 
-                        : '',
-                    loginForm: {
-                        username: '',
-                        password: ''
+        // 當前驗證碼答案
+        let currentCaptcha = '';
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshCaptcha();
+            checkRememberedUser();
+            
+            // 綁定表單提交事件
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            
+            // 綁定Enter鍵登入
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleLogin(e);
+                }
+            });
+        });
+
+        // 生成驗證碼
+        function generateCaptcha() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 4; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // 刷新驗證碼
+        function refreshCaptcha() {
+            currentCaptcha = generateCaptcha();
+            document.getElementById('captchaDisplay').textContent = currentCaptcha;
+            document.getElementById('captcha').value = '';
+        }
+
+        // 檢查記住的用戶
+        function checkRememberedUser() {
+            const rememberedUser = localStorage.getItem('rememberedUser');
+            if (rememberedUser) {
+                document.getElementById('username').value = rememberedUser;
+                document.getElementById('rememberMe').checked = true;
+            }
+        }
+
+        // API基礎URL配置
+        const API_BASE_URL = window.location.origin;
+        
+        // 處理登入
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const captcha = document.getElementById('captcha').value.trim().toUpperCase();
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            // 重置錯誤訊息
+            hideError();
+            
+            // 驗證表單
+            if (!username || !password || !captcha) {
+                showError('請填寫完整的登入資訊');
+                return;
+            }
+            
+            // 驗證驗證碼
+            if (captcha !== currentCaptcha) {
+                showError('驗證碼輸入錯誤，請重新輸入');
+                refreshCaptcha();
+                return;
+            }
+            
+            // 顯示載入狀態
+            showLoading();
+            
+            try {
+                // 發送登入請求
+                const response = await fetch(`${API_BASE_URL}/api/member/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
                     },
-                    isLogging: false,
-                    notificationVisible: false,
-                    notificationText: '',
-                    notificationSuccess: false
-                };
-            },
-            mounted() {
-                this.checkLoginStatus();
-            },
-            methods: {
-                checkLoginStatus() {
-                    const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-                    const username = sessionStorage.getItem('username');
-                    
-                    if (isLoggedIn && username) {
-                        // 已登入，跳轉到首頁
-                        window.location.href = 'index.html';
-                    }
-                },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
                 
-                showNotification(text, isSuccess = false) {
-                    this.notificationText = text;
-                    this.notificationSuccess = isSuccess;
-                    this.notificationVisible = true;
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 登入成功
+                    if (rememberMe) {
+                        localStorage.setItem('rememberedUser', username);
+                    } else {
+                        localStorage.removeItem('rememberedUser');
+                    }
+                    
+                    // 儲存登入資訊到sessionStorage
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('username', data.member.username);
+                    sessionStorage.setItem('memberId', data.member.id);
+                    sessionStorage.setItem('balance', data.member.balance || 0);
+                    sessionStorage.setItem('agentId', data.member.agent_id || '');
+                    
+                    // 顯示成功訊息並跳轉
+                    showSuccess('登入成功，正在跳轉到遊戲...');
                     
                     setTimeout(() => {
-                        this.notificationVisible = false;
-                    }, 3000);
-                },
-
-                login() {
-                    if (!this.loginForm.username || !this.loginForm.password) {
-                        this.showNotification('請輸入帳號和密碼');
-                        return;
-                    }
+                        window.location.href = 'index.html';
+                    }, 1000);
                     
-                    this.isLogging = true;
-                    
-                    fetch(`${this.API_BASE_URL}/api/member/login`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            username: this.loginForm.username,
-                            password: this.loginForm.password
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('登入失敗，請檢查帳號和密碼');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            // 存儲登入狀態和用戶信息
-                            sessionStorage.setItem('isLoggedIn', 'true');
-                            sessionStorage.setItem('username', data.member?.username || this.loginForm.username);
-                            sessionStorage.setItem('memberId', data.member?.id || '');
-                            sessionStorage.setItem('balance', data.member?.balance || 0);
-                            
-                            // 如果後端返回token，存儲它
-                            if (data.token) {
-                                sessionStorage.setItem('token', data.token);
-                            }
-                            
-                            this.showNotification('登入成功！', true);
-                            
-                            // 短暫延遲後跳轉
-                            setTimeout(() => {
-                                window.location.href = 'index.html';
-                            }, 1000);
-                        } else {
-                            throw new Error(data.message || '登入失敗，請檢查帳號和密碼');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('登入錯誤:', error);
-                        this.showNotification(error.message || '登入失敗，請稍後再試');
-                        
-                        // 清除可能存在的登入狀態
-                        sessionStorage.removeItem('isLoggedIn');
-                        sessionStorage.removeItem('username');
-                        sessionStorage.removeItem('memberId');
-                        sessionStorage.removeItem('balance');
-                        sessionStorage.removeItem('token');
-                    })
-                    .finally(() => {
-                        this.isLogging = false;
-                    });
+                } else {
+                    // 登入失敗
+                    showError(data.message || '登入失敗，請檢查帳號密碼');
+                    refreshCaptcha();
                 }
+                
+            } catch (error) {
+                console.error('登入請求失敗:', error);
+                showError('網路連線錯誤，請稍後再試');
+                refreshCaptcha();
+            } finally {
+                hideLoading();
             }
-        });
+        }
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.style.background = 'rgba(231, 76, 60, 0.1)';
+            errorDiv.style.color = '#e74c3c';
+            errorDiv.style.borderLeft = '4px solid #e74c3c';
+        }
+
+        // 顯示成功訊息
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.style.background = 'rgba(39, 174, 96, 0.1)';
+            errorDiv.style.color = '#27ae60';
+            errorDiv.style.borderLeft = '4px solid #27ae60';
+        }
+
+        // 隱藏錯誤訊息
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // 顯示載入狀態
+        function showLoading() {
+            document.getElementById('loginBtn').disabled = true;
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        // 隱藏載入狀態
+        function hideLoading() {
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // 顯示聯繫資訊
+        function showContactInfo() {
+            alert('客服聯繫方式：\n\nQQ: 123456789\nWeChat: customer_service\nTelegram: @customer_support\n\n服務時間：24小時全天候服務');
+        }
+
+        // 顯示使用說明
+        function showHelp() {
+            alert('使用說明：\n\n1. 請使用代理為您開設的會員帳號登入\n2. 首次登入請聯繫代理商獲取密碼\n3. 如遇登入問題請聯繫客服\n4. 請妥善保管您的帳號密碼');
+        }
     </script>
 </body>
-</html>
+</html> 
