@@ -4607,7 +4607,7 @@
                 },
                 updateGameData() {
                     console.log('開始獲取遊戲數據...');
-                    fetch(`${this.API_BASE_URL}/api/game-data`)
+                    return fetch(`${this.API_BASE_URL}/api/game-data`)
                         .then(response => response.json())
                         .then(data => {
                             const serverCountdown = data.gameData.countdownSeconds;
@@ -4664,6 +4664,7 @@
                         })
                         .catch(error => {
                             console.error('獲取遊戲數據失敗:', error);
+                            throw error; // 重新拋出錯誤以便調用者處理
                         });
                 },
                 updateBalance() {
