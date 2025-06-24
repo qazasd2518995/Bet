@@ -3657,6 +3657,134 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
   }
 });
 
+// 獲取下級代理列表API - 修復404錯誤
+app.get(`${API_PREFIX}/downline-agents`, async (req, res) => {
+  try {
+    const { rootAgentId } = req.query;
+    
+    console.log(`📡 獲取下級代理API: rootAgentId=${rootAgentId}`);
+    
+    if (!rootAgentId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數：rootAgentId'
+      });
+    }
+    
+    // 遞歸獲取所有下級代理
+    const agents = await getAllDownlineAgents(rootAgentId);
+    
+    res.json({
+      success: true,
+      agents: agents,
+      total: agents.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 獲取下級代理錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取下級代理失敗',
+      error: error.message
+    });
+  }
+});
+
+// 獲取整條代理線會員API - 修復404錯誤  
+app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
+  try {
+    const { rootAgentId } = req.query;
+    
+    console.log(`📡 獲取整條代理線會員API: rootAgentId=${rootAgentId}`);
+    
+    if (!rootAgentId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數：rootAgentId'
+      });
+    }
+    
+    // 首先獲取所有下級代理ID
+    const downlineAgents = await getAllDownlineAgents(rootAgentId);
+    const allAgentIds = [rootAgentId, ...downlineAgents.map(agent => agent.id)];
+    
+    // 獲取所有這些代理的會員
+    let allMembers = [];
+    for (const agentId of allAgentIds) {
+      const members = await MemberModel.findByAgentId(agentId, null, 1, 1000);
+      allMembers = allMembers.concat(members.map(member => ({
+        ...member,
+        agentId: agentId,
+        agentUsername: downlineAgents.find(a => a.id === agentId)?.username || 'unknown'
+      })));
+    }
+    
+    res.json({
+      success: true,
+      members: allMembers,
+      total: allMembers.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 獲取整條代理線會員錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取會員列表失敗',
+      error: error.message
+    });
+  }
+});
+
+// 獲取指定代理的會員API
+app.get(`${API_PREFIX}/agent-members`, async (req, res) => {
+  try {
+    const { agentId } = req.query;
+    
+    console.log(`📡 獲取指定代理會員API: agentId=${agentId}`);
+    
+    if (!agentId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數：agentId'
+      });
+    }
+    
+    const members = await MemberModel.findByAgentId(agentId, null, 1, 1000);
+    
+    res.json({
+      success: true,
+      members: members,
+      total: members.length
+    });
+    
+  } catch (error) {
+    console.error('❌ 獲取指定代理會員錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取會員列表失敗',
+      error: error.message
+    });
+  }
+});
+
+// 遞歸獲取所有下級代理的輔助函數
+async function getAllDownlineAgents(rootAgentId) {
+  const allAgents = [];
+  
+  // 獲取直接下級代理
+  const directSubAgents = await AgentModel.findByParentId(rootAgentId, null, null, 1, 1000);
+  
+  for (const agent of directSubAgents) {
+    allAgents.push(agent);
+    
+    // 遞歸獲取該代理的下級代理
+    const subAgents = await getAllDownlineAgents(agent.id);
+    allAgents.push(...subAgents);
+  }
+  
+  return allAgents;
+}
+
 // 定期同步開獎記錄的函數
 async function syncDrawRecords() {
   try {
