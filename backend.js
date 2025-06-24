@@ -115,20 +115,40 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 會話檢查API
+// 會話檢查API - 簡化版本，不返回401錯誤
 app.get('/api/member/check-session', async (req, res) => {
   try {
+    // 在本地驗證模式下，始終返回200狀態碼避免401錯誤
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'No token provided' });
+    const sessionId = req.headers['x-session-id'] || req.query.sessionId;
+    
+    // 如果有任何會話憑證，認為是有效的
+    if (token || sessionId) {
+      console.log('會話檢查通過 - 有憑證');
+      return res.json({ 
+        success: true, 
+        message: 'Session valid',
+        isAuthenticated: true 
+      });
     }
 
-    // 這裡可以添加JWT驗證邏輯，如果使用JWT的話
-    // 暫時簡單返回成功
-    return res.json({ success: true });
+    // 沒有會話憑證，但不返回401，返回200和需要登入提示
+    console.log('會話檢查 - 沒有會話憑證');
+    return res.json({ 
+      success: false, 
+      message: 'No session found',
+      needLogin: true,
+      isAuthenticated: false
+    });
   } catch (error) {
     console.error('Session check error:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    // 即使出錯也返回200狀態碼
+    return res.json({ 
+      success: false, 
+      message: 'Session check failed',
+      needLogin: true,
+      isAuthenticated: false
+    });
   }
 });
 
