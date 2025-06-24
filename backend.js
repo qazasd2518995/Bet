@@ -1052,7 +1052,7 @@ function generateWeightedResult(weights, attempts = 0) {
   // 如果和值權重較低(說明這個和值有大額下注)，並且機率檢測通過，且未達到最大嘗試次數
   if (sumWeight < 0.5 && Math.random() < CONTROL_PARAMS.adjustmentFactor && attempts < MAX_ATTEMPTS) {
     console.log(`檢測到和值${sumValue}有大額下注，嘗試重新生成冠亞軍 (第${attempts + 1}次嘗試)`);
-    return generateWeightedResult(weights, attempts + 1); // 遞歸嘗試重新生成
+    return generateWeightedResult(weights, attempts + 1); // 修復：正確傳遞attempts計數
   }
   
   // 如果達到最大嘗試次數，記錄警告但接受當前結果
@@ -1183,6 +1183,9 @@ async function settleBets(period, winResult) {
       // 如果贏了，直接增加會員餘額（不從代理扣除）
       if (isWin) {
         try {
+          // 獲取當前餘額用於日誌記錄
+          const currentBalance = await getBalance(username);
+          
           // 原子性增加會員餘額（解決並發安全問題）
           const newBalance = await UserModel.addBalance(username, parseFloat(winAmount));
           
@@ -1255,20 +1258,19 @@ async function distributeRebate(username, betAmount) {
       }
       
       if (agent.rebate_mode === 'all') {
-        // 全拿模式：該代理拿走所有剩餘退水
+        // 全拿模式：該代理拿走所有剩餘退水（不需要安全截斷）
         agentRebateAmount = remainingRebate;
         remainingRebate = 0;
       } else if (agent.rebate_mode === 'percentage') {
         // 比例模式：從剩餘退水中按比例分配（修復超發問題）
         agentRebateAmount = remainingRebate * parseFloat(agent.rebate_percentage);
         remainingRebate -= agentRebateAmount;
+        // 只對比例模式做安全截斷
+        agentRebateAmount = Math.max(0, Math.min(agentRebateAmount, remainingRebate + agentRebateAmount));
       } else if (agent.rebate_mode === 'none') {
         // 全退模式：該代理不拿退水，留給上級
         agentRebateAmount = 0;
       }
-      
-      // 確保不會分配負數或超過剩餘金額
-      agentRebateAmount = Math.max(0, Math.min(agentRebateAmount, remainingRebate));
       
       if (agentRebateAmount > 0) {
         // 分配退水給代理
@@ -1329,6 +1331,11 @@ async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, membe
         reason: '會員投注退水'
       })
     });
+    
+    // 檢查HTTP狀態碼
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
     
     const result = await response.json();
     if (!result.success) {
@@ -2186,16 +2193,6 @@ app.post('/api/bet', async (req, res) => {
     const odds = getOdds(betType, value);
     console.log(`下注賠率: ${odds}`);
     
-    // 獲取用戶餘額
-    const currentBalance = await getBalance(username);
-    console.log(`用戶 ${username} 當前餘額: ${currentBalance}`);
-    
-    // 檢查餘額是否足夠
-    if (currentBalance < amountNum) {
-      console.error(`下注失敗: 餘額不足 (當前: ${currentBalance}, 需要: ${amountNum})`);
-      return res.status(400).json({ success: false, message: '餘額不足' });
-    }
-    
     try {
       // 獲取總代理ID
       const adminAgent = await getAdminAgentId();
@@ -2206,8 +2203,15 @@ app.post('/api/bet', async (req, res) => {
       
       console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
-      // 原子性扣除用戶餘額（解決並發安全問題）
-      const updatedBalance = await UserModel.deductBalance(username, amountNum);
+      // 原子性扣除用戶餘額（內建餘額檢查，解決並發安全問題）
+      let updatedBalance;
+      try {
+        updatedBalance = await UserModel.deductBalance(username, amountNum);
+        console.log(`用戶 ${username} 下注 ${amountNum} 元後餘額: ${updatedBalance}`);
+      } catch (balanceError) {
+        console.error(`下注失敗: ${balanceError.message}`);
+        return res.status(400).json({ success: false, message: '餘額不足' });
+      }
       
       // 只同步餘額到代理系統（不扣代理點數）
       try {
@@ -2328,41 +2332,7 @@ function isValidBet(betType, value, position) {
   return false;
 }
 
-// 創建下注記錄
-async function createBet(username, amount, betType, value, position, period, odds) {
-  try {
-    console.log(`創建下注記錄: 用戶=${username}, 金額=${amount}, 類型=${betType}, 值=${value}, 位置=${position || 'N/A'}, 期數=${period}, 賠率=${odds}`);
-    
-    // 檢查必要值
-    if (!username || !amount || !betType || !value || !period) {
-      console.error('創建下注記錄失敗: 缺少必要參數');
-      throw new Error('缺少必要的下注參數');
-    }
-    
-    const query = `
-      INSERT INTO bet_history (username, amount, bet_type, bet_value, position, period, odds)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id
-    `;
-    
-    const params = [username, amount, betType, value, position, period, odds];
-    
-    const result = await db.one(query, params);
-    
-    // 檢查查詢結果是否有效
-    if (!result || !result.rows || result.rows.length === 0) {
-      console.error('創建下注記錄失敗: 資料庫未返回有效結果');
-      throw new Error('創建下注記錄失敗');
-    }
-    
-    const betId = result.rows[0].id;
-    console.log(`創建了一個新的下注記錄: ID=${betId}, 用戶=${username}, 期數=${period}, 賠率=${odds}`);
-    return betId;
-  } catch (error) {
-    console.error('創建下注記錄失敗:', error);
-    throw error;
-  }
-}
+// 重複的createBet函數已移除，統一使用BetModel.create
 
 // 新增: 獲取總代理ID的函數
 async function getAdminAgentId() {
@@ -2489,6 +2459,10 @@ function getOdds(betType, value) {
         const numValue = parseInt(value);
         if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
           return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));
+        } else {
+          // 無效值，返回最低賠率並記錄警告
+          console.warn(`位置投注 ${betType} 收到無效值: ${value}，返回默認賠率 1.0`);
+          return 1.0;
         }
       }
     }
