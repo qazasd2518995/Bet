@@ -73,6 +73,44 @@ const UserModel = {
     }
   },
   
+  // 原子性扣除餘額（解決並發安全問題）
+  async deductBalance(username, amount) {
+    try {
+      const result = await db.oneOrNone(`
+        UPDATE users 
+        SET balance = balance - $1 
+        WHERE username = $2 AND balance >= $1
+        RETURNING balance
+      `, [amount, username]);
+      
+      if (!result) {
+        throw new Error('餘額不足或用戶不存在');
+      }
+      
+      return result.balance;
+    } catch (error) {
+      console.error('扣除用戶餘額出錯:', error);
+      throw error;
+    }
+  },
+  
+  // 原子性增加餘額（解決並發安全問題）
+  async addBalance(username, amount) {
+    try {
+      const result = await db.one(`
+        UPDATE users 
+        SET balance = balance + $1 
+        WHERE username = $2 
+        RETURNING balance
+      `, [amount, username]);
+      
+      return result.balance;
+    } catch (error) {
+      console.error('增加用戶餘額出錯:', error);
+      throw error;
+    }
+  },
+  
   // 獲取所有用戶
   async findAll() {
     try {

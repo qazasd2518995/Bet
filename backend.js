@@ -469,6 +469,22 @@ app.post('/api/register', async (req, res) => {
     });
   }
   
+  // 用戶名格式驗證
+  if (username.length < 3 || username.length > 20) {
+    return res.status(400).json({
+      success: false,
+      message: '用戶名長度必須在3-20個字符之間'
+    });
+  }
+  
+  // 密碼強度驗證
+  if (password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: '密碼長度不能少於6個字符'
+    });
+  }
+  
   try {
     // 檢查用戶名是否已存在
     const existingUser = await UserModel.findByUsername(username);
@@ -485,6 +501,23 @@ app.post('/api/register', async (req, res) => {
       password,
       balance: 10000 // 新用戶初始餘額
     });
+    
+    // 嘗試同步到代理系統
+    try {
+      await fetch(`${AGENT_API_URL}/sync-new-member`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: username,
+          balance: 10000,
+          reason: '新用戶註冊'
+        })
+      });
+    } catch (syncError) {
+      console.warn('同步新用戶到代理系統失敗:', syncError);
+    }
     
     res.status(201).json({
       success: true,
@@ -987,7 +1020,8 @@ function calculateResultWeights(highBets, betStats) {
 }
 
 // 基於權重生成結果
-function generateWeightedResult(weights) {
+function generateWeightedResult(weights, attempts = 0) {
+  const MAX_ATTEMPTS = 20; // 最大嘗試次數
   const numbers = Array.from({length: 10}, (_, i) => i + 1);
   const result = [];
   let availableNumbers = [...numbers];
@@ -1015,10 +1049,15 @@ function generateWeightedResult(weights) {
   const sumValueIndex = sumValue - 3;
   const sumWeight = weights.sumValue[sumValueIndex];
   
-  // 如果和值權重較低(說明這個和值有大額下注)，並且機率檢測通過，則重新生成
-  if (sumWeight < 0.5 && Math.random() < CONTROL_PARAMS.adjustmentFactor) {
-    console.log(`檢測到和值${sumValue}有大額下注，嘗試重新生成冠亞軍`);
-    return generateWeightedResult(weights); // 遞歸嘗試重新生成
+  // 如果和值權重較低(說明這個和值有大額下注)，並且機率檢測通過，且未達到最大嘗試次數
+  if (sumWeight < 0.5 && Math.random() < CONTROL_PARAMS.adjustmentFactor && attempts < MAX_ATTEMPTS) {
+    console.log(`檢測到和值${sumValue}有大額下注，嘗試重新生成冠亞軍 (第${attempts + 1}次嘗試)`);
+    return generateWeightedResult(weights, attempts + 1); // 遞歸嘗試重新生成
+  }
+  
+  // 如果達到最大嘗試次數，記錄警告但接受當前結果
+  if (attempts >= MAX_ATTEMPTS) {
+    console.warn(`達到最大嘗試次數(${MAX_ATTEMPTS})，使用當前結果 - 和值: ${sumValue}`);
   }
   
   // 剩餘位置隨機生成
@@ -1144,12 +1183,8 @@ async function settleBets(period, winResult) {
       // 如果贏了，直接增加會員餘額（不從代理扣除）
       if (isWin) {
         try {
-          // 獲取當前餘額
-          const currentBalance = await getBalance(username);
-          const newBalance = currentBalance + parseFloat(winAmount);
-          
-          // 直接更新會員餘額（不經過代理系統的點數轉移）
-          await UserModel.setBalance(username, newBalance);
+          // 原子性增加會員餘額（解決並發安全問題）
+          const newBalance = await UserModel.addBalance(username, parseFloat(winAmount));
           
           // 只同步餘額到代理系統（不扣代理點數）
           try {
@@ -1213,13 +1248,19 @@ async function distributeRebate(username, betAmount) {
       const agent = agentChain[i];
       let agentRebateAmount = 0;
       
+      // 如果沒有剩餘退水，結束分配
+      if (remainingRebate <= 0.01) {
+        console.log(`退水已全部分配完畢`);
+        break;
+      }
+      
       if (agent.rebate_mode === 'all') {
         // 全拿模式：該代理拿走所有剩餘退水
         agentRebateAmount = remainingRebate;
         remainingRebate = 0;
       } else if (agent.rebate_mode === 'percentage') {
-        // 比例模式：按設定比例從總退水中分配
-        agentRebateAmount = totalRebateAmount * parseFloat(agent.rebate_percentage);
+        // 比例模式：從剩餘退水中按比例分配（修復超發問題）
+        agentRebateAmount = remainingRebate * parseFloat(agent.rebate_percentage);
         remainingRebate -= agentRebateAmount;
       } else if (agent.rebate_mode === 'none') {
         // 全退模式：該代理不拿退水，留給上級
@@ -1232,7 +1273,7 @@ async function distributeRebate(username, betAmount) {
       if (agentRebateAmount > 0) {
         // 分配退水給代理
         await allocateRebateToAgent(agent.id, agent.username, agentRebateAmount, username, betAmount);
-        console.log(`分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username}`);
+        console.log(`分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username} (剩餘: ${remainingRebate.toFixed(2)})`);
         
         // 如果是全拿模式，直接結束分配
         if (agent.rebate_mode === 'all') {
@@ -1775,7 +1816,7 @@ function calculateWinAmount(bet, winResult) {
         break;
         
       case 'champion':
-        // 冠軍大小單雙
+        // 冠軍投注
         if (bet.bet_value === 'big' && champion > 5) {
           return Math.floor(amount * betOdds * 100) / 100;
         } else if (bet.bet_value === 'small' && champion <= 5) {
@@ -1784,11 +1825,14 @@ function calculateWinAmount(bet, winResult) {
           return Math.floor(amount * betOdds * 100) / 100;
         } else if (bet.bet_value === 'even' && champion % 2 === 0) {
           return Math.floor(amount * betOdds * 100) / 100;
+        } else if (!isNaN(parseInt(bet.bet_value)) && parseInt(bet.bet_value) === champion) {
+          // 指定號碼投注
+          return Math.floor(amount * betOdds * 100) / 100;
         }
         break;
         
       case 'runnerup':
-        // 亞軍大小單雙
+        // 亞軍投注
         if (bet.bet_value === 'big' && runnerup > 5) {
           return Math.floor(amount * betOdds * 100) / 100;
         } else if (bet.bet_value === 'small' && runnerup <= 5) {
@@ -1796,6 +1840,9 @@ function calculateWinAmount(bet, winResult) {
         } else if (bet.bet_value === 'odd' && runnerup % 2 === 1) {
           return Math.floor(amount * betOdds * 100) / 100;
         } else if (bet.bet_value === 'even' && runnerup % 2 === 0) {
+          return Math.floor(amount * betOdds * 100) / 100;
+        } else if (!isNaN(parseInt(bet.bet_value)) && parseInt(bet.bet_value) === runnerup) {
+          // 指定號碼投注
           return Math.floor(amount * betOdds * 100) / 100;
         }
         break;
@@ -1828,6 +1875,9 @@ function calculateWinAmount(bet, winResult) {
           } else if (bet.bet_value === 'odd' && ballValue % 2 === 1) {
             return Math.floor(amount * betOdds * 100) / 100;
           } else if (bet.bet_value === 'even' && ballValue % 2 === 0) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (!isNaN(parseInt(bet.bet_value)) && parseInt(bet.bet_value) === ballValue) {
+            // 指定號碼投注
             return Math.floor(amount * betOdds * 100) / 100;
           }
         }
@@ -2094,55 +2144,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 用戶註冊
-app.post('/api/register', async (req, res) => {
-  const { username, password, confirmPassword } = req.body;
-  
-  // 基本驗證
-  if (!username || !password) {
-    return res.status(400).json({
-      success: false,
-      message: '帳號和密碼不能為空'
-    });
-  }
-  
-  if (password !== confirmPassword) {
-    return res.status(400).json({
-      success: false,
-      message: '兩次輸入的密碼不一致'
-    });
-  }
-  
-  try {
-    // 檢查用戶名是否已存在
-    const existingUser = await UserModel.findByUsername(username);
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: '該帳號已被註冊'
-      });
-    }
-    
-    // 創建新用戶
-    await UserModel.createOrUpdate({
-      username,
-      password,
-      balance: 10000 // 新用戶初始餘額
-    });
-    
-    res.status(201).json({
-      success: true,
-      message: '註冊成功',
-      username: username
-    });
-  } catch (error) {
-    console.error('註冊用戶出錯:', error);
-    res.status(500).json({
-      success: false,
-      message: '註冊失敗，系統錯誤'
-    });
-  }
-});
+// 重複的register路由已移除
 
 // 更新下注處理邏輯
 app.post('/api/bet', async (req, res) => {
@@ -2204,9 +2206,8 @@ app.post('/api/bet', async (req, res) => {
       
       console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
-      // 直接扣除用戶餘額（不經過代理系統的點數轉移）
-      const updatedBalance = currentBalance - amountNum;
-      await UserModel.setBalance(username, updatedBalance);
+      // 原子性扣除用戶餘額（解決並發安全問題）
+      const updatedBalance = await UserModel.deductBalance(username, amountNum);
       
       // 只同步餘額到代理系統（不扣代理點數）
       try {
@@ -2247,7 +2248,7 @@ app.post('/api/bet', async (req, res) => {
       } catch (dbError) {
         console.error('創建下注記錄失敗:', dbError);
         // 如果記錄創建失敗，返還用戶餘額
-        await UserModel.setBalance(username, currentBalance);
+        await UserModel.addBalance(username, amountNum);
         return res.status(500).json({ success: false, message: `創建下注記錄失敗: ${dbError.message}` });
       }
       
@@ -2313,14 +2314,18 @@ function isValidBet(betType, value, position) {
     // 龍虎，檢查是否為龍或虎
     return value === 'dragon' || value === 'tiger';
   } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
-    // 冠軍、亞軍等位置的大小單雙
-    const validValues = ['big', 'small', 'odd', 'even'];
-    return validValues.includes(value);
-  } else {
-    // 冠軍、亞軍等位置投注，檢查是否為有效的號碼
+    // 位置投注：支援大小單雙 AND 指定號碼(1-10)
+    const validPropertyValues = ['big', 'small', 'odd', 'even'];
+    if (validPropertyValues.includes(value)) {
+      return true; // 大小單雙投注
+    }
+    
+    // 檢查是否為有效的號碼投注(1-10)
     const numValue = parseInt(value);
     return !isNaN(numValue) && numValue >= 1 && numValue <= 10;
   }
+  
+  return false;
 }
 
 // 創建下注記錄
@@ -2475,12 +2480,16 @@ function getOdds(betType, value) {
     else if (betType === 'dragonTiger') {
       return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
     } 
-    // 冠軍、亞軍等位置的大小單雙
+    // 冠軍、亞軍等位置投注
     else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙：1.96 × (1-4.1%) = 1.88
       } else {
-        return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 單號投注：10.0 × (1-4.1%) = 9.59
+        // 指定號碼投注：10.0 × (1-4.1%) = 9.59 (與單號投注相同賠率)
+        const numValue = parseInt(value);
+        if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
+          return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));
+        }
       }
     }
     
