@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('開始獲取遊戲數據...');
                 
                 // 獲取遊戲狀態
-                fetch(`${this.API_BASE_URL}/api/game/status`)
+                fetch(`${this.API_BASE_URL}/api/game-data`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 更新歷史記錄
             updateHistoryRecords() {
-                fetch(`${this.API_BASE_URL}/api/game/history?limit=20`)
+                fetch(`${this.API_BASE_URL}/api/history?limit=20`)
                     .then(response => response.json())
                     .then(data => {
                         console.log('開獎歷史API返回數據:', JSON.stringify(data).substring(0, 200) + '...');
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateBalance() {
                 if (!this.isLoggedIn) return;
                 
-                fetch(`${this.API_BASE_URL}/api/user/balance`, {
+                fetch(`${this.API_BASE_URL}/api/balance?username=${this.username}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDailyStats() {
                 if (!this.isLoggedIn) return;
                 
-                fetch(`${this.API_BASE_URL}/api/user/daily-stats`)
+                fetch(`${this.API_BASE_URL}/api/daily-profit?username=${this.username}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateBetHistory() {
                 if (!this.isLoggedIn) return;
                 
-                fetch(`${this.API_BASE_URL}/api/user/bet-history`)
+                fetch(`${this.API_BASE_URL}/api/bet-history?username=${this.username}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 獲取熱門投注
             fetchHotBets() {
-                fetch(`${this.API_BASE_URL}/api/game/hot-bets`)
+                fetch(`${this.API_BASE_URL}/api/hot-bets`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.hotBets) {
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 登入
             login() {
-                fetch(`${this.API_BASE_URL}/api/login`, {
+                fetch(`${this.API_BASE_URL}/api/member/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
