@@ -119,6 +119,31 @@ const GameModel = {
       console.error('獲取開獎結果歷史出錯:', error);
       throw error;
     }
+  },
+  
+  // 檢查特定期號的結果是否存在
+  async getResultByPeriod(period) {
+    try {
+      const result = await db.oneOrNone(`
+        SELECT period, result, created_at 
+        FROM result_history 
+        WHERE period = $1
+      `, [period]);
+      
+      if (result && result.result) {
+        // 解析 JSON 結果
+        try {
+          result.result = JSON.parse(result.result);
+        } catch (e) {
+          console.warn('解析結果 JSON 失敗:', e);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('獲取特定期號結果出錯:', error);
+      throw error;
+    }
   }
 };
 

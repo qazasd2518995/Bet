@@ -623,6 +623,22 @@ async function startGameCycle() {
     // 每秒更新內存狀態，使用基於時間戳的精確計算防止漂移
     gameLoopInterval = setInterval(async () => {
       try {
+        // 獲取最新的數據庫狀態，確保期號同步
+        const latestGameState = await GameModel.getCurrentState();
+        
+        // 如果數據庫的期號比內存期號大，說明有其他進程更新了期號，需要同步
+        if (latestGameState && latestGameState.current_period > memoryGameState.current_period) {
+          console.log(`檢測到期號不同步，從內存期號 ${memoryGameState.current_period} 更新到數據庫期號 ${latestGameState.current_period}`);
+          memoryGameState = {
+            current_period: latestGameState.current_period,
+            countdown_seconds: latestGameState.countdown_seconds,
+            last_result: latestGameState.last_result,
+            status: latestGameState.status,
+            phase_start_time: Date.now() // 重設時間戳
+          };
+          return; // 這一輪跳過，下一輪使用新的狀態
+        }
+        
         // 計算實際經過的時間，防止累積誤差
         const currentTime = Date.now();
         const elapsedSeconds = Math.floor((currentTime - memoryGameState.phase_start_time) / 1000);
@@ -640,7 +656,7 @@ async function startGameCycle() {
             memoryGameState.status = 'drawing';
             memoryGameState.phase_start_time = currentTime; // 重設階段開始時間
             memoryGameState.countdown_seconds = 3; // 設定開獎倒計時為3秒
-            console.log('封盤，開獎中...');
+            console.log(`第${memoryGameState.current_period}期封盤，開獎中...`);
             
             // 寫入數據庫（關鍵狀態變更）
             await GameModel.updateState({
@@ -651,9 +667,31 @@ async function startGameCycle() {
             });
           } else if (memoryGameState.status === 'drawing') {
             // 開獎階段結束，產生結果並開始新期
-            console.log('開獎完成，產生結果...');
+            console.log(`第${memoryGameState.current_period}期開獎完成，產生結果...`);
             
             try {
+              // 檢查該期是否已經結算過，防止重複結算
+              const existingResult = await GameModel.getResultByPeriod(memoryGameState.current_period);
+              if (existingResult) {
+                console.log(`第${memoryGameState.current_period}期已經開過獎，跳過結算`);
+                // 直接進入下一期
+                memoryGameState.current_period++;
+                memoryGameState.countdown_seconds = 60;
+                memoryGameState.last_result = existingResult.result;
+                memoryGameState.status = 'betting';
+                memoryGameState.phase_start_time = Date.now();
+                
+                await GameModel.updateState({
+                  current_period: memoryGameState.current_period,
+                  countdown_seconds: 60,
+                  last_result: existingResult.result,
+                  status: 'betting'
+                });
+                
+                console.log(`跳轉到第${memoryGameState.current_period}期，可以下注`);
+                return;
+              }
+              
               // 隨機產生新的遊戲結果(1-10的不重複隨機數)
               const newResult = await generateSmartRaceResult(memoryGameState.current_period);
               
@@ -667,7 +705,8 @@ async function startGameCycle() {
               await settleBets(memoryGameState.current_period, newResult);
               
               // 更新期數和內存狀態
-              memoryGameState.current_period++;
+              const nextPeriod = memoryGameState.current_period + 1;
+              memoryGameState.current_period = nextPeriod;
               memoryGameState.countdown_seconds = 60;
               memoryGameState.last_result = newResult;
               memoryGameState.status = 'betting';
@@ -675,20 +714,24 @@ async function startGameCycle() {
               
               // 寫入數據庫（重要狀態變更）
               await GameModel.updateState({
-                current_period: memoryGameState.current_period,
+                current_period: nextPeriod,
                 countdown_seconds: 60,
                 last_result: newResult,
                 status: 'betting'
               });
               
-              console.log(`第${memoryGameState.current_period}期開始，可以下注`);
+              console.log(`第${nextPeriod}期開始，可以下注`);
               
               // 每5期執行一次系統監控與自動調整
-              if (memoryGameState.current_period % 5 === 0) {
+              if (nextPeriod % 5 === 0) {
                 monitorAndAdjustSystem();
               }
             } catch (error) {
               console.error('開獎過程出錯:', error);
+              // 發生錯誤時，重設為投注狀態，避免卡住
+              memoryGameState.status = 'betting';
+              memoryGameState.countdown_seconds = 60;
+              memoryGameState.phase_start_time = Date.now();
             }
           }
         }
@@ -1186,15 +1229,26 @@ async function calculateRecentProfitLoss(periods = 10) {
 
 // 在遊戲結算邏輯中處理點數發放和退水分配
 async function settleBets(period, winResult) {
-  console.log(`結算第${period}期注單...`);
+  console.log(`開始結算第${period}期注單...`);
+  
+  // 檢查該期是否已經結算過
+  try {
+    const existingResult = await GameModel.getResultByPeriod(period);
+    if (existingResult) {
+      console.log(`第${period}期已經結算過，跳過重複結算`);
+      return;
+    }
+  } catch (error) {
+    console.log('檢查結算狀態時出錯，繼續結算流程:', error);
+  }
   
   // 獲取系統時間內未結算的注單
   const bets = await BetModel.getUnsettledByPeriod(period);
   
-  console.log(`找到${bets.length}個未結算注單`);
+  console.log(`找到${bets.length}個第${period}期未結算注單`);
   
   if (bets.length === 0) {
-    console.log(`第${period}期注單結算完成`);
+    console.log(`第${period}期沒有需要結算的注單`);
     return;
   }
   
@@ -1210,13 +1264,19 @@ async function settleBets(period, winResult) {
     try {
       const username = bet.username;
       
+      // 檢查注單是否已經結算
+      if (bet.settled) {
+        console.log(`注單 ${bet.id} 已經結算過，跳過`);
+        continue;
+      }
+      
       // 計算贏錢金額
       const winAmount = calculateWinAmount(bet, winResult);
       const isWin = winAmount > 0;
       
       console.log(`結算用戶 ${username} 的注單 ${bet.id}，下注類型: ${bet.bet_type}，下注值: ${bet.bet_value}，贏錢金額: ${winAmount}`);
       
-      // 標記為已結算
+      // 標記為已結算 - 先做這一步防止重複結算
       await BetModel.updateSettlement(bet.id, isWin, winAmount);
       
       // 如果贏了，直接增加會員餘額（不從代理扣除）
@@ -1258,12 +1318,12 @@ async function settleBets(period, winResult) {
       } catch (rebateError) {
         console.error(`分配退水失敗 (注單ID=${bet.id}):`, rebateError);
       }
-        } catch (error) {
+    } catch (error) {
       console.error(`結算用戶注單出錯 (ID=${bet.id}):`, error);
-      }
     }
-    
-    console.log(`第${period}期注單結算完成`);
+  }
+  
+  console.log(`第${period}期注單結算完成`);
 }
 
 // 退水分配函數

@@ -485,7 +485,6 @@ const app = createApp({
         showMemberModal() {
             console.log('showMemberModal 被調用');
             console.log('當前管理代理:', this.currentManagingAgent);
-            console.log('面包屑導航:', this.agentBreadcrumbs);
             
             // 重置會員數據
             this.newMember = { 
@@ -510,38 +509,15 @@ const app = createApp({
             
             // 等待 Vue 渲染完成後再初始化模態框
             this.$nextTick(() => {
-                // 額外延遲確保 DOM 更新完成
-                setTimeout(() => {
-                    const modalEl = document.getElementById('createMemberModal');
-                    if (modalEl) {
-                        console.log('找到會員模態框元素，正在初始化...');
-                        console.log('模態框所屬的代理:', this.currentManagingAgent.username);
-                        this.memberModal = new bootstrap.Modal(modalEl);
-                        this.memberModal.show();
-                    } else {
-                        console.error('找不到會員模態框元素');
-                        console.log('showCreateMemberModal狀態:', this.showCreateMemberModal);
-                        console.log('DOM中含有ID的元素數量:', document.querySelectorAll('*[id]').length);
-                        
-                        // 延遲重試多次
-                        let retryCount = 0;
-                        const maxRetries = 5;
-                        const retryInterval = setInterval(() => {
-                            retryCount++;
-                            const retryModalEl = document.getElementById('createMemberModal');
-                            if (retryModalEl) {
-                                console.log('重試成功，找到會員模態框元素，重試次數:', retryCount);
-                                this.memberModal = new bootstrap.Modal(retryModalEl);
-                                this.memberModal.show();
-                                clearInterval(retryInterval);
-                            } else if (retryCount >= maxRetries) {
-                                console.error('重試失敗，超過最大重試次數');
-                                this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
-                                clearInterval(retryInterval);
-                            }
-                        }, 100);
-                    }
-                }, 200);
+                const modalEl = document.getElementById('createMemberModal');
+                if (modalEl) {
+                    console.log('找到會員模態框元素，正在初始化...');
+                    this.memberModal = new bootstrap.Modal(modalEl);
+                    this.memberModal.show();
+                } else {
+                    console.error('找不到會員模態框元素');
+                    this.showMessage('系統錯誤，請重新整理頁面', 'error');
+                }
             });
         },
         
