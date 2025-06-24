@@ -485,6 +485,7 @@ const app = createApp({
         showMemberModal() {
             console.log('showMemberModal 被調用');
             console.log('當前管理代理:', this.currentManagingAgent);
+            console.log('面包屑導航:', this.agentBreadcrumbs);
             
             // 重置會員數據
             this.newMember = { 
@@ -507,17 +508,34 @@ const app = createApp({
             
             this.showCreateMemberModal = true;
             
-            // 等待 Vue 渲染完成後再初始化模態框
+            // 強制Vue更新並等待渲染完成
+            this.$forceUpdate();
             this.$nextTick(() => {
-                const modalEl = document.getElementById('createMemberModal');
-                if (modalEl) {
-                    console.log('找到會員模態框元素，正在初始化...');
-                    this.memberModal = new bootstrap.Modal(modalEl);
-                    this.memberModal.show();
-                } else {
-                    console.error('找不到會員模態框元素');
-                    this.showMessage('系統錯誤，請重新整理頁面', 'error');
-                }
+                setTimeout(() => {
+                    const modalEl = document.getElementById('createMemberModal');
+                    if (modalEl) {
+                        console.log('找到會員模態框元素，正在初始化...');
+                        console.log('模態框所屬的代理:', this.currentManagingAgent.username);
+                        this.memberModal = new bootstrap.Modal(modalEl);
+                        this.memberModal.show();
+                    } else {
+                        console.error('找不到會員模態框元素');
+                        console.log('showCreateMemberModal狀態:', this.showCreateMemberModal);
+                        console.log('DOM中含有ID的元素數量:', document.querySelectorAll('*[id]').length);
+                        
+                        // 延遲重試一次
+                        setTimeout(() => {
+                            const retryModalEl = document.getElementById('createMemberModal');
+                            if (retryModalEl) {
+                                console.log('重試成功，找到會員模態框元素');
+                                this.memberModal = new bootstrap.Modal(retryModalEl);
+                                this.memberModal.show();
+                            } else {
+                                this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
+                            }
+                        }, 200);
+                    }
+                }, 150);
             });
         },
         
@@ -614,14 +632,6 @@ const app = createApp({
                     // 更新用戶資訊
                     this.user = agent;
                     this.isLoggedIn = true;
-                    
-                    // 初始化當前管理代理（登入時默認為自己）
-                    this.currentManagingAgent = {
-                        id: agent.id,
-                        username: agent.username,
-                        level: agent.level,
-                        max_rebate_percentage: agent.max_rebate_percentage || 0.041
-                    };
                     
                     // 檢查是否為客服
                     this.isCustomerService = this.user.level === 0;
@@ -1446,8 +1456,6 @@ const app = createApp({
                     return '遊戲下注';
                 case 'game_win':
                     return '遊戲中獎';
-                case 'rebate':
-                    return '退水';
                 default:
                     return type || '未知';
             }

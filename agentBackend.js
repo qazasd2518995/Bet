@@ -2233,17 +2233,18 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       });
     }
     
-    // 正確地增加代理餘額（使用增量而不是絕對值）
-    const updatedAgent = await AgentModel.updateBalance(agentId, parseFloat(rebateAmount));
+    // 增加代理餘額
+    const newBalance = parseFloat(agent.balance) + parseFloat(rebateAmount);
+    await AgentModel.updateBalance(agentId, newBalance);
     
-    // 記錄交易（AgentModel.updateBalance已經處理了交易記錄，這裡只記錄退水專用記錄）
+    // 記錄交易
     await TransactionModel.create({
       user_id: agentId,
       user_type: 'agent',
       amount: parseFloat(rebateAmount),
       type: 'rebate',
       description: `${reason} - 會員: ${memberUsername}, 下注: ${betAmount}`,
-      balance_after: updatedAgent.balance
+      balance_after: newBalance
     });
     
     console.log(`成功分配退水 ${rebateAmount} 給代理 ${agentUsername}`);

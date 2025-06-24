@@ -3981,7 +3981,6 @@
                     currentPeriod: '',
                     nextPeriod: '',
                     countdownSeconds: 0,
-                    endsAt: null, // 階段結束時間戳
                     
                     // 開獎結果
                     lastResult: [],
@@ -4152,11 +4151,10 @@
             methods: {
                 // 初始化倒計時功能
                 initCountdown() {
-                    // 每秒更新倒計時，使用絕對時間計算
+                    // 每秒更新倒計時
                     this.countdownTimer = setInterval(() => {
-                        if (this.endsAt) {
-                            const remainingTime = Math.max(0, Math.floor((this.endsAt - Date.now()) / 1000));
-                            this.countdownSeconds = remainingTime;
+                        if (this.countdownSeconds > 0) {
+                            this.countdownSeconds--;
                             this.updateCountdownDisplay();
                         }
                     }, 1000);
@@ -4307,36 +4305,15 @@
                     fetch(`${this.API_BASE_URL}/api/game-data`)
                         .then(response => response.json())
                         .then(data => {
-                            const newPeriod = data.gameData.currentPeriod;
-                            const newEndsAt = data.gameData.endsAt;
-                            
-                            // 檢查是否需要更新同步狀態 - 放寬條件確保及時更新
-                            if (newPeriod !== this.currentPeriod || 
-                                (newEndsAt && (!this.endsAt || Math.abs(newEndsAt - this.endsAt) > 500)) ||
-                                data.gameData.status !== this.gameStatus) {
-                                
-                                console.log(`🔄 同步遊戲狀態: 期數=${newPeriod}, 結束時間=${new Date(newEndsAt).toISOString()}, 狀態=${data.gameData.status}`);
-                                
-                                this.currentPeriod = newPeriod;
-                                this.endsAt = newEndsAt;
-                            }
-                            
-                            // 總是更新倒計時，確保即時性
-                            if (this.endsAt) {
-                                this.countdownSeconds = Math.max(0, Math.floor((this.endsAt - Date.now()) / 1000));
-                            } else {
-                                this.countdownSeconds = data.gameData.countdownSeconds;
-                            }
-                            
+                            this.countdownSeconds = data.gameData.countdownSeconds;
+                            this.currentPeriod = data.gameData.currentPeriod;
                             this.lastResult = data.gameData.lastResult;
                             this.lastResults = data.gameData.lastResult;
-                            this.nextPeriod = (parseInt(newPeriod) + 1).toString();
+                            
+                            this.nextPeriod = (parseInt(data.gameData.currentPeriod) + 1).toString();
                             
                             const previousStatus = this.gameStatus;
                             this.gameStatus = data.gameData.status;
-                            
-                            // 立即更新倒計時顯示
-                            this.updateCountdownDisplay();
                             
                             if (previousStatus === 'drawing' && this.gameStatus === 'betting') {
                                 console.log('開獎完成，更新餘額和注單');
@@ -4344,25 +4321,19 @@
                                 this.updateBetHistory();
                                 this.updateHistoryRecords();
                             } else if (previousStatus === 'betting' && this.gameStatus === 'drawing') {
-                                console.log('開始開獎，播放動畫和音效');
+                                console.log('開始開獎，等待結果');
                                 
                                 // 開始播放開獎動畫
-                                this.playDrawAnimation();
+                                // this.playDrawAnimation(); // 已禁用複雜動畫，直接顯示結果
                                 
                                 // 播放音效
-                                this.playSound('draw');
+                                // this.playSound('draw'); // 已禁用避免404錯誤
                                 
                                 // 立即更新歷史記錄以確保即時性
                                 this.updateHistoryRecords();
                             }
                             
-                            // 當倒計時為 0 且狀態為 betting 時，強制更新
-                            if (this.countdownSeconds === 0 && this.gameStatus === 'betting') {
-                                console.log('倒計時結束，強制刷新遊戲數據');
-                                setTimeout(() => {
-                                    this.updateGameData();
-                                }, 1000);
-                            }
+                            this.updateCountdownDisplay();
                         })
                         .catch(error => {
                             console.error('獲取遊戲數據失敗:', error);
@@ -5208,16 +5179,20 @@
                     }
                 },
                 startUpdateTimers() {
-                    // 移除本地倒計時遞減，完全依賴服務器狀態
-                    // 每2秒更新遊戲數據和倒計時
+                    // 每秒更新倒計時
+                    this.countdownTimer = setInterval(() => {
+                        if (this.countdownSeconds > 0) {
+                            this.countdownSeconds--;
+                            this.updateCountdownDisplay();
+                        }
+                    }, 1000);
+                    
+                    // 每3秒更新遊戲數據
                     this.gameDataTimer = setInterval(() => {
                         this.updateGameData();
-                    }, 2000);
-                    
-                    // 每5秒更新歷史記錄
-                    this.historyTimer = setInterval(() => {
+                        // 每次更新遊戲數據時也更新歷史記錄
                         this.updateHistoryRecords();
-                    }, 5000);
+                    }, 3000);
                     
                     // 每10秒更新余額和下注記錄
                     this.balanceTimer = setInterval(() => {
@@ -5225,8 +5200,14 @@
                         this.updateBetHistory();
                         this.updateDailyStats();
                     }, 10000);
+                    
+                    // 每5秒更新歷史記錄以確保即時性
+                    this.historyTimer = setInterval(() => {
+                        this.updateHistoryRecords();
+                    }, 5000);
                 },
                 stopUpdateTimers() {
+                    clearInterval(this.countdownTimer);
                     clearInterval(this.gameDataTimer);
                     clearInterval(this.balanceTimer);
                     clearInterval(this.historyTimer);

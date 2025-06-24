@@ -3174,7 +3174,7 @@
                         </div>
                         <div class="countdown-section" :class="gameStatus">
                             <div class="countdown-inline">
-                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎倒計時' }}</span>
+                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
                                 <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
                             </div>
                         </div>
@@ -3428,7 +3428,7 @@
                         </div>
                     </div>
                 </div>
-                        </div>
+            </div>
             
             <!-- 快速投注區域 -->
             <div class="tab-content" v-if="activeTab === 'quick'">
@@ -5253,7 +5253,7 @@
                 playDrawAnimation() {
                     if (this.gameStatus !== 'drawing') return;
                     
-                    console.log('播放開獎動畫...');
+                    console.log('🎰 播放新版開獎動畫...');
                     
                     // 獲取結果容器
                     const resultContainer = document.querySelector('.results-display-new .results-container-new');
@@ -5261,95 +5261,94 @@
                         console.warn('找不到結果容器，使用備用容器');
                         const backupContainer = document.querySelector('.results-display-new');
                         if (backupContainer) {
-                            this.showNumberBalls(backupContainer);
+                            this.playSimpleAnimation(backupContainer);
                         }
                         return;
                     }
                     
-                    // 第一階段：搖球動畫
-                    this.playBallShuffleAnimation(resultContainer);
+                    // 清空容器並開始動畫
+                    resultContainer.innerHTML = '';
                     
-                    // 2秒後開始開獎
+                    // 第一階段：旋轉搖獎機動畫 (2秒)
+                    this.playLotteryMachineAnimation(resultContainer);
+                    
+                    // 第二階段：逐一揭曉結果 (3秒)
                     setTimeout(() => {
-                        this.playDrawResultAnimation(resultContainer);
+                        this.playResultRevealAnimation(resultContainer);
                     }, 2000);
                 },
                 
-                // 搖球動畫
-                playBallShuffleAnimation(container) {
-                    container.innerHTML = '';
-                    
-                    // 創建搖球容器
-                    const shuffleContainer = document.createElement('div');
-                    shuffleContainer.className = 'ball-shuffle-container';
-                    shuffleContainer.style.cssText = `
+                // 新版搖獎機動畫
+                playLotteryMachineAnimation(container) {
+                    // 創建搖獎機容器
+                    const machineContainer = document.createElement('div');
+                    machineContainer.className = 'lottery-machine';
+                    machineContainer.style.cssText = `
                         display: flex;
                         justify-content: center;
                         align-items: center;
-                        height: 80px;
-                        background: linear-gradient(45deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2));
-                        border-radius: 10px;
-                        overflow: hidden;
+                        height: 100px;
+                        background: linear-gradient(135deg, #ff6b35, #f7931e);
+                        border-radius: 15px;
                         position: relative;
+                        overflow: hidden;
+                        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+                        animation: machineShake 0.5s infinite;
                     `;
                     
-                    // 創建搖球機效果
-                    const shuffleText = document.createElement('div');
-                    shuffleText.textContent = '🎲 搖獎中... 🎲';
-                    shuffleText.style.cssText = `
-                        font-size: 20px;
-                        font-weight: bold;
-                        color: #ff6b35;
-                        animation: pulse 0.5s infinite alternate;
-                        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                    // 搖獎機內部旋轉效果
+                    const rotatingBalls = document.createElement('div');
+                    rotatingBalls.className = 'rotating-balls';
+                    rotatingBalls.style.cssText = `
+                        position: absolute;
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        border: 3px solid rgba(255,255,255,0.3);
+                        animation: ballRotate 1s linear infinite;
                     `;
                     
-                    // 創建隨機飛舞的小球
-                    for (let i = 1; i <= 10; i++) {
+                    // 添加旋轉小球
+                    for (let i = 0; i < 10; i++) {
                         const ball = document.createElement('div');
                         ball.textContent = i;
-                        ball.className = `color-${i}`;
                         ball.style.cssText = `
-                            width: 20px;
-                            height: 20px;
-                            border-radius: 50%;
                             position: absolute;
+                            width: 15px;
+                            height: 15px;
+                            border-radius: 50%;
+                            background: white;
+                            color: #333;
+                            font-size: 10px;
+                            font-weight: bold;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            font-size: 12px;
-                            font-weight: bold;
-                            color: white;
-                            animation: ballShuffle 1s infinite linear;
-                            animation-delay: ${i * 0.1}s;
-                            left: ${Math.random() * 80 + 10}%;
-                            top: ${Math.random() * 60 + 20}%;
+                            transform-origin: 40px 40px;
+                            transform: rotate(${i * 36}deg) translateX(35px);
+                            animation: ballSpin 1s linear infinite reverse;
                         `;
-                        shuffleContainer.appendChild(ball);
+                        rotatingBalls.appendChild(ball);
                     }
                     
-                    shuffleContainer.appendChild(shuffleText);
-                    container.appendChild(shuffleContainer);
+                    // 中央文字
+                    const centerText = document.createElement('div');
+                    centerText.textContent = '🎰 搖獎中 🎰';
+                    centerText.style.cssText = `
+                        font-size: 18px;
+                        font-weight: bold;
+                        color: white;
+                        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+                        z-index: 10;
+                        animation: textPulse 0.8s infinite alternate;
+                    `;
                     
-                    // 添加搖球動畫樣式
-                    if (!document.getElementById('shuffleAnimationStyles')) {
-                        const style = document.createElement('style');
-                        style.id = 'shuffleAnimationStyles';
-                        style.textContent = `
-                            @keyframes ballShuffle {
-                                0% { transform: translateX(0) rotate(0deg); }
-                                25% { transform: translateX(20px) rotate(90deg); }
-                                50% { transform: translateX(0) rotate(180deg); }
-                                75% { transform: translateX(-20px) rotate(270deg); }
-                                100% { transform: translateX(0) rotate(360deg); }
-                            }
-                            @keyframes pulse {
-                                0% { transform: scale(1); }
-                                100% { transform: scale(1.1); }
-                            }
-                        `;
-                        document.head.appendChild(style);
-                    }
+                    machineContainer.appendChild(rotatingBalls);
+                    machineContainer.appendChild(centerText);
+                    container.appendChild(machineContainer);
+                    
+                    // 添加動畫樣式
+                    this.addLotteryAnimationStyles();
                 },
                 
                 // 開獎結果動畫

@@ -24,95 +24,34 @@ const GameModel = {
       current_period, 
       countdown_seconds, 
       last_result, 
-      status,
-      phase_start_time 
+      status 
     } = stateData;
     
     try {
-      // 標準化 JSON 處理 - 確保 last_result 始終是正確的 JSON 字符串
-      let jsonResult;
-      if (last_result === null || last_result === undefined) {
-        jsonResult = null;
-      } else if (typeof last_result === 'string') {
-        // 如果已經是字符串，先解析再重新序列化確保格式正確
-        try {
-          const parsed = JSON.parse(last_result);
-          jsonResult = JSON.stringify(parsed);
-        } catch (e) {
-          // 如果解析失敗，直接使用原字符串
-          jsonResult = last_result;
-        }
-      } else {
-        // 如果是數組或對象，序列化為 JSON
-        jsonResult = JSON.stringify(last_result);
-      }
-      
       // 檢查是否已存在遊戲狀態記錄
       const existingState = await this.getCurrentState();
       
       if (existingState) {
-        // 檢查是否有 phase_start_time 欄位
-        const hasPhaseStartTime = await db.oneOrNone(`
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name = 'game_state' AND column_name = 'phase_start_time'
-        `);
-        
-        if (hasPhaseStartTime) {
-          // 更新現有狀態（包含 phase_start_time）
-          return await db.one(`
-            UPDATE game_state 
-            SET current_period = $1, 
-                countdown_seconds = $2, 
-                last_result = $3, 
-                status = $4,
-                phase_start_time = $5,
-                updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $6 
-            RETURNING *
-          `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date(), existingState.id]);
-        } else {
-          // 更新現有狀態（不包含 phase_start_time）
-          console.warn('⚠️ phase_start_time 欄位不存在，使用舊版更新');
-          return await db.one(`
-            UPDATE game_state 
-            SET current_period = $1, 
-                countdown_seconds = $2, 
-                last_result = $3, 
-                status = $4,
-                updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $5 
-            RETURNING *
-          `, [current_period, countdown_seconds, jsonResult, status, existingState.id]);
-        }
+        // 更新現有狀態
+        return await db.one(`
+          UPDATE game_state 
+          SET current_period = $1, 
+              countdown_seconds = $2, 
+              last_result = $3, 
+              status = $4, 
+              updated_at = CURRENT_TIMESTAMP 
+          WHERE id = $5 
+          RETURNING *
+        `, [current_period, countdown_seconds, JSON.stringify(last_result), status, existingState.id]);
       } else {
-        // 檢查是否有 phase_start_time 欄位
-        const hasPhaseStartTime = await db.oneOrNone(`
-          SELECT column_name 
-          FROM information_schema.columns 
-          WHERE table_name = 'game_state' AND column_name = 'phase_start_time'
-        `);
-        
-        if (hasPhaseStartTime) {
-          // 創建新狀態記錄（包含 phase_start_time）
-          return await db.one(`
-            INSERT INTO game_state (
-              current_period, countdown_seconds, last_result, status, phase_start_time
-            ) 
-            VALUES ($1, $2, $3, $4, $5) 
-            RETURNING *
-          `, [current_period, countdown_seconds, jsonResult, status, phase_start_time || new Date()]);
-        } else {
-          // 創建新狀態記錄（不包含 phase_start_time）
-          console.warn('⚠️ phase_start_time 欄位不存在，使用舊版插入');
-          return await db.one(`
-            INSERT INTO game_state (
-              current_period, countdown_seconds, last_result, status
-            ) 
-            VALUES ($1, $2, $3, $4) 
-            RETURNING *
-          `, [current_period, countdown_seconds, jsonResult, status]);
-        }
+        // 創建新狀態記錄
+        return await db.one(`
+          INSERT INTO game_state (
+            current_period, countdown_seconds, last_result, status
+          ) 
+          VALUES ($1, $2, $3, $4) 
+          RETURNING *
+        `, [current_period, countdown_seconds, JSON.stringify(last_result), status]);
       }
     } catch (error) {
       console.error('更新遊戲狀態出錯:', error);
@@ -123,26 +62,11 @@ const GameModel = {
   // 添加新的開獎結果
   async addResult(period, result) {
     try {
-      // 標準化 JSON 處理
-      let jsonResult;
-      if (result === null || result === undefined) {
-        jsonResult = null;
-      } else if (typeof result === 'string') {
-        try {
-          const parsed = JSON.parse(result);
-          jsonResult = JSON.stringify(parsed);
-        } catch (e) {
-          jsonResult = result;
-        }
-      } else {
-        jsonResult = JSON.stringify(result);
-      }
-      
       return await db.one(`
         INSERT INTO result_history (period, result) 
         VALUES ($1, $2) 
         RETURNING *
-      `, [period, jsonResult]);
+      `, [period, JSON.stringify(result)]);
     } catch (error) {
       console.error('添加開獎結果出錯:', error);
       throw error;
@@ -160,56 +84,6 @@ const GameModel = {
       `, [limit]);
     } catch (error) {
       console.error('獲取開獎結果歷史出錯:', error);
-      throw error;
-    }
-  },
-  
-  // 檢查特定期號的結果是否存在
-  async getResultByPeriod(period) {
-    try {
-      const result = await db.oneOrNone(`
-        SELECT period, result, created_at 
-        FROM result_history 
-        WHERE period = $1
-      `, [period]);
-      
-      if (result && result.result) {
-        // 解析 JSON 結果 - 支持多種格式
-        try {
-          if (typeof result.result === 'string') {
-            // 如果是字符串，嘗試解析 JSON
-            result.result = JSON.parse(result.result);
-          } else if (Array.isArray(result.result)) {
-            // 如果已經是數組，直接使用
-            // result.result = result.result;
-          } else if (typeof result.result === 'object' && result.result.length !== undefined) {
-            // 如果是類似 {0: "2", 1: "5", ...} 的對象，轉換為數組
-            const arr = [];
-            for (let i = 0; i < result.result.length; i++) {
-              arr.push(parseInt(result.result[i]));
-            }
-            result.result = arr;
-          } else {
-            // 嘗試其他格式
-            console.warn('未知的結果格式:', typeof result.result, result.result);
-          }
-        } catch (e) {
-          console.warn('解析結果 JSON 失敗:', e);
-          // 嘗試其他解析方法
-          try {
-            if (typeof result.result === 'string') {
-              // 嘗試解析逗號分隔的字符串
-              result.result = result.result.split(',').map(x => parseInt(x.trim()));
-            }
-          } catch (e2) {
-            console.warn('備用解析也失敗:', e2);
-          }
-        }
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('獲取特定期號結果出錯:', error);
       throw error;
     }
   }
