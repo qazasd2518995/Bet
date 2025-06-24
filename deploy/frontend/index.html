@@ -320,39 +320,7 @@
             max-width: none !important;
         }
 
-        .result-ball-new {
-            width: calc(100% - 8px) !important;
-            max-width: 38px !important;
-            min-width: 22px !important;
-            aspect-ratio: 1 / 1 !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-weight: bold !important;
-            font-size: clamp(12px, 3vw, 18px) !important;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
-            border: 2px solid rgba(255, 255, 255, 0.3) !important;
-            transition: transform 0.3s ease !important;
-            position: relative !important;
-            margin: 0 auto 4px auto !important;
-        }
 
-        .result-ball-new:hover {
-            transform: scale(1.05) !important;
-        }
-
-        .result-ball-new::before {
-            content: '' !important;
-            position: absolute !important;
-            top: 15% !important;
-            left: 25% !important;
-            width: 30% !important;
-            height: 30% !important;
-            background: rgba(255, 255, 255, 0.4) !important;
-            border-radius: 50% !important;
-            filter: blur(1px) !important;
-        }
 
         .position-label-new {
             font-size: clamp(8px, 1.8vw, 12px) !important;
@@ -380,11 +348,6 @@
                 gap: 1px !important;
                 padding: 0 1px !important;
             }
-            .result-ball-new {
-                min-width: 20px !important;
-                font-size: 9px !important;
-                border-width: 1px !important;
-            }
             .position-label-new {
                 font-size: 7px !important;
                 padding: 1px 2px !important;
@@ -395,10 +358,6 @@
             .results-display-new {
                 padding: 10px 3px !important;
             }
-            .result-ball-new {
-                min-width: 22px !important;
-                font-size: 10px !important;
-            }
             .position-label-new {
                 font-size: 8px !important;
             }
@@ -407,10 +366,6 @@
         @media (min-width: 376px) and (max-width: 430px) {
             .results-display-new {
                 padding: 12px 4px !important;
-            }
-            .result-ball-new {
-                min-width: 26px !important;
-                font-size: 11px !important;
             }
             .position-label-new {
                 font-size: 9px !important;
@@ -421,10 +376,6 @@
             .results-display-new {
                 padding: 15px 5px !important;
             }
-            .result-ball-new {
-                min-width: 30px !important;
-                font-size: 12px !important;
-            }
             .position-label-new {
                 font-size: 10px !important;
             }
@@ -433,11 +384,6 @@
         @media (min-width: 769px) {
             .results-display-new {
                 padding: 20px 10px !important;
-            }
-            .result-ball-new {
-                min-width: 36px !important;
-                max-width: 48px !important;
-                font-size: 14px !important;
             }
             .position-label-new {
                 font-size: 12px !important;
@@ -1883,6 +1829,14 @@
             background: linear-gradient(45deg, #1a1a2a, #2a2a3a);
         }
 
+        /* 🎮 控件容器 - 讓動畫按鈕和倒計時並排顯示 */
+        .controls-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            justify-content: center;
+        }
+
         .countdown-section {
             display: flex;
             flex-direction: column;
@@ -1904,7 +1858,35 @@
             background: rgba(255, 193, 7, 0.1);
         }
         
-        /* 🎬 開獎動畫按鈕樣式 */
+        /* 🎬 獨立開獎動畫按鈕樣式 */
+        .draw-animation-btn-standalone {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            white-space: nowrap;
+        }
+        
+        .draw-animation-btn-standalone:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .draw-animation-btn-standalone:disabled {
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            cursor: not-allowed;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        /* 🎬 原開獎動畫按鈕樣式 (保留向後兼容) */
         .draw-animation-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -2074,43 +2056,43 @@
         }
 
         /* 🎨 球顏色 - 適用於新結構和歷史記錄 */
-        .result-ball-new.color-1, .number-ball.color-1, .result-ball.color-1 {
+        .number-ball.color-1, .result-ball.color-1 {
             background: linear-gradient(135deg, #FFD700, #FFA500) !important;
             color: #2c3e50 !important;
         }
-        .result-ball-new.color-2, .number-ball.color-2, .result-ball.color-2 {
+        .number-ball.color-2, .result-ball.color-2 {
             background: linear-gradient(135deg, #4A90E2, #357ABD) !important;
             color: white !important;
         }
-        .result-ball-new.color-3, .number-ball.color-3, .result-ball.color-3 {
+        .number-ball.color-3, .result-ball.color-3 {
             background: linear-gradient(135deg, #8E8E93, #636366) !important;
             color: white !important;
         }
-        .result-ball-new.color-4, .number-ball.color-4, .result-ball.color-4 {
+        .number-ball.color-4, .result-ball.color-4 {
             background: linear-gradient(135deg, #FF8C42, #FF6347) !important;
             color: white !important;
         }
-        .result-ball-new.color-5, .number-ball.color-5, .result-ball.color-5 {
+        .number-ball.color-5, .result-ball.color-5 {
             background: linear-gradient(135deg, #00CED1, #20B2AA) !important;
             color: white !important;
         }
-        .result-ball-new.color-6, .number-ball.color-6, .result-ball.color-6 {
+        .number-ball.color-6, .result-ball.color-6 {
             background: linear-gradient(135deg, #9966CC, #8A2BE2) !important;
             color: white !important;
         }
-        .result-ball-new.color-7, .number-ball.color-7, .result-ball.color-7 {
+        .number-ball.color-7, .result-ball.color-7 {
             background: linear-gradient(135deg, #A8A8A8, #808080) !important;
             color: white !important;
         }
-        .result-ball-new.color-8, .number-ball.color-8, .result-ball.color-8 {
+        .number-ball.color-8, .result-ball.color-8 {
             background: linear-gradient(135deg, #FF4757, #FF3838) !important;
             color: white !important;
         }
-        .result-ball-new.color-9, .number-ball.color-9, .result-ball.color-9 {
+        .number-ball.color-9, .result-ball.color-9 {
             background: linear-gradient(135deg, #C44569, #B71540) !important;
             color: white !important;
         }
-        .result-ball-new.color-10, .number-ball.color-10, .result-ball.color-10 {
+        .number-ball.color-10, .result-ball.color-10 {
             background: linear-gradient(135deg, #26de81, #20bf6b) !important;
             color: white !important;
         }
@@ -3271,6 +3253,92 @@
                 max-height: 60vh;
             }
         }
+
+        /* 🎯 彈出式通知視窗樣式 */
+        .notification-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .notification-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            max-width: 400px;
+            min-width: 300px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .notification-message {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #999;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .notification-close:hover {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -3367,14 +3435,16 @@
                             </div>
 
                         </div>
-                        <div class="countdown-section" :class="gameStatus">
-                            <button class="draw-animation-btn" @click="toggleAnimation">
-                                {{ gameStatus === 'betting' ? (isAnimationEnabled ? ' 開獎動畫 開' : ' 開獎動畫 關') : (isAnimationEnabled ? '🎲 動畫播放中' : '🎲 僅顯示結果') }}
+                        <div class="controls-container">
+                            <button class="draw-animation-btn-standalone" @click="toggleAnimation">
+                                {{ gameStatus === 'betting' ? (isAnimationEnabled ? '🎬 開獎動畫 開' : '🎬 開獎動畫 關') : (isAnimationEnabled ? '🎬 動畫播放中' : '🎬 僅顯示結果') }}
                             </button>
-                            <div class="countdown-inline">
-                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
-                                <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
-                                <span class="countdown-time" v-else>🎲</span>
+                            <div class="countdown-section" :class="gameStatus">
+                                <div class="countdown-inline">
+                                    <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
+                                    <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
+                                    <span class="countdown-time" v-else>🎲</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3386,7 +3456,7 @@
                 <div class="results-container-new">
                     <div v-for="(number, index) in lastResults" :key="index" 
                          class="result-slot-new">
-                        <div :class="['result-ball-new', `color-${number}`]">
+                        <div :class="['number-ball', `color-${number}`]">
                             {{ number }}
                         </div>
                         <div class="position-label-new">{{ getPositionName(index + 1) }}</div>
@@ -4154,8 +4224,13 @@
 
 
         <!-- 顯示通知的元素 -->
-        <div class="notification" :class="{visible: notificationVisible}">
-            {{ notificationText }}
+        <!-- 🎯 彈出式通知視窗 -->
+        <div v-if="notificationVisible" class="notification-popup" @click="notificationVisible = false">
+            <div class="notification-content" @click.stop>
+                <div class="notification-icon">🎯</div>
+                <div class="notification-message">{{ notificationText }}</div>
+                <button class="notification-close" @click="notificationVisible = false">✕</button>
+            </div>
         </div>
     </div>
 
@@ -5509,7 +5584,7 @@
                         return;
                     }
                     
-                    console.log('🎬 開始播放增強版開獎動畫...');
+                    console.log(' 開始播放增強版開獎動畫...');
                     
                     // 播放開獎音效
                     this.playSound('draw');
@@ -5590,87 +5665,6 @@
                             }, 500);
                         });
                     }, 1000);
-                },
-                
-                // 🏎️ 賽車競賽動畫
-                startRaceAnimation(cars, callback) {
-                    const results = [...this.lastResults]; // 獲取開獎結果
-                    const raceDuration = 2500;
-                    
-                    console.log(' 賽車結果順序:', results);
-                    
-                    // 計算每輛車的終點位置（根據排名）
-                    cars.forEach((car, index) => {
-                        const carNumber = parseInt(car.dataset.number);
-                        const finishPosition = results.indexOf(carNumber);
-                        
-                        // 計算到達時間（增加間距讓排名更明顯）
-                        const baseDelay = (finishPosition * 250) + Math.random() * 150;
-                        const arrivalTime = raceDuration - baseDelay;
-                        
-                        // 計算終點位置（增加間距）
-                        const distanceFromRight = 60 + (finishPosition * 25);
-                        
-                        setTimeout(() => {
-                            car.style.left = `calc(100% - ${distanceFromRight}px)`;
-                            
-                            // 為前三名添加特殊效果
-                            if (finishPosition < 3) {
-                                setTimeout(() => {
-                                    car.style.transform = 'scale(1.1)';
-                                    car.style.zIndex = '10';
-                                }, arrivalTime);
-                            }
-                        }, Math.max(0, baseDelay));
-                    });
-                    
-                    // 動畫完成回調
-                    setTimeout(callback, raceDuration + 500);
-                },
-                
-                // ✨ 粒子效果
-                startParticleEffect(container) {
-                    const createParticle = () => {
-                        const particle = document.createElement('div');
-                        particle.className = 'particle';
-                        particle.style.left = Math.random() * 100 + '%';
-                        particle.style.bottom = '0px';
-                        
-                        // 隨機顏色
-                        const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
-                        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-                        
-                        container.appendChild(particle);
-                        
-                        // 移除粒子
-                        setTimeout(() => {
-                            if (particle.parentNode) {
-                                particle.parentNode.removeChild(particle);
-                            }
-                        }, 3000);
-                    };
-                    
-                    // 持續創建粒子效果
-                    const particleInterval = setInterval(createParticle, 100);
-                    
-                    // 3秒後停止粒子效果
-                    setTimeout(() => {
-                        clearInterval(particleInterval);
-                    }, 3000);
-                },
-                
-                // 🎉 慶祝效果
-                addCelebrationEffect(container) {
-                    const celebration = document.createElement('div');
-                    celebration.className = 'celebration-overlay';
-                    container.appendChild(celebration);
-                    
-                    // 3秒後移除慶祝效果
-                    setTimeout(() => {
-                        if (celebration.parentNode) {
-                            celebration.parentNode.removeChild(celebration);
-                        }
-                    }, 3000);
                 },
                 
                 // 🎯 增強版結果球顯示
@@ -5782,6 +5776,76 @@
                         `;
                         document.head.appendChild(style);
                     }
+                },
+                
+                // 🏁 賽車競賽動畫
+                startRaceAnimation(cars, callback) {
+                    const results = [...this.lastResults]; // 獲取開獎結果
+                    const raceDuration = 2500;
+                    
+                    console.log('🏁 賽車結果順序:', results);
+                    
+                    // 計算每輛車的終點位置（根據排名）
+                    cars.forEach((car, index) => {
+                        const carNumber = parseInt(car.dataset.number);
+                        const finishPosition = results.indexOf(carNumber);
+                        
+                        // 計算到達時間（增加間距讓排名更明顯）
+                        const baseDelay = (finishPosition * 250) + Math.random() * 150;
+                        const arrivalTime = raceDuration - baseDelay;
+                        
+                        // 計算終點位置（增加間距）
+                        const distanceFromRight = 60 + (finishPosition * 25);
+                        
+                        setTimeout(() => {
+                            car.style.left = `calc(100% - ${distanceFromRight}px)`;
+                            
+                            // 為前三名添加特殊效果
+                            if (finishPosition < 3) {
+                                setTimeout(() => {
+                                    car.style.transform = 'scale(1.1)';
+                                    car.style.zIndex = '10';
+                                }, arrivalTime);
+                            }
+                        }, Math.max(0, baseDelay));
+                    });
+                    
+                    // 動畫完成回調
+                    setTimeout(callback, raceDuration + 500);
+                },
+                
+                // ✨ 粒子效果
+                startParticleEffect(container) {
+                    for (let i = 0; i < 20; i++) {
+                        setTimeout(() => {
+                            const particle = document.createElement('div');
+                            particle.className = 'particle';
+                            particle.style.left = `${Math.random() * 100}%`;
+                            particle.style.top = `${Math.random() * 100}%`;
+                            container.appendChild(particle);
+                            
+                            // 3秒後移除粒子
+                            setTimeout(() => {
+                                if (particle.parentNode) {
+                                    particle.parentNode.removeChild(particle);
+                                }
+                            }, 3000);
+                        }, i * 100);
+                    }
+                },
+                
+                // 🎊 慶祝效果
+                addCelebrationEffect(container) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'celebration-overlay';
+                    container.appendChild(overlay);
+                    
+                    // 3秒後移除慶祝效果
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                    }, 3000);
                 },
                 
                 // 🏆 獲取排名標籤

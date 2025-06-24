@@ -59,12 +59,12 @@ const GameModel = {
     }
   },
   
-  // 添加新的開獎結果
+  // 添加新的開獎結果 - 增強重複檢查
   async addResult(period, result) {
     try {
       // 先檢查該期號是否已存在
       const existing = await db.oneOrNone(`
-        SELECT period FROM result_history WHERE period = $1
+        SELECT period, result FROM result_history WHERE period = $1
       `, [period]);
       
       if (existing) {
@@ -72,12 +72,23 @@ const GameModel = {
         return existing;
       }
       
+      // 使用INSERT ... ON CONFLICT來處理併發情況
       return await db.one(`
         INSERT INTO result_history (period, result) 
         VALUES ($1, $2) 
+        ON CONFLICT (period) DO UPDATE SET
+          result = EXCLUDED.result,
+          created_at = EXCLUDED.created_at
         RETURNING *
       `, [period, JSON.stringify(result)]);
     } catch (error) {
+      // 如果是唯一約束違反，再次檢查是否已存在
+      if (error.code === '23505') {
+        console.log(`⚠️ 期號 ${period} 的開獎結果已存在，跳過插入`);
+        return await db.oneOrNone(`
+          SELECT period, result FROM result_history WHERE period = $1
+        `, [period]);
+      }
       console.error('添加開獎結果出錯:', error);
       throw error;
     }
