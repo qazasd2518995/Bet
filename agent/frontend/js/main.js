@@ -489,14 +489,14 @@ const app = createApp({
         
         // 顯示新增會員模態框 - 重定向到統一函數
         showMemberModal() {
-            console.log('⚠️ showMemberModal 已棄用，重定向到 quickCreateMember');
+            console.log('showMemberModal 已棄用，重定向到 quickCreateMember');
             this.quickCreateMember();
         },
         
         // 快速新增會員 - 專為會員管理頁面和下級代理管理設計
         quickCreateMember() {
-            console.log('⚡ 快速新增會員啟動');
-            console.log('📍 當前狀態:');
+            console.log('快速新增會員啟動');
+            console.log('當前狀態:');
             console.log('- activeTab:', this.activeTab);
             console.log('- currentManagingAgent:', this.currentManagingAgent);
             console.log('- agentBreadcrumbs:', this.agentBreadcrumbs);
@@ -517,7 +517,7 @@ const app = createApp({
             if (this.activeTab === 'agents' && this.agentBreadcrumbs.length > 0) {
                 // 在下級代理管理頁面，為當前查看的代理新增會員
                 targetAgent = this.currentManagingAgent;
-                console.log('🎯 下級代理管理模式：為代理', targetAgent?.username, '新增會員');
+                console.log('下級代理管理模式：為代理', targetAgent?.username, '新增會員');
             } else if (this.activeTab === 'members') {
                 // 在會員管理頁面，為自己新增會員
                 targetAgent = {

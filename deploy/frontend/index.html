@@ -4246,7 +4246,7 @@
         <!-- 🎯 彈出式通知視窗 -->
         <div v-if="notificationVisible" class="notification-popup" @click="notificationVisible = false">
             <div class="notification-content" @click.stop>
-                <div class="notification-icon">🎯</div>
+                                        <div class="notification-icon">!</div>
                 <div class="notification-message">{{ notificationText }}</div>
                 <button class="notification-close" @click="notificationVisible = false">✕</button>
             </div>
@@ -5563,7 +5563,7 @@
                     
                     // 如果正在下注期間（倒計時大於0），顯示提示
                     if (this.gameStatus === 'betting' && this.countdownSeconds > 0) {
-                        this.displayNotification('🚫 尚未開獎，請等待開獎後再播放動畫');
+                        this.displayNotification('尚未開獎，請等待開獎後再播放動畫');
                         return;
                     }
                     
@@ -5583,15 +5583,15 @@
                                     console.log(`🎯 從歷史記錄獲取到結果:`, latestResult);
                                     this.playRaceAnimation();
                                 } else {
-                                    this.displayNotification('⚠️ 暫無開獎結果，無法播放動畫');
+                                    this.displayNotification('暫無開獎結果，無法播放動畫');
                                 }
                             }).catch(() => {
-                                this.displayNotification('⚠️ 暫無開獎結果，無法播放動畫');
+                                this.displayNotification('暫無開獎結果，無法播放動畫');
                             });
                         }
                     }).catch((error) => {
                         console.error('獲取遊戲數據失敗:', error);
-                        this.displayNotification('⚠️ 獲取開獎數據失敗，無法播放動畫');
+                        this.displayNotification('獲取開獎數據失敗，無法播放動畫');
                     });
                 },
                 
@@ -5713,7 +5713,7 @@
                     // 添加開獎狀態指示器
                     const indicator = document.createElement('div');
                     indicator.className = 'drawing-indicator';
-                    indicator.textContent = ' 開獎中...';
+                    indicator.textContent = '開獎中...';
                     animationContainer.appendChild(indicator);
                     
                     // 添加終點線
