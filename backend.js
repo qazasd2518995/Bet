@@ -533,9 +533,52 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// 存儲遊戲循環的計時器ID
+// 全局變量
 let gameLoopInterval = null;
 let drawingTimeoutId = null;
+let hotBetsInterval = null;
+
+// 內存遊戲狀態（減少數據庫I/O）
+let memoryGameState = {
+  current_period: null,
+  countdown_seconds: 60,
+  last_result: null,
+  status: 'betting'
+};
+
+// 清理定時器
+function cleanupTimers() {
+  if (gameLoopInterval) {
+    clearInterval(gameLoopInterval);
+    gameLoopInterval = null;
+    console.log('遊戲循環定時器已清理');
+  }
+  
+  if (drawingTimeoutId) {
+    clearTimeout(drawingTimeoutId);
+    drawingTimeoutId = null;
+    console.log('開獎定時器已清理');
+  }
+  
+  if (hotBetsInterval) {
+    clearInterval(hotBetsInterval);
+    hotBetsInterval = null;
+    console.log('熱門投注定時器已清理');
+  }
+}
+
+// 處理進程結束信號
+process.on('SIGTERM', () => {
+  console.log('收到SIGTERM信號，正在清理資源...');
+  cleanupTimers();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('收到SIGINT信號，正在清理資源...');
+  cleanupTimers();
+  process.exit(0);
+});
 
 // 模擬遊戲循環
 async function startGameCycle() {
@@ -587,40 +630,34 @@ async function startGameCycle() {
       }
     }
     
-    console.log(`啟動遊戲循環: 當前期數=${gameState.current_period}, 狀態=${gameState.status}`);
+    // 初始化內存狀態
+    memoryGameState = {
+      current_period: gameState.current_period,
+      countdown_seconds: gameState.countdown_seconds,
+      last_result: gameState.last_result,
+      status: gameState.status
+    };
     
-    // 每秒更新一次遊戲狀態
+    console.log(`啟動遊戲循環: 當前期數=${memoryGameState.current_period}, 狀態=${memoryGameState.status}`);
+    
+    // 每秒更新內存狀態，減少數據庫寫入
     gameLoopInterval = setInterval(async () => {
       try {
-        // 獲取最新遊戲狀態
-        gameState = await GameModel.getCurrentState();
-        let { current_period, countdown_seconds, last_result, status } = gameState;
-        
-        // 解析JSON格式的last_result
-        if (typeof last_result === 'string') {
-          last_result = JSON.parse(last_result);
-        }
-        
-        if (countdown_seconds > 0) {
-          // 更新倒計時
-          countdown_seconds--;
-          await GameModel.updateState({
-            current_period,
-            countdown_seconds,
-            last_result,
-            status
-          });
+        if (memoryGameState.countdown_seconds > 0) {
+          // 只更新內存計數器
+          memoryGameState.countdown_seconds--;
         } else {
           // 倒計時結束，開獎
-          if (status === 'betting') {
-            status = 'drawing';
+          if (memoryGameState.status === 'betting') {
+            memoryGameState.status = 'drawing';
             console.log('開獎中...');
             
+            // 寫入數據庫（關鍵狀態變更）
             await GameModel.updateState({
-              current_period,
+              current_period: memoryGameState.current_period,
               countdown_seconds: 0,
-              last_result,
-              status
+              last_result: memoryGameState.last_result,
+              status: 'drawing'
             });
             
             // 模擬開獎過程(3秒後產生結果)
@@ -630,32 +667,35 @@ async function startGameCycle() {
                 drawingTimeoutId = null;
                 
                 // 隨機產生新的遊戲結果(1-10的不重複隨機數)
-                const newResult = await generateSmartRaceResult(current_period);
+                const newResult = await generateSmartRaceResult(memoryGameState.current_period);
                 
                 // 將結果添加到歷史記錄
-                await GameModel.addResult(current_period, newResult);
+                await GameModel.addResult(memoryGameState.current_period, newResult);
                 
                 // 立即同步到代理系統
-                await syncToAgentSystem(current_period, newResult);
+                await syncToAgentSystem(memoryGameState.current_period, newResult);
                 
                 // 結算注單
-                await settleBets(current_period, newResult);
+                await settleBets(memoryGameState.current_period, newResult);
                 
-                // 更新期數
-                current_period++;
+                // 更新期數和內存狀態
+                memoryGameState.current_period++;
+                memoryGameState.countdown_seconds = 60;
+                memoryGameState.last_result = newResult;
+                memoryGameState.status = 'betting';
                 
-                // 更新遊戲狀態
+                // 寫入數據庫（重要狀態變更）
                 await GameModel.updateState({
-                  current_period,
+                  current_period: memoryGameState.current_period,
                   countdown_seconds: 60,
                   last_result: newResult,
                   status: 'betting'
                 });
                 
-                console.log(`第${current_period}期開始，可以下注`);
+                console.log(`第${memoryGameState.current_period}期開始，可以下注`);
                 
                 // 每5期執行一次系統監控與自動調整
-                if (current_period % 5 === 0) {
+                if (memoryGameState.current_period % 5 === 0) {
                   monitorAndAdjustSystem();
                 }
               } catch (error) {
@@ -746,7 +786,7 @@ async function generateSmartRaceResult(period) {
     console.log('無大額下注，使用標準權重開獎');
     const standardWeights = {
       positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
-      sumValue: Array(19).fill(1)
+      sumValue: Array(17).fill(1)
     };
     
     // 根據所有下注建立輕微權重
@@ -783,7 +823,7 @@ async function generateSmartRaceResult(period) {
     // 出錯時使用權重為1的均等開獎，確保公平性
     const defaultWeights = {
       positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
-      sumValue: Array(19).fill(1)
+      sumValue: Array(17).fill(1)
     };
     return generateWeightedResult(defaultWeights);
   }
@@ -908,7 +948,7 @@ function calculateResultWeights(highBets, betStats) {
   // 初始化權重，所有位置和號碼的起始權重為1
   const weights = {
     positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
-    sumValue: Array(19).fill(1) // 冠亞和值3-19的權重
+    sumValue: Array(17).fill(1) // 冠亞和值3-19的權重（3到19共17個值）
   };
   
   // 根據大額下注調整權重
@@ -971,27 +1011,31 @@ function calculateResultWeights(highBets, betStats) {
       if (bet.value === 'big') {
         // 減少大值(12-19)的權重
         for (let i = 12 - 3; i <= 19 - 3; i++) {
-          weights.sumValue[i] *= randomnessFactor;
+          if (i < weights.sumValue.length) {
+            weights.sumValue[i] *= randomnessFactor;
+          }
         }
       } else if (bet.value === 'small') {
         // 減少小值(3-11)的權重
         for (let i = 0; i <= 11 - 3; i++) {
-          weights.sumValue[i] *= randomnessFactor;
+          if (i < weights.sumValue.length) {
+            weights.sumValue[i] *= randomnessFactor;
+          }
         }
       } else if (bet.value === 'odd') {
         // 減少單數和值的權重
-        for (let i = 0; i < 17; i++) {
+        for (let i = 0; i < weights.sumValue.length; i++) {
           if ((i + 3) % 2 === 1) weights.sumValue[i] *= randomnessFactor;
         }
       } else if (bet.value === 'even') {
         // 減少雙數和值的權重
-        for (let i = 0; i < 17; i++) {
+        for (let i = 0; i < weights.sumValue.length; i++) {
           if ((i + 3) % 2 === 0) weights.sumValue[i] *= randomnessFactor;
         }
       } else {
         // 具體和值
         const sumIndex = parseInt(bet.value) - 3;
-        if (sumIndex >= 0 && sumIndex < 17) {
+        if (sumIndex >= 0 && sumIndex < weights.sumValue.length) {
           weights.sumValue[sumIndex] *= randomnessFactor;
         }
       }
@@ -1073,6 +1117,13 @@ function generateWeightedResult(weights, attempts = 0) {
 // 根據權重隨機選擇索引
 function weightedRandomIndex(weights) {
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  
+  // 如果總權重為0，直接返回0
+  if (totalWeight === 0) {
+    console.warn('權重總和為0，返回索引0');
+    return 0;
+  }
+  
   let random = Math.random() * totalWeight;
   
   for (let i = 0; i < weights.length; i++) {
@@ -1744,10 +1795,8 @@ app.get('/api/game-data', async (req, res) => {
 
 // 獲取當前遊戲數據 (供API內部使用)
 async function getGameData() {
-  const gameState = await GameModel.getCurrentState();
-  
-  // 解析JSON格式的last_result
-  let last_result = gameState.last_result;
+  // 使用內存狀態，避免頻繁數據庫查詢
+  let last_result = memoryGameState.last_result;
   if (typeof last_result === 'string' && last_result) {
     try {
       last_result = JSON.parse(last_result);
@@ -1758,10 +1807,10 @@ async function getGameData() {
   }
   
   return {
-    period: gameState.current_period,
-    countdown: gameState.countdown_seconds,
+    period: memoryGameState.current_period,
+    countdown: memoryGameState.countdown_seconds,
     lastResult: last_result,
-    status: gameState.status
+    status: memoryGameState.status
   };
 }
 
@@ -2379,7 +2428,7 @@ async function startServer() {
     }
     
     // 設置定時更新熱門投注（每10分鐘）
-    const hotBetsInterval = setInterval(async () => {
+    hotBetsInterval = setInterval(async () => {
       try {
         console.log('定時更新熱門投注數據...');
         await updateHotBets();
@@ -2761,6 +2810,31 @@ async function updateHotBets() {
       allBets.push({
         type: 'champion',
         typeLabel: '冠軍',
+        value,
+        count: data.count,
+        amount: data.amount,
+        label
+      });
+    });
+    
+    // 處理亞軍
+    Object.entries(hotBetsData.byType.runnerup).forEach(([value, data]) => {
+      let label = '';
+      if (['big', 'small', 'odd', 'even'].includes(value)) {
+        const valueMap = {
+          'big': '大',
+          'small': '小',
+          'odd': '單',
+          'even': '雙'
+        };
+        label = `亞軍 ${valueMap[value]}`;
+      } else {
+        label = `亞軍 ${value}號`;
+      }
+      
+      allBets.push({
+        type: 'runnerup',
+        typeLabel: '亞軍',
         value,
         count: data.count,
         amount: data.amount,
