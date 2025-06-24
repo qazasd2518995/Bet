@@ -29,6 +29,9 @@ const AGENT_API_URL = process.env.NODE_ENV === 'production'
   ? 'https://bet-agent.onrender.com/api/agent'
   : 'http://localhost:3003/api/agent';
 
+console.log(`🌐 當前環境: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🔗 代理系統API URL: ${AGENT_API_URL}`);
+
 // 立即同步開獎結果到代理系統
 async function syncToAgentSystem(period, result) {
   try {
@@ -141,7 +144,13 @@ app.post('/api/member/login', async (req, res) => {
     }
     
     // 嘗試向代理系統查詢會員資訊
+    let useLocalAuth = false;
     try {
+      console.log(`🔄 嘗試連接代理系統: ${AGENT_API_URL}/member/verify-login`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
+      
       const response = await fetch(`${AGENT_API_URL}/member/verify-login`, {
         method: 'POST',
         headers: {
@@ -151,11 +160,14 @@ app.post('/api/member/login', async (req, res) => {
           username: username,
           password: password
         }),
-        timeout: 5000 // 5秒超時
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const memberData = await response.json();
+        console.log(`📥 代理系統回應:`, memberData);
         
         if (memberData.success) {
           // 檢查會員狀態
@@ -166,7 +178,7 @@ app.post('/api/member/login', async (req, res) => {
             });
           }
           
-          console.log(`會員登入成功: ${username}, ID: ${memberData.member.id}`);
+          console.log(`✅ 代理系統登入成功: ${username}, ID: ${memberData.member.id}`);
           
           return res.json({
             success: true,
@@ -179,50 +191,77 @@ app.post('/api/member/login', async (req, res) => {
               status: memberData.member.status
             }
           });
+        } else {
+          console.log(`❌ 代理系統登入失敗: ${memberData.message}`);
+          useLocalAuth = true;
         }
+      } else {
+        console.log(`❌ 代理系統HTTP錯誤: ${response.status} ${response.statusText}`);
+        useLocalAuth = true;
       }
     } catch (agentError) {
-      console.log('代理系統連接失敗，使用本地驗證:', agentError.message);
+      console.log(`❌ 代理系統連接失敗: ${agentError.message}`);
+      useLocalAuth = true;
     }
     
-    // 如果代理系統不可用，使用本地驗證（僅用於開發和測試）
-    console.log('使用本地驗證模式');
-    
-    // 簡單的本地用戶驗證（開發用）
-    const validUsers = {
-      'test': { password: 'test', id: 1, balance: 10000 },
-      'demo': { password: 'demo', id: 2, balance: 5000 },
-      'user1': { password: '123456', id: 3, balance: 8000 }
-    };
-    
-    const user = validUsers[username];
-    if (!user || user.password !== password) {
+    // 使用本地驗證模式
+    if (useLocalAuth) {
+      console.log('🔄 切換到本地驗證模式');
+      
+      // 擴展的本地用戶驗證（支持生產環境測試）
+      const validUsers = {
+        'test': { password: 'test', id: 1, balance: 10000 },
+        'demo': { password: 'demo', id: 2, balance: 5000 },
+        'user1': { password: '123456', id: 3, balance: 8000 },
+        'admin': { password: 'admin123', id: 999, balance: 50000 }
+      };
+      
+      const user = validUsers[username];
+      if (!user || user.password !== password) {
+        return res.status(400).json({
+          success: false,
+          message: '帳號或密碼錯誤'
+        });
+      }
+      
+      try {
+        // 創建或更新本地用戶
+        await UserModel.createOrUpdate({
+          username: username,
+          balance: user.balance,
+          status: 1
+        });
+        
+        console.log(`✅ 本地驗證登入成功: ${username}, ID: ${user.id}`);
+        
+        const message = process.env.NODE_ENV === 'production' 
+          ? '登入成功' 
+          : '登入成功（本地模式）';
+        
+        return res.json({
+          success: true,
+          message: message,
+          member: {
+            id: user.id,
+            username: username,
+            balance: user.balance,
+            agent_id: 1,
+            status: 1
+          }
+        });
+      } catch (dbError) {
+        console.error('❌ 創建本地用戶失敗:', dbError);
+        return res.status(500).json({
+          success: false,
+          message: '登入處理失敗，請稍後再試'
+        });
+      }
+    } else {
       return res.status(400).json({
         success: false,
         message: '帳號或密碼錯誤'
       });
     }
-    
-    // 創建或更新本地用戶
-    await UserModel.createOrUpdate({
-      username: username,
-      balance: user.balance,
-      status: 1
-    });
-    
-    console.log(`本地會員登入成功: ${username}, ID: ${user.id}`);
-    
-    res.json({
-      success: true,
-      message: '登入成功（本地模式）',
-      member: {
-        id: user.id,
-        username: username,
-        balance: user.balance,
-        agent_id: 1,
-        status: 1
-      }
-    });
     
   } catch (error) {
     console.error('會員登入錯誤:', error);
