@@ -5919,7 +5919,7 @@
                     }
                     
                     // 發送登入請求
-                    fetch(`${this.API_BASE_URL}/api/login`, {
+                    fetch(`${this.API_BASE_URL}/api/member/login`, {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -5940,9 +5940,9 @@
                         if (data.success) {
                             // 存儲登入狀態和用戶信息
                             sessionStorage.setItem('isLoggedIn', 'true');
-                            sessionStorage.setItem('username', data.user?.username || this.loginForm.username);
-                            sessionStorage.setItem('memberId', data.user?.id || '');
-                            sessionStorage.setItem('balance', data.user?.balance || 0);
+                            sessionStorage.setItem('username', data.member?.username || this.loginForm.username);
+                            sessionStorage.setItem('memberId', data.member?.id || '');
+                            sessionStorage.setItem('balance', data.member?.balance || 0);
                             
                             // 如果後端返回token，存儲它
                             if (data.token) {
@@ -5951,8 +5951,8 @@
                             
                             // 更新Vue實例的登入狀態
                             this.isLoggedIn = true;
-                            this.username = data.user?.username || this.loginForm.username;
-                            this.balance = data.user?.balance || 0;
+                            this.username = data.member?.username || this.loginForm.username;
+                            this.balance = data.member?.balance || 0;
                             
                             // 顯示成功消息
                             this.showNotification('登入成功！');
@@ -5960,8 +5960,8 @@
                             // 關閉登入彈窗
                             this.showLoginModal = false;
                             
-                            // 重新加載頁面以應用登入狀態
-                            window.location.reload();
+                            // 直接跳轉到遊戲主頁，而不是重新載入
+                            window.location.href = 'index.html';
                         } else {
                             throw new Error(data.message || '登入失敗，請檢查用戶名和密碼');
                         }

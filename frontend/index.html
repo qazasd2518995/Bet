@@ -26,7 +26,7 @@
             }
 
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-            if (!isLoggedIn) {
+            if (!isLoggedIn || isLoggedIn !== 'true') {
                 // 重定向到登入頁面
                 window.location.href = 'login.html';
                 return;
@@ -34,32 +34,31 @@
             
             // 檢查是否有必要的登入資訊
             const username = sessionStorage.getItem('username');
-            const memberId = sessionStorage.getItem('memberId');
             
-            if (!username || !memberId) {
+            if (!username) {
                 // 登入資訊不完整，重新登入
                 sessionStorage.clear();
                 window.location.href = 'login.html';
                 return;
             }
 
-            // 驗證會話是否仍然有效
+            // 會話驗證改為非阻塞式，避免網路問題造成無限重定向
             try {
                 const response = await fetch('/api/member/check-session', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                        'Authorization': `Bearer ${sessionStorage.getItem('token') || ''}`
                     }
                 });
 
                 if (!response.ok) {
-                    throw new Error('Session expired');
+                    console.warn('Session validation failed, but continuing...');
+                    // 不立即清除登入狀態，讓用戶繼續使用
                 }
             } catch (error) {
-                console.error('Session validation failed:', error);
-                sessionStorage.clear();
-                window.location.href = 'login.html';
+                console.warn('Session validation error:', error);
+                // 網路錯誤時不清除登入狀態，讓用戶繼續使用
             }
         });
     </script>
@@ -3199,7 +3198,7 @@
                         </div>
                         <div class="countdown-section" :class="gameStatus">
                             <div class="countdown-inline">
-                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
+                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎倒計時' }}</span>
                                 <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
                             </div>
                         </div>
@@ -3453,7 +3452,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                        </div>
             
             <!-- 快速投注區域 -->
             <div class="tab-content" v-if="activeTab === 'quick'">
@@ -4006,7 +4005,6 @@
                     currentPeriod: '',
                     nextPeriod: '',
                     countdownSeconds: 0,
-                    endsAt: null, // 階段結束時間戳
                     
                     // 開獎結果
                     lastResult: [],
@@ -4087,28 +4085,27 @@
                     // 自訂金額
                     customAmount: '',
                     
-                    // 賠率數據 - 將從API動態獲取
+                    // 賠率數據
                     odds: {
                         sumValue: {
-                            '3': 39.32, '4': 20.14, '5': 15.34, '6': 12.47, '7': 10.55,
-                            '8': 8.63, '9': 7.67, '10': 6.71, '11': 6.71, '12': 7.67,
-                            '13': 8.63, '14': 10.55, '15': 12.47, '16': 15.34, '17': 20.14,
-                            '18': 39.32, '19': 77.68,
-                            big: 1.88, small: 1.88, odd: 1.88, even: 1.88
+                            '3': 41, '4': 41, '5': 21, '6': 21, '7': 14, '8': 14,
+                            '9': 11, '10': 11, '11': 9, '12': 9, '13': 9, '14': 9, 
+                            '15': 9, '16': 9, '17': 11, '18': 11, '19': 14, 
+                            big: 1.96, small: 1.96, odd: 1.96, even: 1.96
                         },
-                        champion: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        runnerup: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        third: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        fourth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        fifth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        sixth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        seventh: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        eighth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        ninth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        tenth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        champion: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        runnerup: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        third: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        fourth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        fifth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        sixth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        seventh: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        eighth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        ninth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
+                        tenth: { big: 1.96, small: 1.96, odd: 1.96, even: 1.96 },
                         dragonTiger: { 
-                            dragon: 1.88, 
-                            tiger: 1.88 
+                            dragon: 1.96, 
+                            tiger: 1.96 
                         },
                         number: {
                             first: 9.59,
@@ -4178,11 +4175,10 @@
             methods: {
                 // 初始化倒計時功能
                 initCountdown() {
-                    // 每秒更新倒計時，使用絕對時間計算
+                    // 每秒更新倒計時
                     this.countdownTimer = setInterval(() => {
-                        if (this.endsAt) {
-                            const remainingTime = Math.max(0, Math.floor((this.endsAt - Date.now()) / 1000));
-                            this.countdownSeconds = remainingTime;
+                        if (this.countdownSeconds > 0) {
+                            this.countdownSeconds--;
                             this.updateCountdownDisplay();
                         }
                     }, 1000);
@@ -4333,36 +4329,15 @@
                     fetch(`${this.API_BASE_URL}/api/game-data`)
                         .then(response => response.json())
                         .then(data => {
-                            const newPeriod = data.gameData.currentPeriod;
-                            const newEndsAt = data.gameData.endsAt;
-                            
-                            // 檢查是否需要更新同步狀態 - 放寬條件確保及時更新
-                            if (newPeriod !== this.currentPeriod || 
-                                (newEndsAt && (!this.endsAt || Math.abs(newEndsAt - this.endsAt) > 500)) ||
-                                data.gameData.status !== this.gameStatus) {
-                                
-                                console.log(`🔄 同步遊戲狀態: 期數=${newPeriod}, 結束時間=${new Date(newEndsAt).toISOString()}, 狀態=${data.gameData.status}`);
-                                
-                                this.currentPeriod = newPeriod;
-                                this.endsAt = newEndsAt;
-                            }
-                            
-                            // 總是更新倒計時，確保即時性
-                            if (this.endsAt) {
-                                this.countdownSeconds = Math.max(0, Math.floor((this.endsAt - Date.now()) / 1000));
-                            } else {
-                                this.countdownSeconds = data.gameData.countdownSeconds;
-                            }
-                            
+                            this.countdownSeconds = data.gameData.countdownSeconds;
+                            this.currentPeriod = data.gameData.currentPeriod;
                             this.lastResult = data.gameData.lastResult;
                             this.lastResults = data.gameData.lastResult;
-                            this.nextPeriod = (parseInt(newPeriod) + 1).toString();
+                            
+                            this.nextPeriod = (parseInt(data.gameData.currentPeriod) + 1).toString();
                             
                             const previousStatus = this.gameStatus;
                             this.gameStatus = data.gameData.status;
-                            
-                            // 立即更新倒計時顯示
-                            this.updateCountdownDisplay();
                             
                             if (previousStatus === 'drawing' && this.gameStatus === 'betting') {
                                 console.log('開獎完成，更新餘額和注單');
@@ -4370,25 +4345,19 @@
                                 this.updateBetHistory();
                                 this.updateHistoryRecords();
                             } else if (previousStatus === 'betting' && this.gameStatus === 'drawing') {
-                                console.log('開始開獎，播放動畫和音效');
+                                console.log('開始開獎，等待結果');
                                 
                                 // 開始播放開獎動畫
-                                this.playDrawAnimation();
+                                // this.playDrawAnimation(); // 已禁用複雜動畫，直接顯示結果
                                 
                                 // 播放音效
-                                this.playSound('draw');
+                                // this.playSound('draw'); // 已禁用避免404錯誤
                                 
                                 // 立即更新歷史記錄以確保即時性
                                 this.updateHistoryRecords();
                             }
                             
-                            // 當倒計時為 0 且狀態為 betting 時，強制更新
-                            if (this.countdownSeconds === 0 && this.gameStatus === 'betting') {
-                                console.log('倒計時結束，強制刷新遊戲數據');
-                                setTimeout(() => {
-                                    this.updateGameData();
-                                }, 1000);
-                            }
+                            this.updateCountdownDisplay();
                         })
                         .catch(error => {
                             console.error('獲取遊戲數據失敗:', error);
@@ -5234,16 +5203,20 @@
                     }
                 },
                 startUpdateTimers() {
-                    // 移除本地倒計時遞減，完全依賴服務器狀態
-                    // 每2秒更新遊戲數據和倒計時
+                    // 每秒更新倒計時
+                    this.countdownTimer = setInterval(() => {
+                        if (this.countdownSeconds > 0) {
+                            this.countdownSeconds--;
+                            this.updateCountdownDisplay();
+                        }
+                    }, 1000);
+                    
+                    // 每3秒更新遊戲數據
                     this.gameDataTimer = setInterval(() => {
                         this.updateGameData();
-                    }, 2000);
-                    
-                    // 每5秒更新歷史記錄
-                    this.historyTimer = setInterval(() => {
+                        // 每次更新遊戲數據時也更新歷史記錄
                         this.updateHistoryRecords();
-                    }, 5000);
+                    }, 3000);
                     
                     // 每10秒更新余額和下注記錄
                     this.balanceTimer = setInterval(() => {
@@ -5251,8 +5224,14 @@
                         this.updateBetHistory();
                         this.updateDailyStats();
                     }, 10000);
+                    
+                    // 每5秒更新歷史記錄以確保即時性
+                    this.historyTimer = setInterval(() => {
+                        this.updateHistoryRecords();
+                    }, 5000);
                 },
                 stopUpdateTimers() {
+                    clearInterval(this.countdownTimer);
                     clearInterval(this.gameDataTimer);
                     clearInterval(this.balanceTimer);
                     clearInterval(this.historyTimer);
@@ -5278,180 +5257,65 @@
                 playDrawAnimation() {
                     if (this.gameStatus !== 'drawing') return;
                     
-                    console.log('🎰 播放新版開獎動畫...');
+                    console.log('播放開獎動畫...');
                     
                     // 獲取結果容器
-                    const resultContainer = document.querySelector('.results-display-new .results-container-new');
-                    if (!resultContainer) {
-                        console.warn('找不到結果容器，使用備用容器');
-                        const backupContainer = document.querySelector('.results-display-new');
-                        if (backupContainer) {
-                            this.playSimpleAnimation(backupContainer);
-                        }
-                        return;
-                    }
+                    const resultContainer = document.querySelector('.race-result');
+                    if (!resultContainer) return;
                     
-                    // 清空容器並開始動畫
-                    resultContainer.innerHTML = '';
+                    // 清空現有內容並添加動畫容器
+                    const animationContainer = document.createElement('div');
+                    animationContainer.className = 'race-animation-container';
                     
-                    // 第一階段：旋轉搖獎機動畫 (2秒)
-                    this.playLotteryMachineAnimation(resultContainer);
+                    // 添加終點線
+                    const finishLine = document.createElement('div');
+                    finishLine.className = 'race-finish-line';
+                    animationContainer.appendChild(finishLine);
                     
-                    // 第二階段：逐一揭曉結果 (3秒)
-                    setTimeout(() => {
-                        this.playResultRevealAnimation(resultContainer);
-                    }, 2000);
-                },
-                
-                // 新版搖獎機動畫
-                playLotteryMachineAnimation(container) {
-                    // 創建搖獎機容器
-                    const machineContainer = document.createElement('div');
-                    machineContainer.className = 'lottery-machine';
-                    machineContainer.style.cssText = `
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100px;
-                        background: linear-gradient(135deg, #ff6b35, #f7931e);
-                        border-radius: 15px;
-                        position: relative;
-                        overflow: hidden;
-                        box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
-                        animation: machineShake 0.5s infinite;
-                    `;
-                    
-                    // 搖獎機內部旋轉效果
-                    const rotatingBalls = document.createElement('div');
-                    rotatingBalls.className = 'rotating-balls';
-                    rotatingBalls.style.cssText = `
-                        position: absolute;
-                        width: 80px;
-                        height: 80px;
-                        border-radius: 50%;
-                        border: 3px solid rgba(255,255,255,0.3);
-                        animation: ballRotate 1s linear infinite;
-                    `;
-                    
-                    // 添加旋轉小球
+                    // 創建賽車元素
+                    const cars = [];
                     for (let i = 0; i < 10; i++) {
-                        const ball = document.createElement('div');
-                        ball.textContent = i;
-                        ball.style.cssText = `
-                            position: absolute;
-                            width: 15px;
-                            height: 15px;
-                            border-radius: 50%;
-                            background: white;
-                            color: #333;
-                            font-size: 10px;
-                            font-weight: bold;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            transform-origin: 40px 40px;
-                            transform: rotate(${i * 36}deg) translateX(35px);
-                            animation: ballSpin 1s linear infinite reverse;
-                        `;
-                        rotatingBalls.appendChild(ball);
+                        const car = document.createElement('div');
+                        car.className = 'car-racer';
+                        car.style.backgroundColor = this.getColorForNumber(i);
+                        car.style.top = `${10 + i * 10}px`;
+                        car.style.left = '10px';
+                        car.dataset.number = i;
+                        car.textContent = i;
+                        car.style.color = 'white';
+                        car.style.textAlign = 'center';
+                        car.style.fontSize = '12px';
+                        car.style.fontWeight = 'bold';
+                        animationContainer.appendChild(car);
+                        cars.push(car);
                     }
                     
-                    // 中央文字
-                    const centerText = document.createElement('div');
-                    centerText.textContent = '🎰 搖獎中 🎰';
-                    centerText.style.cssText = `
-                        font-size: 18px;
-                        font-weight: bold;
-                        color: white;
-                        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-                        z-index: 10;
-                        animation: textPulse 0.8s infinite alternate;
-                    `;
+                    // 先展示動畫容器
+                    resultContainer.innerHTML = '';
+                    resultContainer.appendChild(animationContainer);
                     
-                    machineContainer.appendChild(rotatingBalls);
-                    machineContainer.appendChild(centerText);
-                    container.appendChild(machineContainer);
-                    
-                    // 添加動畫樣式
-                    this.addLotteryAnimationStyles();
-                },
-                
-                // 開獎結果動畫
-                playDrawResultAnimation(container) {
-                    container.innerHTML = '';
-                    
-                    // 創建開獎結果容器
-                    const resultContainer = document.createElement('div');
-                    resultContainer.className = 'draw-result-container';
-                    resultContainer.style.cssText = `
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: 10px;
-                        background: linear-gradient(45deg, rgba(255,215,0,0.1), rgba(255,165,0,0.1));
-                        border-radius: 10px;
-                        min-height: 60px;
-                    `;
-                    
-                    // 逐一顯示開獎結果球
-                    this.lastResults.forEach((number, index) => {
+                    // 等待DOM更新後啟動動畫
+                    setTimeout(() => {
+                        // 開始賽車動畫
+                        const raceDuration = 3000; // 3秒
+                        const results = [...this.lastResults]; // 複製結果順序
+                        
+                        // 使賽車移動到適當位置
+                        cars.forEach((car, index) => {
+                            // 計算終點位置
+                            const finishPosition = results.indexOf(index);
+                            // 計算距離右側的百分比（越小的名次距離越近）
+                            const distanceFromRight = 50 + (finishPosition * 5);
+                            // 設置終點位置
+                            car.style.left = `calc(100% - ${distanceFromRight}px)`;
+                        });
+                        
+                        // 動畫結束後顯示結果
                         setTimeout(() => {
-                            const ball = document.createElement('div');
-                            ball.textContent = number;
-                            ball.className = `result-ball-new color-${number} animating`;
-                            ball.style.cssText = `
-                                width: 40px;
-                                height: 40px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 16px;
-                                font-weight: bold;
-                                margin: 0 2px;
-                                opacity: 0;
-                                transform: scale(0);
-                                transition: all 0.5s ease;
-                            `;
-                            
-                            resultContainer.appendChild(ball);
-                            
-                            // 觸發入場動畫
-                            setTimeout(() => {
-                                ball.style.opacity = '1';
-                                ball.style.transform = 'scale(1)';
-                                
-                                // 添加位置標籤
-                                const positionLabel = document.createElement('div');
-                                positionLabel.textContent = this.getPositionName(index + 1);
-                                positionLabel.className = 'position-label-new';
-                                positionLabel.style.cssText = `
-                                    font-size: 10px;
-                                    text-align: center;
-                                    margin-top: 4px;
-                                    color: #666;
-                                `;
-                                
-                                const ballContainer = document.createElement('div');
-                                ballContainer.style.cssText = `
-                                    display: flex;
-                                    flex-direction: column;
-                                    align-items: center;
-                                `;
-                                
-                                ball.parentNode.insertBefore(ballContainer, ball);
-                                ballContainer.appendChild(ball);
-                                ballContainer.appendChild(positionLabel);
-                                
-                                // 前三名添加特效
-                                if (index < 3) {
-                                    ball.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
-                                    ball.style.animation = 'pulse 1s infinite alternate';
-                                }
-                            }, 100);
-                        }, index * 300); // 每300ms顯示一個球
-                    });
-                    
-                    container.appendChild(resultContainer);
+                            // 恢復結果顯示
+                            this.showNumberBalls(resultContainer);
+                        }, raceDuration);
+                    }, 100);
                 },
                 
                 // 顯示結果球
@@ -5580,25 +5444,6 @@
                             //     console.log('嘗試重新獲取熱門投注數據...');
                             //     this.fetchHotBets();
                             // }, 30000);
-                        });
-                },
-                
-                // 獲取統一賠率數據
-                fetchOdds() {
-                    fetch(`${this.API_BASE_URL}/api/odds`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.odds) {
-                                // 更新賠率數據
-                                this.odds = data.odds;
-                                console.log('統一賠率數據獲取成功，退水比例:', data.rebatePercentage);
-                            } else {
-                                console.error('獲取賠率數據失敗:', data ? data.message : '無數據');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('獲取賠率數據出錯:', error);
-                            // 繼續使用預設賠率值
                         });
                 },
                 
@@ -5937,7 +5782,7 @@
                     document.querySelector(selector).style.display = 'none';
                 },
                 login() {
-                    fetch(`${this.API_BASE_URL}/api/login`, {
+                    fetch(`${this.API_BASE_URL}/api/member/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -5949,10 +5794,11 @@
                     .then(data => {
                         if (data.success) {
                             sessionStorage.setItem('isLoggedIn', 'true');
-                            sessionStorage.setItem('username', data.user.username);
-                            sessionStorage.setItem('balance', data.user.balance);
-                            this.username = data.user.username;
-                            this.balance = data.user.balance;
+                            sessionStorage.setItem('username', data.member.username);
+                            sessionStorage.setItem('balance', data.member.balance);
+                            sessionStorage.setItem('memberId', data.member.id);
+                            this.username = data.member.username;
+                            this.balance = data.member.balance;
                             this.checkLoginStatus();
                             this.showNotification('登入成功！');
                         } else {
@@ -6013,7 +5859,6 @@
                 this.initCountdown();
                 this.updateGameData();
                 this.fetchHotBets();  // 加載熱門投注數據
-                this.fetchOdds();     // 加載統一賠率數據
                 
                 // 每隔10秒刷新一次遊戲數據
                 setInterval(() => {

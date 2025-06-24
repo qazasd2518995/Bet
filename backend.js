@@ -2174,70 +2174,7 @@ app.get('/api/bet-history', async (req, res) => {
   }
 });
 
-// 用戶登入
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  
-  console.log('收到登入請求:', { username, password: '***' });
-  
-  try {
-    // 向代理系統發送驗證請求
-    console.log('正在向代理系統發送驗證請求...');
-    const response = await fetch(`${AGENT_API_URL}/verify-member`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ username, password })
-    });
-    
-    if (!response.ok) {
-      console.error('代理系統響應狀態碼:', response.status);
-      const text = await response.text();
-      console.error('代理系統響應內容:', text);
-      
-      return res.status(500).json({
-        success: false,
-        message: '無法連接代理系統，請稍後再試'
-      });
-    }
-
-    const data = await response.json();
-    console.log('代理系統回應:', data);
-
-    if (data.success) {
-      // 更新本地用戶資料
-      await UserModel.createOrUpdate({
-        username: data.member.username,
-        balance: data.member.balance,
-        status: data.member.status,
-      });
-      
-      console.log('用戶登入成功，更新本地資料');
-      
-      res.json({
-        success: true,
-        message: '登入成功',
-        balance: data.member.balance
-      });
-    } else {
-      res.json({
-        success: false,
-        message: data.message || '登入失敗'
-      });
-    }
-  } catch (error) {
-    console.error('登入錯誤:', error);
-    
-    res.status(500).json({
-      success: false,
-      message: '登入過程發生錯誤，請稍後再試'
-    });
-  }
-});
-
-// 重複的register路由已移除
+// 舊的登入端點已移除，統一使用 /api/member/login
 
 // 更新下注處理邏輯
 app.post('/api/bet', async (req, res) => {
