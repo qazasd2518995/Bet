@@ -69,6 +69,7 @@ app.use(cors({
     // 允許所有來源的請求
     const allowedOrigins = [
       'https://bet-game.onrender.com', 
+      'https://bet-game-vcje.onrender.com',  // 添加實際的Render URL
       'https://bet-agent.onrender.com',
       'http://localhost:3002', 
       'http://localhost:3000', 
@@ -78,9 +79,11 @@ app.use(cors({
       'http://127.0.0.1:3001'
     ];
     
+    // 在生產環境中，也允許同源請求（沒有origin頭的請求）
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log(`❌ CORS錯誤: 不允許的來源 ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
