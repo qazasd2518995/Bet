@@ -18,7 +18,13 @@
           <script src="./src/components/DrawHistory.js?v=2025061901"></script>
     <script>
         // 登入檢查處理
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 防止無限重定向
+            if (window.location.pathname.endsWith('login.html') && sessionStorage.getItem('isLoggedIn') === 'true') {
+                window.location.href = 'index.html';
+                return;
+            }
+
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
             if (!isLoggedIn) {
                 // 重定向到登入頁面
@@ -35,6 +41,25 @@
                 sessionStorage.clear();
                 window.location.href = 'login.html';
                 return;
+            }
+
+            // 驗證會話是否仍然有效
+            try {
+                const response = await fetch('/api/member/check-session', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Session expired');
+                }
+            } catch (error) {
+                console.error('Session validation failed:', error);
+                sessionStorage.clear();
+                window.location.href = 'login.html';
             }
         });
     </script>

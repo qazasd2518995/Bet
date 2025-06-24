@@ -62,12 +62,32 @@ async function syncToAgentSystem(period, result) {
 
 // 跨域設置 - 允許前端訪問
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://bet-game.onrender.com', 'https://bet-agent.onrender.com'] 
-    : ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:8082', 'http://127.0.0.1:8082'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: function(origin, callback) {
+    // 允許所有來源的請求
+    const allowedOrigins = [
+      'https://bet-game.onrender.com', 
+      'https://bet-agent.onrender.com',
+      'http://localhost:3002', 
+      'http://localhost:3000', 
+      'http://localhost:8082', 
+      'http://127.0.0.1:8082',
+      'http://localhost:3001',
+      'http://127.0.0.1:3001'
+    ];
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
+
+// 處理預檢請求
+app.options('*', cors());
 
 app.use(express.json());
 
@@ -87,6 +107,23 @@ app.get('/favicon.ico', (req, res) => {
 // 健康檢查端點 - 用於 Render 監控
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// 會話檢查API
+app.get('/api/member/check-session', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+
+    // 這裡可以添加JWT驗證邏輯，如果使用JWT的話
+    // 暫時簡單返回成功
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Session check error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
 });
 
 // 會員登入API

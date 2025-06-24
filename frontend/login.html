@@ -431,6 +431,11 @@
                     sessionStorage.setItem('balance', data.member.balance || 0);
                     sessionStorage.setItem('agentId', data.member.agent_id || '');
                     
+                    // 儲存token
+                    if (data.token) {
+                        sessionStorage.setItem('token', data.token);
+                    }
+                    
                     // 顯示成功訊息並跳轉
                     showSuccess('登入成功，正在跳轉到遊戲...');
                     

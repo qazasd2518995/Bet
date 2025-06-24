@@ -5902,32 +5902,87 @@
                 closeModal(selector) {
                     document.querySelector(selector).style.display = 'none';
                 },
+                
+                // 用戶登入
                 login() {
+                    // 驗證表單
+                    if (!this.loginForm.username || !this.loginForm.password) {
+                        this.showNotification('請輸入用戶名和密碼');
+                        return;
+                    }
+                    
+                    // 禁用登入按鈕，防止重複提交
+                    const loginBtn = document.querySelector('.login-button');
+                    if (loginBtn) {
+                        loginBtn.disabled = true;
+                        loginBtn.textContent = '登入中...';
+                    }
+                    
+                    // 發送登入請求
                     fetch(`${this.API_BASE_URL}/api/login`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include', // 包含cookies
                         body: JSON.stringify({
                             username: this.loginForm.username,
                             password: this.loginForm.password
                         })
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('登入失敗，請檢查用戶名和密碼');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.success) {
+                            // 存儲登入狀態和用戶信息
                             sessionStorage.setItem('isLoggedIn', 'true');
-                            sessionStorage.setItem('username', data.user.username);
-                            sessionStorage.setItem('balance', data.user.balance);
-                            this.username = data.user.username;
-                            this.balance = data.user.balance;
-                            this.checkLoginStatus();
+                            sessionStorage.setItem('username', data.user?.username || this.loginForm.username);
+                            sessionStorage.setItem('memberId', data.user?.id || '');
+                            sessionStorage.setItem('balance', data.user?.balance || 0);
+                            
+                            // 如果後端返回token，存儲它
+                            if (data.token) {
+                                sessionStorage.setItem('token', data.token);
+                            }
+                            
+                            // 更新Vue實例的登入狀態
+                            this.isLoggedIn = true;
+                            this.username = data.user?.username || this.loginForm.username;
+                            this.balance = data.user?.balance || 0;
+                            
+                            // 顯示成功消息
                             this.showNotification('登入成功！');
+                            
+                            // 關閉登入彈窗
+                            this.showLoginModal = false;
+                            
+                            // 重新加載頁面以應用登入狀態
+                            window.location.reload();
                         } else {
-                            this.showNotification('登入失敗，請檢查用戶名和密碼。');
+                            throw new Error(data.message || '登入失敗，請檢查用戶名和密碼');
                         }
                     })
                     .catch(error => {
-                        console.error('登入失敗:', error);
-                        this.showNotification('登入失敗，請稍後再試。');
+                        console.error('登入錯誤:', error);
+                        this.showNotification(error.message || '登入失敗，請稍後再試');
+                        
+                        // 清除可能存在的登入狀態
+                        sessionStorage.removeItem('isLoggedIn');
+                        sessionStorage.removeItem('username');
+                        sessionStorage.removeItem('memberId');
+                        sessionStorage.removeItem('balance');
+                        sessionStorage.removeItem('token');
+                    })
+                    .finally(() => {
+                        // 重新啟用登入按鈕
+                        if (loginBtn) {
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = '登入';
+                        }
                     });
                 },
                 register() {
