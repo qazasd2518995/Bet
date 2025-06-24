@@ -487,7 +487,7 @@ const app = createApp({
             this.showCreateAgentModal = false;
         },
         
-        // 顯示創建會員模態框 - 重新實現版本
+        // 顯示創建會員模態框 - 修復響應式更新問題
         showMemberModal() {
             console.log('📝 顯示新增會員模態框');
             console.log('當前管理代理:', this.currentManagingAgent);
@@ -510,13 +510,34 @@ const app = createApp({
             
             console.log('✅ 會員數據已重置:', this.newMember);
             
-            // 顯示模態框（使用Vue條件渲染，不依賴Bootstrap）
+            // 直接設置屬性（屬性已在data中定義）
             this.showCreateMemberModal = true;
             console.log('✅ showCreateMemberModal 設置為 true');
             
-            // 強制Vue更新視圖
-            this.$forceUpdate();
-            console.log('✅ 模態框已顯示');
+            // 使用nextTick確保DOM更新後再檢查
+            this.$nextTick(() => {
+                console.log('🔍 Vue響應式數據檢查:');
+                console.log('- showCreateMemberModal:', this.showCreateMemberModal);
+                console.log('- currentManagingAgent:', this.currentManagingAgent);
+                console.log('- user:', this.user);
+                
+                const modal = document.getElementById('createMemberModal');
+                if (modal) {
+                    console.log('✅ 模態框DOM元素已找到:', modal);
+                    console.log('✅ 模態框顯示狀態:', modal.style.display);
+                    console.log('✅ 模態框可見性:', window.getComputedStyle(modal).visibility);
+                    console.log('✅ 模態框z-index:', window.getComputedStyle(modal).zIndex);
+                } else {
+                    console.error('❌ 模態框DOM元素未找到');
+                    // 檢查是否有v-if條件導致模態框未渲染
+                    console.log('🔍 檢查條件:', {
+                        showCreateMemberModal: this.showCreateMemberModal,
+                        hasCurrentAgent: !!this.currentManagingAgent,
+                        hasAgentId: !!this.currentManagingAgent?.id
+                    });
+                }
+                console.log('✅ 模態框已顯示');
+            });
         },
         
         // 隱藏創建會員模態框 - 重新實現版本

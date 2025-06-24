@@ -3535,18 +3535,21 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
 });
 
 // API 路由
-// 獲取下注記錄
+// 獲取下注記錄 - 修復400錯誤，支持更多查詢參數
 app.get(`${API_PREFIX}/bets`, async (req, res) => {
   try {
-    const { agentId, username, date, period, page = 1, limit = 20 } = req.query;
+    const { agentId, rootAgentId, includeDownline, username, date, period, page = 1, limit = 20 } = req.query;
     
-    // 基本參數驗證
-    if (!agentId) {
+    // 基本參數驗證 - 支持agentId或rootAgentId
+    const currentAgentId = agentId || rootAgentId;
+    if (!currentAgentId) {
       return res.status(400).json({
         success: false,
-        message: '代理ID為必填項'
+        message: '代理ID為必填項 (agentId或rootAgentId)'
       });
     }
+    
+    console.log(`📡 查詢下注記錄: agentId=${currentAgentId}, includeDownline=${includeDownline}, username=${username}`);
     
     // 查詢該代理下的所有會員
     let members = [];
@@ -3554,7 +3557,7 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     // 如果指定了會員用戶名
     if (username) {
       // 檢查這個會員是否屬於該代理
-      const member = await MemberModel.findByAgentAndUsername(agentId, username);
+      const member = await MemberModel.findByAgentAndUsername(currentAgentId, username);
       if (member) {
         members = [member];
       } else {
@@ -3564,10 +3567,21 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
         });
       }
     } else {
-      // 獲取所有直系下線會員
-      const memberList = await MemberModel.findByAgentId(agentId);
-      // members = memberList.data || []; // 原來的錯誤行
-      members = memberList || []; // <--- 修正：直接使用返回的數組
+      // 根據includeDownline參數決定是否包含下級代理的會員
+      if (includeDownline === 'true') {
+        // 獲取所有下級代理的會員
+        const downlineAgents = await getAllDownlineAgents(currentAgentId);
+        const allAgentIds = [currentAgentId, ...downlineAgents.map(agent => agent.id)];
+        
+        for (const agentId of allAgentIds) {
+          const agentMembers = await MemberModel.findByAgentId(agentId);
+          members = members.concat(agentMembers || []);
+        }
+      } else {
+        // 只獲取直系下線會員
+        const memberList = await MemberModel.findByAgentId(currentAgentId);
+        members = memberList || [];
+      }
     }
     
     if (members.length === 0) {
