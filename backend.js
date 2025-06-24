@@ -11,6 +11,7 @@ import fs from 'fs';
 // 導入數據庫模型
 import db from './db/config.js';
 import initDatabase from './db/init.js';
+import ensureDatabaseConstraints from './ensure-database-constraints.js';
 import UserModel from './db/models/user.js';
 import BetModel from './db/models/bet.js';
 import GameModel from './db/models/game.js';
@@ -2557,6 +2558,9 @@ async function startServer() {
   try {
     // 初始化數據庫
     await initDatabase();
+    
+    // 確保數據庫約束正確設置
+    await ensureDatabaseConstraints();
     
     console.log('開始初始化熱門投注數據...');
     // 更新熱門投注數據

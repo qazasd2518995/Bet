@@ -41,7 +41,7 @@ async function initDatabase() {
     await db.none(`
       CREATE TABLE IF NOT EXISTS result_history (
         id SERIAL PRIMARY KEY,
-        period BIGINT NOT NULL,
+        period BIGINT NOT NULL UNIQUE,
         result JSON NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )

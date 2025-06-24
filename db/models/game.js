@@ -59,7 +59,7 @@ const GameModel = {
     }
   },
   
-  // 添加新的開獎結果 - 增強重複檢查
+  // 添加新的開獎結果 - 增強重複檢查和錯誤處理
   async addResult(period, result) {
     try {
       // 先檢查該期號是否已存在
@@ -72,15 +72,28 @@ const GameModel = {
         return existing;
       }
       
-      // 使用INSERT ... ON CONFLICT來處理併發情況
-      return await db.one(`
-        INSERT INTO result_history (period, result) 
-        VALUES ($1, $2) 
-        ON CONFLICT (period) DO UPDATE SET
-          result = EXCLUDED.result,
-          created_at = EXCLUDED.created_at
-        RETURNING *
-      `, [period, JSON.stringify(result)]);
+      // 嘗試使用INSERT ... ON CONFLICT來處理併發情況
+      try {
+        return await db.one(`
+          INSERT INTO result_history (period, result) 
+          VALUES ($1, $2) 
+          ON CONFLICT (period) DO UPDATE SET
+            result = EXCLUDED.result,
+            created_at = EXCLUDED.created_at
+          RETURNING *
+        `, [period, JSON.stringify(result)]);
+      } catch (onConflictError) {
+        // 如果ON CONFLICT失敗（約束不存在），使用普通INSERT
+        if (onConflictError.code === '42P10') {
+          console.log(`⚠️ 約束不存在，使用普通INSERT插入期號 ${period}`);
+          return await db.one(`
+            INSERT INTO result_history (period, result) 
+            VALUES ($1, $2) 
+            RETURNING *
+          `, [period, JSON.stringify(result)]);
+        }
+        throw onConflictError;
+      }
     } catch (error) {
       // 如果是唯一約束違反，再次檢查是否已存在
       if (error.code === '23505') {
