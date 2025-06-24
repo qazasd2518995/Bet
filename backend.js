@@ -3018,6 +3018,44 @@ async function updateHotBets() {
   }
 }
 
+// REST API端點 - 獲取最新開獎結果
+app.get('/api/results/latest', async (req, res) => {
+  try {
+    console.log('收到獲取最新開獎結果請求');
+    
+    const result = await db.oneOrNone(`
+      SELECT period, result_numbers, created_at 
+      FROM result_history 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
+    
+    if (result) {
+      console.log(`返回最新開獎結果: 期號=${result.period}, 結果=${result.result_numbers}`);
+      res.json({
+        success: true,
+        result: {
+          period: result.period,
+          result_numbers: result.result_numbers,
+          created_at: result.created_at
+        }
+      });
+    } else {
+      console.log('沒有找到開獎結果');
+      res.json({
+        success: false,
+        message: '沒有找到開獎結果'
+      });
+    }
+  } catch (error) {
+    console.error('獲取最新開獎結果失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取開獎結果失敗'
+    });
+  }
+});
+
 // REST API端點 - 獲取熱門投注
 app.get('/api/hot-bets', (req, res) => {
   console.log('收到熱門投注API請求');

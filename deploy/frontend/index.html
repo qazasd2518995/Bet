@@ -4652,9 +4652,12 @@
                                 this.countdownSeconds = serverCountdown;
                             }
                             
-                            // 更新其他數據
-                            this.lastResult = data.gameData.lastResult;
-                            this.lastResults = data.gameData.lastResult;
+                            // 更新其他數據 - 確保動畫使用最新結果
+                            if (data.gameData.lastResult && data.gameData.lastResult.length > 0) {
+                                this.lastResult = data.gameData.lastResult;
+                                this.lastResults = data.gameData.lastResult;
+                                console.log(`🎯 更新開獎結果: 期號=${serverPeriod}, 結果=`, this.lastResults);
+                            }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
                             this.updateCountdownDisplay();
@@ -5555,20 +5558,63 @@
                 },
                 // 🎬 動畫開關控制
                 toggleAnimation() {
-                    // 如果在封盤期間點擊，顯示提示
-                    if (this.gameStatus === 'betting') {
-                        this.displayNotification(' 尚未開獎，請等待開獎後再播放動畫');
+                    console.log(`🎬 點擊賽車按鈕 - 遊戲狀態: ${this.gameStatus}, 倒計時: ${this.countdownSeconds}, 期號: ${this.currentPeriod}, 最新結果:`, this.lastResults);
+                    
+                    // 如果正在下注期間（倒計時大於0），顯示提示
+                    if (this.gameStatus === 'betting' && this.countdownSeconds > 0) {
+                        this.displayNotification('🚫 尚未開獎，請等待開獎後再播放動畫');
                         return;
                     }
                     
-                    // 如果有結果數據，直接播放賽車動畫
-                    if (this.lastResults && this.lastResults.length > 0) {
-                        console.log(' 手動觸發賽車動畫播放');
-                        this.playRaceAnimation();
-                    } else {
-                        this.displayNotification(' 暫無開獎結果，無法播放動畫');
+                    // 強制重新獲取最新遊戲數據，確保使用最新開獎結果
+                    console.log('🔄 重新獲取最新開獎結果...');
+                    this.updateGameData().then(() => {
+                        // 再次檢查是否有結果數據
+                        if (this.lastResults && this.lastResults.length > 0) {
+                            console.log(`🎬 手動觸發賽車動畫播放，期號: ${this.currentPeriod}, 使用結果:`, this.lastResults);
+                            this.playRaceAnimation();
+                        } else {
+                            console.log('⚠️ 仍無開獎結果，嘗試獲取歷史記錄中的最新結果');
+                            // 嘗試從歷史記錄獲取最新結果
+                            this.getLatestResultFromHistory().then((latestResult) => {
+                                if (latestResult && latestResult.length > 0) {
+                                    this.lastResults = latestResult;
+                                    console.log(`🎯 從歷史記錄獲取到結果:`, latestResult);
+                                    this.playRaceAnimation();
+                                } else {
+                                    this.displayNotification('⚠️ 暫無開獎結果，無法播放動畫');
+                                }
+                            }).catch(() => {
+                                this.displayNotification('⚠️ 暫無開獎結果，無法播放動畫');
+                            });
+                        }
+                    }).catch((error) => {
+                        console.error('獲取遊戲數據失敗:', error);
+                        this.displayNotification('⚠️ 獲取開獎數據失敗，無法播放動畫');
+                    });
+                },
+                
+                // 🎯 從歷史記錄獲取最新開獎結果
+                async getLatestResultFromHistory() {
+                    try {
+                        const response = await fetch(`${this.API_BASE_URL}/api/results/latest`);
+                        const data = await response.json();
+                        
+                        if (data.success && data.result && data.result.result_numbers) {
+                            // 將結果字符串轉換為數組
+                            const resultArray = data.result.result_numbers.split(',').map(num => parseInt(num.trim()));
+                            console.log(`🎯 從歷史記錄獲取最新結果: 期號=${data.result.period}, 結果=`, resultArray);
+                            return resultArray;
+                        }
+                        
+                        console.log('❌ 無法從歷史記錄獲取有效結果');
+                        return null;
+                    } catch (error) {
+                        console.error('獲取歷史記錄最新結果失敗:', error);
+                        return null;
                     }
                 },
+                
                 // 🎲 簡單的洗球動畫效果（開獎時自動播放）
                 playSimpleDrawEffect() {
                     console.log(' 播放簡單洗球動畫效果');
