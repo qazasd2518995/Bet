@@ -481,11 +481,17 @@ const app = createApp({
             this.showCreateAgentModal = false;
         },
         
-        // 顯示創建會員模態框
+        // 顯示創建會員模態框 - 重新實現版本
         showMemberModal() {
-            console.log('showMemberModal 被調用');
+            console.log('📝 顯示新增會員模態框');
             console.log('當前管理代理:', this.currentManagingAgent);
-            console.log('面包屑導航:', this.agentBreadcrumbs);
+            
+            // 檢查當前管理代理是否存在
+            if (!this.currentManagingAgent || !this.currentManagingAgent.id) {
+                console.error('❌ 當前管理代理信息缺失');
+                this.showMessage('無法確定當前管理代理，請重新整理頁面', 'error');
+                return;
+            }
             
             // 重置會員數據
             this.newMember = { 
@@ -496,74 +502,32 @@ const app = createApp({
                 status: 1
             };
             
-            // 如果之前存在模態框實例，先銷毀它
-            if (this.memberModal) {
-                try {
-                    this.memberModal.dispose();
-                } catch (error) {
-                    console.log('銷毀舊模態框實例時發生錯誤:', error);
-                }
-                this.memberModal = null;
-            }
+            console.log('✅ 會員數據已重置:', this.newMember);
             
+            // 顯示模態框（使用Vue條件渲染，不依賴Bootstrap）
             this.showCreateMemberModal = true;
+            console.log('✅ showCreateMemberModal 設置為 true');
             
-            // 使用更可靠的模態框初始化方式
-            this.$nextTick(() => {
-                // 等待DOM更新
-                setTimeout(() => {
-                    const modalEl = document.getElementById('createMemberModal');
-                    if (modalEl) {
-                        console.log('找到會員模態框元素，正在初始化...');
-                        console.log('模態框所屬的代理:', this.currentManagingAgent.username);
-                        
-                        try {
-                            this.memberModal = new bootstrap.Modal(modalEl, {
-                                backdrop: 'static',
-                                keyboard: false
-                            });
-                            this.memberModal.show();
-                        } catch (modalError) {
-                            console.error('初始化模態框失敗:', modalError);
-                            this.showMessage('模態框初始化失敗，請重新整理頁面', 'error');
-                        }
-                    } else {
-                        console.error('找不到會員模態框元素');
-                        console.log('showCreateMemberModal狀態:', this.showCreateMemberModal);
-                        console.log('DOM中的模態框:', document.querySelectorAll('#createMemberModal'));
-                        
-                        // 強制重新渲染並再次嘗試
-                        this.$forceUpdate();
-                        setTimeout(() => {
-                            const retryModalEl = document.getElementById('createMemberModal');
-                            if (retryModalEl) {
-                                console.log('重試成功，找到會員模態框元素');
-                                try {
-                                    this.memberModal = new bootstrap.Modal(retryModalEl, {
-                                        backdrop: 'static',
-                                        keyboard: false
-                                    });
-                                    this.memberModal.show();
-                                } catch (retryError) {
-                                    console.error('重試模態框初始化失敗:', retryError);
-                                    this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
-                                }
-                            } else {
-                                console.error('重試仍然找不到會員模態框元素');
-                                this.showMessage('無法載入新增會員視窗，請重新整理頁面', 'error');
-                            }
-                        }, 300);
-                    }
-                }, 100);
-            });
+            // 強制Vue更新視圖
+            this.$forceUpdate();
+            console.log('✅ 模態框已顯示');
         },
         
-        // 隱藏創建會員模態框
+        // 隱藏創建會員模態框 - 重新實現版本
         hideCreateMemberModal() {
-            if (this.memberModal) {
-                this.memberModal.hide();
-            }
+            console.log('🚫 關閉新增會員模態框');
             this.showCreateMemberModal = false;
+            
+            // 重置會員數據
+            this.newMember = { 
+                username: '', 
+                password: '', 
+                confirmPassword: '',
+                balance: 0,
+                status: 1
+            };
+            
+            console.log('✅ 模態框已關閉，數據已重置');
         },
         
 
