@@ -816,29 +816,28 @@ async function startGameCycle() {
                 // 隨機產生新的遊戲結果(1-10的不重複隨機數)
                 const newResult = await generateSmartRaceResult(memoryGameState.current_period);
                 
-                // 將結果添加到歷史記錄
-                const addResultResponse = await GameModel.addResult(memoryGameState.current_period, newResult);
+                // 保存當前期號用於開獎
+                const currentDrawPeriod = memoryGameState.current_period;
                 
-                // 檢查是否為重複期號，如果是則強制遞增期號
+                // 將結果添加到歷史記錄
+                const addResultResponse = await GameModel.addResult(currentDrawPeriod, newResult);
+                
+                // 檢查是否為重複期號
                 if (addResultResponse && addResultResponse.isDuplicate) {
-                  console.log(`🔄 檢測到重複期號 ${memoryGameState.current_period}，強制遞增到下一期`);
-                  // 強制遞增期號，避免卡住
-                  const nextPeriod = getNextPeriod(memoryGameState.current_period);
-                  memoryGameState.current_period = nextPeriod;
-                  console.log(`🔄 強制更新期號為: ${memoryGameState.current_period}`);
+                  console.log(`⚠️ 期號 ${currentDrawPeriod} 已存在，但繼續處理開獎邏輯`);
                 } else {
-                  console.log(`✅ 期號 ${memoryGameState.current_period} 開獎結果已成功保存`);
+                  console.log(`✅ 期號 ${currentDrawPeriod} 開獎結果已成功保存`);
                 }
                 
                 // 立即同步到代理系統
-                await syncToAgentSystem(memoryGameState.current_period, newResult);
+                await syncToAgentSystem(currentDrawPeriod, newResult);
                 
                 // 結算注單
-                await settleBets(memoryGameState.current_period, newResult);
+                await settleBets(currentDrawPeriod, newResult);
                 
-                // 更新期數和內存狀態 - 智能期號管理（確保期號正確遞增）
-                const newPeriod = getNextPeriod(memoryGameState.current_period);
-                memoryGameState.current_period = newPeriod;
+                // 生成下一期號並更新狀態
+                const nextPeriod = getNextPeriod(currentDrawPeriod);
+                memoryGameState.current_period = nextPeriod;
                 memoryGameState.countdown_seconds = 60;
                 memoryGameState.last_result = newResult;
                 memoryGameState.status = 'betting';
