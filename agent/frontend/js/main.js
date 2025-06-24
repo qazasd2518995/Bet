@@ -209,7 +209,9 @@ const app = createApp({
             betFilters: {
                 member: '',
                 date: '',
-                period: ''
+                period: '',
+                viewScope: 'own', // 'own', 'downline', 'specific'
+                specificAgent: ''
             },
             betPagination: {
                 currentPage: 1,
@@ -221,6 +223,10 @@ const app = createApp({
                 totalAmount: 0,
                 totalProfit: 0
             },
+            
+            // 代理線管理相關
+            allDownlineAgents: [], // 所有下級代理
+            availableMembers: [], // 當前可用的會員列表
             
             // 會員餘額修改相關
             modifyBalanceData: {
@@ -534,6 +540,31 @@ const app = createApp({
         
         // 設置活動標籤並關閉漢堡選單
         setActiveTab(tab) {
+            console.log('🔄 切換頁籤到:', tab);
+            
+            // 如果不是在代理管理頁面，重置當前管理代理為自己
+            if (tab !== 'agents') {
+                if (this.currentManagingAgent.id !== this.user.id) {
+                    console.log('📍 重置管理視角：從', this.currentManagingAgent.username, '回到', this.user.username);
+                    this.currentManagingAgent = {
+                        id: this.user.id,
+                        username: this.user.username,
+                        level: this.user.level,
+                        max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    };
+                    
+                    // 清空代理導航面包屑
+                    this.agentBreadcrumbs = [];
+                    
+                    // 如果切換到會員管理或下注記錄，重新載入相關數據
+                    if (tab === 'members') {
+                        this.searchMembers();
+                    } else if (tab === 'bets') {
+                        this.searchBets();
+                    }
+                }
+            }
+            
             this.activeTab = tab;
             
             // 關閉Bootstrap漢堡選單
@@ -629,9 +660,12 @@ const app = createApp({
                     await this.fetchDashboardData();
                     await this.fetchNotices();
                     
-                    // 載入當前代理的下級代理和會員列表
-                    await this.searchAgents();
-                    await this.searchMembers();
+                                    // 載入當前代理的下級代理和會員列表
+                await this.searchAgents();
+                await this.searchMembers();
+                
+                // 初始化可用會員列表
+                this.availableMembers = this.members;
                     
                     this.showMessage('登入成功', 'success');
                 } else {
@@ -1127,26 +1161,159 @@ const app = createApp({
             }
         },
         
+        // 格式化時間
+        formatTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('zh-TW', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+        },
+        
+        // 處理查看範圍變更
+        async handleViewScopeChange() {
+            console.log('🔄 查看範圍變更:', this.betFilters.viewScope);
+            
+            // 重置相關篩選
+            this.betFilters.member = '';
+            this.betFilters.specificAgent = '';
+            
+            if (this.betFilters.viewScope === 'own') {
+                // 僅本代理下級會員
+                this.availableMembers = this.members;
+            } else if (this.betFilters.viewScope === 'downline') {
+                // 整條代理線
+                await this.loadDownlineAgentsAndMembers();
+            } else if (this.betFilters.viewScope === 'specific') {
+                // 指定代理/會員
+                await this.loadAllDownlineAgents();
+                this.availableMembers = [];
+            }
+        },
+        
+        // 載入所有下級代理
+        async loadAllDownlineAgents() {
+            try {
+                console.log('📡 載入所有下級代理...');
+                const response = await axios.get(`${API_BASE_URL}/downline-agents`, {
+                    params: { 
+                        rootAgentId: this.currentManagingAgent.id 
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.allDownlineAgents = response.data.agents || [];
+                    console.log('✅ 載入下級代理成功:', this.allDownlineAgents.length, '個');
+                } else {
+                    console.error('❌ 載入下級代理失敗:', response.data.message);
+                }
+            } catch (error) {
+                console.error('❌ 載入下級代理錯誤:', error);
+                this.showMessage('載入代理列表失敗', 'error');
+            }
+        },
+        
+        // 載入整條代理線的代理和會員
+        async loadDownlineAgentsAndMembers() {
+            try {
+                console.log('📡 載入整條代理線的會員...');
+                const response = await axios.get(`${API_BASE_URL}/downline-members`, {
+                    params: { 
+                        rootAgentId: this.currentManagingAgent.id 
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.availableMembers = response.data.members || [];
+                    console.log('✅ 載入整條代理線會員成功:', this.availableMembers.length, '個');
+                } else {
+                    console.error('❌ 載入整條代理線會員失敗:', response.data.message);
+                }
+            } catch (error) {
+                console.error('❌ 載入整條代理線會員錯誤:', error);
+                this.showMessage('載入會員列表失敗', 'error');
+            }
+        },
+        
+        // 載入指定代理的會員
+        async loadSpecificAgentMembers() {
+            if (!this.betFilters.specificAgent) {
+                this.availableMembers = [];
+                return;
+            }
+            
+            try {
+                console.log('📡 載入指定代理的會員...', this.betFilters.specificAgent);
+                const response = await axios.get(`${API_BASE_URL}/agent-members`, {
+                    params: { 
+                        agentId: this.betFilters.specificAgent 
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.availableMembers = response.data.members || [];
+                    console.log('✅ 載入指定代理會員成功:', this.availableMembers.length, '個');
+                } else {
+                    console.error('❌ 載入指定代理會員失敗:', response.data.message);
+                }
+            } catch (error) {
+                console.error('❌ 載入指定代理會員錯誤:', error);
+                this.showMessage('載入會員列表失敗', 'error');
+            }
+        },
+        
+        // 重置下注篩選條件
+        resetBetFilters() {
+            console.log('🔄 重置下注篩選條件');
+            this.betFilters = {
+                member: '',
+                date: '',
+                period: '',
+                viewScope: 'own',
+                specificAgent: ''
+            };
+            this.availableMembers = this.members;
+            this.searchBets();
+        },
+        
         // 搜索下注記錄
         async searchBets() {
             this.loading = true;
             try {
-                console.log('搜索下注記錄...當前管理代理ID:', this.currentManagingAgent.id);
+                console.log('🔍 搜索下注記錄...當前管理代理ID:', this.currentManagingAgent.id);
+                console.log('📊 查看範圍:', this.betFilters.viewScope);
+                
                 const params = new URLSearchParams();
                 if (this.betFilters.member) params.append('username', this.betFilters.member);
                 if (this.betFilters.date) params.append('date', this.betFilters.date);
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
-                params.append('agentId', this.currentManagingAgent.id); // 使用當前管理代理的ID
+                
+                // 根據查看範圍設置不同的查詢參數
+                if (this.betFilters.viewScope === 'own') {
+                    // 僅本代理下級會員
+                    params.append('agentId', this.currentManagingAgent.id);
+                } else if (this.betFilters.viewScope === 'downline') {
+                    // 整條代理線
+                    params.append('rootAgentId', this.currentManagingAgent.id);
+                    params.append('includeDownline', 'true');
+                } else if (this.betFilters.viewScope === 'specific' && this.betFilters.specificAgent) {
+                    // 指定代理
+                    params.append('agentId', this.betFilters.specificAgent);
+                }
                 
                 // 添加分頁參數
                 params.append('page', this.betPagination.currentPage);
                 params.append('limit', this.betPagination.limit);
                 
                 const url = `${API_BASE_URL}/bets?${params.toString()}`;
+                console.log('📡 請求URL:', url);
+                
                 const response = await fetch(url);
                 
                 if (!response.ok) {
-                    console.error('搜索下注記錄失敗:', response.status);
+                    console.error('❌ 搜索下注記錄失敗:', response.status);
                     this.bets = [];
                     return;
                 }
@@ -1154,6 +1321,7 @@ const app = createApp({
                 const data = await response.json();
                 if (data.success) {
                     this.bets = data.bets || [];
+                    console.log('✅ 獲取下注記錄成功:', this.bets.length, '筆');
                     
                     this.betPagination.totalPages = Math.ceil(data.total / this.betPagination.limit);
 
@@ -1164,13 +1332,13 @@ const app = createApp({
                         totalProfit: 0
                     };
                 } else {
-                    console.error('獲取下注記錄失敗:', data.message || '未知錯誤');
+                    console.error('❌ 獲取下注記錄失敗:', data.message || '未知錯誤');
                     this.bets = [];
                     this.betPagination.totalPages = 1;
                     this.betStats = { totalBets: 0, totalAmount: 0, totalProfit: 0 };
                 }
             } catch (error) {
-                console.error('搜索下注記錄錯誤:', error);
+                console.error('❌ 搜索下注記錄錯誤:', error);
                 this.bets = [];
             } finally {
                 this.loading = false;

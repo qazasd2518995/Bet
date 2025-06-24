@@ -815,10 +815,10 @@
 
                     <!-- 新增會員 Modal -->
                     <div class="modal d-block" id="createMemberModal" tabindex="-1" v-if="showCreateMemberModal" 
-                         style="background-color: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1055;">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
+                         style="background-color: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                        <div class="modal-dialog modal-dialog-centered" style="margin: 0; max-width: 500px; width: 90%;">
+                                                         <div class="modal-content" style="border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                                 <div class="modal-header">
                                     <h5 class="modal-title">
                                         {{ currentManagingAgent.id === user.id ? '新增會員' : '為 ' + currentManagingAgent.username + ' 新增會員' }}
                                     </h5>
@@ -1282,16 +1282,65 @@
                     <h2>下注記錄</h2>
                     <div class="card mb-4">
                         <div class="card-header">
-                            搜尋條件
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>搜尋條件</span>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2 small text-muted">當前查看:</span>
+                                    <span class="badge bg-info">{{ currentManagingAgent.username }}</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
+                            <!-- 查看範圍選擇 -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">查看範圍</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="betViewScope" id="viewOwnOnly" v-model="betFilters.viewScope" value="own" @change="handleViewScopeChange">
+                                        <label class="btn btn-outline-primary" for="viewOwnOnly">
+                                            <i class="fas fa-user me-1"></i>僅本代理下級會員
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="betViewScope" id="viewDownline" v-model="betFilters.viewScope" value="downline" @change="handleViewScopeChange">
+                                        <label class="btn btn-outline-success" for="viewDownline">
+                                            <i class="fas fa-sitemap me-1"></i>整條代理線 (含下級代理)
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="betViewScope" id="viewSpecific" v-model="betFilters.viewScope" value="specific" @change="handleViewScopeChange">
+                                        <label class="btn btn-outline-info" for="viewSpecific">
+                                            <i class="fas fa-search-plus me-1"></i>指定代理/會員
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            • <strong>僅本代理下級會員</strong>：只顯示您直接管理的會員下注記錄<br>
+                                            • <strong>整條代理線</strong>：顯示您及所有下級代理的會員下注記錄<br>
+                                            • <strong>指定代理/會員</strong>：自由選擇特定代理或會員的下注記錄
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 具體篩選條件 -->
                             <div class="row g-3">
+                                <div class="col-md-3" v-if="betFilters.viewScope === 'specific'">
+                                    <label class="form-label">指定代理</label>
+                                    <select class="form-select" v-model="betFilters.specificAgent" @change="loadSpecificAgentMembers">
+                                        <option value="">選擇代理...</option>
+                                        <option v-for="agent in allDownlineAgents" :key="agent.id" :value="agent.id">
+                                            {{ agent.username }} ({{ getLevelName(agent.level) }})
+                                        </option>
+                                    </select>
+                                </div>
                                 <div class="col-md-3">
                                     <label class="form-label">會員</label>
                                     <select class="form-select" v-model="betFilters.member">
                                         <option value="">全部會員</option>
-                                        <option v-for="member in members" :key="member.id" :value="member.username">
+                                        <option v-for="member in availableMembers" :key="member.id" :value="member.username">
                                             {{ member.username }}
+                                            <span v-if="member.agent_username && betFilters.viewScope !== 'own'">
+                                                ({{ member.agent_username }})
+                                            </span>
                                         </option>
                                     </select>
                                 </div>
@@ -1303,9 +1352,12 @@
                                     <label class="form-label">期數</label>
                                     <input type="text" class="form-control" placeholder="輸入期數" v-model="betFilters.period">
                                 </div>
-                                <div class="col-md-3 d-flex align-items-end">
-                                    <button class="btn btn-primary w-100" @click="searchBets">
+                                <div class="col-md-12 d-flex align-items-end">
+                                    <button class="btn btn-primary me-2" @click="searchBets">
                                         <i class="fas fa-search me-1"></i>搜尋
+                                    </button>
+                                    <button class="btn btn-outline-secondary" @click="resetBetFilters">
+                                        <i class="fas fa-undo me-1"></i>重置
                                     </button>
                                 </div>
                             </div>
@@ -1319,6 +1371,7 @@
                                     <thead>
                                         <tr>
                                             <th>會員</th>
+                                            <th v-if="betFilters.viewScope !== 'own'">所屬代理</th>
                                             <th>期數</th>
                                             <th>投注類型</th>
                                             <th>位置</th>
@@ -1332,26 +1385,39 @@
                                     </thead>
                                     <tbody>
                                         <tr v-if="bets.length === 0">
-                                            <td colspan="10" class="text-center">暫無下注記錄</td>
+                                            <td :colspan="betFilters.viewScope === 'own' ? 10 : 11" class="text-center">暫無下注記錄</td>
                                         </tr>
                                         <tr v-for="bet in bets" :key="bet.id">
-                                            <td>{{ bet.username }}</td>
+                                            <td>
+                                                <strong>{{ bet.username }}</strong>
+                                                <br><small class="text-muted">ID: {{ bet.user_id }}</small>
+                                            </td>
+                                            <td v-if="betFilters.viewScope !== 'own'">
+                                                <span class="badge bg-secondary">{{ bet.agent_username || '未知' }}</span>
+                                                <br><small class="text-muted">{{ getLevelName(bet.agent_level || 1) }}</small>
+                                            </td>
                                             <td>{{ bet.period }}</td>
                                             <td>{{ formatBetType(bet.bet_type) }}</td>
                                             <td>{{ formatPosition(bet.position, bet.bet_type) }}</td>
                                             <td>{{ formatBetValue(bet.bet_value) }}</td>
-                                            <td>{{ formatMoney(bet.amount) }}</td>
+                                            <td><strong>{{ formatMoney(bet.amount) }}</strong></td>
                                             <td>{{ bet.odds }}</td>
                                             <td>
                                                 <span v-if="bet.settled" :class="bet.win ? 'text-success' : 'text-danger'">
+                                                    <i :class="bet.win ? 'fas fa-check-circle' : 'fas fa-times-circle'" class="me-1"></i>
                                                     {{ bet.win ? '贏' : '輸' }}
                                                 </span>
-                                                <span v-else class="text-warning">未結算</span>
+                                                <span v-else class="text-warning">
+                                                    <i class="fas fa-clock me-1"></i>未結算
+                                                </span>
                                             </td>
                                             <td :class="bet.win ? 'text-success' : 'text-danger'">
-                                                {{ formatMoney(bet.win ? bet.win_amount - bet.amount : -bet.amount) }}
+                                                <strong>{{ formatMoney(bet.win ? bet.win_amount - bet.amount : -bet.amount) }}</strong>
                                             </td>
-                                            <td>{{ formatDate(bet.created_at) }}</td>
+                                            <td>
+                                                {{ formatDate(bet.created_at) }}
+                                                <br><small class="text-muted">{{ formatTime(bet.created_at) }}</small>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>

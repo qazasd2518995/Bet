@@ -5551,26 +5551,26 @@
                 toggleAnimation() {
                     // 如果在封盤期間點擊，顯示提示
                     if (this.gameStatus === 'betting') {
-                        this.displayNotification('🎯 尚未開獎，請等待開獎後再播放動畫');
+                        this.displayNotification(' 尚未開獎，請等待開獎後再播放動畫');
                         return;
                     }
                     
                     // 如果有結果數據，直接播放賽車動畫
                     if (this.lastResults && this.lastResults.length > 0) {
-                        console.log('🏁 手動觸發賽車動畫播放');
+                        console.log(' 手動觸發賽車動畫播放');
                         this.playRaceAnimation();
                     } else {
-                        this.displayNotification('🎯 暫無開獎結果，無法播放動畫');
+                        this.displayNotification(' 暫無開獎結果，無法播放動畫');
                     }
                 },
                 // 🎲 簡單的洗球動畫效果（開獎時自動播放）
                 playSimpleDrawEffect() {
-                    console.log('🎲 播放簡單洗球動畫效果');
+                    console.log(' 播放簡單洗球動畫效果');
                     
                     // 找到主畫面的結果球
                     const resultBalls = document.querySelectorAll('.results-display .number-ball');
                     if (resultBalls.length === 0) {
-                        console.log('❌ 找不到結果球，跳過洗球動畫');
+                        console.log(' 找不到結果球，跳過洗球動畫');
                         return;
                     }
                     
@@ -5608,7 +5608,7 @@
                     console.log('🏁 開始播放賽車動畫...');
                     
                     if (!this.lastResults || this.lastResults.length === 0) {
-                        console.log('❌ 沒有開獎結果數據，跳過賽車動畫');
+                        console.log(' 沒有開獎結果數據，跳過賽車動畫');
                         return;
                     }
                     
