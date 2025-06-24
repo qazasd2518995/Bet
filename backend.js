@@ -733,8 +733,11 @@ async function startGameCycle() {
     let gameState = await GameModel.getCurrentState();
     if (!gameState) {
       // 如果不存在，創建初始遊戲狀態
+      const today = new Date();
+      const currentPeriod = parseInt(`${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}001`);
+      
       gameState = await GameModel.updateState({
-        current_period: 202505081001, // 更新為今天的日期+期數
+        current_period: currentPeriod, // 格式: YYYYMMDD001
         countdown_seconds: 60,
         last_result: [4, 2, 7, 9, 8, 10, 6, 3, 5, 1],
         status: 'betting'

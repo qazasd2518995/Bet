@@ -3343,15 +3343,16 @@
                     <div class="period-info-row">
                         <div class="period-badges">
                             <div class="period-badge current">
-                                <span class="period-number">{{ currentPeriod }}</span>
+                                <span class="period-number">{{ formattedCurrentPeriod }}</span>
                                 <span class="period-label">期 (當前)</span>
                             </div>
 
                         </div>
                         <div class="countdown-section" :class="gameStatus">
                             <div class="countdown-inline">
-                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎倒計時' }}</span>
-                                <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
+                                <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
+                                <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
+                                <span class="countdown-time" v-else>🎲</span>
                             </div>
                         </div>
                     </div>
@@ -3904,7 +3905,7 @@
                     <div v-if="profitRecords.length === 0" class="no-records">
                         暫無盈虧記錄
                     </div>
-                    <div v-for="(record, index) in profitRecords" :key="record.date" class="profit-item" @click="showDayDetail(record.date)">
+                    <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" class="profit-item" @click="showDayDetail(record.date)">
                         <div class="profit-date">
                             <div class="date">{{ formatDate(record.date) }}</div>
                             <div class="weekday">{{ getWeekday(record.date) }}</div>
@@ -3969,7 +3970,7 @@
                     <div v-if="dayDetailRecords.length === 0" class="no-records">
                         當日無注單記錄
                     </div>
-                    <div v-for="(bet, index) in dayDetailRecords" :key="bet.id" class="record-item">
+                    <div v-for="(bet, index) in dayDetailRecords" :key="`bet-${bet.id}-${index}`" class="record-item">
                         <!-- 頂部信息：期數和狀態 -->
                         <div class="record-top">
                             <div class="period">{{ bet.period }}期</div>
@@ -4060,7 +4061,7 @@
                     <div v-if="recentResults.length === 0" class="no-records">
                         暫無開獎記錄
                     </div>
-                    <div v-for="(record, index) in recentResults" :key="record.period" class="history-item">
+                    <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="history-item">
                         <div class="period-info">
                             <div class="period">{{ record.period }}期</div>
                             <div class="time">{{ formatDateTime(record.time) }}</div>
@@ -4322,6 +4323,15 @@
                 },
                 isMobile() {
                     return /Mobi|Android/i.test(navigator.userAgent);
+                },
+                formattedCurrentPeriod() {
+                    // 格式化期號顯示，如果期號太長，只顯示最後8位
+                    if (!this.currentPeriod) return '';
+                    const period = this.currentPeriod.toString();
+                    if (period.length > 8) {
+                        return period.slice(-8); // 顯示最後8位
+                    }
+                    return period;
                 }
             },
             methods: {
@@ -4506,11 +4516,13 @@
                                 this.countdownSeconds = serverCountdown;
                                 
                                 if (serverStatus === 'drawing' && previousStatus === 'betting') {
-                                    console.log('🎬 開始開獎動畫');
-                                    this.playDrawAnimation();
+                                    console.log('🎬 狀態變更為開獎中，播放開獎動畫');
+                                    setTimeout(() => {
+                                        this.playDrawAnimation();
+                                    }, 100);
                                     this.updateHistoryRecords();
-                                } else if (serverStatus === 'betting') {
-                                    console.log('開獎完成，更新餘額和注單');
+                                } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
+                                    console.log('✅ 開獎完成，更新餘額和注單');
                                     this.updateBalance();
                                     this.updateBetHistory();
                                     this.updateHistoryRecords();
@@ -5425,16 +5437,33 @@
                 },
                 // 🎊 增強版開獎動畫系統
                 playDrawAnimation() {
-                    if (this.gameStatus !== 'drawing') return;
+                    console.log('🎬 嘗試播放開獎動畫，當前狀態:', this.gameStatus);
+                    console.log('📊 開獎結果數據:', this.lastResults);
                     
-                    console.log('🎬 播放增強版開獎動畫...');
+                    if (this.gameStatus !== 'drawing') {
+                        console.log('❌ 遊戲狀態不是drawing，跳過動畫');
+                        return;
+                    }
+                    
+                    if (!this.lastResults || this.lastResults.length === 0) {
+                        console.log('❌ 沒有開獎結果數據，跳過動畫');
+                        return;
+                    }
+                    
+                    console.log('🎬 開始播放增強版開獎動畫...');
                     
                     // 播放開獎音效
                     this.playSound('draw');
                     
-                    // 獲取結果容器
-                    const resultContainer = document.querySelector('.race-result');
-                    if (!resultContainer) return;
+                    // 獲取結果容器（優先使用race-result，如果不存在則使用results-display-new）
+                    let resultContainer = document.querySelector('.race-result');
+                    if (!resultContainer) {
+                        resultContainer = document.querySelector('.results-display-new');
+                    }
+                    if (!resultContainer) {
+                        console.error('❌ 找不到結果顯示容器');
+                        return;
+                    }
                     
                     // 清空現有內容並創建動畫容器
                     const animationContainer = document.createElement('div');
@@ -6013,17 +6042,26 @@
                 // 獲取盈虧記錄
                 getProfitRecords() {
                     const username = sessionStorage.getItem('username');
-                    if (!username) return;
+                    if (!username) {
+                        console.error('用戶未登入，無法獲取盈虧記錄');
+                        return;
+                    }
                     
                     const days = this.profitTimeRange === '7days' ? 7 : 14;
+                    console.log(`正在獲取用戶 ${username} 的 ${days} 天盈虧記錄...`);
                     
-                    fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&range=${this.profitTimeRange}`)
-                        .then(response => response.json())
+                    fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)
+                        .then(response => {
+                            console.log('盈虧記錄API響應狀態:', response.status);
+                            return response.json();
+                        })
                         .then(data => {
+                            console.log('盈虧記錄API響應數據:', data);
                             if (data.success) {
-                                this.profitRecords = data.records;
-                                this.totalBetCount = data.totalBetCount;
-                                this.totalProfit = data.totalProfit;
+                                this.profitRecords = data.records || [];
+                                this.totalBetCount = data.totalBetCount || 0;
+                                this.totalProfit = data.totalProfit || 0;
+                                console.log(`成功載入 ${this.profitRecords.length} 條盈虧記錄`);
                             } else {
                                 console.error('獲取盈虧記錄失敗:', data.message);
                                 this.profitRecords = [];
