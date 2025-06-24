@@ -417,6 +417,21 @@
                     })
                 });
                 
+                // 檢查響應狀態
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API錯誤響應:', errorText);
+                    throw new Error(`服務器錯誤 (${response.status}): ${response.statusText}`);
+                }
+                
+                // 檢查響應類型
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const responseText = await response.text();
+                    console.error('非JSON響應:', responseText);
+                    throw new Error('服務器響應格式錯誤');
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
