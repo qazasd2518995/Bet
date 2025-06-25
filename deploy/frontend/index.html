@@ -500,18 +500,30 @@
             border-bottom: 1px solid #eee;
         }
         
+        .history-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
         .history-item .period-info {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            min-width: 80px;
+            flex-shrink: 0;
         }
         
         .history-item .period {
             font-weight: bold;
+            font-size: 14px;
+            color: var(--primary-color);
         }
         
         .history-item .time {
             color: #888;
+            font-size: 12px;
         }
         
         .history-item .result-balls {
@@ -519,7 +531,8 @@
             flex-direction: row;
             flex-wrap: nowrap;
             overflow-x: auto;
-            justify-content: space-between;
+            gap: 4px;
+            flex: 1;
             padding: 5px 0;
         }
         
@@ -1474,16 +1487,16 @@
         }
         
         .option.selected {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            border-color: #0056b3;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-color: var(--secondary-color);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+            box-shadow: 0 8px 25px rgba(var(--primary-rgb), 0.4);
         }
         
         .option.selected:hover {
-            background: linear-gradient(135deg, #0056b3, #004085);
-            border-color: #004085;
+            background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            border-color: var(--accent-color);
         }
         
         /* 投注項目文字 */
@@ -1615,16 +1628,16 @@
             border-color: #6a1b9a;
         }
         
-        /* 當選中時保持原有的藍色樣式，但增加陰影效果 */
+        /* 當選中時使用當前主題顏色，但增加陰影效果 */
         .option.big-option.selected,
         .option.small-option.selected,
         .option.odd-option.selected,
         .option.even-option.selected {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            border-color: #0056b3;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-color: var(--secondary-color);
             color: white;
             transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0, 123, 255, 0.5);
+            box-shadow: 0 10px 30px rgba(var(--primary-rgb), 0.5);
         }
         
         /* 響應式設計 */
@@ -5305,14 +5318,16 @@
                         暫無開獎記錄
                     </div>
                     <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="history-item">
-                        <div class="period-info">
-                            <div class="period">{{ record.period }}期</div>
-                            <div class="time">{{ formatTime(record.time) }}</div>
-                        </div>
-                        <div class="result-balls">
-                            <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
-                                 :class="['number-ball', 'color-' + number]">
-                                {{ number }}
+                        <div class="history-row">
+                            <div class="period-info">
+                                <div class="period">{{ record.period }}期</div>
+                                <div class="time">{{ formatTime(record.time) }}</div>
+                            </div>
+                            <div class="result-balls">
+                                <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
+                                     :class="['number-ball', 'color-' + number]">
+                                    {{ number }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -6066,6 +6081,11 @@
                                 } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
                                     console.log('✅ 開獎完成，停止所有動畫並更新結果');
                                     this.completeDrawingProcess();
+                                    // 開獎完成後立即更新路珠走勢數據
+                                    if (this.roadBeadVisible) {
+                                        console.log('📊 開獎完成，立即更新路珠走勢數據');
+                                        this.loadRoadBeadData();
+                                    }
                                 }
                             }
                             // 額外檢查：如果服務器是drawing狀態但本地是betting，強制切換
@@ -6318,7 +6338,17 @@
                                 value: value,
                                 position: bet.position
                             })
-                        }).then(res => res.json());
+                        }).then(res => {
+                            if (!res.ok) {
+                                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                            }
+                            return res.json();
+                        }).then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || '投注失敗');
+                            }
+                            return data;
+                        });
                     });
 
                     // 先預先更新本地餘額（臨時顯示）
