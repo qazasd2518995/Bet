@@ -11,7 +11,7 @@
     <!-- <link rel="stylesheet" href="./src/styles/main.css?v=1.5"> 已移除，避免Vuetify衝突 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- 先引入 Vue -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- 然後引入組件 -->
     <script src="./src/components/BetRecords.js?v=2025061901"></script>
@@ -2882,6 +2882,37 @@
             }
         }
         /* 週報表樣式 */
+        .weekly-profit-content {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 16px;
+        }
+
+        .weekly-table-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .weekly-table-body {
+            background: white;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .table-row:hover {
+            background-color: #f8f9fa;
+        }
+
         .weekly-table {
             background: white;
             border-radius: 8px;
@@ -4220,12 +4251,32 @@
                     <div class="tab" :class="{ active: profitTimeRange === 'lastWeek' }" @click="switchProfitRange('lastWeek')">上週</div>
                 </div>
                 
+                <!-- 週報表內容 -->
+                <div class="weekly-profit-content">
+                    <!-- 表格頭部 -->
+                    <div class="weekly-table-header">
+                        <div class="header-cell">日期</div>
+                        <div class="header-cell">遊戲</div>
+                        <div class="header-cell">注數</div>
+                        <div class="header-cell">有效金額</div>
+                        <div class="header-cell">反水</div>
+                        <div class="header-cell">輸贏</div>
+                    </div>
+                    
+                    <!-- 週報表數據 -->
+                    <div class="weekly-table-body">
+                        <div v-if="profitRecords.length === 0" class="no-records">
+                            暫無盈虧記錄
+                        </div>
+                        <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" 
+                             class="table-row" @click="showDayDetail(record.date)">
+                            <div class="row-cell date-cell">
                                 <div class="date-number">{{ formatDateNumber(record.date) }}</div>
                                 <div class="weekday-label">{{ record.weekday || getWeekday(record.date) }}</div>
                             </div>
                             <div class="row-cell">極速賽車</div>
                             <div class="row-cell">{{ record.betCount }}注</div>
-                            <div class="row-cell">{{ record.betCount > 0 ? '有效金額' : '0' }}</div>
+                            <div class="row-cell">{{ record.betCount > 0 ? formatMoney(Math.abs(record.profit) + (record.betCount * betAmount || 0)) : '0' }}</div>
                             <div class="row-cell">0.0</div>
                             <div class="row-cell profit-cell" :class="{ 
                                 'profit-positive': record.profit > 0, 
@@ -4235,8 +4286,6 @@
                                 {{ formatProfit(record.profit) }}
                             </div>
                         </div>
-                    </div>
-                </div>
                     </div>
                 </div>
                 
@@ -4460,6 +4509,19 @@
 
     <!-- Vue 實例 -->
     <script>
+        // 添加全局錯誤處理
+        window.addEventListener('error', function(e) {
+            console.error('頁面錯誤:', e.error);
+        });
+
+        // 檢查Vue是否正確加載
+        if (typeof Vue === 'undefined') {
+            console.error('Vue.js 未正確加載');
+            document.body.innerHTML = '<div style="padding: 20px; color: red; text-align: center;">Vue.js 加載失敗，請刷新頁面重試</div>';
+        } else {
+            console.log('Vue.js 已成功加載');
+        }
+
         new Vue({
             el: '#app',
             data() {
