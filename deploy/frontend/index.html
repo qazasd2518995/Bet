@@ -1323,6 +1323,11 @@
             z-index: 1;
         }
         
+        .betting-tabs.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
         /* 標籤頁導航 */
         .tabs {
             display: flex;
@@ -2510,6 +2515,11 @@
             box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
             z-index: 100;
         }
+        
+        .compact-betting-actions.disabled {
+            background: #f5f5f5;
+            opacity: 0.7;
+        }
 
         .compact-bet-bar {
             display: flex;
@@ -3573,7 +3583,7 @@
         </div>
 
         <!-- 投注選項區域 -->
-        <section class="betting-tabs">
+        <section class="betting-tabs" :class="{ disabled: gameStatus !== 'betting' }">
             <div class="tabs">
                 <div class="tab" :class="{ active: activeTab === 'combined' }" @click="activeTab = 'combined'">兩面</div>
                 <div class="tab" :class="{ active: activeTab === 'quick' }" @click="activeTab = 'quick'">快速</div>
@@ -3991,7 +4001,7 @@
         </section>
 
         <!-- 新的簡潔下注區域 -->
-        <section class="compact-betting-actions">
+        <section class="compact-betting-actions" :class="{ disabled: gameStatus !== 'betting' }">
             <div class="compact-bet-bar">
                 <!-- 左側：清除按鈕 -->
                 <button class="compact-clear-btn" @click="clearBets">清除</button>
@@ -4018,8 +4028,8 @@
                 </div>
                 
                 <!-- 右側：下注按鈕 -->
-                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="!selectedBets.length || !betAmount || betAmount <= 0">
-                    下注
+                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="!selectedBets.length || !betAmount || betAmount <= 0 || gameStatus !== 'betting'">
+                    {{ gameStatus === 'betting' ? '下注' : '已封盤' }}
                 </button>
             </div>
         </section>
@@ -4072,7 +4082,9 @@
                 
                 <div class="bet-confirm-actions">
                     <button class="cancel-bet-btn" @click="showBetModal = false">取消</button>
-                    <button class="confirm-bet-btn" @click="confirmBets">確認</button>
+                    <button class="confirm-bet-btn" @click="confirmBets" :disabled="gameStatus !== 'betting'">
+                        {{ gameStatus === 'betting' ? '確認' : '已封盤' }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -4623,6 +4635,12 @@
                     );
                 },
                 selectBet(betType, value, position = null) {
+                    // 檢查遊戲狀態：只有在betting狀態下才能選擇下注
+                    if (this.gameStatus !== 'betting') {
+                        console.log('⚠️ 當前非下注時間，無法選擇投注');
+                        return;
+                    }
+                    
                     const bet = {
                         type: betType,
                         value: value,
@@ -5202,6 +5220,13 @@
                 },
                 
                 confirmBets() {
+                    // 檢查遊戲狀態：只有在betting狀態下才能確認下注
+                    if (this.gameStatus !== 'betting') {
+                        alert('當前非下注時間，無法下注！');
+                        this.showBetModal = false;
+                        return;
+                    }
+                    
                     // 保存當前投注作為上次投注
                     this.lastBets = JSON.parse(JSON.stringify(this.selectedBets));
                     this.hasLastBets = true;
