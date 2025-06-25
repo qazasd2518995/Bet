@@ -111,13 +111,13 @@
         /* 🏎️ 賽車動畫容器 - 修正高度避免多餘跑道 */
         .race-animation-container {
             height: 400px; /* 調整高度以適應10輛車 */
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             position: relative;
             overflow: hidden;
             margin: 20px;
             border-radius: 15px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--primary-light);
         }
         
         /* 🏁 跑道軌道 - 精確對應10輛車的高度 */
@@ -1959,7 +1959,7 @@
         
         /* 🎬 獨立開獎動畫按鈕樣式 - 縮小尺寸與期號一致 */
         .draw-animation-btn-standalone {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             border: none;
             padding: 6px 12px;
@@ -1988,7 +1988,7 @@
 
         /* 🎬 原開獎動畫按鈕樣式 (保留向後兼容) */
         .draw-animation-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             border: none;
             padding: 8px 16px;
@@ -4156,10 +4156,14 @@
         .period-info {
             position: absolute;
             top: 2px;
-            left: 4px;
+            right: 2px;
             font-size: 10px;
-            color: #999;
-            font-weight: normal;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            z-index: 10;
         }
         
         .main-value {
@@ -4254,6 +4258,23 @@
         .bead-item.tiger {
             background: #2c3e50;
             color: white;
+        }
+        
+        /* 龍虎對戰區域樣式 */
+        .dragon-tiger-pair {
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .pair-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            text-align: center;
         }
         
         /* 統計摘要 */
@@ -4871,25 +4892,101 @@
                     </div>
                 </div>
                 
-                <div class="betting-group">
-                    <div class="group-title">龍虎</div>
-                    <div class="betting-options">
-                        <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon') }"
-                             @click="selectBet('dragonTiger', 'dragon')">
-                            <span>龍</span>
-                            <span class="odds">{{ formatOdds(odds.dragonTiger.dragon) }}</span>
-                        </div>
-                        <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger') }"
-                             @click="selectBet('dragonTiger', 'tiger')">
-                            <span>虎</span>
-                            <span class="odds">{{ formatOdds(odds.dragonTiger.tiger) }}</span>
-                        </div>
-                    </div>
-                </div>
+
             </div>
             
             <!-- 單號1-5區域 -->
             <div class="tab-content" v-if="activeTab === 'number1to5'">
+                <!-- 龍虎玩法區域 -->
+                <div class="betting-group">
+                    <div class="group-title">龍虎對戰</div>
+                    
+                    <!-- 冠軍V.S.第10名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">冠軍 V.S. 第10名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_1_10') }"
+                                 @click="selectBet('dragonTiger', 'dragon_1_10')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_1_10') }"
+                                 @click="selectBet('dragonTiger', 'tiger_1_10')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 亞軍V.S.第9名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">亞軍 V.S. 第9名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_2_9') }"
+                                 @click="selectBet('dragonTiger', 'dragon_2_9')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_2_9') }"
+                                 @click="selectBet('dragonTiger', 'tiger_2_9')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第3名V.S.第8名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">第3名 V.S. 第8名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_3_8') }"
+                                 @click="selectBet('dragonTiger', 'dragon_3_8')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_3_8') }"
+                                 @click="selectBet('dragonTiger', 'tiger_3_8')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第4名V.S.第7名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">第4名 V.S. 第7名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_4_7') }"
+                                 @click="selectBet('dragonTiger', 'dragon_4_7')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_4_7') }"
+                                 @click="selectBet('dragonTiger', 'tiger_4_7')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第5名V.S.第6名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">第5名 V.S. 第6名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_5_6') }"
+                                 @click="selectBet('dragonTiger', 'dragon_5_6')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_5_6') }"
+                                 @click="selectBet('dragonTiger', 'tiger_5_6')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(1.98) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div v-for="position in 5" :key="position" class="betting-group">
                     <div class="group-title">第{{ position }}名</div>
                     <div class="betting-options numbers">
@@ -5207,6 +5304,10 @@
                         暫無開獎記錄
                     </div>
                     <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="history-item">
+                        <div class="period-info">
+                            <div class="period">{{ record.period }}期</div>
+                            <div class="time">{{ formatTime(record.time) }}</div>
+                        </div>
                         <div class="result-balls">
                             <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
                                  :class="['number-ball', 'color-' + number]">
@@ -5431,6 +5532,7 @@
                                 冠亞和單雙
                             </button>
                             <button 
+                                v-if="selectedRoadBeadPosition <= 5"
                                 :class="['option-btn', { active: roadBeadAnalysisType === 'dragonTiger' }]"
                                 @click="changeRoadBeadAnalysisType('dragonTiger')"
                             >
@@ -8727,55 +8829,101 @@
                         return;
                     }
                     
-                    // 計算週的開始和結束日期
-                    const now = new Date();
-                    let startDate, endDate;
-                    
-                    if (this.profitTimeRange === 'thisWeek') {
-                        // 本週：從這週的星期一到星期日
-                        const currentWeekday = now.getDay(); // 0=星期日, 1=星期一, ...
-                        const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1; // 計算到星期一的天數
-                        
-                        startDate = new Date(now);
-                        startDate.setDate(now.getDate() - daysToMonday);
-                        startDate.setHours(0, 0, 0, 0);
-                        
-                        endDate = new Date(startDate);
-                        endDate.setDate(startDate.getDate() + 6);
-                        endDate.setHours(23, 59, 59, 999);
-                    } else if (this.profitTimeRange === 'lastWeek') {
-                        // 上週：從上週的星期一到星期日
-                        const currentWeekday = now.getDay();
-                        const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
-                        
-                        startDate = new Date(now);
-                        startDate.setDate(now.getDate() - daysToMonday - 7); // 往前推一週
-                        startDate.setHours(0, 0, 0, 0);
-                        
-                        endDate = new Date(startDate);
-                        endDate.setDate(startDate.getDate() + 6);
-                        endDate.setHours(23, 59, 59, 999);
-                    }
-                    
-                    const weekType = this.profitTimeRange === 'thisWeek' ? '本週' : '上週';
-                    console.log(`正在獲取用戶 ${username} 的${weekType}盈虧記錄...`);
-                    console.log(`週期範圍: ${startDate.toISOString()} 到 ${endDate.toISOString()}`);
-                    
-                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
-                        .then(response => {
-                            console.log('盈虧記錄API響應狀態:', response.status);
-                            return response.json();
-                        })
+                    // 直接獲取注單歷史來計算盈虧記錄
+                    fetch(`${this.API_BASE_URL}/api/bet-history?username=${username}&limit=1000`)
+                        .then(response => response.json())
                         .then(data => {
                             console.log('盈虧記錄API響應數據:', data);
-                            if (data.success) {
-                                this.profitRecords = data.records || [];
-                                this.totalBetCount = data.totalBetCount || 0;
-                                this.totalBetAmount = data.totalBetAmount || 0;
-                                this.totalProfit = data.totalProfit || 0;
+                            if (data.success && Array.isArray(data.records)) {
+                                const betHistory = data.records;
+                                
+                                // 計算週的開始和結束日期
+                                const now = new Date();
+                                let startDate, endDate;
+                                
+                                if (this.profitTimeRange === 'thisWeek') {
+                                    const currentWeekday = now.getDay();
+                                    const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
+                                    
+                                    startDate = new Date(now);
+                                    startDate.setDate(now.getDate() - daysToMonday);
+                                    startDate.setHours(0, 0, 0, 0);
+                                    
+                                    endDate = new Date(startDate);
+                                    endDate.setDate(startDate.getDate() + 6);
+                                    endDate.setHours(23, 59, 59, 999);
+                                } else if (this.profitTimeRange === 'lastWeek') {
+                                    const currentWeekday = now.getDay();
+                                    const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
+                                    
+                                    startDate = new Date(now);
+                                    startDate.setDate(now.getDate() - daysToMonday - 7);
+                                    startDate.setHours(0, 0, 0, 0);
+                                    
+                                    endDate = new Date(startDate);
+                                    endDate.setDate(startDate.getDate() + 6);
+                                    endDate.setHours(23, 59, 59, 999);
+                                }
+                                
+                                // 過濾指定週期內的注單
+                                const weekBets = betHistory.filter(bet => {
+                                    const betDate = new Date(bet.time);
+                                    return betDate >= startDate && betDate <= endDate;
+                                });
+                                
+                                // 按日期分組統計
+                                const dailyStats = {};
+                                let totalBetCount = 0;
+                                let totalBetAmount = 0;
+                                let totalProfit = 0;
+                                
+                                weekBets.forEach(bet => {
+                                    const betDate = new Date(bet.time);
+                                    const dateKey = betDate.toDateString();
+                                    
+                                    if (!dailyStats[dateKey]) {
+                                        dailyStats[dateKey] = {
+                                            date: dateKey,
+                                            betCount: 0,
+                                            totalBet: 0,
+                                            profit: 0,
+                                            weekday: this.getWeekday(dateKey)
+                                        };
+                                    }
+                                    
+                                    dailyStats[dateKey].betCount++;
+                                    dailyStats[dateKey].totalBet += parseFloat(bet.amount) || 0;
+                                    
+                                    if (bet.settled) {
+                                        if (bet.win) {
+                                            const winAmount = parseFloat(bet.winAmount) || 0;
+                                            dailyStats[dateKey].profit += winAmount - parseFloat(bet.amount);
+                                        } else {
+                                            dailyStats[dateKey].profit -= parseFloat(bet.amount) || 0;
+                                        }
+                                    }
+                                    
+                                    totalBetCount++;
+                                    totalBetAmount += parseFloat(bet.amount) || 0;
+                                });
+                                
+                                // 計算總盈虧
+                                Object.values(dailyStats).forEach(day => {
+                                    totalProfit += day.profit;
+                                });
+                                
+                                // 轉換為數組並排序
+                                this.profitRecords = Object.values(dailyStats)
+                                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                                
+                                this.totalBetCount = totalBetCount;
+                                this.totalBetAmount = totalBetAmount;
+                                this.totalProfit = totalProfit;
+                                
                                 console.log(`成功載入 ${this.profitRecords.length} 條盈虧記錄`);
+                                console.log('總計:', { totalBetCount, totalBetAmount, totalProfit });
                             } else {
-                                console.error('獲取盈虧記錄失敗:', data.message);
+                                console.error('獲取注單歷史失敗:', data.message);
                                 this.profitRecords = [];
                                 this.totalBetCount = 0;
                                 this.totalBetAmount = 0;
@@ -9161,6 +9309,10 @@
                 // 每隔10秒刷新一次遊戲數據
                 setInterval(() => {
                     this.updateGameData();
+                    // 如果路珠走勢彈窗是開啟的，也更新路珠數據
+                    if (this.roadBeadVisible) {
+                        this.loadRoadBeadData();
+                    }
                 }, 10000);
                 
                 // 每隔30秒刷新一次餘額
