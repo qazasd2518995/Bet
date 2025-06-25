@@ -2892,7 +2892,7 @@
 
         .weekly-table-header {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
             background: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
         }
@@ -2903,7 +2903,7 @@
 
         .table-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
             border-bottom: 1px solid #eee;
             cursor: pointer;
             transition: background-color 0.2s ease;
@@ -3002,8 +3002,8 @@
 
         /* 週報表響應式設計 */
         @media (max-width: 768px) {
-            .weekly-header, .weekly-row {
-                grid-template-columns: 1fr 1fr 1fr;
+            .weekly-table-header, .table-row {
+                grid-template-columns: 1.5fr 1fr 1fr 1fr;
                 font-size: 14px;
             }
 
@@ -4256,10 +4256,8 @@
                     <!-- 表格頭部 -->
                     <div class="weekly-table-header">
                         <div class="header-cell">日期</div>
-                        <div class="header-cell">遊戲</div>
                         <div class="header-cell">注數</div>
                         <div class="header-cell">有效金額</div>
-                        <div class="header-cell">反水</div>
                         <div class="header-cell">輸贏</div>
                     </div>
                     
@@ -4268,16 +4266,14 @@
                         <div v-if="profitRecords.length === 0" class="no-records">
                             暫無盈虧記錄
                         </div>
-                        <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" 
+                                                 <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" 
                              class="table-row" @click="showDayDetail(record.date)">
-                            <div class="row-cell date-cell">
+                             <div class="row-cell date-cell">
                                 <div class="date-number">{{ formatDateNumber(record.date) }}</div>
                                 <div class="weekday-label">{{ record.weekday || getWeekday(record.date) }}</div>
                             </div>
-                            <div class="row-cell">極速賽車</div>
                             <div class="row-cell">{{ record.betCount }}注</div>
-                            <div class="row-cell">{{ record.betCount > 0 ? formatMoney(Math.abs(record.profit) + (record.betCount * betAmount || 0)) : '0' }}</div>
-                            <div class="row-cell">0.0</div>
+                            <div class="row-cell">{{ record.totalBet ? formatMoney(record.totalBet) : '0' }}</div>
                             <div class="row-cell profit-cell" :class="{ 
                                 'profit-positive': record.profit > 0, 
                                 'profit-negative': record.profit < 0,
@@ -4294,6 +4290,10 @@
                     <div class="summary-item">
                         <span class="label">總注數:</span>
                         <span class="value">{{ totalBetCount }}注</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">總投注:</span>
+                        <span class="value">{{ formatMoney(totalBetAmount || 0) }}</span>
                     </div>
                     <div class="summary-item">
                         <span class="label">總盈虧:</span>
@@ -4616,6 +4616,7 @@
                     profitTimeRange: 'thisWeek',
                     profitRecords: [],
                     totalBetCount: 0,
+                    totalBetAmount: 0,
                     totalProfit: 0,
                     selectedDate: '',
                     dayDetailRecords: [],
@@ -7593,12 +7594,14 @@
                             if (data.success) {
                                 this.profitRecords = data.records || [];
                                 this.totalBetCount = data.totalBetCount || 0;
+                                this.totalBetAmount = data.totalBetAmount || 0;
                                 this.totalProfit = data.totalProfit || 0;
                                 console.log(`成功載入 ${this.profitRecords.length} 條盈虧記錄`);
                             } else {
                                 console.error('獲取盈虧記錄失敗:', data.message);
                                 this.profitRecords = [];
                                 this.totalBetCount = 0;
+                                this.totalBetAmount = 0;
                                 this.totalProfit = 0;
                             }
                         })
@@ -7606,6 +7609,7 @@
                             console.error('獲取盈虧記錄出錯:', error);
                             this.profitRecords = [];
                             this.totalBetCount = 0;
+                            this.totalBetAmount = 0;
                             this.totalProfit = 0;
                         });
                 },

@@ -1901,11 +1901,15 @@ app.get('/api/weekly-profit-records', async (req, res) => {
       const dayRecord = result.find(row => row.date === dateStr);
       
       if (dayRecord) {
+        const totalBet = parseFloat(dayRecord.total_bet);
+        const totalWin = parseFloat(dayRecord.total_win);
         records.push({
           date: dateStr,
           weekday: weekDays[i],
           betCount: parseInt(dayRecord.bet_count),
-          profit: parseFloat(dayRecord.total_win) - parseFloat(dayRecord.total_bet)
+          totalBet: totalBet,
+          totalWin: totalWin,
+          profit: totalWin - totalBet
         });
       } else {
         // 如果該日期沒有記錄，填充空記錄
@@ -1913,6 +1917,8 @@ app.get('/api/weekly-profit-records', async (req, res) => {
           date: dateStr,
           weekday: weekDays[i],
           betCount: 0,
+          totalBet: 0,
+          totalWin: 0,
           profit: 0
         });
       }
@@ -1920,14 +1926,16 @@ app.get('/api/weekly-profit-records', async (req, res) => {
     
     // 計算總計
     const totalBetCount = records.reduce((sum, record) => sum + record.betCount, 0);
+    const totalBetAmount = records.reduce((sum, record) => sum + record.totalBet, 0);
     const totalProfit = records.reduce((sum, record) => sum + record.profit, 0);
     
-    console.log(`獲取用戶 ${username} 的週盈虧記錄: ${records.length} 天記錄，總注數 ${totalBetCount}，總盈虧 ${totalProfit}`);
+    console.log(`獲取用戶 ${username} 的週盈虧記錄: ${records.length} 天記錄，總注數 ${totalBetCount}，總投注金額 ${totalBetAmount}，總盈虧 ${totalProfit}`);
     
     res.json({
       success: true,
       records,
       totalBetCount,
+      totalBetAmount,
       totalProfit
     });
 
