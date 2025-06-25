@@ -4741,9 +4741,9 @@
                                                 } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
                     console.log('✅ 開獎完成，停止洗球動畫並更新結果');
                     console.log(`🔧 調試信息 - previousStatus: ${previousStatus}, serverStatus: ${serverStatus}`);
-                    // 停止洗球動畫並顯示新結果（使用 await 確保完成）
+                    // 停止洗球動畫並顯示新結果
                     try {
-                        await this.stopDrawEffect();
+                        this.stopDrawEffect();
                         console.log('✅ stopDrawEffect 執行完成');
                     } catch (error) {
                         console.error('❌ stopDrawEffect 執行錯誤:', error);
