@@ -4372,6 +4372,10 @@
                     lastResults: [],
                     isRacing: false,
                     
+                    // 🎯 預先開獎結果相關
+                    nextResult: null, // 存儲預先生成的開獎結果
+                    nextResultFetched: false, // 標記是否已獲取預先結果
+                    
                     // 投注相關
                     defaultBetAmount: 1, // 默認投注金額
                     betAmount: 1,
@@ -4763,6 +4767,9 @@
                             // 重置動畫標記（當進入新的betting狀態時）
                             if (serverStatus === 'betting' && this.gameStatus === 'betting') {
                                 this.drawingAnimationPlayed = false;
+                                // 重置預先結果標記
+                                this.nextResult = null;
+                                this.nextResultFetched = false;
                             }
                             
                             // 更新其他數據 - 確保動畫使用最新結果
@@ -4773,12 +4780,87 @@
                             }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
+                            // 🎯 檢查是否需要獲取預先結果（倒計時最後10秒）
+                            if (serverStatus === 'betting' && serverCountdown <= 10 && serverCountdown > 0) {
+                                this.checkAndFetchNextResult();
+                            }
+                            
                             this.updateCountdownDisplay();
                         })
                         .catch(error => {
                             console.error('獲取遊戲數據失敗:', error);
                             throw error; // 重新拋出錯誤以便調用者處理
                         });
+                },
+                
+                // 🎯 檢查並獲取預先生成的結果（倒計時最後10秒時）
+                checkAndFetchNextResult() {
+                    if (!this.nextResultFetched) {
+                        console.log('🎲 倒計時最後10秒，開始獲取預先生成的結果...');
+                        this.fetchNextResult();
+                        this.nextResultFetched = true; // 避免重複獲取
+                    }
+                },
+                
+                // 🎯 獲取預先生成的開獎結果
+                fetchNextResult() {
+                    return fetch(`${this.API_BASE_URL}/api/next-result`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.hasNextResult) {
+                                console.log('✅ 成功獲取預先生成的結果:', data.nextResult);
+                                this.nextResult = data.nextResult;
+                                
+                                // 如果正在開獎中，更新動畫顯示
+                                if (this.isDrawingInProgress) {
+                                    console.log('🎬 開獎中，使用預先結果更新動畫');
+                                    this.updateAnimationWithNextResult();
+                                }
+                            } else {
+                                console.log('⚠️ 沒有可用的預先結果');
+                                this.nextResult = null;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取預先結果失敗:', error);
+                            this.nextResult = null;
+                        });
+                },
+                
+                // 🎬 使用預先結果更新動畫顯示
+                updateAnimationWithNextResult() {
+                    if (!this.nextResult || !Array.isArray(this.nextResult)) {
+                        return;
+                    }
+                    
+                    console.log('🎬 使用預先結果更新賽車競賽:', this.nextResult);
+                    
+                    // 更新賽車競賽以使用新結果
+                    if (this.racingCars && this.raceOverlay) {
+                        // 讓賽車按照預先結果進行競賽
+                        this.updateRaceProgressWithResult(this.nextResult);
+                    }
+                },
+                
+                // 🏁 根據預先結果更新賽車進度
+                updateRaceProgressWithResult(result) {
+                    if (!this.racingCars || !result) return;
+                    
+                    console.log('🏁 根據預先結果調整賽車競賽進度');
+                    
+                    // 根據開獎結果，讓對應名次的車輛逐漸領先
+                    const containerWidth = this.raceOverlay?.querySelector('.race-track-container')?.offsetWidth || 1200;
+                    const targetPosition = containerWidth * 0.8; // 80%位置準備衝刺
+                    
+                    result.forEach((carNumber, finalRank) => {
+                        const car = this.racingCars.find(c => c.number === carNumber);
+                        if (car) {
+                            // 根據最終排名，逐漸調整車輛速度和位置
+                            const speedBonus = (10 - finalRank) * 0.5; // 名次越前，速度加成越大
+                            car.targetSpeed = 6 + speedBonus;
+                            car.finalRank = finalRank;
+                        }
+                    });
                 },
                 updateBalance() {
                     console.log('開始刷新餘額...');
@@ -5916,11 +5998,14 @@
                 
                 // 🎲 開始開獎流程（統一管理整個開獎動畫過程）
                 startDrawingProcess() {
-                    console.log('🎲 開始開獎流程：封盤→開獎中→同時開始洗球和賽車角逐');
+                    console.log('🎲 開始開獎流程：封盤→開獎中→12秒洗球和賽車動畫');
                     
                     // 重置動畫狀態
                     this.drawingAnimationPlayed = false;
                     this.isDrawingInProgress = true;
+                    
+                    // 立即嘗試獲取預先生成的結果
+                    this.fetchNextResult();
                     
                     // 立即開始洗球動畫和賽車角逐
                     console.log('🎪 開始洗球動畫，同時開始賽車角逐');
@@ -5930,13 +6015,13 @@
                     console.log('🏁 自動開始賽車角逐');
                     this.startRaceCompetition();
                     
-                    // 3秒後自動停止（對應後端3秒開獎時間）
+                    // 12秒後自動停止（對應後端12秒開獎時間）
                     this.drawingTimeout = setTimeout(() => {
                         if (this.isDrawingInProgress) {
-                            console.log('⏰ 3秒開獎時間到，自動完成開獎');
+                            console.log('⏰ 12秒開獎時間到，自動完成開獎');
                             this.forceCompleteDrawing();
                         }
-                    }, 3000);
+                    }, 12000);
                 },
                 
                 // 🎲 播放洗球動畫（僅洗球，不顯示結果）
@@ -5974,7 +6059,7 @@
                 
                 // ✅ 完成開獎流程（停止動畫並更新結果）
                 completeDrawingProcess() {
-                    console.log('✅ 開始完成開獎流程 - 等待新結果完全保存...');
+                    console.log('✅ 開始完成開獎流程 - 12秒開獎時間結束');
                     
                     // 清除自動停止計時器
                     if (this.drawingTimeout) {
@@ -5985,56 +6070,43 @@
                     // 標記開獎流程結束
                     this.isDrawingInProgress = false;
                     
-                    // 關鍵修改：延遲2秒確保新開獎結果已完全寫入數據庫，並等待賽車競賽進行
-                    console.log('⏳ 延遲2秒等待新開獎結果寫入完成並完成賽車競賽...');
-                    setTimeout(() => {
-                        console.log('🔍 現在開始獲取最新開獎結果...');
+                    // 優先使用預先獲取的結果，如果沒有則從歷史記錄獲取
+                    let finalResult = null;
+                    
+                    if (this.nextResult && this.nextResult.length === 10) {
+                        console.log('✅ 使用預先獲取的開獎結果:', this.nextResult);
+                        finalResult = this.nextResult;
                         
-                        // 多重嘗試獲取最新結果（確保獲取到新結果）
-                        this.getLatestResultFromHistory().then((latestResult) => {
-                            if (latestResult && latestResult.length === 10) {
-                                console.log('📊 成功獲取到最新開獎結果:', latestResult);
-                                this.lastResults = latestResult;
-                                
-                                // 先停止洗球動畫並顯示結果
+                        // 立即停止洗球動畫並顯示結果
+                        this.lastResults = finalResult;
+                        this.stopWashingAnimation();
+                        this.finishRaceCompetition(finalResult);
+                        
+                        // 重置標記
+                        this.nextResult = null;
+                        this.nextResultFetched = false;
+                    } else {
+                        console.log('⚠️ 沒有預先結果，從數據庫獲取最新結果...');
+                        // 延遲1秒後獲取數據庫中的最新結果
+                        setTimeout(() => {
+                            this.getLatestResultFromHistory().then((latestResult) => {
+                                if (latestResult && latestResult.length === 10) {
+                                    console.log('📊 從數據庫獲取到最新開獎結果:', latestResult);
+                                    this.lastResults = latestResult;
+                                    this.stopWashingAnimation();
+                                    this.finishRaceCompetition(latestResult);
+                                } else {
+                                    console.error('❌ 無法獲取開獎結果，強制停止所有動畫');
+                                    this.stopWashingAnimation();
+                                    this.stopRaceCompetition();
+                                }
+                            }).catch((error) => {
+                                console.error('❌ 獲取結果時出錯:', error);
                                 this.stopWashingAnimation();
-                                
-                                // 讓賽車競賽按照新結果完成（賽車會根據新結果到達終點）
-                                console.log('🏁 讓賽車按照新開獎結果完成競賽');
-                                this.finishRaceCompetition(latestResult);
-                            } else {
-                                console.warn('⚠️ 第一次獲取失敗，1.5秒後重試...');
-                                // 如果第一次獲取失敗，1.5秒後重試
-                                setTimeout(() => {
-                                    this.getLatestResultFromHistory().then((retryResult) => {
-                                        if (retryResult && retryResult.length === 10) {
-                                            console.log('📊 重試成功，獲取到最新開獎結果:', retryResult);
-                                            this.lastResults = retryResult;
-                                            
-                                            this.stopWashingAnimation();
-                                            this.finishRaceCompetition(retryResult);
-                                        } else {
-                                            console.error('❌ 重試後仍無法獲取最新開獎結果，使用當前遊戲數據結果');
-                                            this.stopWashingAnimation();
-                                            // 嘗試從遊戲數據獲取結果
-                                            if (this.lastResults && this.lastResults.length === 10) {
-                                                console.log('📊 使用當前遊戲數據結果:', this.lastResults);
-                                                this.finishRaceCompetition(this.lastResults);
-                                            } else {
-                                                console.error('❌ 所有方式都無法獲取結果，強制停止競賽');
-                                                this.stopRaceCompetition();
-                                            }
-                                        }
-                                    });
-                                }, 1500);
-                            }
-                        }).catch((error) => {
-                            console.error('❌ 獲取最新結果時出錯:', error);
-                            this.stopWashingAnimation();
-                            this.stopRaceCompetition();
-                        });
-                        
-                    }, 2000); // 延遲2秒確保新結果已寫入並完成賽車競賽
+                                this.stopRaceCompetition();
+                            });
+                        }, 1000);
+                    }
                     
                     // 更新數據（可以立即執行）
                     this.updateBalance();
@@ -6285,6 +6357,12 @@
                             // 計算最終速度
                             car.speed += randomFactor + car.momentum + momentumChange;
                             car.speed = Math.max(2, Math.min(10, car.speed)); // 速度範圍2-10，更快更激烈
+                            
+                            // 🎯 如果有預先結果，根據最終排名調整速度
+                            if (car.targetSpeed && car.finalRank !== undefined) {
+                                const targetDiff = car.targetSpeed - car.speed;
+                                car.speed += targetDiff * 0.1; // 逐漸調整到目標速度
+                            }
                             
                             // 根據位置調整競爭策略（後面的車更容易加速追趕）
                             const averagePosition = this.racingCars.reduce((sum, c) => sum + c.position, 0) / this.racingCars.length;

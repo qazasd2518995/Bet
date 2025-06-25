@@ -783,6 +783,18 @@ async function startGameCycle() {
           // 只更新內存計數器
           memoryGameState.countdown_seconds--;
           
+          // 🎯 關鍵修改：倒計時最後10秒時預先生成結果
+          if (memoryGameState.countdown_seconds === 10 && memoryGameState.status === 'betting' && !memoryGameState.next_result) {
+            console.log('🎲 倒計時最後10秒，預先生成新開獎結果...');
+            try {
+              const preResult = await generateSmartRaceResult(memoryGameState.current_period);
+              memoryGameState.next_result = preResult; // 暫存新結果
+              console.log(`🎯 期號 ${memoryGameState.current_period} 預先生成結果:`, preResult);
+            } catch (error) {
+              console.error('預先生成結果失敗:', error);
+            }
+          }
+          
           // 每10秒同步一次到數據庫，確保數據一致性
           if (memoryGameState.countdown_seconds % 10 === 0) {
             await GameModel.updateState({
@@ -807,17 +819,21 @@ async function startGameCycle() {
               status: 'drawing'
             });
             
-            // 模擬開獎過程(3秒後產生結果，確保前端有足夠時間檢測drawing狀態)
+            // 模擬開獎過程(12秒開獎時間，使用預先生成的結果)
             drawingTimeoutId = setTimeout(async () => {
               try {
-                console.log('🎯 開獎時間到，開始生成結果...');
+                console.log('🎯 12秒開獎時間到，開始結算...');
                 
                 // 清除timeoutId
                 drawingTimeoutId = null;
                 
-                // 隨機產生新的遊戲結果(1-10的不重複隨機數)
-                const newResult = await generateSmartRaceResult(memoryGameState.current_period);
-                console.log(`🎲 期號 ${memoryGameState.current_period} 開獎結果:`, newResult);
+                // 使用預先生成的結果，如果沒有則現場生成
+                let newResult = memoryGameState.next_result;
+                if (!newResult) {
+                  console.log('⚠️ 沒有預先生成的結果，現場生成...');
+                  newResult = await generateSmartRaceResult(memoryGameState.current_period);
+                }
+                console.log(`🎲 期號 ${memoryGameState.current_period} 最終開獎結果:`, newResult);
                 
                 // 保存當前期號用於開獎
                 const currentDrawPeriod = memoryGameState.current_period;
@@ -844,6 +860,7 @@ async function startGameCycle() {
                 memoryGameState.countdown_seconds = 60;
                 memoryGameState.last_result = newResult;
                 memoryGameState.status = 'betting';
+                memoryGameState.next_result = null; // 清除預先生成的結果
                 
                 // 立即寫入數據庫（重要狀態變更）
                 await GameModel.updateState({
@@ -864,8 +881,9 @@ async function startGameCycle() {
                 // 如果開獎出錯，重置狀態
                 memoryGameState.status = 'betting';
                 memoryGameState.countdown_seconds = 60;
+                memoryGameState.next_result = null;
               }
-            }, 3000); // 從8秒縮短到3秒，讓封盤後快速進入開獎狀態
+            }, 12000); // 延長到12秒開獎時間
           }
         }
       } catch (error) {
@@ -2039,6 +2057,44 @@ async function getGameData() {
     status: memoryGameState.status
   };
 }
+
+// 🎯 新增API：獲取預先生成的開獎結果
+app.get('/api/next-result', (req, res) => {
+  try {
+    console.log('前端請求預先生成的結果...');
+    
+    // 檢查是否有預先生成的結果
+    if (memoryGameState.next_result && Array.isArray(memoryGameState.next_result)) {
+      console.log('✅ 返回預先生成的結果:', memoryGameState.next_result);
+      res.json({
+        success: true,
+        hasNextResult: true,
+        nextResult: memoryGameState.next_result,
+        currentPeriod: memoryGameState.current_period,
+        countdown: memoryGameState.countdown_seconds,
+        status: memoryGameState.status
+      });
+    } else {
+      console.log('❌ 沒有預先生成的結果');
+      res.json({
+        success: true,
+        hasNextResult: false,
+        nextResult: null,
+        currentPeriod: memoryGameState.current_period,
+        countdown: memoryGameState.countdown_seconds,
+        status: memoryGameState.status
+      });
+    }
+  } catch (error) {
+    console.error('獲取預先結果API錯誤:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取預先結果失敗',
+      hasNextResult: false,
+      nextResult: null
+    });
+  }
+});
 
 // 計算下注獎金
 function calculateWinAmount(bet, winResult) {
