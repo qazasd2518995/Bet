@@ -6,13 +6,18 @@ function checkWashingAnimationStuck() {
     try {
         // 獲取當前遊戲狀態
         const currentGameData = window.app ? window.app.gameStatus : null;
+        const isDrawingInProgress = window.app ? window.app.isDrawingInProgress : false;
         const washingBalls = document.querySelectorAll('.results-display-new .number-ball.washing-ball');
         const washingContainer = document.querySelector('.results-display-new.washing-container');
         
-        // 如果在betting狀態下發現洗球動畫還在運行，強制停止
-        if (currentGameData === 'betting' && (washingBalls.length > 0 || washingContainer)) {
+        // 如果在betting狀態下發現洗球動畫還在運行，且不在開獎流程中，強制停止
+        if (currentGameData === 'betting' && !isDrawingInProgress && (washingBalls.length > 0 || washingContainer)) {
             console.log('🚨 檢測到洗球動畫卡住！遊戲狀態已是betting但動畫仍在運行');
             forceStopWashingAnimation();
+            // 同時調用Vue實例的完成開獎流程
+            if (window.app && typeof window.app.forceCompleteDrawing === 'function') {
+                window.app.forceCompleteDrawing();
+            }
             return true;
         }
         
