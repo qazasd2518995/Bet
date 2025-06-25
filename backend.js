@@ -3024,19 +3024,19 @@ app.get('/api/results/latest', async (req, res) => {
     console.log('收到獲取最新開獎結果請求');
     
     const result = await db.oneOrNone(`
-      SELECT period, result_numbers, created_at 
+      SELECT period, result, created_at 
       FROM result_history 
       ORDER BY created_at DESC 
       LIMIT 1
     `);
     
     if (result) {
-      console.log(`返回最新開獎結果: 期號=${result.period}, 結果=${result.result_numbers}`);
+      console.log(`返回最新開獎結果: 期號=${result.period}, 結果=${result.result}`);
       res.json({
         success: true,
         result: {
           period: result.period,
-          result_numbers: result.result_numbers,
+          result_numbers: Array.isArray(result.result) ? result.result.join(',') : result.result,
           created_at: result.created_at
         }
       });
