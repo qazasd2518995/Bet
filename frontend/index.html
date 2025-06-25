@@ -3583,7 +3583,8 @@
         .day-detail,
         .draw-history,
         .login-modal,
-        .register-modal {
+        .register-modal,
+        .road-bead-modal {
             background: white;
             border-radius: 20px;
             max-width: 500px;
@@ -3594,12 +3595,137 @@
             position: relative;
         }
         
+        /* 路珠走勢專屬樣式 */
+        .road-bead-modal {
+            max-width: 900px;
+        }
+        
+        .road-bead-content {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .road-bead-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 5px;
+        }
+        
+        .road-bead-table .table-header {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .road-bead-table .header-cell {
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .road-bead-table .table-row {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .road-bead-table .table-cell {
+            flex: 1;
+            min-height: 100px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .road-bead-table .empty-cell {
+            background: #fafafa;
+        }
+        
+        .road-bead-item {
+            text-align: center;
+        }
+        
+        .road-bead-item .period {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        
+        .road-bead-item .numbers {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .road-bead-item .number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .road-bead-item .number.big {
+            background: #e74c3c;
+        }
+        
+        .road-bead-item .number.small {
+            background: #3498db;
+        }
+        
+        .road-bead-item .sum {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .road-bead-item .sum.big {
+            color: #e74c3c;
+        }
+        
+        .road-bead-item .sum.small {
+            color: #3498db;
+        }
+        
+        .road-bead-item .attributes {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .road-bead-item .size {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+        
+        .road-bead-item .parity {
+            color: #27ae60;
+            font-weight: 500;
+        }
+        
+        .road-bead-item .dragon-tiger {
+            color: #f39c12;
+            font-weight: 500;
+        }
+        
         .theme-header,
         .dragon-header,
         .detail-header,
         .history-header,
         .login-header,
-        .register-header {
+        .register-header,
+        .road-bead-header {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             padding: 20px 25px;
             display: flex;
@@ -4705,14 +4831,19 @@
                         單雙
                     </div>
                     <div class="tab" 
-                         :class="{ active: selectedCategory === '冠亞和' }" 
-                         @click="selectedCategory = '冠亞和'">
-                        冠亞和
+                         :class="{ active: selectedCategory === '冠亞和大小' }" 
+                         @click="selectedCategory = '冠亞和大小'">
+                        冠亞和大小
                     </div>
                     <div class="tab" 
-                         :class="{ active: selectedCategory === '冠亞和 單雙' }" 
-                         @click="selectedCategory = '冠亞和 單雙'">
-                        冠亞和 單雙
+                         :class="{ active: selectedCategory === '冠亞和單雙' }" 
+                         @click="selectedCategory = '冠亞和單雙'">
+                        冠亞和單雙
+                    </div>
+                    <div class="tab" 
+                         :class="{ active: selectedCategory === '龍虎' }" 
+                         @click="selectedCategory = '龍虎'">
+                        龍虎
                     </div>
                 </div>
                 
@@ -4751,6 +4882,54 @@
                         </div>
                         <div class="theme-name">{{ theme.name }}</div>
                         <div v-if="currentTheme === theme.id" class="theme-check">✓</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 路珠走勢彈窗 -->
+        <div class="modal" v-if="roadBeadVisible">
+            <div class="road-bead-modal">
+                <div class="road-bead-header">
+                    <div class="title">路珠走勢</div>
+                    <button class="close-btn" @click="roadBeadVisible = false">×</button>
+                </div>
+                
+                <!-- 路珠表格 -->
+                <div class="road-bead-content">
+                    <div v-if="roadBeadRows.length === 0" class="no-records">
+                        暫無路珠數據
+                    </div>
+                    <div v-else class="road-bead-table">
+                        <div class="table-header">
+                            <div class="header-cell">期號</div>
+                            <div class="header-cell">冠軍</div>
+                            <div class="header-cell">亞軍</div>
+                            <div class="header-cell">和值</div>
+                            <div class="header-cell">大小</div>
+                            <div class="header-cell">單雙</div>
+                            <div class="header-cell">龍虎</div>
+                        </div>
+                        <div v-for="(row, rowIndex) in roadBeadRows" :key="rowIndex" class="table-row">
+                            <template v-for="(item, colIndex) in row">
+                                <div v-if="item" :key="colIndex" class="table-cell">
+                                    <div class="road-bead-item">
+                                        <div class="period">{{ item.period.toString().slice(-4) }}</div>
+                                        <div class="numbers">
+                                            <span :class="['number', item.championSize === '大' ? 'big' : 'small']">{{ item.champion }}</span>
+                                            <span :class="['number', item.runnrupSize === '大' ? 'big' : 'small']">{{ item.runnerup }}</span>
+                                        </div>
+                                        <div class="sum" :class="[item.sumSize === '大' ? 'big' : 'small']">{{ item.sum }}</div>
+                                        <div class="attributes">
+                                            <span class="size">{{ item.sumSize }}</span>
+                                            <span class="parity">{{ item.sumParity }}</span>
+                                            <span class="dragon-tiger">{{ item.dragonTiger }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else :key="colIndex" class="table-cell empty-cell"></div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4874,7 +5053,7 @@
                     // 長龍排行數據
                     dragonRankings: [],
                     selectedCategory: '大小', // 當前選擇的類別
-                    dragonCategories: ['大小', '單雙', '冠亞和', '冠亞和 單雙'], // 可選類別
+                    dragonCategories: ['大小', '單雙', '冠亞和大小', '冠亞和單雙', '龍虎'], // 可選類別
                     
                     // 主題設定
                     currentTheme: 'blue', // 當前主題

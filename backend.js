@@ -3394,9 +3394,9 @@ function addCurrentStreak(results, getValue, labelPrefix, allStats, categoryType
     } else if (categoryType.startsWith('龍虎')) {
       category = '龍虎';
     } else if (categoryType.startsWith('sum-bigsmall')) {
-      category = '冠亞和';
+      category = '冠亞和大小';
     } else if (categoryType.startsWith('sum-oddeven')) {
-      category = '冠亞和 單雙';
+      category = '冠亞和單雙';
     } else {
       category = '其他';
     }
