@@ -3361,21 +3361,157 @@ function calculateDragonStats(results) {
 }
 
 // helper to accumulate streak
-function addCurrentStreak(results, getValue,labelPrefix,allStats,key,extractFn){
-  let currentVal=null; let count=0;
+function addCurrentStreak(results, getValue, labelPrefix, allStats, categoryType, extractFn){
+  let currentVal = null; 
+  let count = 0;
+  
   for(const rec of results){
-    const valRaw=extractFn(rec.result);
-    const val = typeof getValue==='function'?getValue(valRaw):valRaw;
-    if(currentVal===null){currentVal=val; count=1; continue;}
-    if(val===currentVal){count++;}
-    else break;
+    if (!rec || !rec.result || !Array.isArray(rec.result)) continue;
+    
+    const valRaw = extractFn(rec.result);
+    const val = typeof getValue === 'function' ? getValue(valRaw) : valRaw;
+    
+    if(currentVal === null){
+      currentVal = val; 
+      count = 1; 
+      continue;
+    }
+    
+    if(val === currentVal){
+      count++;
+    } else {
+      break;
+    }
   }
-  if(count>=2){
-    allStats.push({name:`${labelPrefix}-${currentVal}`, count, value:currentVal});
+  
+  if(count >= 1){  // 改為>=1，因為即使只有1期也要顯示
+    // 根據categoryType決定分類
+    let category;
+    if (categoryType.startsWith('大小')) {
+      category = '大小';
+    } else if (categoryType.startsWith('單雙')) {
+      category = '單雙';
+    } else if (categoryType.startsWith('龍虎')) {
+      category = '龍虎';
+    } else if (categoryType.startsWith('sum-bigsmall')) {
+      category = '冠亞和';
+    } else if (categoryType.startsWith('sum-oddeven')) {
+      category = '冠亞和 單雙';
+    } else {
+      category = '其他';
+    }
+    
+    allStats.push({
+      name: `${labelPrefix} ${currentVal}`,
+      count,
+      value: currentVal,
+      category,
+      type: labelPrefix
+    });
   }
 }
 
 function getPositionName(position) {
   const names = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
   return names[position - 1] || position.toString();
+}
+
+// 路珠走勢API端點
+app.get('/api/road-bead', async (req, res) => {
+  try {
+    // 獲取最近30期的開獎記錄
+    const query = `
+      SELECT period, result, created_at as draw_time 
+      FROM result_history 
+      ORDER BY created_at DESC 
+      LIMIT 30
+    `;
+    
+    const results = await db.any(query);
+    
+    if (!results || results.length === 0) {
+      return res.json({
+        success: true,
+        roadBeadRows: []
+      });
+    }
+    
+    // 解析結果並創建路珠表格
+    const parsedResults = results.map(row => {
+      let result;
+      try {
+        result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;
+      } catch (e) {
+        console.error('解析開獎結果失敗:', e);
+        return null;
+      }
+      return {
+        period: row.period,
+        result,
+        time: row.draw_time
+      };
+    }).filter(item => item !== null).reverse(); // 按時間正序排列
+    
+    // 生成路珠走勢數據（6列N行格式）
+    const roadBeadRows = generateRoadBeadData(parsedResults);
+    
+    console.log(`路珠走勢API返回 ${roadBeadRows.length} 行數據`);
+    
+    res.json({
+      success: true,
+      roadBeadRows
+    });
+
+  } catch (error) {
+    console.error('獲取路珠走勢出錯:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取路珠走勢失敗',
+      roadBeadRows: []
+    });
+  }
+});
+
+// 生成路珠走勢數據的輔助函數
+function generateRoadBeadData(results) {
+  const rows = [];
+  const itemsPerRow = 6;
+  
+  for (let i = 0; i < results.length; i += itemsPerRow) {
+    const rowData = [];
+    
+    for (let j = 0; j < itemsPerRow; j++) {
+      const resultIndex = i + j;
+      if (resultIndex < results.length) {
+        const result = results[resultIndex];
+        const numbers = result.result;
+        
+        // 計算各種屬性
+        const champion = numbers[0];
+        const runnerup = numbers[1];
+        const sum = champion + runnerup;
+        
+        rowData.push({
+          period: result.period,
+          champion,
+          runnerup,
+          sum,
+          championSize: champion > 5 ? '大' : '小',
+          championParity: champion % 2 === 1 ? '單' : '雙',
+          runnrupSize: runnerup > 5 ? '大' : '小',
+          runnrupParity: runnerup % 2 === 1 ? '單' : '雙',
+          sumSize: sum > 11 ? '大' : '小',
+          sumParity: sum % 2 === 1 ? '單' : '雙',
+          dragonTiger: champion > runnerup ? '龍' : '虎'
+        });
+      } else {
+        // 空位補null
+        rowData.push(null);
+      }
+    }
+    
+    rows.push(rowData);
+  }
+  
+  return rows;
 }

@@ -4880,10 +4880,10 @@
                     currentTheme: 'blue', // 當前主題
                     availableThemes: [
                         { id: 'blue', name: '經典藍', primary: '#667eea', secondary: '#764ba2' },
-                        { id: 'purple', name: '紫羅蘭', primary: '#a855f7', secondary: '#3b82f6' },
                         { id: 'green', name: '翡翠綠', primary: '#059669', secondary: '#0d9488' },
                         { id: 'orange', name: '夕陽橙', primary: '#ea580c', secondary: '#dc2626' },
-                        { id: 'pink', name: '櫻花粉', primary: '#ec4899', secondary: '#8b5cf6' }
+                        { id: 'pink', name: '櫻花粉', primary: '#ec4899', secondary: '#8b5cf6' },
+                        { id: 'red', name: '中國紅', primary: '#dc2626', secondary: '#b91c1c' }
                     ],
                     
                     // 統計數據
@@ -7877,6 +7877,71 @@
                     // 更新CSS變量
                     document.documentElement.style.setProperty('--primary-color', theme.primary);
                     document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+                    
+                    // 轉換顏色為RGB值用於透明度計算
+                    const hexToRgb = (hex) => {
+                        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                        return result ? {
+                            r: parseInt(result[1], 16),
+                            g: parseInt(result[2], 16),
+                            b: parseInt(result[3], 16)
+                        } : null;
+                    };
+                    
+                    const primaryRgb = hexToRgb(theme.primary);
+                    const secondaryRgb = hexToRgb(theme.secondary);
+                    
+                    // 移除舊的動態樣式
+                    const oldThemeStyle = document.getElementById('dynamic-theme-style');
+                    if (oldThemeStyle) {
+                        oldThemeStyle.remove();
+                    }
+                    
+                    // 創建新的動態樣式
+                    const style = document.createElement('style');
+                    style.id = 'dynamic-theme-style';
+                    style.textContent = `
+                        /* 開獎區域樣式 */
+                        .drawing-ball {
+                            background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%) !important;
+                            box-shadow: 0 4px 15px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.3) !important;
+                        }
+                        
+                        .race-animation .ball {
+                            background: linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%) !important;
+                            box-shadow: 0 2px 8px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.4) !important;
+                        }
+                        
+                        /* 賠率選項hover和selected效果 */
+                        .odds-item:hover,
+                        .position-select:hover,
+                        .bet-option:hover {
+                            background: rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.1) !important;
+                            border-color: ${theme.primary} !important;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.2) !important;
+                        }
+                        
+                        .odds-item.selected,
+                        .position-select.selected,
+                        .bet-option.selected {
+                            background: ${theme.primary} !important;
+                            color: white !important;
+                            border-color: ${theme.primary} !important;
+                            box-shadow: 0 6px 20px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.3) !important;
+                        }
+                        
+                        /* 選中的投注項目高亮 */
+                        .betting-option.active,
+                        .odds-button.active {
+                            background: ${theme.primary} !important;
+                            color: white !important;
+                            border: 2px solid ${theme.primary} !important;
+                            box-shadow: 0 4px 15px rgba(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b}, 0.4) !important;
+                        }
+                    `;
+                    
+                    document.head.appendChild(style);
                     
                     // 更新body的class來應用主題
                     document.body.className = document.body.className.replace(/theme-\w+/g, '');
