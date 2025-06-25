@@ -807,14 +807,17 @@ async function startGameCycle() {
               status: 'drawing'
             });
             
-            // 模擬開獎過程(3秒後產生結果)
+            // 模擬開獎過程(8秒後產生結果，確保前端有足夠時間檢測drawing狀態)
             drawingTimeoutId = setTimeout(async () => {
               try {
+                console.log('🎯 開獎時間到，開始生成結果...');
+                
                 // 清除timeoutId
                 drawingTimeoutId = null;
                 
                 // 隨機產生新的遊戲結果(1-10的不重複隨機數)
                 const newResult = await generateSmartRaceResult(memoryGameState.current_period);
+                console.log(`🎲 期號 ${memoryGameState.current_period} 開獎結果:`, newResult);
                 
                 // 保存當前期號用於開獎
                 const currentDrawPeriod = memoryGameState.current_period;
@@ -850,7 +853,7 @@ async function startGameCycle() {
                   status: 'betting'
                 });
                 
-                console.log(`第${memoryGameState.current_period}期開始，可以下注，倒計時重置為60秒`);
+                console.log(`✅ 第${currentDrawPeriod}期開獎完成，第${memoryGameState.current_period}期開始，可以下注，倒計時重置為60秒`);
                 
                 // 每5期執行一次系統監控與自動調整
                 if (memoryGameState.current_period % 5 === 0) {
@@ -862,7 +865,7 @@ async function startGameCycle() {
                 memoryGameState.status = 'betting';
                 memoryGameState.countdown_seconds = 60;
               }
-            }, 3000);
+            }, 8000); // 從3秒延長到8秒，確保前端有足夠時間檢測drawing狀態
           }
         }
       } catch (error) {

@@ -4316,11 +4316,11 @@
                     currentPeriod: '',
                     isAnimationEnabled: true, // 開獎動畫開關
                     nextPeriod: '',
-                    countdownSeconds: 0,
-                    
-                    // 開獎結果
+                    countdownSeconds: 60,
+                    drawingAnimationPlayed: false, // 追蹤開獎動畫是否已播放
                     lastResult: [],
                     lastResults: [],
+                    isRacing: false,
                     
                     // 投注相關
                     defaultBetAmount: 1, // 默認投注金額
@@ -4678,13 +4678,13 @@
                             } 
                             // 如果狀態改變了（比如從betting到drawing），也要同步
                             else if (this.gameStatus !== serverStatus) {
-                                console.log('遊戲狀態已變更，同步狀態');
+                                console.log(`🔄 遊戲狀態已變更: ${this.gameStatus} → ${serverStatus}`);
                                 const previousStatus = this.gameStatus;
                                 this.gameStatus = serverStatus;
                                 this.countdownSeconds = serverCountdown;
                                 
                                 if (serverStatus === 'drawing' && previousStatus === 'betting') {
-                                    console.log('狀態變更為開獎中，播放簡單洗球動畫');
+                                    console.log('🎲 狀態變更為開獎中，播放簡單洗球動畫');
                                     // 只播放洗球動畫，不替換主畫面彩球
                                     this.playSimpleDrawEffect();
                                     this.updateHistoryRecords();
@@ -4694,22 +4694,33 @@
                                         this.lastResults = data.gameData.lastResult;
                                     }
                                 } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
-                                    console.log('開獎完成，更新餘額和注單');
+                                    console.log('✅ 開獎完成，更新餘額和注單');
                                     this.updateBalance();
                                     this.updateBetHistory();
                                     this.updateHistoryRecords();
                                 }
                             }
-                            // 強制確保開獎狀態的正確切換 - 改進條件
+                            // 額外檢查：如果服務器是drawing狀態但本地是betting，強制切換
                             else if (serverStatus === 'drawing' && this.gameStatus === 'betting') {
-                                console.log('強制切換到開獎狀態');
+                                console.log('🚨 強制切換到開獎狀態（可能錯過了狀態變更）');
                                 this.gameStatus = 'drawing';
                                 this.playSimpleDrawEffect();
                             }
+                            // 如果都是drawing狀態，確保動畫已播放
+                            else if (serverStatus === 'drawing' && this.gameStatus === 'drawing' && !this.drawingAnimationPlayed) {
+                                console.log('🎯 確保開獎動畫已播放');
+                                this.playSimpleDrawEffect();
+                                this.drawingAnimationPlayed = true;
+                            }
                             // 如果倒計時差異太大（超過5秒），進行同步
                             else if (Math.abs(this.countdownSeconds - serverCountdown) > 5) {
-                                console.log(`倒計時差異過大，同步: 本地=${this.countdownSeconds}, 服務器=${serverCountdown}`);
+                                console.log(`🔄 倒計時差異過大，同步: 本地=${this.countdownSeconds}, 服務器=${serverCountdown}`);
                                 this.countdownSeconds = serverCountdown;
+                            }
+                            
+                            // 重置動畫標記（當進入新的betting狀態時）
+                            if (serverStatus === 'betting' && this.gameStatus === 'betting') {
+                                this.drawingAnimationPlayed = false;
                             }
                             
                             // 更新其他數據 - 確保動畫使用最新結果
@@ -5678,12 +5689,15 @@
                 
                 // 🎲 簡單的洗球動畫效果（開獎時自動播放）
                 playSimpleDrawEffect() {
-                    console.log('播放簡單洗球動畫效果');
+                    console.log('🎲 播放簡單洗球動畫效果');
+                    
+                    // 設置動畫已播放標記
+                    this.drawingAnimationPlayed = true;
                     
                     // 找到主畫面的結果球 - 使用正確的選擇器
                     const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
                     if (resultBalls.length === 0) {
-                        console.log('找不到結果球，跳過洗球動畫');
+                        console.log('⚠️ 找不到結果球，跳過洗球動畫');
                         return;
                     }
                     
@@ -5715,6 +5729,8 @@
                             resultContainer.style.animation = '';
                         }, 2000);
                     }
+                    
+                    console.log('✅ 洗球動畫播放完成');
                 },
                 // 專門的賽車動畫（只在按鈕點擊時播放）
                 playRaceAnimation() {
