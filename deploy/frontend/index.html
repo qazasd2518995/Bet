@@ -4845,6 +4845,8 @@
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
                     dragonRankingVisible: false, // 控制長龍排行顯示狀態
                     themeSelectorVisible: false, // 控制主題選擇器顯示狀態
+                    roadBeadVisible: false, // 控制路珠走勢顯示狀態
+                    roadBeadRows: [], // 路珠走勢數據
                     
                     // 熱門投注
                     hotBets: [],
@@ -8178,6 +8180,38 @@
                         this.showChips = false;
                     }
                 },
+                // 路珠走勢展示
+                showRoadBead() {
+                    this.roadBeadVisible = true;
+                    this.loadRoadBeadData();
+                    this.showDropdownMenu = false; // 關閉選單
+                },
+                
+                // 載入路珠走勢數據
+                loadRoadBeadData() {
+                    console.log('正在載入路珠走勢數據...');
+                    
+                    fetch(`${this.API_BASE_URL}/api/road-bead`)
+                        .then(response => {
+                            console.log('路珠走勢API響應狀態:', response.status);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('路珠走勢API響應數據:', data);
+                            if (data.success) {
+                                this.roadBeadRows = data.roadBeadRows || [];
+                                console.log(`成功載入 ${this.roadBeadRows.length} 行路珠數據`);
+                            } else {
+                                console.error('獲取路珠走勢失敗:', data.message);
+                                this.roadBeadRows = [];
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取路珠走勢出錯:', error);
+                            this.roadBeadRows = [];
+                        });
+                },
+                
                 showBetSlip(betType, choice, odds) {
                     // Implement the logic to show the bet slip for the selected bet
                     console.log(`Showing bet slip for ${betType}: ${choice} with odds: ${odds}`);
