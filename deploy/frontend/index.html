@@ -176,7 +176,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
-        
+
         
         /* 終點線 */
         .race-finish-line {
@@ -333,11 +333,6 @@
             color: white !important;
             font-weight: bold !important;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.8) !important;
-        }
-        
-        @keyframes containerGlow {
-            0%, 100% { box-shadow: none; }
-            50% { box-shadow: 0 0 30px rgba(255, 255, 255, 0.3); }
         }
         
         /* 🎭 開獎完成慶祝效果 */
@@ -4368,8 +4363,6 @@
                     nextPeriod: '',
                     countdownSeconds: 60,
                     drawingAnimationPlayed: false, // 追蹤開獎動畫是否已播放
-                    
-                    // 開獎結果
                     lastResult: [],
                     lastResults: [],
                     isRacing: false,
@@ -4745,14 +4738,22 @@
                                         this.lastResult = data.gameData.lastResult;
                                         this.lastResults = data.gameData.lastResult;
                                     }
-                                } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
-                                    console.log('✅ 開獎完成，停止洗球動畫並更新結果');
-                                    // 停止洗球動畫並顯示新結果
-                                    this.stopDrawEffect();
-                                    this.updateBalance();
-                                    this.updateBetHistory();
-                                    this.updateHistoryRecords();
-                                }
+                                                } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
+                    console.log('✅ 開獎完成，停止洗球動畫並更新結果');
+                    console.log(`🔧 調試信息 - previousStatus: ${previousStatus}, serverStatus: ${serverStatus}`);
+                    // 停止洗球動畫並顯示新結果
+                    try {
+                        this.stopDrawEffect();
+                        console.log('✅ stopDrawEffect 執行完成');
+                    } catch (error) {
+                        console.error('❌ stopDrawEffect 執行錯誤:', error);
+                        // 如果async函數失敗，使用同步方式強制停止
+                        this.forceStopDrawEffect();
+                    }
+                    this.updateBalance();
+                    this.updateBetHistory();
+                    this.updateHistoryRecords();
+                }
                             }
                             // 額外檢查：如果服務器是drawing狀態但本地是betting，強制切換
                             else if (serverStatus === 'drawing' && this.gameStatus === 'betting') {
@@ -5838,6 +5839,40 @@
                     }
                     
                     console.log('✅ 洗球動畫停止，最新結果已顯示');
+                },
+                
+                // 🔧 強制停止洗球動畫（同步版本，用於錯誤處理）
+                forceStopDrawEffect() {
+                    console.log('🚨 強制停止洗球動畫（同步模式）');
+                    
+                    const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
+                    const resultContainer = document.querySelector('.results-display-new');
+                    
+                    // 立即停止所有球的動畫
+                    resultBalls.forEach((ball, index) => {
+                        ball.classList.remove('washing-ball');
+                        ball.style.animation = '';
+                        ball.style.transform = '';
+                        ball.style.boxShadow = '';
+                        ball.style.background = '';
+                        ball.style.backgroundSize = '';
+                        
+                        // 恢復原始數字或使用當前結果
+                        const originalText = ball.getAttribute('data-original-text');
+                        if (originalText && originalText !== '?') {
+                            ball.textContent = originalText;
+                        } else if (this.lastResults && this.lastResults.length > index) {
+                            ball.textContent = this.lastResults[index];
+                        }
+                    });
+                    
+                    // 停止容器動畫
+                    if (resultContainer) {
+                        resultContainer.classList.remove('washing-container');
+                        resultContainer.style.animation = '';
+                    }
+                    
+                    console.log('🚨 強制停止完成');
                 },
                 // 專門的賽車動畫（只在按鈕點擊時播放）
                 playRaceAnimation() {
