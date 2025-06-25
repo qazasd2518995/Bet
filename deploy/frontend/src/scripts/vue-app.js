@@ -154,8 +154,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 showChips: false,
                 
                 // 新增缺失的數據屬性
-                showDragonRanking: false, // 控制長龍排行顯示狀態
-                showThemeSelector: false, // 控制主題選擇器顯示狀態
+                dragonRankingVisible: false, // 控制長龍排行顯示狀態
+                themeSelectorVisible: false, // 控制主題選擇器顯示狀態
                 showRaceAnimation: false, // 控制賽車動畫顯示狀態
                 selectedPositions: [], // 多選位置
                 
@@ -563,14 +563,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 顯示長龍排行
             showDragonRanking() {
-                this.showDragonRanking = true;
+                this.dragonRankingVisible = true;
                 this.loadDragonRankingData();
                 this.showDropdownMenu = false;
             },
             
             // 顯示主題選擇器
             showThemeSelector() {
-                this.showThemeSelector = true;
+                this.themeSelectorVisible = true;
                 this.showDropdownMenu = false;
             },
             
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.setItem('selectedTheme', themeId);
                     this.showNotification(`已切換至${theme.name}主題`);
                 }
-                this.showThemeSelector = false;
+                this.themeSelectorVisible = false;
             },
             
             // 載入盈虧記錄

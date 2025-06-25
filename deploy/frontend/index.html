@@ -4689,11 +4689,11 @@
         </div>
 
         <!-- 長龍排行彈窗 -->
-        <div class="modal" v-if="showDragonRanking">
+        <div class="modal" v-if="dragonRankingVisible">
             <div class="dragon-ranking">
                 <div class="dragon-header">
                     <div class="title">長龍排行</div>
-                    <button class="close-btn" @click="showDragonRanking = false">×</button>
+                    <button class="close-btn" @click="dragonRankingVisible = false">×</button>
                 </div>
                 
                 <!-- 類別選擇標籤 -->
@@ -4736,11 +4736,11 @@
         </div>
 
         <!-- 主題選擇器彈窗 -->
-        <div class="modal" v-if="showThemeSelector">
+        <div class="modal" v-if="themeSelectorVisible">
             <div class="theme-selector">
                 <div class="theme-header">
                     <div class="title">選擇主題</div>
-                    <button class="close-btn" @click="showThemeSelector = false">×</button>
+                    <button class="close-btn" @click="themeSelectorVisible = false">×</button>
                 </div>
                 
                 <!-- 主題選項 -->
@@ -4847,8 +4847,8 @@
                     showProfitModal: false,
                     showDayDetailModal: false,
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
-                    showDragonRanking: false, // 控制長龍排行顯示狀態
-                    showThemeSelector: false, // 控制主題選擇器顯示狀態
+                    dragonRankingVisible: false, // 控制長龍排行顯示狀態
+                    themeSelectorVisible: false, // 控制主題選擇器顯示狀態
                     
                     // 熱門投注
                     hotBets: [],
@@ -7820,7 +7820,7 @@
                 
                 // 長龍排行展示
                 showDragonRanking() {
-                    this.showDragonRanking = true;
+                    this.dragonRankingVisible = true;
                     this.getDragonRankings();
                     this.showDropdownMenu = false; // 關閉選單
                 },
@@ -7859,7 +7859,7 @@
                 
                 // 主題選擇器展示
                 showThemeSelector() {
-                    this.showThemeSelector = true;
+                    this.themeSelectorVisible = true;
                     this.showDropdownMenu = false; // 關閉選單
                 },
                 
@@ -7868,7 +7868,7 @@
                     this.currentTheme = themeId;
                     this.applyTheme(themeId);
                     this.saveThemePreference(themeId);
-                    this.showThemeSelector = false;
+                    this.themeSelectorVisible = false;
                 },
                 
                 // 應用主題
