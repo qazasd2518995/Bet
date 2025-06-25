@@ -2881,6 +2881,115 @@
                 justify-content: center;
             }
         }
+        /* 週報表樣式 */
+        .weekly-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .weekly-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .header-cell {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .header-cell:last-child {
+            border-right: none;
+        }
+
+        .weekly-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .weekly-row:hover {
+            background-color: #f8f9fa;
+        }
+
+        .row-cell {
+            padding: 12px 8px;
+            text-align: center;
+            border-right: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .row-cell:last-child {
+            border-right: none;
+        }
+
+        .date-cell {
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        .date-number {
+            font-size: 16px;
+            font-weight: 600;
+            background: #ff6600;
+            color: white;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-bottom: 4px;
+            min-width: 40px;
+        }
+
+        .weekday-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .profit-cell.profit-positive {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .profit-cell.profit-negative {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .profit-cell.profit-zero {
+            color: #6c757d;
+        }
+
+        /* 週報表響應式設計 */
+        @media (max-width: 768px) {
+            .weekly-header, .weekly-row {
+                grid-template-columns: 1fr 1fr 1fr;
+                font-size: 14px;
+            }
+
+            .header-cell, .row-cell {
+                padding: 8px 4px;
+            }
+
+            .date-number {
+                font-size: 14px;
+                padding: 2px 6px;
+            }
+
+            .weekday-label {
+                font-size: 11px;
+            }
+        }
+
 
         /* 下注確認彈窗樣式 */
         .bet-confirmation {
@@ -4107,23 +4216,18 @@
                 
                 <!-- 時間範圍選擇 -->
                 <div class="time-range-tabs">
-                    <div class="tab" :class="{ active: profitTimeRange === '7days' }" @click="switchProfitRange('7days')">7日記錄</div>
-                    <div class="tab" :class="{ active: profitTimeRange === '14days' }" @click="switchProfitRange('14days')">兩周報表</div>
+                    <div class="tab" :class="{ active: profitTimeRange === 'thisWeek' }" @click="switchProfitRange('thisWeek')">本週</div>
+                    <div class="tab" :class="{ active: profitTimeRange === 'lastWeek' }" @click="switchProfitRange('lastWeek')">上週</div>
                 </div>
                 
-                <!-- 盈虧記錄列表 -->
-                <div class="profit-list">
-                    <div v-if="profitRecords.length === 0" class="no-records">
-                        暫無盈虧記錄
-                    </div>
-                    <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" class="profit-item" @click="showDayDetail(record.date)">
-                        <div class="profit-date">
-                            <div class="date">{{ formatDate(record.date) }}</div>
-                            <div class="weekday">{{ getWeekday(record.date) }}</div>
-                        </div>
-                        <div class="profit-stats">
-                            <div class="bet-count">{{ record.betCount }}注</div>
-                            <div class="profit-amount" :class="{ 
+                                <div class="date-number">{{ formatDateNumber(record.date) }}</div>
+                                <div class="weekday-label">{{ record.weekday || getWeekday(record.date) }}</div>
+                            </div>
+                            <div class="row-cell">極速賽車</div>
+                            <div class="row-cell">{{ record.betCount }}注</div>
+                            <div class="row-cell">{{ record.betCount > 0 ? '有效金額' : '0' }}</div>
+                            <div class="row-cell">0.0</div>
+                            <div class="row-cell profit-cell" :class="{ 
                                 'profit-positive': record.profit > 0, 
                                 'profit-negative': record.profit < 0,
                                 'profit-zero': record.profit === 0 
@@ -4131,6 +4235,8 @@
                                 {{ formatProfit(record.profit) }}
                             </div>
                         </div>
+                    </div>
+                </div>
                     </div>
                 </div>
                 
@@ -4445,7 +4551,7 @@
                     dailyProfit: 0,
                     
                     // 盈虧記錄相關
-                    profitTimeRange: '7days',
+                    profitTimeRange: 'thisWeek',
                     profitRecords: [],
                     totalBetCount: 0,
                     totalProfit: 0,
@@ -7381,10 +7487,41 @@
                         return;
                     }
                     
-                    const days = this.profitTimeRange === '7days' ? 7 : 14;
-                    console.log(`正在獲取用戶 ${username} 的 ${days} 天盈虧記錄...`);
+                    // 計算週的開始和結束日期
+                    const now = new Date();
+                    let startDate, endDate;
                     
-                    fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)
+                    if (this.profitTimeRange === 'thisWeek') {
+                        // 本週：從這週的星期一到星期日
+                        const currentWeekday = now.getDay(); // 0=星期日, 1=星期一, ...
+                        const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1; // 計算到星期一的天數
+                        
+                        startDate = new Date(now);
+                        startDate.setDate(now.getDate() - daysToMonday);
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + 6);
+                        endDate.setHours(23, 59, 59, 999);
+                    } else if (this.profitTimeRange === 'lastWeek') {
+                        // 上週：從上週的星期一到星期日
+                        const currentWeekday = now.getDay();
+                        const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
+                        
+                        startDate = new Date(now);
+                        startDate.setDate(now.getDate() - daysToMonday - 7); // 往前推一週
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + 6);
+                        endDate.setHours(23, 59, 59, 999);
+                    }
+                    
+                    const weekType = this.profitTimeRange === 'thisWeek' ? '本週' : '上週';
+                    console.log(`正在獲取用戶 ${username} 的${weekType}盈虧記錄...`);
+                    console.log(`週期範圍: ${startDate.toISOString()} 到 ${endDate.toISOString()}`);
+                    
+                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)startDate=${startDate.toISOString()}fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)endDate=${endDate.toISOString()}`)
                         .then(response => {
                             console.log('盈虧記錄API響應狀態:', response.status);
                             return response.json();
@@ -7446,6 +7583,12 @@
                 formatDate(dateString) {
                     const date = new Date(dateString);
                     return `${date.getMonth() + 1}/${date.getDate()}`;
+                
+                // 格式化日期數字（用於週報表）
+                formatDateNumber(dateString) {
+                    const date = new Date(dateString);
+                    return date.getDate().toString();
+                },
                 },
                 
                 // 格式化標題日期

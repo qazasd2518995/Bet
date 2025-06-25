@@ -1837,6 +1837,112 @@ app.get('/api/profit-records', async (req, res) => {
   }
 });
 
+// 獲取週盈虧記錄的API端點
+app.get('/api/weekly-profit-records', async (req, res) => {
+  const { username, startDate, endDate } = req.query;
+  
+  try {
+    // 參數驗證
+    if (!username || !startDate || !endDate) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '請提供用戶名、開始日期和結束日期' 
+      });
+    }
+
+    // 獲取用戶信息
+    const user = await UserModel.findByUsername(username);
+    if (!user) {
+      return res.json({ 
+        success: false,
+        message: '用戶不存在',
+        records: [],
+        totalBetCount: 0,
+        totalProfit: 0
+      });
+    }
+
+    // 轉換日期為Date對象
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    console.log(`獲取用戶 ${username} 的週盈虧記錄，時間範圍: ${start.toISOString()} 到 ${end.toISOString()}`);
+
+    // 獲取指定週期內的每日盈虧記錄
+    const query = `
+      SELECT 
+        DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') as date,
+        COUNT(*) as bet_count,
+        COALESCE(SUM(amount), 0) as total_bet,
+        COALESCE(SUM(win_amount), 0) as total_win
+      FROM bet_history 
+      WHERE username = $1 
+        AND settled = true 
+        AND created_at >= $2 
+        AND created_at <= $3
+      GROUP BY DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei')
+      ORDER BY date ASC
+    `;
+
+    // 執行查詢
+    const result = await db.any(query, [username, start, end]);
+    
+    // 處理查詢結果，填充缺失的日期
+    const records = [];
+    const weekDays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    
+    // 生成一週內每一天的記錄
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + i);
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      // 查找該日期的實際記錄
+      const dayRecord = result.find(row => row.date === dateStr);
+      
+      if (dayRecord) {
+        records.push({
+          date: dateStr,
+          weekday: weekDays[i],
+          betCount: parseInt(dayRecord.bet_count),
+          profit: parseFloat(dayRecord.total_win) - parseFloat(dayRecord.total_bet)
+        });
+      } else {
+        // 如果該日期沒有記錄，填充空記錄
+        records.push({
+          date: dateStr,
+          weekday: weekDays[i],
+          betCount: 0,
+          profit: 0
+        });
+      }
+    }
+    
+    // 計算總計
+    const totalBetCount = records.reduce((sum, record) => sum + record.betCount, 0);
+    const totalProfit = records.reduce((sum, record) => sum + record.profit, 0);
+    
+    console.log(`獲取用戶 ${username} 的週盈虧記錄: ${records.length} 天記錄，總注數 ${totalBetCount}，總盈虧 ${totalProfit}`);
+    
+    res.json({
+      success: true,
+      records,
+      totalBetCount,
+      totalProfit
+    });
+
+  } catch (error) {
+    console.error('獲取週盈虧記錄出錯:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '獲取週盈虧記錄失敗',
+      records: [],
+      totalBetCount: 0,
+      totalProfit: 0
+    });
+  }
+});
+
 // 獲取單日詳細記錄的API端點
 app.get('/api/day-detail', async (req, res) => {
   const { username, date } = req.query;
