@@ -5691,7 +5691,7 @@
                         if (latestResult && latestResult.length === 10) {
                             console.log(`✅ 第一次嘗試成功，獲取到結果:`, latestResult);
                             this.lastResults = latestResult;
-                            this.playNewRaceCompetition();
+                            this.playRaceAnimation();
                             return;
                         }
                         
@@ -5702,7 +5702,7 @@
                                 if (latestResult2 && latestResult2.length === 10) {
                                     console.log(`✅ 第二次嘗試成功，獲取到結果:`, latestResult2);
                                     this.lastResults = latestResult2;
-                                    this.playNewRaceCompetition();
+                                    this.playRaceAnimation();
                                     return;
                                 }
                                 
@@ -5711,7 +5711,7 @@
                                 this.updateGameData().then(() => {
                                     if (this.lastResults && this.lastResults.length === 10) {
                                         console.log(`✅ 第三次嘗試成功，從遊戲數據獲取到結果:`, this.lastResults);
-                                        this.playNewRaceCompetition();
+                                        this.playRaceAnimation();
                                     } else {
                                         console.error('❌ 所有嘗試均失敗');
                                         this.displayNotification('無法獲取最新開獎結果，請稍後再試');
