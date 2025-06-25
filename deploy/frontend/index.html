@@ -63,7 +63,14 @@
         });
     </script>
     <style>
-        /* 🎊 增強版開獎動畫系統 */
+        /* 基礎字體設定 - 確保電腦和手機顯示一致 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* 增強版開獎動畫系統 */
         
         /* 基礎動畫效果 */
         @keyframes numberBounce {
@@ -93,20 +100,19 @@
             }
         }
         
-        /* 🏎️ 賽車動畫容器 */
+        /* 🏎️ 賽車動畫容器 - 修正高度避免多餘跑道 */
         .race-animation-container {
-            height: 150px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 400px; /* 調整高度以適應10輛車 */
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             position: relative;
             overflow: hidden;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
         }
         
-        /* 🏁 跑道軌道 */
+        /* 🏁 跑道軌道 - 精確對應10輛車的高度 */
         .race-track-lines {
             position: absolute;
             top: 0;
@@ -116,28 +122,58 @@
             background-image: repeating-linear-gradient(
                 0deg,
                 transparent,
-                transparent 13px,
-                rgba(255, 255, 255, 0.3) 13px,
-                rgba(255, 255, 255, 0.3) 15px
+                transparent 38px,
+                rgba(255, 255, 255, 0.1) 38px,
+                rgba(255, 255, 255, 0.1) 40px
             );
         }
         
-        /* 🚗 賽車樣式 */
+        /* 🚗 賽車樣式 - 更擬真的賽車設計 */
         .car-racer {
-            width: 40px;
-            height: 25px;
+            width: 60px;
+            height: 30px;
             position: absolute;
-            transition: all 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border-radius: 12px;
+            transition: all 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            border: 2px solid rgba(255,255,255,0.3);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        
+        /* 賽車形狀 */
+        .car-racer::before {
+            content: '🏎️';
+            position: absolute;
+            font-size: 35px;
+            left: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+        }
+        
+        /* 車號顯示 */
+        .car-racer::after {
+            content: attr(data-number);
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            color: black;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .car-racer::before {
@@ -152,23 +188,23 @@
             z-index: -1;
         }
         
-        /* 🏁 終點線 */
+        /* 終點線 */
         .race-finish-line {
             position: absolute;
-            right: 15px;
-            top: 10px;
-            height: calc(100% - 20px);
-            width: 8px;
+            right: 50px;
+            top: 20px;
+            height: calc(100% - 40px);
+            width: 10px;
             background: repeating-linear-gradient(
                 to bottom,
                 #000,
-                #000 8px,
-                #fff 8px,
-                #fff 16px
+                #000 10px,
+                #fff 10px,
+                #fff 20px
             );
-            border: 2px solid #333;
+            border: 2px solid #ff0000;
             border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
         
         /* ✨ 粒子效果容器 */
@@ -1929,13 +1965,13 @@
         }
 
         .countdown-label {
-            font-size: 12px;
+            font-size: 10px;
             color: rgba(255, 255, 255, 0.8);
             font-weight: 600;
         }
 
         .countdown-time {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 900;
             color: #ff4757 !important;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -1944,31 +1980,31 @@
         .countdown-inline {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px;
             white-space: nowrap;
         }
         
         .countdown-inline .countdown-label {
-            font-size: 12px;
+            font-size: 10px;
             color: rgba(255, 255, 255, 0.9);
             font-weight: 600;
         }
         
         .countdown-inline .countdown-time {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 900;
             color: #ff4757 !important;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .period-number {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 900;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .period-label {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 700;
             opacity: 0.9;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -2177,16 +2213,19 @@
             }
             
             .period-info-row {
+                display: flex !important;
                 flex-direction: row !important;
                 justify-content: space-between !important;
                 align-items: center !important;
-                gap: 8px;
+                gap: 6px;
+                flex-wrap: nowrap !important;
             }
             
             .period-badges {
                 flex: 1;
                 justify-content: flex-start;
                 gap: 6px;
+                min-width: 0;
             }
             
             .period-badge {
@@ -2201,6 +2240,21 @@
             
             .period-label {
                 font-size: 8px;
+            }
+            
+            .controls-container {
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                flex-shrink: 0 !important;
+                flex-wrap: nowrap !important;
+            }
+            
+            .draw-animation-btn-standalone {
+                padding: 4px 6px !important;
+                font-size: 10px !important;
+                min-width: 60px !important;
+                border-radius: 8px !important;
             }
             
             .countdown-section {
@@ -3456,13 +3510,13 @@
                         </div>
                         <div class="controls-container">
                             <button class="draw-animation-btn-standalone" @click="toggleAnimation">
-                                {{ gameStatus === 'betting' ? ' 賽車動畫' : ' 播放動畫' }}
+                                {{ gameStatus === 'betting' ? '賽車動畫' : '播放賽車' }}
                             </button>
                             <div class="countdown-section" :class="gameStatus">
                                 <div class="countdown-inline">
                                     <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
                                     <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
-                
+                                    <span class="countdown-time" v-else>開獎中...</span>
                                 </div>
                             </div>
                         </div>
@@ -4246,7 +4300,6 @@
         <!-- 🎯 彈出式通知視窗 -->
         <div v-if="notificationVisible" class="notification-popup" @click="notificationVisible = false">
             <div class="notification-content" @click.stop>
-                                        <div class="notification-icon">!</div>
                 <div class="notification-message">{{ notificationText }}</div>
                 <button class="notification-close" @click="notificationVisible = false">✕</button>
             </div>
@@ -4635,12 +4688,17 @@
                                 this.countdownSeconds = serverCountdown;
                                 
                                 if (serverStatus === 'drawing' && previousStatus === 'betting') {
-                                    console.log(' 狀態變更為開獎中，播放簡單洗球動畫');
+                                    console.log('狀態變更為開獎中，播放簡單洗球動畫');
                                     // 只播放洗球動畫，不替換主畫面彩球
                                     this.playSimpleDrawEffect();
                                     this.updateHistoryRecords();
+                                    // 確保在開獎狀態下也能獲取最新結果
+                                    if (data.gameData.lastResult && data.gameData.lastResult.length > 0) {
+                                        this.lastResult = data.gameData.lastResult;
+                                        this.lastResults = data.gameData.lastResult;
+                                    }
                                 } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
-                                    console.log('✅ 開獎完成，更新餘額和注單');
+                                    console.log('開獎完成，更新餘額和注單');
                                     this.updateBalance();
                                     this.updateBetHistory();
                                     this.updateHistoryRecords();
@@ -5557,9 +5615,9 @@
                         console.log('音效播放錯誤，但不影響系統運行', error);
                     }
                 },
-                // 🎬 動畫開關控制
+                // 動畫開關控制 - 修復邏輯確保狀態正確
                 toggleAnimation() {
-                    console.log(`🎬 點擊賽車按鈕 - 遊戲狀態: ${this.gameStatus}, 倒計時: ${this.countdownSeconds}, 期號: ${this.currentPeriod}, 最新結果:`, this.lastResults);
+                    console.log(`點擊賽車按鈕 - 遊戲狀態: ${this.gameStatus}, 倒計時: ${this.countdownSeconds}, 期號: ${this.currentPeriod}, 最新結果:`, this.lastResults);
                     
                     // 如果正在下注期間（倒計時大於0），顯示提示
                     if (this.gameStatus === 'betting' && this.countdownSeconds > 0) {
@@ -5567,30 +5625,30 @@
                         return;
                     }
                     
-                    // 強制重新獲取最新遊戲數據，確保使用最新開獎結果
-                    console.log('🔄 重新獲取最新開獎結果...');
-                    this.updateGameData().then(() => {
-                        // 再次檢查是否有結果數據
-                        if (this.lastResults && this.lastResults.length > 0) {
-                            console.log(`🎬 手動觸發賽車動畫播放，期號: ${this.currentPeriod}, 使用結果:`, this.lastResults);
+                    // 先嘗試從歷史記錄獲取最新結果（更可靠）
+                    console.log('從歷史記錄獲取最新開獎結果...');
+                    this.getLatestResultFromHistory().then((latestResult) => {
+                        if (latestResult && latestResult.length > 0) {
+                            this.lastResults = latestResult;
+                            console.log(`從歷史記錄獲取到結果:`, latestResult);
                             this.playRaceAnimation();
                         } else {
-                            console.log('⚠️ 仍無開獎結果，嘗試獲取歷史記錄中的最新結果');
-                            // 嘗試從歷史記錄獲取最新結果
-                            this.getLatestResultFromHistory().then((latestResult) => {
-                                if (latestResult && latestResult.length > 0) {
-                                    this.lastResults = latestResult;
-                                    console.log(`🎯 從歷史記錄獲取到結果:`, latestResult);
+                            // 如果歷史記錄沒有，再嘗試更新遊戲數據
+                            console.log('歷史記錄無結果，嘗試更新遊戲數據...');
+                            this.updateGameData().then(() => {
+                                if (this.lastResults && this.lastResults.length > 0) {
+                                    console.log(`從遊戲數據獲取到結果:`, this.lastResults);
                                     this.playRaceAnimation();
                                 } else {
                                     this.displayNotification('暫無開獎結果，無法播放動畫');
                                 }
-                            }).catch(() => {
-                                this.displayNotification('暫無開獎結果，無法播放動畫');
+                            }).catch((error) => {
+                                console.error('獲取遊戲數據失敗:', error);
+                                this.displayNotification('獲取開獎數據失敗，無法播放動畫');
                             });
                         }
                     }).catch((error) => {
-                        console.error('獲取遊戲數據失敗:', error);
+                        console.error('獲取歷史記錄失敗:', error);
                         this.displayNotification('獲取開獎數據失敗，無法播放動畫');
                     });
                 },
@@ -5656,7 +5714,7 @@
                         }, 2000);
                     }
                 },
-                // 🏁 專門的賽車動畫（只在按鈕點擊時播放）
+                // 專門的賽車動畫（只在按鈕點擊時播放）
                 playRaceAnimation() {
                     console.log('開始播放賽車動畫...');
                     
@@ -5692,12 +5750,15 @@
                     const animationContainer = document.createElement('div');
                     animationContainer.className = 'race-animation-container';
                     animationContainer.style.cssText = `
-                        width: 80%;
-                        height: 60%;
-                        background: linear-gradient(135deg, #1e3c72, #2a5298);
+                        width: 90%;
+                        max-width: 1000px;
+                        height: 400px;
+                        background: linear-gradient(135deg, #1a1a2e, #16213e);
                         border-radius: 15px;
                         position: relative;
                         overflow: hidden;
+                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                        border: 2px solid rgba(255, 255, 255, 0.1);
                     `;
                     
                     // 添加跑道軌道線
@@ -5721,16 +5782,20 @@
                     finishLine.className = 'race-finish-line';
                     animationContainer.appendChild(finishLine);
                     
-                    // 創建賽車元素
+                    // 創建賽車元素 - 精確10輛車的間距
                     const cars = [];
-                    for (let i = 1; i <= 10; i++) {
+                    const trackHeight = 400; // 賽道總高度
+                    const carCount = 10; // 車輛數量
+                    const carHeight = 30; // 車輛高度
+                    const availableHeight = trackHeight - 40; // 可用高度（扣除上下邊距）
+                    const spacing = availableHeight / carCount; // 每輛車的間距
+                    
+                    for (let i = 1; i <= carCount; i++) {
                         const car = document.createElement('div');
                         car.className = 'car-racer';
-                        car.style.backgroundColor = this.getColorForNumber(i);
-                        car.style.top = `${5 + (i-1) * 14}px`;
-                        car.style.left = '20px';
+                        car.style.top = `${20 + (i-1) * spacing}px`;
+                        car.style.left = '50px';
                         car.dataset.number = i;
-                        car.textContent = i;
                         animationContainer.appendChild(car);
                         cars.push(car);
                     }
@@ -5898,9 +5963,9 @@
                 // 🏁 賽車競賽動畫
                 startRaceAnimation(cars, callback) {
                     const results = [...this.lastResults]; // 獲取開獎結果
-                    const raceDuration = 2500;
+                    const raceDuration = 3000; // 增加動畫時長
                     
-                    console.log('🏁 賽車結果順序:', results);
+                    console.log('賽車結果順序:', results);
                     
                     // 計算每輛車的終點位置（根據排名）
                     cars.forEach((car, index) => {
