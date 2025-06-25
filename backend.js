@@ -3416,102 +3416,203 @@ function getPositionName(position) {
   return names[position - 1] || position.toString();
 }
 
-// 路珠走勢API端點
-app.get('/api/road-bead', async (req, res) => {
-  try {
-    // 獲取最近30期的開獎記錄
-    const query = `
-      SELECT period, result, created_at as draw_time 
-      FROM result_history 
-      ORDER BY created_at DESC 
-      LIMIT 30
-    `;
+// 🎴 路珠走勢數據
+app.get('/api/road-bead', (req, res) => {
+    const db = req.db;
+    const { position = 1, type = 'number', limit = 30 } = req.query;
     
-    const results = await db.any(query);
-    
-    if (!results || results.length === 0) {
-      return res.json({
-        success: true,
-        roadBeadRows: []
-      });
+    try {
+        // 獲取指定數量的最近開獎記錄
+        const drawHistory = db.prepare(`
+            SELECT period, result
+            FROM draws 
+            WHERE result IS NOT NULL 
+            ORDER BY period DESC 
+            LIMIT ?
+        `).all(limit);
+        
+        if (!drawHistory || drawHistory.length === 0) {
+            return res.json({
+                success: true,
+                data: {
+                    position: parseInt(position),
+                    type,
+                    tableData: [],
+                    todayStats: [],
+                    summary: {}
+                }
+            });
+        }
+        
+        // 反轉順序，從舊到新
+        const orderedHistory = drawHistory.reverse();
+        
+        // 今日開始時間（當天00:00）
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayPeriod = Math.floor(today.getTime() / 60000); // 轉換為期號格式
+        
+        // 處理路珠數據
+        const roadBeadData = processRoadBeadData(orderedHistory, parseInt(position), type);
+        
+        // 計算今日統計（只統計號碼出現次數）
+        const todayStats = calculateTodayStats(orderedHistory, parseInt(position), todayPeriod);
+        
+        res.json({
+            success: true,
+            data: {
+                position: parseInt(position),
+                type,
+                tableData: roadBeadData.tableData,
+                todayStats,
+                summary: roadBeadData.summary
+            }
+        });
+        
+    } catch (error) {
+        console.error('獲取路珠走勢失敗:', error);
+        res.status(500).json({
+            success: false,
+            message: '獲取路珠走勢失敗'
+        });
     }
-    
-    // 解析結果並創建路珠表格
-    const parsedResults = results.map(row => {
-      let result;
-      try {
-        result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;
-      } catch (e) {
-        console.error('解析開獎結果失敗:', e);
-        return null;
-      }
-      return {
-        period: row.period,
-        result,
-        time: row.draw_time
-      };
-    }).filter(item => item !== null).reverse(); // 按時間正序排列
-    
-    // 生成路珠走勢數據（6列N行格式）
-    const roadBeadRows = generateRoadBeadData(parsedResults);
-    
-    console.log(`路珠走勢API返回 ${roadBeadRows.length} 行數據`);
-    
-    res.json({
-      success: true,
-      roadBeadRows
-    });
-
-  } catch (error) {
-    console.error('獲取路珠走勢出錯:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: '獲取路珠走勢失敗',
-      roadBeadRows: []
-    });
-  }
 });
 
-// 生成路珠走勢數據的輔助函數
-function generateRoadBeadData(results) {
-  const rows = [];
-  const itemsPerRow = 6;
-  
-  for (let i = 0; i < results.length; i += itemsPerRow) {
-    const rowData = [];
+// 處理路珠數據
+function processRoadBeadData(history, position, type) {
+    const tableData = [];
+    const currentRow = [];
     
-    for (let j = 0; j < itemsPerRow; j++) {
-      const resultIndex = i + j;
-      if (resultIndex < results.length) {
-        const result = results[resultIndex];
-        const numbers = result.result;
-        
-        // 計算各種屬性
-        const champion = numbers[0];
-        const runnerup = numbers[1];
-        const sum = champion + runnerup;
-        
-        rowData.push({
-          period: result.period,
-          champion,
-          runnerup,
-          sum,
-          championSize: champion > 5 ? '大' : '小',
-          championParity: champion % 2 === 1 ? '單' : '雙',
-          runnrupSize: runnerup > 5 ? '大' : '小',
-          runnrupParity: runnerup % 2 === 1 ? '單' : '雙',
-          sumSize: sum > 11 ? '大' : '小',
-          sumParity: sum % 2 === 1 ? '單' : '雙',
-          dragonTiger: champion > runnerup ? '龍' : '虎'
-        });
-      } else {
-        // 空位補null
-        rowData.push(null);
-      }
+    // 統計數據
+    const stats = {
+        totalPeriods: history.length,
+        sizeStats: { big: { count: 0, percentage: 0 }, small: { count: 0, percentage: 0 } },
+        parityStats: { odd: { count: 0, percentage: 0 }, even: { count: 0, percentage: 0 } },
+        numberFrequency: {},
+        dragonTigerStats: { dragon: { count: 0, percentage: 0 }, tiger: { count: 0, percentage: 0 } },
+        sumStats: { min: 999, max: 0, frequency: {} }
+    };
+    
+    // 路珠表格配置
+    const COLS = 6; // 每行6列
+    const ROWS = Math.ceil(history.length / COLS);
+    
+    // 初始化表格
+    for (let i = 0; i < ROWS; i++) {
+        tableData.push(new Array(COLS).fill(null));
     }
     
-    rows.push(rowData);
-  }
-  
-  return rows;
+    // 填充數據
+    history.forEach((draw, index) => {
+        const row = Math.floor(index / COLS);
+        const col = index % COLS;
+        const result = JSON.parse(draw.result);
+        
+        // 獲取指定位置的數字
+        const number = result[position - 1];
+        
+        // 創建單元格數據
+        const cellData = {
+            period: draw.period,
+            number,
+            position,
+            isBig: number > 5,
+            isOdd: number % 2 === 1,
+            dragonTiger: null
+        };
+        
+        // 計算冠亞和（如果是第1或第2名）
+        if (position <= 2) {
+            const sum = result[0] + result[1];
+            cellData.sum = sum;
+            cellData.sumBig = sum >= 12;
+            cellData.sumOdd = sum % 2 === 1;
+            
+            // 更新和值統計
+            stats.sumStats.min = Math.min(stats.sumStats.min, sum);
+            stats.sumStats.max = Math.max(stats.sumStats.max, sum);
+            stats.sumStats.frequency[sum] = (stats.sumStats.frequency[sum] || 0) + 1;
+        }
+        
+        // 計算龍虎（第1-5名對應第10-6名）
+        if (position <= 5) {
+            const oppositePosition = 11 - position;
+            const oppositeNumber = result[oppositePosition - 1];
+            cellData.dragonTiger = number > oppositeNumber ? 'dragon' : 'tiger';
+            
+            // 更新龍虎統計
+            if (cellData.dragonTiger === 'dragon') {
+                stats.dragonTigerStats.dragon.count++;
+            } else {
+                stats.dragonTigerStats.tiger.count++;
+            }
+        }
+        
+        // 更新統計
+        stats.numberFrequency[number] = (stats.numberFrequency[number] || 0) + 1;
+        if (cellData.isBig) {
+            stats.sizeStats.big.count++;
+        } else {
+            stats.sizeStats.small.count++;
+        }
+        if (cellData.isOdd) {
+            stats.parityStats.odd.count++;
+        } else {
+            stats.parityStats.even.count++;
+        }
+        
+        // 添加到表格
+        tableData[row][col] = cellData;
+    });
+    
+    // 計算百分比
+    if (stats.totalPeriods > 0) {
+        stats.sizeStats.big.percentage = ((stats.sizeStats.big.count / stats.totalPeriods) * 100).toFixed(1);
+        stats.sizeStats.small.percentage = ((stats.sizeStats.small.count / stats.totalPeriods) * 100).toFixed(1);
+        stats.parityStats.odd.percentage = ((stats.parityStats.odd.count / stats.totalPeriods) * 100).toFixed(1);
+        stats.parityStats.even.percentage = ((stats.parityStats.even.count / stats.totalPeriods) * 100).toFixed(1);
+        
+        if (position <= 5) {
+            const dragonTigerTotal = stats.dragonTigerStats.dragon.count + stats.dragonTigerStats.tiger.count;
+            if (dragonTigerTotal > 0) {
+                stats.dragonTigerStats.dragon.percentage = ((stats.dragonTigerStats.dragon.count / dragonTigerTotal) * 100).toFixed(1);
+                stats.dragonTigerStats.tiger.percentage = ((stats.dragonTigerStats.tiger.count / dragonTigerTotal) * 100).toFixed(1);
+            }
+        }
+    }
+    
+    return {
+        tableData,
+        summary: stats
+    };
+}
+
+// 計算今日統計（號碼出現次數）
+function calculateTodayStats(history, position, todayPeriod) {
+    const todayNumbers = {};
+    let todayTotal = 0;
+    
+    // 統計今日每個號碼出現的次數
+    history.forEach(draw => {
+        // 只統計今日的開獎
+        if (parseInt(draw.period) >= todayPeriod) {
+            const result = JSON.parse(draw.result);
+            const number = result[position - 1];
+            todayNumbers[number] = (todayNumbers[number] || 0) + 1;
+            todayTotal++;
+        }
+    });
+    
+    // 生成1-10號的統計數組
+    const stats = [];
+    for (let i = 1; i <= 10; i++) {
+        const count = todayNumbers[i] || 0;
+        stats.push({
+            number: i,
+            count,
+            percentage: todayTotal > 0 ? ((count / todayTotal) * 100).toFixed(1) : '0.0'
+        });
+    }
+    
+    return stats;
 }

@@ -3903,6 +3903,470 @@
                 transform: scale(1) translateY(0);
             }
         }
+        
+        /* 路珠走勢樣式 */
+        .road-bead-modal {
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            max-width: 1200px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .road-bead-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .road-bead-header .title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .road-bead-header .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 28px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .road-bead-header .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .road-bead-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        /* 名次選擇器 */
+        .position-selector {
+            margin-bottom: 20px;
+        }
+        
+        .selector-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .position-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .position-btn {
+            padding: 8px 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .position-btn:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .position-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* 今日統計面板 */
+        .today-stats-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+        }
+        
+        .stat-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-item.hot-number {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .stat-item .number {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        
+        .stat-item .count {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stat-item .percentage {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        /* 路珠分析選項 */
+        .road-bead-options {
+            margin-bottom: 20px;
+        }
+        
+        .option-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .option-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .option-btn {
+            padding: 8px 16px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .option-btn:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .option-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* 路珠棋盤 */
+        .road-bead-board {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .board-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .bead-table {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .bead-row {
+            display: flex;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .bead-row:last-child {
+            border-bottom: none;
+        }
+        
+        .bead-cell {
+            flex: 1;
+            height: 80px;
+            border-right: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .bead-cell:last-child {
+            border-right: none;
+        }
+        
+        .bead-cell.empty-cell {
+            background: #fafafa;
+        }
+        
+        .bead-item {
+            width: 90%;
+            height: 90%;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .bead-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .period-info {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 10px;
+            color: #999;
+            font-weight: normal;
+        }
+        
+        .main-value {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        
+        .extra-info {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+        
+        /* 號碼樣式 */
+        .bead-item.number-1,
+        .bead-item.number-2 {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .bead-item.number-3,
+        .bead-item.number-4 {
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .bead-item.number-5,
+        .bead-item.number-6 {
+            background: #45b7d1;
+            color: white;
+        }
+        
+        .bead-item.number-7,
+        .bead-item.number-8 {
+            background: #96ceb4;
+            color: white;
+        }
+        
+        .bead-item.number-9,
+        .bead-item.number-10 {
+            background: #feca57;
+            color: #333;
+        }
+        
+        /* 大小單雙樣式 */
+        .bead-item.big {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .bead-item.small {
+            background: #3498db;
+            color: white;
+        }
+        
+        .bead-item.odd {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .bead-item.even {
+            background: #16a085;
+            color: white;
+        }
+        
+        /* 冠亞和樣式 */
+        .bead-item.sum-big {
+            background: #e67e22;
+            color: white;
+        }
+        
+        .bead-item.sum-small {
+            background: #8e44ad;
+            color: white;
+        }
+        
+        .bead-item.sum-odd {
+            background: #d35400;
+            color: white;
+        }
+        
+        .bead-item.sum-even {
+            background: #27ae60;
+            color: white;
+        }
+        
+        /* 龍虎樣式 */
+        .bead-item.dragon {
+            background: #c0392b;
+            color: white;
+        }
+        
+        .bead-item.tiger {
+            background: #2c3e50;
+            color: white;
+        }
+        
+        /* 統計摘要 */
+        .road-bead-summary {
+            margin-top: 20px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .summary-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .summary-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .summary-item {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .freq-item {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 2px 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* 加載和無數據狀態 */
+        .loading-state,
+        .no-data-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .refresh-btn {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .road-bead-modal {
+                width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            
+            .position-buttons,
+            .option-buttons {
+                gap: 5px;
+            }
+            
+            .position-btn,
+            .option-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .bead-cell {
+                height: 60px;
+            }
+            
+            .main-value {
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -4891,45 +5355,152 @@
         <div class="modal" v-if="roadBeadVisible">
             <div class="road-bead-modal">
                 <div class="road-bead-header">
-                    <div class="title">路珠走勢</div>
+                    <div class="title">路珠走勢分析</div>
                     <button class="close-btn" @click="roadBeadVisible = false">×</button>
                 </div>
                 
-                <!-- 路珠表格 -->
                 <div class="road-bead-content">
-                    <div v-if="roadBeadRows.length === 0" class="no-records">
-                        暫無路珠數據
-                    </div>
-                    <div v-else class="road-bead-table">
-                        <div class="table-header">
-                            <div class="header-cell">期號</div>
-                            <div class="header-cell">冠軍</div>
-                            <div class="header-cell">亞軍</div>
-                            <div class="header-cell">和值</div>
-                            <div class="header-cell">大小</div>
-                            <div class="header-cell">單雙</div>
-                            <div class="header-cell">龍虎</div>
+                    <!-- 名次選擇器 -->
+                    <div class="position-selector">
+                        <div class="selector-title">選擇分析名次：</div>
+                        <div class="position-buttons">
+                            <button 
+                                v-for="pos in positions" 
+                                :key="pos.value"
+                                :class="['position-btn', { active: selectedRoadBeadPosition === pos.value }]"
+                                @click="selectRoadBeadPosition(pos.value)"
+                            >
+                                {{ pos.label }}
+                            </button>
                         </div>
-                        <div v-for="(row, rowIndex) in roadBeadRows" :key="rowIndex" class="table-row">
-                            <template v-for="(item, colIndex) in row">
-                                <div v-if="item" :key="colIndex" class="table-cell">
-                                    <div class="road-bead-item">
-                                        <div class="period">{{ item.period.toString().slice(-4) }}</div>
-                                        <div class="numbers">
-                                            <span :class="['number', item.championSize === '大' ? 'big' : 'small']">{{ item.champion }}</span>
-                                            <span :class="['number', item.runnrupSize === '大' ? 'big' : 'small']">{{ item.runnerup }}</span>
-                                        </div>
-                                        <div class="sum" :class="[item.sumSize === '大' ? 'big' : 'small']">{{ item.sum }}</div>
-                                        <div class="attributes">
-                                            <span class="size">{{ item.sumSize }}</span>
-                                            <span class="parity">{{ item.sumParity }}</span>
-                                            <span class="dragon-tiger">{{ item.dragonTiger }}</span>
-                                        </div>
+                    </div>
+                    
+                    <!-- 當日統計面板 -->
+                    <div class="today-stats-panel" v-if="roadBeadTodayStats.length > 0">
+                        <div class="stats-title">今日 {{ getPositionName(selectedRoadBeadPosition) }} 開獎統計</div>
+                        <div class="stats-grid">
+                            <div 
+                                v-for="stat in roadBeadTodayStats" 
+                                :key="stat.number"
+                                :class="['stat-item', { 'hot-number': stat.count > 0 }]"
+                            >
+                                <div class="number">{{ stat.number }}</div>
+                                <div class="count">{{ stat.count }}次</div>
+                                <div class="percentage">{{ stat.percentage }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 路珠分析選項 -->
+                    <div class="road-bead-options">
+                        <div class="option-title">分析維度：</div>
+                        <div class="option-buttons">
+                            <button 
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'number' }]"
+                                @click="changeRoadBeadAnalysisType('number')"
+                            >
+                                號碼走勢
+                            </button>
+                            <button 
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'size' }]"
+                                @click="changeRoadBeadAnalysisType('size')"
+                            >
+                                大小走勢
+                            </button>
+                            <button 
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'parity' }]"
+                                @click="changeRoadBeadAnalysisType('parity')"
+                            >
+                                單雙走勢
+                            </button>
+                            <button 
+                                v-if="selectedRoadBeadPosition <= 2"
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'sum' }]"
+                                @click="changeRoadBeadAnalysisType('sum')"
+                            >
+                                冠亞和
+                            </button>
+                            <button 
+                                v-if="selectedRoadBeadPosition <= 2"
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'sumSize' }]"
+                                @click="changeRoadBeadAnalysisType('sumSize')"
+                            >
+                                冠亞和大小
+                            </button>
+                            <button 
+                                v-if="selectedRoadBeadPosition <= 2"
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'sumParity' }]"
+                                @click="changeRoadBeadAnalysisType('sumParity')"
+                            >
+                                冠亞和單雙
+                            </button>
+                            <button 
+                                :class="['option-btn', { active: roadBeadAnalysisType === 'dragonTiger' }]"
+                                @click="changeRoadBeadAnalysisType('dragonTiger')"
+                            >
+                                龍虎
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 路珠棋盤 -->
+                    <div class="road-bead-board" v-if="roadBeadData && roadBeadData.tableData">
+                        <div class="board-title">
+                            {{ getPositionName(selectedRoadBeadPosition) }} - {{ getRoadBeadAnalysisTitle() }}
+                        </div>
+                        
+                        <!-- 棋盤表格 -->
+                        <div class="bead-table">
+                            <div v-for="(row, rowIndex) in roadBeadData.tableData" :key="rowIndex" class="bead-row">
+                                <div 
+                                    v-for="(cell, colIndex) in row" 
+                                    :key="colIndex" 
+                                    :class="['bead-cell', { 'empty-cell': !cell }]"
+                                >
+                                    <div v-if="cell" :class="['bead-item', getRoadBeadCellClass(cell)]">
+                                        <div class="period-info">{{ cell.period.toString().slice(-3) }}</div>
+                                        <div class="main-value">{{ getRoadBeadCellValue(cell) }}</div>
+                                        <div class="extra-info">{{ getRoadBeadExtraInfo(cell) }}</div>
                                     </div>
                                 </div>
-                                <div v-else :key="colIndex" class="table-cell empty-cell"></div>
-                            </template>
+                            </div>
                         </div>
+                        
+                        <!-- 統計摘要 -->
+                        <div class="road-bead-summary" v-if="roadBeadData.summary">
+                            <div class="summary-title">統計摘要 (最近{{ roadBeadData.summary.totalPeriods }}期)</div>
+                            <div class="summary-content">
+                                <div v-if="roadBeadData.summary.sizeStats" class="summary-item">
+                                    <strong>大小比例：</strong>
+                                    大{{ roadBeadData.summary.sizeStats.big.count }}期({{ roadBeadData.summary.sizeStats.big.percentage }}%) / 
+                                    小{{ roadBeadData.summary.sizeStats.small.count }}期({{ roadBeadData.summary.sizeStats.small.percentage }}%)
+                                </div>
+                                <div v-if="roadBeadData.summary.parityStats" class="summary-item">
+                                    <strong>單雙比例：</strong>
+                                    單{{ roadBeadData.summary.parityStats.odd.count }}期({{ roadBeadData.summary.parityStats.odd.percentage }}%) / 
+                                    雙{{ roadBeadData.summary.parityStats.even.count }}期({{ roadBeadData.summary.parityStats.even.percentage }}%)
+                                </div>
+                                <div v-if="roadBeadData.summary.numberFrequency" class="summary-item">
+                                    <strong>號碼頻率：</strong>
+                                    <span v-for="(freq, num) in roadBeadData.summary.numberFrequency" :key="num" class="freq-item">
+                                        {{ num }}號:{{ freq }}次
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 加載狀態 -->
+                    <div v-if="roadBeadLoading" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <div>加載路珠數據中...</div>
+                    </div>
+                    
+                    <!-- 無數據狀態 -->
+                    <div v-if="!roadBeadLoading && (!roadBeadData || !roadBeadData.tableData || roadBeadData.tableData.length === 0)" class="no-data-state">
+                        <div class="no-data-icon">📊</div>
+                        <div>暫無路珠數據</div>
+                        <button class="refresh-btn" @click="loadRoadBeadData">重新加載</button>
                     </div>
                 </div>
             </div>
@@ -5145,12 +5716,19 @@
                     // 開獎結果標籤
                     resultLabels: Array.from({ length: 10 }, (_, i) => `${i + 1}名`),
                     
-                    // 新的下注確認相關
-                    showBetModal: false,
-                    autoAcceptBetterOdds: true,
-                    hasLastBets: false,
-                    lastBets: [],
-                    showChips: false,
+                                    // 新的下注確認相關
+                showBetModal: false,
+                autoAcceptBetterOdds: true,
+                hasLastBets: false,
+                lastBets: [],
+                showChips: false,
+                
+                // 路珠走勢相關數據
+                selectedRoadBeadPosition: 1, // 當前選擇的名次
+                roadBeadAnalysisType: 'number', // 分析類型：number|size|parity|sum|sumSize|sumParity|dragonTiger
+                roadBeadData: null, // 路珠數據
+                roadBeadTodayStats: [], // 今日統計
+                roadBeadLoading: false, // 加載狀態
                 };
             },
             created() {
@@ -8433,27 +9011,145 @@
                 
                 // 載入路珠走勢數據
                 loadRoadBeadData() {
-                    console.log('正在載入路珠走勢數據...');
+                    this.roadBeadLoading = true;
                     
-                    fetch(`${this.API_BASE_URL}/api/road-bead`)
-                        .then(response => {
-                            console.log('路珠走勢API響應狀態:', response.status);
-                            return response.json();
-                        })
+                    const params = new URLSearchParams({
+                        position: this.selectedRoadBeadPosition,
+                        type: this.roadBeadAnalysisType,
+                        limit: 60 // 獲取最近60期數據
+                    });
+                    
+                    fetch(`${this.API_BASE_URL}/api/road-bead?${params}`)
+                        .then(response => response.json())
                         .then(data => {
-                            console.log('路珠走勢API響應數據:', data);
-                            if (data.success) {
-                                this.roadBeadRows = data.roadBeadRows || [];
-                                console.log(`成功載入 ${this.roadBeadRows.length} 行路珠數據`);
+                            if (data.success && data.data) {
+                                this.roadBeadData = data.data;
+                                this.roadBeadTodayStats = data.data.todayStats || [];
                             } else {
-                                console.error('獲取路珠走勢失敗:', data.message);
-                                this.roadBeadRows = [];
+                                this.roadBeadData = null;
+                                this.roadBeadTodayStats = [];
                             }
                         })
                         .catch(error => {
-                            console.error('獲取路珠走勢出錯:', error);
-                            this.roadBeadRows = [];
+                            console.error('載入路珠走勢失敗:', error);
+                            this.roadBeadData = null;
+                            this.roadBeadTodayStats = [];
+                        })
+                        .finally(() => {
+                            this.roadBeadLoading = false;
                         });
+                },
+                
+                // 選擇路珠名次
+                selectRoadBeadPosition(position) {
+                    this.selectedRoadBeadPosition = position;
+                    this.loadRoadBeadData();
+                },
+                
+                // 獲取路珠分析標題
+                getRoadBeadAnalysisTitle() {
+                    const titles = {
+                        'number': '號碼走勢',
+                        'size': '大小走勢',
+                        'parity': '單雙走勢',
+                        'sum': '冠亞和值',
+                        'sumSize': '冠亞和大小',
+                        'sumParity': '冠亞和單雙',
+                        'dragonTiger': '龍虎走勢'
+                    };
+                    return titles[this.roadBeadAnalysisType] || '';
+                },
+                
+                // 獲取路珠單元格樣式類
+                getRoadBeadCellClass(cell) {
+                    if (!cell) return '';
+                    
+                    const classes = [];
+                    
+                    // 根據分析類型添加不同的樣式
+                    switch (this.roadBeadAnalysisType) {
+                        case 'number':
+                            classes.push(`number-${cell.number}`);
+                            break;
+                        case 'size':
+                            classes.push(cell.isBig ? 'big' : 'small');
+                            break;
+                        case 'parity':
+                            classes.push(cell.isOdd ? 'odd' : 'even');
+                            break;
+                        case 'sum':
+                            if (cell.sum) {
+                                classes.push(`sum-${cell.sum}`);
+                            }
+                            break;
+                        case 'sumSize':
+                            if (cell.sumBig !== undefined) {
+                                classes.push(cell.sumBig ? 'sum-big' : 'sum-small');
+                            }
+                            break;
+                        case 'sumParity':
+                            if (cell.sumOdd !== undefined) {
+                                classes.push(cell.sumOdd ? 'sum-odd' : 'sum-even');
+                            }
+                            break;
+                        case 'dragonTiger':
+                            if (cell.dragonTiger) {
+                                classes.push(cell.dragonTiger);
+                            }
+                            break;
+                    }
+                    
+                    return classes.join(' ');
+                },
+                
+                // 獲取路珠單元格顯示值
+                getRoadBeadCellValue(cell) {
+                    if (!cell) return '';
+                    
+                    switch (this.roadBeadAnalysisType) {
+                        case 'number':
+                            return cell.number;
+                        case 'size':
+                            return cell.isBig ? '大' : '小';
+                        case 'parity':
+                            return cell.isOdd ? '單' : '雙';
+                        case 'sum':
+                            return cell.sum || '-';
+                        case 'sumSize':
+                            return cell.sumBig !== undefined ? (cell.sumBig ? '大' : '小') : '-';
+                        case 'sumParity':
+                            return cell.sumOdd !== undefined ? (cell.sumOdd ? '單' : '雙') : '-';
+                        case 'dragonTiger':
+                            return cell.dragonTiger === 'dragon' ? '龍' : 
+                                   cell.dragonTiger === 'tiger' ? '虎' : '-';
+                        default:
+                            return '';
+                    }
+                },
+                
+                // 獲取路珠額外信息
+                getRoadBeadExtraInfo(cell) {
+                    if (!cell) return '';
+                    
+                    // 如果是號碼分析，顯示大小單雙
+                    if (this.roadBeadAnalysisType === 'number') {
+                        const size = cell.isBig ? '大' : '小';
+                        const parity = cell.isOdd ? '單' : '雙';
+                        return `${size}${parity}`;
+                    }
+                    
+                    // 如果是冠亞和分析，顯示具體和值
+                    if (this.roadBeadAnalysisType.startsWith('sum') && cell.sum) {
+                        return `和${cell.sum}`;
+                    }
+                    
+                    return '';
+                },
+                
+                // 改變路珠分析類型
+                changeRoadBeadAnalysisType(type) {
+                    this.roadBeadAnalysisType = type;
+                    this.loadRoadBeadData();
                 },
                 
                 showBetSlip(betType, choice, odds) {
