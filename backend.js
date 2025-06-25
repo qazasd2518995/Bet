@@ -807,7 +807,7 @@ async function startGameCycle() {
               status: 'drawing'
             });
             
-            // 模擬開獎過程(8秒後產生結果，確保前端有足夠時間檢測drawing狀態)
+            // 模擬開獎過程(3秒後產生結果，確保前端有足夠時間檢測drawing狀態)
             drawingTimeoutId = setTimeout(async () => {
               try {
                 console.log('🎯 開獎時間到，開始生成結果...');
@@ -865,7 +865,7 @@ async function startGameCycle() {
                 memoryGameState.status = 'betting';
                 memoryGameState.countdown_seconds = 60;
               }
-            }, 8000); // 從3秒延長到8秒，確保前端有足夠時間檢測drawing狀態
+            }, 3000); // 從8秒縮短到3秒，讓封盤後快速進入開獎狀態
           }
         }
       } catch (error) {
