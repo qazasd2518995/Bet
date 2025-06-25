@@ -11,7 +11,7 @@
     <!-- <link rel="stylesheet" href="./src/styles/main.css?v=1.5"> 已移除，避免Vuetify衝突 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- 先引入 Vue -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- 然後引入組件 -->
     <script src="./src/components/BetRecords.js?v=2025061901"></script>
@@ -63,14 +63,6 @@
         });
     </script>
     <style>
-        /* CSS變量 - 主題顏色 */
-        :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --primary-light: rgba(102, 126, 234, 0.1);
-            --primary-hover: rgba(102, 126, 234, 0.8);
-        }
-        
         /* 基礎字體設定 - 確保電腦和手機顯示一致 */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -629,7 +621,7 @@
         
         /* 現代化導航欄樣式 */
         .modern-navbar {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
@@ -2889,146 +2881,6 @@
                 justify-content: center;
             }
         }
-        /* 週報表樣式 */
-        .weekly-profit-content {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-top: 16px;
-        }
-
-        .weekly-table-header {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1fr 1fr;
-            background: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .weekly-table-body {
-            background: white;
-        }
-
-        .table-row {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1fr 1fr;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .table-row:hover {
-            background-color: #f8f9fa;
-        }
-
-        .weekly-table {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .weekly-header {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-            background: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .header-cell {
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: 600;
-            color: #495057;
-            border-right: 1px solid #dee2e6;
-        }
-
-        .header-cell:last-child {
-            border-right: none;
-        }
-
-        .weekly-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .weekly-row:hover {
-            background-color: #f8f9fa;
-        }
-
-        .row-cell {
-            padding: 12px 8px;
-            text-align: center;
-            border-right: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .row-cell:last-child {
-            border-right: none;
-        }
-
-        .date-cell {
-            flex-direction: column;
-            padding: 8px;
-        }
-
-        .date-number {
-            font-size: 16px;
-            font-weight: 600;
-            background: #ff6600;
-            color: white;
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin-bottom: 4px;
-            min-width: 40px;
-        }
-
-        .weekday-label {
-            font-size: 12px;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .profit-cell.profit-positive {
-            color: #28a745;
-            font-weight: 600;
-        }
-
-        .profit-cell.profit-negative {
-            color: #dc3545;
-            font-weight: 600;
-        }
-
-        .profit-cell.profit-zero {
-            color: #6c757d;
-        }
-
-        /* 週報表響應式設計 */
-        @media (max-width: 768px) {
-            .weekly-table-header, .table-row {
-                grid-template-columns: 1.5fr 1fr 1fr 1fr;
-                font-size: 14px;
-            }
-
-            .header-cell, .row-cell {
-                padding: 8px 4px;
-            }
-
-            .date-number {
-                font-size: 14px;
-                padding: 2px 6px;
-            }
-
-            .weekday-label {
-                font-size: 11px;
-            }
-        }
-
 
         /* 下注確認彈窗樣式 */
         .bet-confirmation {
@@ -3157,14 +3009,13 @@
 
         .confirm-bet-btn {
             flex: 1;
-            background: var(--primary-color);
+            background: #28a745;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 10px;
             cursor: pointer;
             font-weight: bold;
-            transition: background 0.3s ease;
         }
 
         .cancel-bet-btn:hover {
@@ -3172,7 +3023,7 @@
         }
 
         .confirm-bet-btn:hover {
-            background: var(--primary-hover);
+            background: #218838;
         }
 
         /* 響應式設計 */
@@ -3276,8 +3127,8 @@
             }
             
             .results-display {
-                padding-block: 8px  /* 🎯 只保留上下padding */;
-                padding-inline: 0 !important  /* 清除左右padding */;
+                padding-block: 8px;  /* 🎯 只保留上下padding */
+                padding-inline: 0 !important;  /* 清除左右padding */
             }
             
             .results-grid {
@@ -3345,7 +3196,6 @@
         .profit-records,
         .day-detail,
         .draw-history,
-        .dragon-ranking,
         .login-modal,
         .register-modal {
             width: 100%;
@@ -3358,7 +3208,6 @@
         .profit-header,
         .detail-header,
         .history-header,
-        .dragon-header,
         .login-header,
         .register-header {
             display: flex;
@@ -3375,7 +3224,6 @@
         .profit-header .title,
         .detail-header .title,
         .history-header .title,
-        .dragon-header .title,
         .login-header h3,
         .register-header h3 {
             font-size: 18px;
@@ -3406,8 +3254,7 @@
         
         /* 標籤頁樣式 */
         .record-tabs,
-        .time-range-tabs,
-        .dragon-tabs {
+        .time-range-tabs {
             display: flex;
             background: #f8f9fa;
             margin: 0;
@@ -3415,8 +3262,7 @@
         }
         
         .record-tabs .tab,
-        .time-range-tabs .tab,
-        .dragon-tabs .tab {
+        .time-range-tabs .tab {
             flex: 1;
             padding: 15px 20px;
             text-align: center;
@@ -3431,15 +3277,13 @@
         }
         
         .record-tabs .tab:hover,
-        .time-range-tabs .tab:hover,
-        .dragon-tabs .tab:hover {
+        .time-range-tabs .tab:hover {
             background: #e9ecef;
             color: #495057;
         }
         
         .record-tabs .tab.active,
-        .time-range-tabs .tab.active,
-        .dragon-tabs .tab.active {
+        .time-range-tabs .tab.active {
             background: white;
             color: #007bff;
             border-bottom-color: #007bff;
@@ -3449,8 +3293,7 @@
         /* 記錄列表樣式 */
         .record-list,
         .profit-list,
-        .history-list,
-        .dragon-list {
+        .history-list {
             max-height: 50vh;
             overflow-y: auto;
             padding: 0;
@@ -3458,8 +3301,7 @@
         
         .record-item,
         .profit-item,
-        .history-item,
-        .dragon-item {
+        .history-item {
             padding: 16px 20px;
             border-bottom: 1px solid #f0f2f5;
             transition: background-color 0.2s ease;
@@ -3468,15 +3310,13 @@
         
         .record-item:hover,
         .profit-item:hover,
-        .history-item:hover,
-        .dragon-item:hover {
+        .history-item:hover {
             background: #f8f9fa;
         }
         
         .record-item:last-child,
         .profit-item:last-child,
-        .history-item:last-child,
-        .dragon-item:last-child {
+        .history-item:last-child {
             border-bottom: none;
         }
         
@@ -3502,7 +3342,6 @@
             .profit-records,
             .day-detail,
             .draw-history,
-            .dragon-ranking,
             .login-modal,
             .register-modal {
                 min-width: auto;
@@ -3512,7 +3351,6 @@
             .profit-header,
             .detail-header,
             .history-header,
-            .dragon-header,
             .login-header,
             .register-header {
                 padding: 15px 20px;
@@ -3522,7 +3360,6 @@
             .profit-header .title,
             .detail-header .title,
             .history-header .title,
-            .dragon-header .title,
             .login-header h3,
             .register-header h3 {
                 font-size: 16px;
@@ -3530,166 +3367,9 @@
             
             .record-list,
             .profit-list,
-            .history-list,
-            .dragon-list {
+            .history-list {
                 max-height: 60vh;
             }
-        }
-
-        /* 長龍排行專屬樣式 */
-        .dragon-list {
-            max-height: 50vh;
-            overflow-y: auto;
-            padding: 0;
-        }
-        
-        .dragon-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid #f0f2f5;
-            transition: background-color 0.2s ease;
-        }
-        
-        .dragon-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .dragon-item:last-child {
-            border-bottom: none;
-        }
-        
-        .dragon-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .dragon-count {
-            font-size: 16px;
-            font-weight: 600;
-            color: #e74c3c;
-            background: #ffebee;
-            padding: 4px 12px;
-            border-radius: 20px;
-            min-width: 50px;
-            text-align: center;
-        }
-        
-        /* 主題選擇器樣式 */
-        .theme-selector,
-        .dragon-ranking,
-        .day-detail,
-        .draw-history,
-        .login-modal,
-        .register-modal {
-            background: white;
-            border-radius: 20px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .theme-header,
-        .dragon-header,
-        .detail-header,
-        .history-header,
-        .login-header,
-        .register-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            padding: 20px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: white;
-        }
-        
-        .theme-options {
-            padding: 25px;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            max-height: 50vh;
-            overflow-y: auto;
-        }
-        
-        .theme-option {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            border: 2px solid #f0f2f5;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        
-        .theme-option:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            border-color: #ddd;
-        }
-        
-        .theme-option.active {
-            border-color: var(--primary-color);
-            background: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
-        }
-        
-        .theme-preview {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-            flex-shrink: 0;
-        }
-        
-        .theme-name {
-            flex: 1;
-            font-size: 16px;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .theme-check {
-            font-size: 20px;
-            color: var(--primary-color);
-            font-weight: bold;
-        }
-        
-        /* 主題應用樣式 */
-        .theme-blue {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --primary-light: rgba(102, 126, 234, 0.1);
-            --primary-hover: rgba(102, 126, 234, 0.8);
-        }
-        
-        .theme-green {
-            --primary-color: #059669;
-            --secondary-color: #0d9488;
-            --primary-light: rgba(5, 150, 105, 0.1);
-            --primary-hover: rgba(5, 150, 105, 0.8);
-        }
-        
-        .theme-orange {
-            --primary-color: #ea580c;
-            --secondary-color: #dc2626;
-            --primary-light: rgba(234, 88, 12, 0.1);
-            --primary-hover: rgba(234, 88, 12, 0.8);
-        }
-        
-        .theme-pink {
-            --primary-color: #ec4899;
-            --secondary-color: #8b5cf6;
-            --primary-light: rgba(236, 72, 153, 0.1);
-            --primary-hover: rgba(236, 72, 153, 0.8);
         }
 
         /* 🎯 彈出式通知視窗樣式 */
@@ -3828,15 +3508,6 @@
                             </button>
                             <button class="dropdown-action" @click="showProfitRecords">
                                 <span>盈虧記錄</span>
-                            </button>
-                            <button class="dropdown-action" @click="showDragonRanking">
-                                <span>長龍排行</span>
-                            </button>
-                            <button class="dropdown-action" @click="showThemeSelector">
-                                <span>換膚主題</span>
-                            </button>
-                            <button class="dropdown-action" @click="showRoadBead">
-                                <span>路珠走勢</span>
                             </button>
 
                             <div class="dropdown-divider"></div>
@@ -4440,30 +4111,19 @@
                     <div class="tab" :class="{ active: profitTimeRange === 'lastWeek' }" @click="switchProfitRange('lastWeek')">上週</div>
                 </div>
                 
-                <!-- 週報表內容 -->
-                <div class="weekly-profit-content">
-                    <!-- 表格頭部 -->
-                    <div class="weekly-table-header">
-                        <div class="header-cell">日期</div>
-                        <div class="header-cell">注數</div>
-                        <div class="header-cell">有效金額</div>
-                        <div class="header-cell">輸贏</div>
+                <!-- 盈虧記錄列表 -->
+                <div class="profit-list">
+                    <div v-if="profitRecords.length === 0" class="no-records">
+                        暫無盈虧記錄
                     </div>
-                    
-                    <!-- 週報表數據 -->
-                    <div class="weekly-table-body">
-                        <div v-if="profitRecords.length === 0" class="no-records">
-                            暫無盈虧記錄
+                    <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" class="profit-item" @click="showDayDetail(record.date)">
+                        <div class="profit-date">
+                            <div class="date">{{ formatDate(record.date) }}</div>
+                            <div class="weekday">{{ getWeekday(record.date) }}</div>
                         </div>
-                                                 <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" 
-                             class="table-row" @click="showDayDetail(record.date)">
-                             <div class="row-cell date-cell">
-                                <div class="date-number">{{ formatDateNumber(record.date) }}</div>
-                                <div class="weekday-label">{{ record.weekday || getWeekday(record.date) }}</div>
-                            </div>
-                            <div class="row-cell">{{ record.betCount }}注</div>
-                            <div class="row-cell">{{ record.totalBet ? formatMoney(record.totalBet) : '0' }}</div>
-                            <div class="row-cell profit-cell" :class="{ 
+                        <div class="profit-stats">
+                            <div class="bet-count">{{ record.betCount }}注</div>
+                            <div class="profit-amount" :class="{ 
                                 'profit-positive': record.profit > 0, 
                                 'profit-negative': record.profit < 0,
                                 'profit-zero': record.profit === 0 
@@ -4479,10 +4139,6 @@
                     <div class="summary-item">
                         <span class="label">總注數:</span>
                         <span class="value">{{ totalBetCount }}注</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="label">總投注:</span>
-                        <span class="value">{{ formatMoney(totalBetAmount || 0) }}</span>
                     </div>
                     <div class="summary-item">
                         <span class="label">總盈虧:</span>
@@ -4684,77 +4340,7 @@
             </div>
         </div>
 
-        <!-- 長龍排行彈窗 -->
-        <div class="modal" v-if="dragonRankingVisible">
-            <div class="dragon-ranking">
-                <div class="dragon-header">
-                    <div class="title">長龍排行</div>
-                    <button class="close-btn" @click="dragonRankingVisible = false">×</button>
-                </div>
-                
-                <!-- 類別選擇標籤 -->
-                <div class="dragon-tabs">
-                    <div class="tab" 
-                         :class="{ active: selectedCategory === '大小' }" 
-                         @click="selectedCategory = '大小'">
-                        大小
-                    </div>
-                    <div class="tab" 
-                         :class="{ active: selectedCategory === '單雙' }" 
-                         @click="selectedCategory = '單雙'">
-                        單雙
-                    </div>
-                    <div class="tab" 
-                         :class="{ active: selectedCategory === '冠亞和' }" 
-                         @click="selectedCategory = '冠亞和'">
-                        冠亞和
-                    </div>
-                    <div class="tab" 
-                         :class="{ active: selectedCategory === '冠亞和 單雙' }" 
-                         @click="selectedCategory = '冠亞和 單雙'">
-                        冠亞和 單雙
-                    </div>
-                </div>
-                
-                <!-- 長龍排行列表 -->
-                <div class="dragon-list">
-                    <div v-if="getFilteredDragonRankings().length === 0" class="no-records">
-                        暫無長龍記錄
-                    </div>
-                    <div v-for="(dragon, index) in getFilteredDragonRankings()" 
-                         :key="`dragon-${dragon.name}-${index}`" 
-                         class="dragon-item">
-                        <div class="dragon-name">{{ dragon.name }}</div>
-                        <div class="dragon-count">{{ dragon.count }}期</div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- 主題選擇器彈窗 -->
-        <div class="modal" v-if="themeSelectorVisible">
-            <div class="theme-selector">
-                <div class="theme-header">
-                    <div class="title">選擇主題</div>
-                    <button class="close-btn" @click="themeSelectorVisible = false">×</button>
-                </div>
-                
-                <!-- 主題選項 -->
-                <div class="theme-options">
-                    <div v-for="theme in availableThemes" 
-                         :key="theme.id"
-                         class="theme-option"
-                         :class="{ active: currentTheme === theme.id }"
-                         @click="changeTheme(theme.id)">
-                        <div class="theme-preview" 
-                             :style="{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` }">
-                        </div>
-                        <div class="theme-name">{{ theme.name }}</div>
-                        <div v-if="currentTheme === theme.id" class="theme-check">✓</div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- 顯示通知的元素 -->
         <!-- 🎯 彈出式通知視窗 -->
@@ -4768,19 +4354,6 @@
 
     <!-- Vue 實例 -->
     <script>
-        // 添加全局錯誤處理
-        window.addEventListener('error', function(e) {
-            console.error('頁面錯誤:', e.error);
-        });
-
-        // 檢查Vue是否正確加載
-        if (typeof Vue === 'undefined') {
-            console.error('Vue.js 未正確加載');
-            document.body.innerHTML = '<div style="padding: 20px; color: red; text-align: center;">Vue.js 加載失敗，請刷新頁面重試</div>';
-        } else {
-            console.log('Vue.js 已成功加載');
-        }
-
         new Vue({
             el: '#app',
             data() {
@@ -4843,8 +4416,6 @@
                     showProfitModal: false,
                     showDayDetailModal: false,
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
-                    dragonRankingVisible: false, // 控制長龍排行顯示狀態
-                    themeSelectorVisible: false, // 控制主題選擇器顯示狀態
                     
                     // 熱門投注
                     hotBets: [],
@@ -4869,21 +4440,6 @@
                     historySearchDate: '',
                     historySearchPeriod: '',
                     
-                    // 長龍排行數據
-                    dragonRankings: [],
-                    selectedCategory: '大小', // 當前選擇的類別
-                    dragonCategories: ['大小', '單雙', '冠亞和', '冠亞和 單雙'], // 可選類別
-                    
-                    // 主題設定
-                    currentTheme: 'blue', // 當前主題
-                    availableThemes: [
-                        { id: 'blue', name: '經典藍', primary: '#667eea', secondary: '#764ba2' },
-                        { id: 'purple', name: '紫羅蘭', primary: '#a855f7', secondary: '#3b82f6' },
-                        { id: 'green', name: '翡翠綠', primary: '#059669', secondary: '#0d9488' },
-                        { id: 'orange', name: '夕陽橙', primary: '#ea580c', secondary: '#dc2626' },
-                        { id: 'pink', name: '櫻花粉', primary: '#ec4899', secondary: '#8b5cf6' }
-                    ],
-                    
                     // 統計數據
                     dailyBetCount: 0,
                     dailyProfit: 0,
@@ -4892,7 +4448,6 @@
                     profitTimeRange: 'thisWeek',
                     profitRecords: [],
                     totalBetCount: 0,
-                    totalBetAmount: 0,
                     totalProfit: 0,
                     selectedDate: '',
                     dayDetailRecords: [],
@@ -4983,8 +4538,6 @@
                 }
                 // 初始化歷史開獎記錄為空數組，防止undefined錯誤
                 this.recentResults = [];
-                // 載入主題偏好
-                this.loadThemePreference();
                 this.checkLoginStatus();
             },
             computed: {
@@ -5245,7 +4798,7 @@
                             }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
-                            // 🎯 檢查是否需要獲取預先生成的結果（倒計時最後10秒）
+                            // 🎯 檢查是否需要獲取預先結果（倒計時最後10秒）
                             if (serverStatus === 'betting' && serverCountdown <= 10 && serverCountdown > 0) {
                                 this.checkAndFetchNextResult();
                             }
@@ -7814,85 +7367,6 @@
                     this.showDropdownMenu = false; // 關閉選單
                 },
                 
-                // 長龍排行展示
-                showDragonRanking() {
-                    this.dragonRankingVisible = true;
-                    this.getDragonRankings();
-                    this.showDropdownMenu = false; // 關閉選單
-                },
-                
-                // 獲取長龍排行數據
-                getDragonRankings() {
-                    console.log('正在獲取長龍排行數據...');
-                    
-                    fetch(`${this.API_BASE_URL}/api/dragon-ranking`)
-                        .then(response => {
-                            console.log('長龍排行API響應狀態:', response.status);
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log('長龍排行API響應數據:', data);
-                            if (data.success) {
-                                this.dragonRankings = data.dragonRankings || [];
-                                console.log(`成功載入 ${this.dragonRankings.length} 條長龍記錄`);
-                            } else {
-                                console.error('獲取長龍排行失敗:', data.message);
-                                this.dragonRankings = [];
-                            }
-                        })
-                        .catch(error => {
-                            console.error('獲取長龍排行出錯:', error);
-                            this.dragonRankings = [];
-                        });
-                },
-                
-                // 獲取過濾後的長龍排行數據
-                getFilteredDragonRankings() {
-                    return this.dragonRankings.filter(item => 
-                        item.category === this.selectedCategory
-                    );
-                },
-                
-                // 主題選擇器展示
-                showThemeSelector() {
-                    this.themeSelectorVisible = true;
-                    this.showDropdownMenu = false; // 關閉選單
-                },
-                
-                // 切換主題
-                changeTheme(themeId) {
-                    this.currentTheme = themeId;
-                    this.applyTheme(themeId);
-                    this.saveThemePreference(themeId);
-                    this.themeSelectorVisible = false;
-                },
-                
-                // 應用主題
-                applyTheme(themeId) {
-                    const theme = this.availableThemes.find(t => t.id === themeId);
-                    if (!theme) return;
-                    
-                    // 更新CSS變量
-                    document.documentElement.style.setProperty('--primary-color', theme.primary);
-                    document.documentElement.style.setProperty('--secondary-color', theme.secondary);
-                    
-                    // 更新body的class來應用主題
-                    document.body.className = document.body.className.replace(/theme-\w+/g, '');
-                    document.body.classList.add(`theme-${themeId}`);
-                },
-                
-                // 保存主題偏好
-                saveThemePreference(themeId) {
-                    localStorage.setItem('gameTheme', themeId);
-                },
-                
-                // 載入主題偏好
-                loadThemePreference() {
-                    const savedTheme = localStorage.getItem('gameTheme') || 'blue';
-                    this.currentTheme = savedTheme;
-                    this.applyTheme(savedTheme);
-                },
-                
                 // 切換盈虧記錄時間範圍
                 switchProfitRange(range) {
                     this.profitTimeRange = range;
@@ -7941,7 +7415,7 @@
                     console.log(`正在獲取用戶 ${username} 的${weekType}盈虧記錄...`);
                     console.log(`週期範圍: ${startDate.toISOString()} 到 ${endDate.toISOString()}`);
                     
-                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
+                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)startDate=${startDate.toISOString()}fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)endDate=${endDate.toISOString()}`)
                         .then(response => {
                             console.log('盈虧記錄API響應狀態:', response.status);
                             return response.json();
@@ -7951,14 +7425,12 @@
                             if (data.success) {
                                 this.profitRecords = data.records || [];
                                 this.totalBetCount = data.totalBetCount || 0;
-                                this.totalBetAmount = data.totalBetAmount || 0;
                                 this.totalProfit = data.totalProfit || 0;
                                 console.log(`成功載入 ${this.profitRecords.length} 條盈虧記錄`);
                             } else {
                                 console.error('獲取盈虧記錄失敗:', data.message);
                                 this.profitRecords = [];
                                 this.totalBetCount = 0;
-                                this.totalBetAmount = 0;
                                 this.totalProfit = 0;
                             }
                         })
@@ -7966,7 +7438,6 @@
                             console.error('獲取盈虧記錄出錯:', error);
                             this.profitRecords = [];
                             this.totalBetCount = 0;
-                            this.totalBetAmount = 0;
                             this.totalProfit = 0;
                         });
                 },
@@ -8006,12 +7477,6 @@
                 formatDate(dateString) {
                     const date = new Date(dateString);
                     return `${date.getMonth() + 1}/${date.getDate()}`;
-                },
-                
-                // 格式化日期數字（用於週報表）
-                formatDateNumber(dateString) {
-                    const date = new Date(dateString);
-                    return date.getDate().toString();
                 },
                 
                 // 格式化標題日期

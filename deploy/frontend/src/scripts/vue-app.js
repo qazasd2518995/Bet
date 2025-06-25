@@ -184,9 +184,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     { id: 'default', name: '經典藍', primary: '#667eea', secondary: '#764ba2' },
                     { id: 'red', name: '財運紅', primary: '#e74c3c', secondary: '#c0392b' },
                     { id: 'green', name: '翡翠綠', primary: '#27ae60', secondary: '#16a085' },
-                    { id: 'purple', name: '紫羅蘭', primary: '#9b59b6', secondary: '#8e44ad' },
                     { id: 'gold', name: '黃金色', primary: '#f39c12', secondary: '#e67e22' }
-                ]
+                ],
+                roadBeadVisible: false, // 路珠走勢開關
+                roadBeadRows: [] , // 路珠資料 6xN
             };
         },
         created() {
@@ -734,7 +735,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            this.dragonRankingData = data.data;
+                            this.dragonRankingData = data.dragonRankings || [];
                         }
                     })
                     .catch(error => {
@@ -762,12 +763,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.currentTheme = themeId;
                 const theme = this.themes.find(t => t.id === themeId);
                 if (theme) {
+                    // 主要顏色變數
                     document.documentElement.style.setProperty('--primary-color', theme.primary);
                     document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+
+                    // 依主要顏色動態計算 hover 與淡色背景
+                    const rgb = this.hexToRgb(theme.primary);
+                    if (rgb) {
+                        document.documentElement.style.setProperty('--primary-light', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
+                        document.documentElement.style.setProperty('--primary-hover', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
+                    }
+
+                    // 動態插入或更新互動樣式
+                    const dynamicStylesId = 'dynamic-theme-styles';
+                    let styleEl = document.getElementById(dynamicStylesId);
+                    if (!styleEl) {
+                        styleEl = document.createElement('style');
+                        styleEl.id = dynamicStylesId;
+                        document.head.appendChild(styleEl);
+                    }
+                    styleEl.innerHTML = `
+                    .option:hover {
+                      border-color: ${theme.primary};
+                      background: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1);
+                      color: ${theme.primary};
+                    }
+                    .option.selected,
+                    .option.big-option.selected,
+                    .option.small-option.selected,
+                    .option.odd-option.selected,
+                    .option.even-option.selected {
+                      background: linear-gradient(135deg, ${theme.primary}, ${theme.secondary});
+                      border-color: ${theme.secondary};
+                      color: #fff;
+                    }
+                    .option.selected:hover,
+                    .option.big-option.selected:hover,
+                    .option.small-option.selected:hover,
+                    .option.odd-option.selected:hover,
+                    .option.even-option.selected:hover {
+                      background: linear-gradient(135deg, ${theme.secondary}, ${theme.primary});
+                    }
+                    `;
+
                     localStorage.setItem('selectedTheme', themeId);
                     this.showNotification(`已切換至${theme.name}主題`);
+                } else {
+                    // 若找不到主題，回退至預設主題
+                    this.showNotification('找不到指定主題，已切回預設');
+                    this.changeTheme('default');
                 }
                 this.themeSelectorVisible = false;
+            },
+
+            // 新增：將 HEX 轉為 RGB
+            hexToRgb(hex) {
+                const sanitized = hex.replace('#', '');
+                if (sanitized.length !== 6) return null;
+                const bigint = parseInt(sanitized, 16);
+                const r = (bigint >> 16) & 255;
+                const g = (bigint >> 8) & 255;
+                const b = bigint & 255;
+                return { r, g, b };
             },
             
             // 載入盈虧記錄
@@ -783,19 +840,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     const endDate = new Date();
                     
                     if (this.profitTimeRange === 'thisWeek') {
-                        // 本週（從星期一開始）
+                        // 本週（從星期一 00:00:00 開始）
                         const dayOfWeek = today.getDay();
                         const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
                         startDate.setDate(diff);
                         endDate.setDate(diff + 6);
                     } else {
-                        // 上週
+                        // 上週（同樣取整天）
                         const dayOfWeek = today.getDay();
                         const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -13 : -6);
                         startDate.setDate(diff);
                         endDate.setDate(diff + 6);
                     }
-                    
+
+                    // 使查詢涵蓋整天 00:00:00 ~ 23:59:59
+                    startDate.setHours(0, 0, 0, 0);
+                    endDate.setHours(23, 59, 59, 999);
+
                     apiUrl = `${this.API_BASE_URL}/api/weekly-profit-records?username=${this.username}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
                 } else {
                     // 其他時間範圍使用原有API
@@ -808,8 +869,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(data => {
                         if (data.success) {
                             this.profitRecords = data.records || [];
-                            this.totalBetCount = data.totalBetCount || 0;
-                            this.totalProfit = data.totalProfit || 0;
+                            // 後端若未回傳統計，前端自行彙總
+                            this.totalBetCount = ('totalBetCount' in data) ? (data.totalBetCount || 0) : this.profitRecords.reduce((s, r) => s + (r.betCount || 0), 0);
+                            this.totalProfit = ('totalProfit' in data) ? (data.totalProfit || 0) : this.profitRecords.reduce((s, r) => s + (r.profit || 0), 0);
                         }
                     })
                     .catch(error => {
@@ -889,7 +951,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     10: 'tenth'
                 };
                 return positionMap[position] || 'champion';
-            }
+            },
+            showRoadBead() {
+                this.roadBeadVisible = true;
+                this.loadRoadBeadData();
+            },
+            loadRoadBeadData() {
+                fetch(`${this.API_BASE_URL}/api/history?limit=30`)
+                    .then(r=>r.json())
+                    .then(d=>{
+                        if(d.success && Array.isArray(d.records)){
+                            const numbersList = d.records.map(rec=>rec.result);
+                            // 轉置成 6 行
+                            const rows=[[],[],[],[],[],[]];
+                            numbersList.forEach((nums, idx)=>{
+                                // nums 為 10 號，這裡示範第一名號碼
+                                const val = nums[0];
+                                const rowIdx = idx % 6;
+                                rows[rowIdx].push(val);
+                            });
+                            this.roadBeadRows = rows;
+                        }
+                    })
+                    .catch(e=>console.error('載入路珠失敗',e));
+            },
         },
         mounted() {
             this.initCountdown();

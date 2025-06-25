@@ -3329,170 +3329,50 @@ app.get('/api/dragon-ranking', async (req, res) => {
 
 // 計算長龍統計的輔助函數
 function calculateDragonStats(results) {
-  const dragonStats = [];
-  
-  // 各位置大小統計
-  for (let position = 1; position <= 10; position++) {
-    const bigSmallSequences = [];
-    let currentSequence = null;
-    
-    results.forEach(record => {
-      const number = record.result[position - 1];
-      const isBig = number > 5;
-      const value = isBig ? '大' : '小';
-      
-      if (!currentSequence || currentSequence.value !== value) {
-        if (currentSequence && currentSequence.count >= 2) {
-          bigSmallSequences.push(currentSequence);
-        }
-        currentSequence = { 
-          value, 
-          count: 1, 
-          position: position,
-          type: isBig ? 'big' : 'small',
-          category: '大小'
-        };
-      } else {
-        currentSequence.count++;
-      }
-    });
-    
-    // 添加最後一個序列
-    if (currentSequence && currentSequence.count >= 2) {
-      bigSmallSequences.push(currentSequence);
-    }
-    
-    bigSmallSequences.forEach(seq => {
-      dragonStats.push({
-        name: `第${getPositionName(seq.position)}名-${seq.value}`,
-        count: seq.count,
-        category: seq.category,
-        position: seq.position,
-        value: seq.value
-      });
-    });
+  // 返回僅「當前不中斷」連續紀錄（即從最近一期往前推遇斷點即停止）
+  const stats = [];
+
+  // 為方便，最新一期排在 results[0] ，若不是請先確保陣列按時間 DESC。
+  const latestFirst = Array.isArray(results) ? [...results] : [];
+  // 保證最新在索引 0
+  latestFirst.sort((a,b)=> new Date(b.time||b.period) - new Date(a.time||a.period));
+
+  // 10 名大小 & 單雙
+  for (let pos=1; pos<=10; pos++) {
+    // 大小
+    addCurrentStreak(latestFirst, (num)=> num>5?'大':'小', `第${getPositionName(pos)}名`, stats, `大小-${pos}`,(numbers)=>numbers[pos-1]);
+    // 單雙
+    addCurrentStreak(latestFirst, (num)=> num%2===1?'單':'雙', `第${getPositionName(pos)}名`, stats, `單雙-${pos}`,(numbers)=>numbers[pos-1]);
   }
-  
-  // 各位置單雙統計
-  for (let position = 1; position <= 10; position++) {
-    const oddEvenSequences = [];
-    let currentSequence = null;
-    
-    results.forEach(record => {
-      const number = record.result[position - 1];
-      const isOdd = number % 2 === 1;
-      const value = isOdd ? '單' : '雙';
-      
-      if (!currentSequence || currentSequence.value !== value) {
-        if (currentSequence && currentSequence.count >= 2) {
-          oddEvenSequences.push(currentSequence);
-        }
-        currentSequence = { 
-          value, 
-          count: 1, 
-          position: position,
-          type: isOdd ? 'odd' : 'even',
-          category: '單雙'
-        };
-      } else {
-        currentSequence.count++;
-      }
-    });
-    
-    // 添加最後一個序列
-    if (currentSequence && currentSequence.count >= 2) {
-      oddEvenSequences.push(currentSequence);
-    }
-    
-    oddEvenSequences.forEach(seq => {
-      dragonStats.push({
-        name: `第${getPositionName(seq.position)}名-${seq.value}`,
-        count: seq.count,
-        category: seq.category,
-        position: seq.position,
-        value: seq.value
-      });
-    });
+
+  // 5 組龍虎 (1v10,2v9,3v8,4v7,5v6)
+  const dragonPairs=[[1,10],[2,9],[3,8],[4,7],[5,6]];
+  dragonPairs.forEach(([a,b])=>{
+    addCurrentStreak(latestFirst, (values)=> values[0]>values[1]?'龍':'虎', `${a}v${b}`, stats, `龍虎-${a}`, (numbers)=> [numbers[a-1], numbers[b-1]]);
+  });
+
+  // 冠亞和值 大小
+  addCurrentStreak(latestFirst, (sum)=> sum>11?'大':'小', '冠亞和', stats, 'sum-bigsmall', (numbers)=> numbers[0]+numbers[1]);
+  // 冠亞和值 單雙
+  addCurrentStreak(latestFirst, (sum)=> sum%2===1?'單':'雙', '冠亞和', stats, 'sum-oddeven', (numbers)=> numbers[0]+numbers[1]);
+
+  // 只保留連續 >=2 的項目，並依 count DESC 排序
+  return stats.filter(s=>s.count>=2).sort((a,b)=>b.count-a.count).slice(0,20);
+}
+
+// helper to accumulate streak
+function addCurrentStreak(results, getValue,labelPrefix,allStats,key,extractFn){
+  let currentVal=null; let count=0;
+  for(const rec of results){
+    const valRaw=extractFn(rec.result);
+    const val = typeof getValue==='function'?getValue(valRaw):valRaw;
+    if(currentVal===null){currentVal=val; count=1; continue;}
+    if(val===currentVal){count++;}
+    else break;
   }
-  
-  // 冠亞和統計
-  const sumSequences = [];
-  let currentSumSequence = null;
-  
-  results.forEach(record => {
-    const sum = record.result[0] + record.result[1];
-    const isBig = sum > 11;
-    const value = isBig ? '大' : '小';
-    
-    if (!currentSumSequence || currentSumSequence.value !== value) {
-      if (currentSumSequence && currentSumSequence.count >= 2) {
-        sumSequences.push(currentSumSequence);
-      }
-      currentSumSequence = { 
-        value, 
-        count: 1,
-        category: '冠亞和',
-        type: isBig ? 'big' : 'small'
-      };
-    } else {
-      currentSumSequence.count++;
-    }
-  });
-  
-  if (currentSumSequence && currentSumSequence.count >= 2) {
-    sumSequences.push(currentSumSequence);
+  if(count>=2){
+    allStats.push({name:`${labelPrefix}-${currentVal}`, count, value:currentVal});
   }
-  
-  sumSequences.forEach(seq => {
-    dragonStats.push({
-      name: `冠亞和-${seq.value}`,
-      count: seq.count,
-      category: seq.category,
-      value: seq.value
-    });
-  });
-  
-  // 冠亞和單雙統計
-  const sumOddEvenSequences = [];
-  let currentSumOddEvenSequence = null;
-  
-  results.forEach(record => {
-    const sum = record.result[0] + record.result[1];
-    const isOdd = sum % 2 === 1;
-    const value = isOdd ? '單' : '雙';
-    
-    if (!currentSumOddEvenSequence || currentSumOddEvenSequence.value !== value) {
-      if (currentSumOddEvenSequence && currentSumOddEvenSequence.count >= 2) {
-        sumOddEvenSequences.push(currentSumOddEvenSequence);
-      }
-      currentSumOddEvenSequence = { 
-        value, 
-        count: 1,
-        category: '冠亞和 單雙',
-        type: isOdd ? 'odd' : 'even'
-      };
-    } else {
-      currentSumOddEvenSequence.count++;
-    }
-  });
-  
-  if (currentSumOddEvenSequence && currentSumOddEvenSequence.count >= 2) {
-    sumOddEvenSequences.push(currentSumOddEvenSequence);
-  }
-  
-  sumOddEvenSequences.forEach(seq => {
-    dragonStats.push({
-      name: `冠亞和-${seq.value}`,
-      count: seq.count,
-      category: seq.category,
-      value: seq.value
-    });
-  });
-  
-  // 按長龍長度排序，返回前20個
-  return dragonStats
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 20);
 }
 
 function getPositionName(position) {

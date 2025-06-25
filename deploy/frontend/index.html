@@ -3276,8 +3276,8 @@
             }
             
             .results-display {
-                padding-block: 8px;  /* 🎯 只保留上下padding */
-                padding-inline: 0 !important;  /* 清除左右padding */
+                padding-block: 8px  /* 🎯 只保留上下padding */;
+                padding-inline: 0 !important  /* 清除左右padding */;
             }
             
             .results-grid {
@@ -3671,13 +3671,6 @@
             --primary-hover: rgba(102, 126, 234, 0.8);
         }
         
-        .theme-purple {
-            --primary-color: #a855f7;
-            --secondary-color: #3b82f6;
-            --primary-light: rgba(168, 85, 247, 0.1);
-            --primary-hover: rgba(168, 85, 247, 0.8);
-        }
-        
         .theme-green {
             --primary-color: #059669;
             --secondary-color: #0d9488;
@@ -3841,6 +3834,9 @@
                             </button>
                             <button class="dropdown-action" @click="showThemeSelector">
                                 <span>換膚主題</span>
+                            </button>
+                            <button class="dropdown-action" @click="showRoadBead">
+                                <span>路珠走勢</span>
                             </button>
 
                             <div class="dropdown-divider"></div>
@@ -5249,7 +5245,7 @@
                             }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
-                            // 🎯 檢查是否需要獲取預先結果（倒計時最後10秒）
+                            // 🎯 檢查是否需要獲取預先生成的結果（倒計時最後10秒）
                             if (serverStatus === 'betting' && serverCountdown <= 10 && serverCountdown > 0) {
                                 this.checkAndFetchNextResult();
                             }
