@@ -5870,10 +5870,9 @@
                     this.drawingAnimationPlayed = false;
                     this.isDrawingInProgress = true;
                     
-                    // 立即同時開始洗球動畫和賽車競賽
-                    console.log('🎪 同時開始：洗球動畫 + 賽車競賽動畫');
+                    // 只開始洗球動畫，賽車動畫等待用戶點擊
+                    console.log('🎪 開始洗球動畫，賽車動畫等待用戶點擊');
                     this.playWashingAnimation();
-                    this.startRaceCompetition();
                     
                     // 8秒後自動停止（防止永久卡住）
                     this.drawingTimeout = setTimeout(() => {
