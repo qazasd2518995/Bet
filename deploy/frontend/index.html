@@ -5870,7 +5870,7 @@
                     // 第一步：顯示開獎中狀態
                     console.log('📢 第一步：顯示開獎中狀態');
                     
-                    // 第二步：開始洗球動畫（持續8秒）
+                    // 第二步：立即開始洗球動畫（持續8秒）
                     setTimeout(() => {
                         console.log('🎪 第二步：開始洗球動畫（持續8秒）');
                         this.playWashingAnimation();
@@ -5883,7 +5883,7 @@
                             }
                         }, 8000);
                         
-                    }, 500);
+                    }, 100);
                 },
                 
                 // 🎲 播放洗球動畫（僅洗球，不顯示結果）
@@ -5939,6 +5939,11 @@
                     this.updateBalance();
                     this.updateBetHistory();
                     this.updateHistoryRecords();
+                    
+                    // 開獎完成後自動播放賽車動畫（顯示當期新結果）
+                    setTimeout(() => {
+                        this.playAutoRaceAnimation();
+                    }, 1000);
                     
                     console.log('✅ 開獎流程完成');
                 },
@@ -6000,6 +6005,204 @@
                     console.log('🚨 強制完成開獎流程（超時保護）');
                     this.isDrawingInProgress = false;
                     this.stopWashingAnimation();
+                },
+                
+                // 🏎️ 自動播放賽車動畫（開獎完成後，使用當期新結果）
+                playAutoRaceAnimation() {
+                    console.log('🏎️ 開獎完成，自動播放賽車動畫展示當期結果');
+                    
+                    // 確保有最新的開獎結果
+                    if (!this.lastResults || this.lastResults.length === 0) {
+                        console.log('❌ 沒有開獎結果數據，跳過自動賽車動畫');
+                        return;
+                    }
+                    
+                    console.log('🏁 當期開獎結果:', this.lastResults);
+                    
+                    // 播放音效
+                    this.playSound('draw');
+                    
+                    // 創建賽車動畫覆蓋層
+                    this.createRaceOverlay(() => {
+                        console.log('🏎️ 賽車動畫完成，顯示了當期最新結果');
+                    });
+                },
+                
+                // 🏁 創建賽車動畫覆蓋層
+                createRaceOverlay(callback) {
+                    // 移除已存在的覆蓋層
+                    const existingOverlay = document.querySelector('.race-animation-overlay');
+                    if (existingOverlay) {
+                        existingOverlay.remove();
+                    }
+                    
+                    // 創建新的賽車動畫覆蓋層
+                    const raceContainer = document.createElement('div');
+                    raceContainer.className = 'race-animation-overlay';
+                    raceContainer.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.9);
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    `;
+                    
+                    // 創建動畫容器
+                    const animationContainer = document.createElement('div');
+                    animationContainer.className = 'race-animation-container';
+                    animationContainer.style.cssText = `
+                        width: 90%;
+                        max-width: 1000px;
+                        height: 400px;
+                        background: linear-gradient(135deg, #1a1a2e, #16213e);
+                        border-radius: 15px;
+                        position: relative;
+                        overflow: hidden;
+                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+                        border: 2px solid rgba(255, 255, 255, 0.1);
+                    `;
+                    
+                    // 添加當期開獎結果標題
+                    const resultTitle = document.createElement('div');
+                    resultTitle.style.cssText = `
+                        position: absolute;
+                        top: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        color: white;
+                        font-size: 18px;
+                        font-weight: bold;
+                        z-index: 10001;
+                    `;
+                    resultTitle.textContent = `第 ${this.currentPeriod} 期開獎結果`;
+                    animationContainer.appendChild(resultTitle);
+                    
+                    // 添加跑道和賽車
+                    this.createRaceTrack(animationContainer);
+                    
+                    // 添加關閉按鈕
+                    const closeBtn = document.createElement('button');
+                    closeBtn.innerHTML = '✕ 關閉';
+                    closeBtn.style.cssText = `
+                        position: absolute;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: none;
+                        padding: 10px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        z-index: 10001;
+                        font-size: 14px;
+                    `;
+                    closeBtn.onclick = () => {
+                        raceContainer.remove();
+                    };
+                    animationContainer.appendChild(closeBtn);
+                    
+                    raceContainer.appendChild(animationContainer);
+                    document.body.appendChild(raceContainer);
+                    
+                    // 開始賽車動畫
+                    setTimeout(() => {
+                        this.startRaceSequence(animationContainer, () => {
+                            // 3秒後自動關閉
+                            setTimeout(() => {
+                                raceContainer.remove();
+                                if (callback) callback();
+                            }, 3000);
+                        });
+                    }, 500);
+                },
+                
+                // 🏁 創建賽道和賽車
+                createRaceTrack(container) {
+                    // 添加終點線
+                    const finishLine = document.createElement('div');
+                    finishLine.className = 'race-finish-line';
+                    finishLine.style.cssText = `
+                        position: absolute;
+                        right: 20px;
+                        top: 50px;
+                        bottom: 50px;
+                        width: 4px;
+                        background: linear-gradient(to bottom, #ff0000, #ff6666, #ff0000);
+                        border-radius: 2px;
+                        box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+                    `;
+                    container.appendChild(finishLine);
+                    
+                    // 創建10輛賽車
+                    const cars = [];
+                    const trackHeight = 300;
+                    const carCount = 10;
+                    const spacing = trackHeight / carCount;
+                    
+                    for (let i = 1; i <= carCount; i++) {
+                        const car = document.createElement('div');
+                        car.className = 'race-car';
+                        car.style.cssText = `
+                            position: absolute;
+                            left: 50px;
+                            top: ${50 + (i-1) * spacing}px;
+                            font-size: 30px;
+                            z-index: 1000;
+                            transition: left 2s ease-out;
+                        `;
+                        car.innerHTML = `🏎️<span style="
+                            background: white;
+                            color: black;
+                            border-radius: 50%;
+                            width: 25px;
+                            height: 25px;
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 14px;
+                            font-weight: bold;
+                            margin-left: 5px;
+                        ">${i}</span>`;
+                        container.appendChild(car);
+                        cars.push(car);
+                    }
+                    
+                    return cars;
+                },
+                
+                // 🏁 開始賽車序列動畫
+                startRaceSequence(container, callback) {
+                    const cars = container.querySelectorAll('.race-car');
+                    const finishLinePosition = container.offsetWidth - 100;
+                    
+                    console.log('🏁 賽車開始！目標結果:', this.lastResults);
+                    
+                    // 根據開獎結果決定每輛車的終點位置
+                    cars.forEach((car, index) => {
+                        const carNumber = index + 1;
+                        const resultPosition = this.lastResults.indexOf(carNumber);
+                        
+                        if (resultPosition !== -1) {
+                            // 根據名次決定到達時間和最終位置
+                            const arrivalTime = 500 + (resultPosition * 200); // 第1名500ms，第2名700ms，以此類推
+                            const finalPosition = finishLinePosition - (resultPosition * 15); // 名次越前，越靠近終點
+                            
+                            setTimeout(() => {
+                                car.style.left = `${finalPosition}px`;
+                                car.style.filter = resultPosition < 3 ? 'drop-shadow(0 0 10px gold)' : '';
+                            }, arrivalTime);
+                        }
+                    });
+                    
+                    // 2.5秒後動畫完成
+                    setTimeout(() => {
+                        if (callback) callback();
+                    }, 2500);
                 },
                 // 專門的賽車動畫（只在按鈕點擊時播放）
                 playRaceAnimation() {
