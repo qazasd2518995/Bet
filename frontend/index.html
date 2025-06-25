@@ -176,17 +176,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
-        .car-racer::before {
-            content: '';
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            right: -3px;
-            bottom: -3px;
-            background: linear-gradient(45deg, rgba(255,255,255,0.3), transparent);
-            border-radius: 15px;
-            z-index: -1;
-        }
+
         
         /* 終點線 */
         .race-finish-line {
@@ -3516,7 +3506,6 @@
                                 <div class="countdown-inline">
                                     <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒計時' : '開獎中...' }}</span>
                                     <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
-                                    <span class="countdown-time" v-else>開獎中...</span>
                                 </div>
                             </div>
                         </div>
@@ -4704,6 +4693,12 @@
                                     this.updateHistoryRecords();
                                 }
                             }
+                            // 強制確保開獎狀態的正確切換
+                            else if (serverStatus === 'drawing' && this.countdownSeconds <= 0) {
+                                console.log('強制確保開獎狀態顯示');
+                                this.gameStatus = 'drawing';
+                                this.playSimpleDrawEffect();
+                            }
                             // 如果倒計時差異太大（超過5秒），進行同步
                             else if (Math.abs(this.countdownSeconds - serverCountdown) > 5) {
                                 console.log(`倒計時差異過大，同步: 本地=${this.countdownSeconds}, 服務器=${serverCountdown}`);
@@ -5621,7 +5616,7 @@
                     
                     // 如果正在下注期間（倒計時大於0），顯示提示
                     if (this.gameStatus === 'betting' && this.countdownSeconds > 0) {
-                        this.displayNotification('尚未開獎，請等待開獎後再播放動畫');
+                        this.displayNotification('尚未開獎，請等待開獎後再播放動畫！');
                         return;
                     }
                     
@@ -5967,33 +5962,33 @@
                     
                     console.log('賽車結果順序:', results);
                     
+                    // 計算終點線位置和安全距離
+                    const finishLinePosition = window.innerWidth > 768 ? 
+                        document.querySelector('.race-animation-container').offsetWidth - 80 : // 桌面版
+                        document.querySelector('.race-animation-container').offsetWidth - 60;   // 手機版
+                    
                     // 計算每輛車的終點位置（根據排名）
                     cars.forEach((car, index) => {
                         const carNumber = parseInt(car.dataset.number);
-                        const finishPosition = results.indexOf(carNumber);
+                        const ranking = results.indexOf(carNumber) + 1; // 找到車號在結果中的排名
                         
-                        // 計算到達時間（增加間距讓排名更明顯）
-                        const baseDelay = (finishPosition * 250) + Math.random() * 150;
-                        const arrivalTime = raceDuration - baseDelay;
+                        // 根據排名計算到達時間，排名越高越早到達
+                        const arrivalTime = (ranking * 200) + Math.random() * 300; // 200ms間隔 + 隨機延遲
                         
-                        // 計算終點位置（增加間距）
-                        const distanceFromRight = 60 + (finishPosition * 25);
+                        // 根據排名計算最終位置，確保不超過終點線
+                        const maxDistance = finishLinePosition - 70; // 確保不超過終點線
+                        const finalPosition = maxDistance - ((ranking - 1) * 15); // 每個排名差15px
                         
                         setTimeout(() => {
-                            car.style.left = `calc(100% - ${distanceFromRight}px)`;
-                            
-                            // 為前三名添加特殊效果
-                            if (finishPosition < 3) {
-                                setTimeout(() => {
-                                    car.style.transform = 'scale(1.1)';
-                                    car.style.zIndex = '10';
-                                }, arrivalTime);
-                            }
-                        }, Math.max(0, baseDelay));
+                            car.style.transition = `left ${raceDuration - arrivalTime}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                            car.style.left = `${Math.max(finalPosition, 50)}px`; // 確保不會回到起點之前
+                        }, arrivalTime);
                     });
                     
                     // 動畫完成回調
-                    setTimeout(callback, raceDuration + 500);
+                    setTimeout(() => {
+                        if (callback) callback();
+                    }, raceDuration + 500);
                 },
                 
                 // ✨ 粒子效果
