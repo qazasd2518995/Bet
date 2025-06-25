@@ -4776,7 +4776,7 @@
                             if (data.gameData.lastResult && data.gameData.lastResult.length > 0) {
                                 this.lastResult = data.gameData.lastResult;
                                 this.lastResults = data.gameData.lastResult;
-                                console.log(`🎯 更新開獎結果: 期號=${serverPeriod}, 結果=`, this.lastResults);
+                                console.log(`🎯 更新開獎結果: 期號=${serverPeriod}`);
                             }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
@@ -4808,7 +4808,7 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success && data.hasNextResult) {
-                                console.log('✅ 成功獲取預先生成的結果:', data.nextResult);
+                                console.log('✅ 成功獲取預先生成的結果');
                                 this.nextResult = data.nextResult;
                                 
                                 // 如果正在開獎中，更新動畫顯示
@@ -4833,7 +4833,7 @@
                         return;
                     }
                     
-                    console.log('🎬 使用預先結果更新賽車競賽:', this.nextResult);
+                                            console.log('🎬 使用預先結果更新賽車競賽');
                     
                     // 更新賽車競賽以使用新結果
                     if (this.racingCars && this.raceOverlay) {
@@ -5758,7 +5758,7 @@
                     
                     // 如果正在開獎中，使用預先獲取的結果立即播放動畫
                     if (this.isDrawingInProgress && this.nextResult && this.nextResult.length === 10) {
-                        console.log('🏁 開獎中點擊賽車按鈕，使用預先結果播放動畫:', this.nextResult);
+                        console.log('🏁 開獎中點擊賽車按鈕，使用預先結果播放動畫');
                         this.lastResults = this.nextResult;
                         this.playRaceAnimation();
                         return;
@@ -5779,7 +5779,7 @@
                     // 第一次嘗試：直接從API獲取最新結果
                     this.getLatestResultFromHistory().then((latestResult) => {
                         if (latestResult && latestResult.length === 10) {
-                            console.log(`✅ 第一次嘗試成功，獲取到結果:`, latestResult);
+                            console.log(`✅ 第一次嘗試成功，獲取到結果`);
                             this.lastResults = latestResult;
                             this.playRaceAnimation();
                             return;
@@ -5790,7 +5790,7 @@
                         setTimeout(() => {
                             this.getLatestResultFromHistory().then((latestResult2) => {
                                 if (latestResult2 && latestResult2.length === 10) {
-                                    console.log(`✅ 第二次嘗試成功，獲取到結果:`, latestResult2);
+                                    console.log(`✅ 第二次嘗試成功，獲取到結果`);
                                     this.lastResults = latestResult2;
                                     this.playRaceAnimation();
                                     return;
@@ -5800,7 +5800,7 @@
                                 // 第三次嘗試：從遊戲數據獲取
                                 this.updateGameData().then(() => {
                                     if (this.lastResults && this.lastResults.length === 10) {
-                                        console.log(`✅ 第三次嘗試成功，從遊戲數據獲取到結果:`, this.lastResults);
+                                        console.log(`✅ 第三次嘗試成功，從遊戲數據獲取到結果`);
                                         this.playRaceAnimation();
                                     } else {
                                         console.error('❌ 所有嘗試均失敗');
@@ -5849,16 +5849,16 @@
                                 }
                             }
                             
-                            console.log(`🎯 解析後的結果數組:`, resultArray);
+                            console.log(`🎯 解析後的結果數組長度: ${resultArray.length}`);
                             console.log(`📅 結果期號: ${data.result.period}`);
                             console.log(`⏰ 結果時間: ${data.result.created_at}`);
                             
                             // 驗證結果有效性
                             if (resultArray.length === 10 && resultArray.every(num => num >= 1 && num <= 10)) {
-                                console.log(`✅ 獲取到有效的最新開獎結果: 期號=${data.result.period}, 結果=`, resultArray);
+                                console.log(`✅ 獲取到有效的最新開獎結果: 期號=${data.result.period}`);
                                 return resultArray;
                             } else {
-                                console.warn('⚠️ 結果數據格式不正確:', resultArray);
+                                console.warn('⚠️ 結果數據格式不正確');
                                 return null;
                             }
                         } else {
@@ -5921,7 +5921,7 @@
                     // 先獲取最新的開獎結果
                     const latestResult = await this.getLatestResultFromHistory();
                     if (latestResult) {
-                        console.log('🎯 獲取到最新開獎結果:', latestResult);
+                        console.log('🎯 獲取到最新開獎結果');
                         this.lastResult = latestResult;
                         this.lastResults = latestResult;
                     }
@@ -5943,7 +5943,7 @@
                             // 使用最新獲取的結果
                             if (this.lastResults && this.lastResults.length > index) {
                                 ball.textContent = this.lastResults[index];
-                                console.log(`🎯 顯示第${index+1}位結果: ${this.lastResults[index]}`);
+                                console.log(`🎯 顯示第${index+1}位結果`);
                             } else {
                                 // 恢復原始數字（如果沒有新結果）
                                 const originalText = ball.getAttribute('data-original-text');
@@ -6078,7 +6078,7 @@
                     let finalResult = null;
                     
                     if (this.nextResult && this.nextResult.length === 10) {
-                        console.log('✅ 使用預先獲取的開獎結果:', this.nextResult);
+                                                    console.log('✅ 使用預先獲取的開獎結果');
                         finalResult = this.nextResult;
                         
                         // 立即停止洗球動畫並顯示結果
@@ -6095,7 +6095,7 @@
                         setTimeout(() => {
                             this.getLatestResultFromHistory().then((latestResult) => {
                                 if (latestResult && latestResult.length === 10) {
-                                    console.log('📊 從數據庫獲取到最新開獎結果:', latestResult);
+                                    console.log('📊 從數據庫獲取到最新開獎結果');
                                     this.lastResults = latestResult;
                                     this.stopWashingAnimation();
                                     this.finishRaceCompetition(latestResult);
@@ -6146,7 +6146,7 @@
                     // 獲取並顯示最新結果
                     this.getLatestResultFromHistory().then((latestResult) => {
                         if (latestResult && latestResult.length > 0) {
-                            console.log('📊 獲取到最新開獎結果:', latestResult);
+                            console.log('📊 獲取到最新開獎結果');
                             this.lastResults = latestResult;
                             
                             // 逐個顯示結果球（揭曉動畫）
@@ -6415,7 +6415,7 @@
                 
                 // 🏆 完成賽車競賽（根據真實開獎結果決定最終排名，拉開距離，不自動關閉）
                 finishRaceCompetition(results) {
-                    console.log('🏆 開獎結果出來了，賽車競賽結束:', results);
+                    console.log('🏆 開獎結果出來了，賽車競賽結束');
                     
                     // 停止隨機競賽
                     if (this.racingInterval) {
@@ -6569,7 +6569,7 @@
                         return;
                     }
                     
-                    console.log('🏁 當期開獎結果:', this.lastResults);
+                    console.log('🏁 當期開獎結果已載入');
                     
                     // 播放音效
                     this.playSound('draw');
@@ -6732,7 +6732,7 @@
                     const cars = container.querySelectorAll('.race-car');
                     const finishLinePosition = container.offsetWidth - 100;
                     
-                    console.log('🏁 賽車開始！目標結果:', this.lastResults);
+                    console.log('🏁 賽車開始！');
                     
                     // 根據開獎結果決定每輛車的終點位置
                     cars.forEach((car, index) => {
@@ -6911,7 +6911,7 @@
                         margin: 10px 0;
                     `;
                     
-                    console.log(' 顯示開獎結果:', this.lastResults);
+                    console.log('📊 顯示開獎結果');
                     
                     // 動畫顯示結果球
                     this.lastResults.forEach((number, index) => {
@@ -7007,7 +7007,7 @@
                     const results = [...this.lastResults]; // 獲取開獎結果
                     const raceDuration = 3000; // 增加動畫時長
                     
-                    console.log('賽車結果順序:', results);
+                    console.log('賽車結果順序已確定');
                     
                     // 計算終點線位置和安全距離
                     const finishLinePosition = window.innerWidth > 768 ? 

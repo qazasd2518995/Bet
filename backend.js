@@ -789,7 +789,7 @@ async function startGameCycle() {
             try {
               const preResult = await generateSmartRaceResult(memoryGameState.current_period);
               memoryGameState.next_result = preResult; // 暫存新結果
-              console.log(`🎯 期號 ${memoryGameState.current_period} 預先生成結果:`, preResult);
+              console.log(`🎯 期號 ${memoryGameState.current_period} 預先生成結果已完成`);
             } catch (error) {
               console.error('預先生成結果失敗:', error);
             }
@@ -833,7 +833,7 @@ async function startGameCycle() {
                   console.log('⚠️ 沒有預先生成的結果，現場生成...');
                   newResult = await generateSmartRaceResult(memoryGameState.current_period);
                 }
-                console.log(`🎲 期號 ${memoryGameState.current_period} 最終開獎結果:`, newResult);
+                console.log(`🎲 期號 ${memoryGameState.current_period} 最終開獎結果已生成`);
                 
                 // 保存當前期號用於開獎
                 const currentDrawPeriod = memoryGameState.current_period;
@@ -2065,7 +2065,7 @@ app.get('/api/next-result', (req, res) => {
     
     // 檢查是否有預先生成的結果
     if (memoryGameState.next_result && Array.isArray(memoryGameState.next_result)) {
-      console.log('✅ 返回預先生成的結果:', memoryGameState.next_result);
+      console.log('✅ 返回預先生成的結果');
       res.json({
         success: true,
         hasNextResult: true,
@@ -3090,7 +3090,7 @@ app.get('/api/results/latest', async (req, res) => {
     `);
     
     if (result) {
-      console.log(`返回最新開獎結果: 期號=${result.period}, 結果=${result.result}`);
+      console.log(`返回最新開獎結果: 期號=${result.period}`);
       res.json({
         success: true,
         result: {
