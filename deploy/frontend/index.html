@@ -4529,7 +4529,8 @@
                 <div class="tab" :class="{ active: activeTab === 'quick' }" @click="activeTab = 'quick'">快速</div>
                 <div class="tab" :class="{ active: activeTab === 'number1to5' }" @click="activeTab = 'number1to5'">單號1~5</div>
                 <div class="tab" :class="{ active: activeTab === 'number6to10' }" @click="activeTab = 'number6to10'">單號6~10</div>
-                <div class="tab" :class="{ active: activeTab === 'dragonTiger' }" @click="activeTab = 'dragonTiger'">冠亞和</div>
+                <div class="tab" :class="{ active: activeTab === 'dragonTiger' }" @click="activeTab = 'dragonTiger'">龍虎對戰</div>
+                <div class="tab" :class="{ active: activeTab === 'sumValue' }" @click="activeTab = 'sumValue'">冠亞和</div>
             </div>
             
             <!-- 兩面玩法區域 -->
@@ -4836,8 +4837,100 @@
                 </div>
             </div>
             
-            <!-- 冠亞和值區域 -->
+            <!-- 龍虎對戰區域 -->
             <div class="tab-content" v-if="activeTab === 'dragonTiger'">
+                <div class="betting-group">
+                    <div class="group-title">龍虎對戰</div>
+                    
+                    <!-- 冠軍V.S.第10名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">冠軍 V.S. 第10名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_1_10') }"
+                                 @click="selectBet('dragonTiger', 'dragon_1_10')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.dragon) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_1_10') }"
+                                 @click="selectBet('dragonTiger', 'tiger_1_10')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.tiger) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 亞軍V.S.第9名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">亞軍 V.S. 第9名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_2_9') }"
+                                 @click="selectBet('dragonTiger', 'dragon_2_9')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.dragon) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_2_9') }"
+                                 @click="selectBet('dragonTiger', 'tiger_2_9')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.tiger) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第3名V.S.第8名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">第3名 V.S. 第8名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_3_8') }"
+                                 @click="selectBet('dragonTiger', 'dragon_3_8')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.dragon) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_3_8') }"
+                                 @click="selectBet('dragonTiger', 'tiger_3_8')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.tiger) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第4名V.S.第7名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">第4名 V.S. 第7名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_4_7') }"
+                                 @click="selectBet('dragonTiger', 'dragon_4_7')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.dragon) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_4_7') }"
+                                 @click="selectBet('dragonTiger', 'tiger_4_7')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.tiger) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 第5名V.S.第6名 -->
+                    <div class="dragon-tiger-pair">
+                        <div class="pair-title">第5名 V.S. 第6名</div>
+                        <div class="betting-options">
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_5_6') }"
+                                 @click="selectBet('dragonTiger', 'dragon_5_6')">
+                                <span>龍</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.dragon) }}</span>
+                            </div>
+                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_5_6') }"
+                                 @click="selectBet('dragonTiger', 'tiger_5_6')">
+                                <span>虎</span>
+                                <span class="odds">{{ formatOdds(odds.dragonTiger.tiger) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 冠亞和值區域 -->
+            <div class="tab-content" v-if="activeTab === 'sumValue'">
                 <div class="betting-group">
                     <div class="group-title">冠亞和大小單雙</div>
                     <div class="betting-options">
@@ -4891,102 +4984,10 @@
                         </div>
                     </div>
                 </div>
-                
-
             </div>
             
             <!-- 單號1-5區域 -->
             <div class="tab-content" v-if="activeTab === 'number1to5'">
-                <!-- 龍虎玩法區域 -->
-                <div class="betting-group">
-                    <div class="group-title">龍虎對戰</div>
-                    
-                    <!-- 冠軍V.S.第10名 -->
-                    <div class="dragon-tiger-pair">
-                        <div class="pair-title">冠軍 V.S. 第10名</div>
-                        <div class="betting-options">
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_1_10') }"
-                                 @click="selectBet('dragonTiger', 'dragon_1_10')">
-                                <span>龍</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_1_10') }"
-                                 @click="selectBet('dragonTiger', 'tiger_1_10')">
-                                <span>虎</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 亞軍V.S.第9名 -->
-                    <div class="dragon-tiger-pair">
-                        <div class="pair-title">亞軍 V.S. 第9名</div>
-                        <div class="betting-options">
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_2_9') }"
-                                 @click="selectBet('dragonTiger', 'dragon_2_9')">
-                                <span>龍</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_2_9') }"
-                                 @click="selectBet('dragonTiger', 'tiger_2_9')">
-                                <span>虎</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 第3名V.S.第8名 -->
-                    <div class="dragon-tiger-pair">
-                        <div class="pair-title">第3名 V.S. 第8名</div>
-                        <div class="betting-options">
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_3_8') }"
-                                 @click="selectBet('dragonTiger', 'dragon_3_8')">
-                                <span>龍</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_3_8') }"
-                                 @click="selectBet('dragonTiger', 'tiger_3_8')">
-                                <span>虎</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 第4名V.S.第7名 -->
-                    <div class="dragon-tiger-pair">
-                        <div class="pair-title">第4名 V.S. 第7名</div>
-                        <div class="betting-options">
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_4_7') }"
-                                 @click="selectBet('dragonTiger', 'dragon_4_7')">
-                                <span>龍</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_4_7') }"
-                                 @click="selectBet('dragonTiger', 'tiger_4_7')">
-                                <span>虎</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 第5名V.S.第6名 -->
-                    <div class="dragon-tiger-pair">
-                        <div class="pair-title">第5名 V.S. 第6名</div>
-                        <div class="betting-options">
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'dragon_5_6') }"
-                                 @click="selectBet('dragonTiger', 'dragon_5_6')">
-                                <span>龍</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                            <div class="option" :class="{ selected: isSelected('dragonTiger', 'tiger_5_6') }"
-                                 @click="selectBet('dragonTiger', 'tiger_5_6')">
-                                <span>虎</span>
-                                <span class="odds">{{ formatOdds(1.98) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
                 <div v-for="position in 5" :key="position" class="betting-group">
                     <div class="group-title">第{{ position }}名</div>
                     <div class="betting-options numbers">
@@ -6296,6 +6297,15 @@
                     
                     // 建立投注請求
                     const promises = bets.map(bet => {
+                        // 處理不同類型的投注值
+                        let value = bet.value;
+                        let betType = bet.type;
+                        
+                        // 快速投注使用property作為value
+                        if (bet.type === 'position' && bet.property) {
+                            value = bet.property;
+                        }
+                        
                         return fetch(`${this.API_BASE_URL}/api/bet`, {
                             method: 'POST',
                             headers: {
@@ -6304,8 +6314,8 @@
                             body: JSON.stringify({
                                 username,
                                 amount: bet.amount,
-                                betType: bet.type,
-                                value: bet.value,
+                                betType: betType,
+                                value: value,
                                 position: bet.position
                             })
                         }).then(res => res.json());
@@ -6455,6 +6465,18 @@
                         return `第${bet.position}名 ${bet.value}號`;
                     }
                     
+                    if (bet.type === 'dragonTiger') {
+                        // 龍虎投注值格式處理：dragon_1_10 -> 龍(冠軍vs第10名)
+                        const parts = bet.value.split('_');
+                        if (parts.length === 3) {
+                            const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
+                            const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+                            const pos2 = `第${parts[2]}名`;
+                            return `${dragonTiger}(${pos1}vs${pos2})`;
+                        }
+                        return bet.value.startsWith('dragon') ? '龍' : '虎';
+                    }
+                    
                     if (bet.type === 'position') {
                         // 位置投注顯示屬性
                         if (bet.property) {
@@ -6475,7 +6497,9 @@
                     if (bet.type === 'number') {
                         return this.odds.number[this.positionToKey(bet.position)] || parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));
                     } else if (bet.type === 'dragonTiger') {
-                        return this.odds.dragonTiger[bet.value] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
+                        // 龍虎投注值格式：dragon_1_10, tiger_1_10 等
+                        const dragonTigerType = bet.value.startsWith('dragon') ? 'dragon' : 'tiger';
+                        return this.odds.dragonTiger[dragonTigerType] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
                     } else if (bet.type === 'position') {
                         // 位置投注使用固定賠率
                         return bet.odds || this.getPropertyOdds(bet.property) || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
@@ -9167,6 +9191,15 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success && data.data) {
+                                // 反向排列路珠數據，確保最新期號在左上角
+                                if (data.data.tableData && Array.isArray(data.data.tableData)) {
+                                    data.data.tableData = data.data.tableData.map(row => {
+                                        if (Array.isArray(row)) {
+                                            return row.reverse(); // 反向每一行
+                                        }
+                                        return row;
+                                    }).reverse(); // 反向整個表格
+                                }
                                 this.roadBeadData = data.data;
                                 this.roadBeadTodayStats = data.data.todayStats || [];
                             } else {
