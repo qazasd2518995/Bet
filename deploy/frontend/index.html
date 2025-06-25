@@ -63,6 +63,14 @@
         });
     </script>
     <style>
+        /* CSS變量 - 主題顏色 */
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --primary-light: rgba(102, 126, 234, 0.1);
+            --primary-hover: rgba(102, 126, 234, 0.8);
+        }
+        
         /* 基礎字體設定 - 確保電腦和手機顯示一致 */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -621,7 +629,7 @@
         
         /* 現代化導航欄樣式 */
         .modern-navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
@@ -3149,13 +3157,14 @@
 
         .confirm-bet-btn {
             flex: 1;
-            background: #28a745;
+            background: var(--primary-color);
             color: white;
             border: none;
             border-radius: 4px;
             padding: 10px;
             cursor: pointer;
             font-weight: bold;
+            transition: background 0.3s ease;
         }
 
         .cancel-bet-btn:hover {
@@ -3163,7 +3172,7 @@
         }
 
         .confirm-bet-btn:hover {
-            background: #218838;
+            background: var(--primary-hover);
         }
 
         /* 響應式設計 */
@@ -3567,6 +3576,128 @@
             min-width: 50px;
             text-align: center;
         }
+        
+        /* 主題選擇器樣式 */
+        .theme-selector,
+        .dragon-ranking,
+        .day-detail,
+        .draw-history,
+        .login-modal,
+        .register-modal {
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .theme-header,
+        .dragon-header,
+        .detail-header,
+        .history-header,
+        .login-header,
+        .register-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        
+        .theme-options {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border: 2px solid #f0f2f5;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .theme-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: #ddd;
+        }
+        
+        .theme-option.active {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .theme-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+        
+        .theme-name {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .theme-check {
+            font-size: 20px;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        /* 主題應用樣式 */
+        .theme-blue {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --primary-light: rgba(102, 126, 234, 0.1);
+            --primary-hover: rgba(102, 126, 234, 0.8);
+        }
+        
+        .theme-purple {
+            --primary-color: #a855f7;
+            --secondary-color: #3b82f6;
+            --primary-light: rgba(168, 85, 247, 0.1);
+            --primary-hover: rgba(168, 85, 247, 0.8);
+        }
+        
+        .theme-green {
+            --primary-color: #059669;
+            --secondary-color: #0d9488;
+            --primary-light: rgba(5, 150, 105, 0.1);
+            --primary-hover: rgba(5, 150, 105, 0.8);
+        }
+        
+        .theme-orange {
+            --primary-color: #ea580c;
+            --secondary-color: #dc2626;
+            --primary-light: rgba(234, 88, 12, 0.1);
+            --primary-hover: rgba(234, 88, 12, 0.8);
+        }
+        
+        .theme-pink {
+            --primary-color: #ec4899;
+            --secondary-color: #8b5cf6;
+            --primary-light: rgba(236, 72, 153, 0.1);
+            --primary-hover: rgba(236, 72, 153, 0.8);
+        }
 
         /* 🎯 彈出式通知視窗樣式 */
         .notification-popup {
@@ -3707,6 +3838,9 @@
                             </button>
                             <button class="dropdown-action" @click="showDragonRanking">
                                 <span>長龍排行</span>
+                            </button>
+                            <button class="dropdown-action" @click="showThemeSelector">
+                                <span>換膚主題</span>
                             </button>
 
                             <div class="dropdown-divider"></div>
@@ -4601,6 +4735,31 @@
             </div>
         </div>
 
+        <!-- 主題選擇器彈窗 -->
+        <div class="modal" v-if="showThemeSelector">
+            <div class="theme-selector">
+                <div class="theme-header">
+                    <div class="title">選擇主題</div>
+                    <button class="close-btn" @click="showThemeSelector = false">×</button>
+                </div>
+                
+                <!-- 主題選項 -->
+                <div class="theme-options">
+                    <div v-for="theme in availableThemes" 
+                         :key="theme.id"
+                         class="theme-option"
+                         :class="{ active: currentTheme === theme.id }"
+                         @click="changeTheme(theme.id)">
+                        <div class="theme-preview" 
+                             :style="{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` }">
+                        </div>
+                        <div class="theme-name">{{ theme.name }}</div>
+                        <div v-if="currentTheme === theme.id" class="theme-check">✓</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 顯示通知的元素 -->
         <!-- 🎯 彈出式通知視窗 -->
         <div v-if="notificationVisible" class="notification-popup" @click="notificationVisible = false">
@@ -4689,6 +4848,7 @@
                     showDayDetailModal: false,
                     showDropdownMenu: false, // 控制下拉菜單顯示狀態
                     showDragonRanking: false, // 控制長龍排行顯示狀態
+                    showThemeSelector: false, // 控制主題選擇器顯示狀態
                     
                     // 熱門投注
                     hotBets: [],
@@ -4717,6 +4877,16 @@
                     dragonRankings: [],
                     selectedCategory: '大小', // 當前選擇的類別
                     dragonCategories: ['大小', '單雙', '冠亞和', '冠亞和 單雙'], // 可選類別
+                    
+                    // 主題設定
+                    currentTheme: 'blue', // 當前主題
+                    availableThemes: [
+                        { id: 'blue', name: '經典藍', primary: '#667eea', secondary: '#764ba2' },
+                        { id: 'purple', name: '紫羅蘭', primary: '#a855f7', secondary: '#3b82f6' },
+                        { id: 'green', name: '翡翠綠', primary: '#059669', secondary: '#0d9488' },
+                        { id: 'orange', name: '夕陽橙', primary: '#ea580c', secondary: '#dc2626' },
+                        { id: 'pink', name: '櫻花粉', primary: '#ec4899', secondary: '#8b5cf6' }
+                    ],
                     
                     // 統計數據
                     dailyBetCount: 0,
@@ -4817,6 +4987,8 @@
                 }
                 // 初始化歷史開獎記錄為空數組，防止undefined錯誤
                 this.recentResults = [];
+                // 載入主題偏好
+                this.loadThemePreference();
                 this.checkLoginStatus();
             },
             computed: {
@@ -7683,6 +7855,46 @@
                     return this.dragonRankings.filter(item => 
                         item.category === this.selectedCategory
                     );
+                },
+                
+                // 主題選擇器展示
+                showThemeSelector() {
+                    this.showThemeSelector = true;
+                    this.showDropdownMenu = false; // 關閉選單
+                },
+                
+                // 切換主題
+                changeTheme(themeId) {
+                    this.currentTheme = themeId;
+                    this.applyTheme(themeId);
+                    this.saveThemePreference(themeId);
+                    this.showThemeSelector = false;
+                },
+                
+                // 應用主題
+                applyTheme(themeId) {
+                    const theme = this.availableThemes.find(t => t.id === themeId);
+                    if (!theme) return;
+                    
+                    // 更新CSS變量
+                    document.documentElement.style.setProperty('--primary-color', theme.primary);
+                    document.documentElement.style.setProperty('--secondary-color', theme.secondary);
+                    
+                    // 更新body的class來應用主題
+                    document.body.className = document.body.className.replace(/theme-\w+/g, '');
+                    document.body.classList.add(`theme-${themeId}`);
+                },
+                
+                // 保存主題偏好
+                saveThemePreference(themeId) {
+                    localStorage.setItem('gameTheme', themeId);
+                },
+                
+                // 載入主題偏好
+                loadThemePreference() {
+                    const savedTheme = localStorage.getItem('gameTheme') || 'blue';
+                    this.currentTheme = savedTheme;
+                    this.applyTheme(savedTheme);
                 },
                 
                 // 切換盈虧記錄時間範圍
