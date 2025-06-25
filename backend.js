@@ -1874,7 +1874,8 @@ app.get('/api/weekly-profit-records', async (req, res) => {
         DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') as date,
         COUNT(*) as bet_count,
         COALESCE(SUM(amount), 0) as total_bet,
-        COALESCE(SUM(win_amount), 0) as total_win
+        COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win,
+        COALESCE(SUM(amount), 0) as total_amount
       FROM bet_history 
       WHERE username = $1 
         AND settled = true 
@@ -3417,19 +3418,18 @@ function getPositionName(position) {
 }
 
 // 🎴 路珠走勢數據
-app.get('/api/road-bead', (req, res) => {
-    const db = req.db;
+app.get('/api/road-bead', async (req, res) => {
     const { position = 1, type = 'number', limit = 30 } = req.query;
     
     try {
         // 獲取指定數量的最近開獎記錄
-        const drawHistory = db.prepare(`
+        const drawHistory = await db.any(`
             SELECT period, result
-            FROM draws 
+            FROM result_history 
             WHERE result IS NOT NULL 
             ORDER BY period DESC 
-            LIMIT ?
-        `).all(limit);
+            LIMIT $1
+        `, [parseInt(limit)]);
         
         if (!drawHistory || drawHistory.length === 0) {
             return res.json({
@@ -3506,7 +3506,7 @@ function processRoadBeadData(history, position, type) {
     history.forEach((draw, index) => {
         const row = Math.floor(index / COLS);
         const col = index % COLS;
-        const result = JSON.parse(draw.result);
+        const result = typeof draw.result === 'string' ? JSON.parse(draw.result) : draw.result;
         
         // 獲取指定位置的數字
         const number = result[position - 1];
@@ -3596,7 +3596,7 @@ function calculateTodayStats(history, position, todayPeriod) {
     history.forEach(draw => {
         // 只統計今日的開獎
         if (parseInt(draw.period) >= todayPeriod) {
-            const result = JSON.parse(draw.result);
+            const result = typeof draw.result === 'string' ? JSON.parse(draw.result) : draw.result;
             const number = result[position - 1];
             todayNumbers[number] = (todayNumbers[number] || 0) + 1;
             todayTotal++;
