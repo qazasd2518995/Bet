@@ -7521,7 +7521,7 @@
                     console.log(`正在獲取用戶 ${username} 的${weekType}盈虧記錄...`);
                     console.log(`週期範圍: ${startDate.toISOString()} 到 ${endDate.toISOString()}`);
                     
-                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)startDate=${startDate.toISOString()}fetch(`${this.API_BASE_URL}/api/profit-records?username=${username}&days=${days}`)endDate=${endDate.toISOString()}`)
+                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
                         .then(response => {
                             console.log('盈虧記錄API響應狀態:', response.status);
                             return response.json();
@@ -7583,12 +7583,12 @@
                 formatDate(dateString) {
                     const date = new Date(dateString);
                     return `${date.getMonth() + 1}/${date.getDate()}`;
+                },
                 
                 // 格式化日期數字（用於週報表）
                 formatDateNumber(dateString) {
                     const date = new Date(dateString);
                     return date.getDate().toString();
-                },
                 },
                 
                 // 格式化標題日期
