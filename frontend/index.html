@@ -5121,7 +5121,7 @@
                 </div>
                 
                 <!-- 右側：下注按鈕 -->
-                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="!selectedBets.length || !betAmount || betAmount <= 0 || gameStatus !== 'betting'">
+                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="!selectedBets.length || !betAmount || betAmount < 1 || gameStatus !== 'betting'">
                     {{ gameStatus === 'betting' ? '下注' : '已封盤' }}
                 </button>
             </div>
@@ -6515,17 +6515,22 @@
                         .catch(err => {
                             console.error('下注失敗', err);
                             
-                            // 顯示詳細的錯誤信息
+                            // 顯示清潔的錯誤信息
                             let errorMessage = '下注失敗，請稍後再試';
                             if (err.message) {
-                                // 如果錯誤信息包含HTTP狀態碼，提取關鍵信息
-                                if (err.message.includes('HTTP 400:')) {
-                                    const parts = err.message.split('HTTP 400:');
-                                    if (parts.length > 1) {
-                                        errorMessage = `下注失敗：${parts[1].trim()}`;
+                                // 提取純淨的錯誤訊息，去除HTTP狀態碼和JSON格式
+                                if (err.message.includes('投注金額不能少於')) {
+                                    errorMessage = '投注金額不能少於1元';
+                                } else if (err.message.includes('HTTP')) {
+                                    // 嘗試提取錯誤訊息的核心部分
+                                    const match = err.message.match(/:"([^"]+)"/);
+                                    if (match && match[1]) {
+                                        errorMessage = match[1];
+                                    } else {
+                                        errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
                                     }
                                 } else {
-                                    errorMessage = `下注失敗：${err.message}`;
+                                    errorMessage = err.message;
                                 }
                             }
                             
@@ -6859,7 +6864,7 @@
                 },
                 autoCreateBetsForNewPosition(newPosition) {
                     // 確保投注金額至少為1元
-                    if (!this.betAmount || this.betAmount <= 0) {
+                    if (!this.betAmount || this.betAmount < 1) {
                         this.betAmount = 1;
                     }
                     
@@ -6939,7 +6944,7 @@
                     }
 
                     // 確保投注金額至少為1元
-                    if (!this.betAmount || this.betAmount <= 0) {
+                    if (!this.betAmount || this.betAmount < 1) {
                         this.betAmount = 1;
                     }
 
@@ -6980,7 +6985,7 @@
                     }
                     
                     // 確保投注金額至少為1元
-                    if (!this.betAmount || this.betAmount <= 0) {
+                    if (!this.betAmount || this.betAmount < 1) {
                         this.betAmount = 1;
                     }
                     
@@ -7060,11 +7065,9 @@
                 },
                 setBetAmount(amount) {
                     this.betAmount = amount;
-                    // 只更新沒有設置金額的投注項目
+                    // 更新所有投注項目的金額（強制更新，確保一致性）
                     this.selectedBets.forEach(bet => {
-                        if (!bet.amount || bet.amount <= 0) {
-                            bet.amount = amount;
-                        }
+                        bet.amount = amount;
                     });
                 },
                 setAllBetAmount(amount) {
@@ -8807,7 +8810,7 @@
                 // 添加熱門投注到選擇列表
                 addHotBet(bet) {
                     // 檢查投注額
-                    if (!this.betAmount || this.betAmount <= 0) {
+                    if (!this.betAmount || this.betAmount < 1) {
                         this.displayNotification('請先設置投注金額');
                         return;
                     }
