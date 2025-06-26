@@ -1897,13 +1897,17 @@ app.get('/api/weekly-profit-records', async (req, res) => {
     
     // 處理查詢結果，填充缺失的日期
     const records = [];
-    const weekDays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     
     // 生成一週內每一天的記錄
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(start);
       currentDate.setDate(start.getDate() + i);
       const dateStr = currentDate.toISOString().split('T')[0];
+      
+      // 計算當前日期對應的星期幾
+      const weekdayIndex = currentDate.getDay(); // 0=星期日, 1=星期一, ..., 6=星期六
+      const weekdayName = weekDays[weekdayIndex];
       
       // 查找該日期的實際記錄
       const dayRecord = result.find(row => {
@@ -1927,7 +1931,7 @@ app.get('/api/weekly-profit-records', async (req, res) => {
         const netProfit = parseFloat(dayRecord.net_profit); // 使用正確的淨盈虧
         records.push({
           date: dateStr,
-          weekday: weekDays[i],
+          weekday: weekdayName,
           betCount: parseInt(dayRecord.bet_count),
           totalBet: totalBet,
           totalWin: totalWin,
@@ -1937,7 +1941,7 @@ app.get('/api/weekly-profit-records', async (req, res) => {
         // 如果該日期沒有記錄，填充空記錄
         records.push({
           date: dateStr,
-          weekday: weekDays[i],
+          weekday: weekdayName,
           betCount: 0,
           totalBet: 0,
           totalWin: 0,
