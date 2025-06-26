@@ -737,9 +737,9 @@
                                         <div class="mb-3" v-if="rebateSettings.rebate_mode === 'percentage'">
                                             <label class="form-label">退水比例 (%)</label>
                                             <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
-                                                   step="0.01" min="0" :max="rebateAgent.max_rebate_percentage * 100" required>
+                                                   step="0.01" min="0" :max="(rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100" required>
                                             <small class="form-text text-muted">
-                                                可設定範圍：0% - {{ (rebateAgent.max_rebate_percentage * 100).toFixed(1) }}%
+                                                可設定範圍：0% - {{ ((rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
                                             </small>
                                         </div>
                                         <div class="alert alert-info">

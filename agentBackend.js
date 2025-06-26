@@ -615,14 +615,11 @@ async function initDatabase() {
     } else {
       console.log(`已存在 ${adminAgents.length} 個總代理，檢查是否需要重命名為ti2025`);
       
-      // 檢查是否為Render環境且是第一次運行
-      const isRenderFirstRun = process.env.RENDER === 'true' && process.env.RENDER_FIRST_RUN === 'true';
-      
-      // 只有在Render第一次運行且總代理用戶名不是ti2025時才修改
-      if (isRenderFirstRun && adminAgents[0].username !== 'ti2025') {
-        console.log(`檢測到Render首次部署，將總代理 "${adminAgents[0].username}" 重命名為 "ti2025"`);
+      // 檢查總代理是否為ti2025，如果不是則修改
+      if (adminAgents[0].username !== 'ti2025') {
+        console.log(`將總代理 "${adminAgents[0].username}" 重命名為 "ti2025"`);
         
-        // 只修改總代理的用戶名和密碼，保留原餘額和其他數據
+        // 修改總代理的用戶名和密碼為ti2025，保留原餘額和其他數據
         await db.none(`
           UPDATE agents 
           SET username = $1, password = $2 
@@ -630,11 +627,8 @@ async function initDatabase() {
         `, ['ti2025', 'ti2025', adminAgents[0].id]);
         
         console.log(`總代理已重命名為 "ti2025"，ID=${adminAgents[0].id}`);
-        
-        // 重命名後清除首次運行標誌，確保以後不再修改
-        process.env.RENDER_FIRST_RUN = 'false';
       } else {
-        console.log(`無需修改總代理: ${adminAgents[0].username}`);
+        console.log(`總代理已是ti2025，無需修改`);
       }
     }
     
@@ -1754,8 +1748,8 @@ const TransactionModel = {
     
     try {
       return await db.one(`
-        INSERT INTO transactions 
-        (user_type, user_id, amount, type, balance_before, balance_after, reference_id, description) 
+        INSERT INTO transaction_records 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, reference_id, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
         RETURNING *
       `, [user_type, user_id, amount, type, balance_before, balance_after, reference_id, description]);
@@ -1769,7 +1763,7 @@ const TransactionModel = {
   async getByUserId(userType, userId, limit = 50) {
     try {
       return await db.any(`
-        SELECT * FROM transactions 
+        SELECT * FROM transaction_records 
         WHERE user_type = $1 AND user_id = $2 
         ORDER BY created_at DESC 
         LIMIT $3

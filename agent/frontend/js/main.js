@@ -2156,17 +2156,20 @@ const app = createApp({
         
         // 顯示退水設定模態框
         showRebateSettingsModal(agent) {
+            // 修復：需要從上級代理獲取退水限制
+            const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || 0.041;
+            
             this.rebateAgent = {
                 id: agent.id,
                 username: agent.username,
                 rebate_mode: agent.rebate_mode || 'percentage',
-                rebate_percentage: agent.rebate_percentage || 0,
+                rebate_percentage: maxRebate, // 使用上級代理的退水限制
                 max_rebate_percentage: agent.max_rebate_percentage || 0.041
             };
             
             this.rebateSettings = {
-                rebate_mode: this.rebateAgent.rebate_mode,
-                rebate_percentage: (this.rebateAgent.rebate_percentage * 100).toFixed(1)
+                rebate_mode: agent.rebate_mode || 'percentage',
+                rebate_percentage: ((agent.rebate_percentage || 0) * 100).toFixed(1)
             };
             
             this.showRebateModal = true;
