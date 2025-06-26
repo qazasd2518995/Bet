@@ -1505,7 +1505,7 @@ async function distributeRebate(username, betAmount) {
       return;
     }
     
-    console.log(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(${a.level})`));
+    console.log(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(L${a.level}-${a.rebate_mode}:${(a.rebate_percentage*100).toFixed(1)}%)`));
     
     // 從最下級代理開始分配退水
     let remainingRebate = totalRebateAmount;
@@ -1525,16 +1525,17 @@ async function distributeRebate(username, betAmount) {
         agentRebateAmount = remainingRebate;
         remainingRebate = 0;
       } else if (agent.rebate_mode === 'percentage') {
-        // 比例模式：從總退水中按比例分配（修復計算錯誤）
+        // 比例模式：代理設定的比例就是要獲得的退水比例（修復比例計算邏輯）
         const rebatePercentage = parseFloat(agent.rebate_percentage);
         if (isNaN(rebatePercentage) || rebatePercentage < 0) {
           console.warn(`代理 ${agent.username} 的退水比例無效: ${agent.rebate_percentage}，跳過`);
           agentRebateAmount = 0;
         } else {
-          // 從總退水金額計算，而不是剩餘退水
-          agentRebateAmount = totalRebateAmount * rebatePercentage;
+          // 代理的退水比例直接就是要從總下注金額中獲得的比例
+          // 例如：代理設定2%，下注100元，就獲得2元退水
+          const desiredAmount = parseFloat(betAmount) * rebatePercentage;
           // 確保不超過剩餘退水
-          agentRebateAmount = Math.min(agentRebateAmount, remainingRebate);
+          agentRebateAmount = Math.min(desiredAmount, remainingRebate);
           // 四捨五入到小數點後2位
           agentRebateAmount = Math.round(agentRebateAmount * 100) / 100;
           remainingRebate -= agentRebateAmount;
@@ -1547,7 +1548,7 @@ async function distributeRebate(username, betAmount) {
       if (agentRebateAmount > 0) {
         // 分配退水給代理
         await allocateRebateToAgent(agent.id, agent.username, agentRebateAmount, username, betAmount);
-        console.log(`分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username} (剩餘: ${remainingRebate.toFixed(2)})`);
+        console.log(`✅ 分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username} (模式: ${agent.rebate_mode}, 比例: ${(agent.rebate_percentage*100).toFixed(1)}%, 剩餘: ${remainingRebate.toFixed(2)})`);
         
         // 如果是全拿模式，直接結束分配
         if (agent.rebate_mode === 'all') {
