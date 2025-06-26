@@ -1963,7 +1963,10 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
         username: agent.username,
         level: agent.level,
         balance: agent.balance,
-        commission_balance: agent.commission_balance
+        commission_balance: agent.commission_balance,
+        rebate_percentage: agent.rebate_percentage,
+        max_rebate_percentage: agent.max_rebate_percentage,
+        rebate_mode: agent.rebate_mode
       },
       token
     });

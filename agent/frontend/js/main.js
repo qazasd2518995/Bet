@@ -662,6 +662,7 @@ const app = createApp({
                         id: this.user.id,
                         username: this.user.username,
                         level: this.user.level,
+                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                         max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                     };
                     
@@ -714,6 +715,7 @@ const app = createApp({
                         id: this.user.id,
                         username: this.user.username,
                         level: this.user.level,
+                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                         max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                     };
                     
@@ -2082,16 +2084,21 @@ const app = createApp({
             this.agentBreadcrumbs.push({
                 id: this.currentManagingAgent.id,
                 username: this.currentManagingAgent.username,
-                level: this.currentManagingAgent.level
+                level: this.currentManagingAgent.level,
+                rebate_percentage: this.currentManagingAgent.rebate_percentage,
+                max_rebate_percentage: this.currentManagingAgent.max_rebate_percentage
             });
             
-            // 更新當前管理代理
+            // 更新當前管理代理 - 包含完整的退水比例資訊
             this.currentManagingAgent = {
                 id: agent.id,
                 username: agent.username,
                 level: agent.level,
+                rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || 0.041,
                 max_rebate_percentage: agent.max_rebate_percentage || 0.041
             };
+            
+            console.log('🔄 進入代理管理，更新currentManagingAgent:', this.currentManagingAgent);
             
             // 重新載入代理列表和會員列表（該代理的下級）
             await this.searchAgents();
@@ -2110,6 +2117,7 @@ const app = createApp({
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
+                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                     max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                 };
             } else if (targetIndex >= 0) {
@@ -2120,9 +2128,12 @@ const app = createApp({
                     id: targetBreadcrumb.id,
                     username: targetBreadcrumb.username,
                     level: targetBreadcrumb.level,
+                    rebate_percentage: targetBreadcrumb.rebate_percentage || targetBreadcrumb.max_rebate_percentage || 0.041,
                     max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || 0.041
                 };
             }
+            
+            console.log('🧭 導航到代理層級，更新currentManagingAgent:', this.currentManagingAgent);
             
             // 重新載入代理列表和會員列表
             await this.searchAgents();
@@ -2137,6 +2148,7 @@ const app = createApp({
                     id: parentBreadcrumb.id,
                     username: parentBreadcrumb.username,
                     level: parentBreadcrumb.level,
+                    rebate_percentage: parentBreadcrumb.rebate_percentage || parentBreadcrumb.max_rebate_percentage || 0.041,
                     max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || 0.041
                 };
             } else {
@@ -2145,9 +2157,12 @@ const app = createApp({
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
+                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                     max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                 };
             }
+            
+            console.log('⬆️ 返回上級代理，更新currentManagingAgent:', this.currentManagingAgent);
             
             // 重新載入代理列表和會員列表
             await this.searchAgents();
