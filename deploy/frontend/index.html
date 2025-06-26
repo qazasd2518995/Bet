@@ -4679,8 +4679,43 @@
                 border-radius: 0;
             }
             
+            /* 手機端今日統計面板修復：確保1-10號碼完整顯示在統計背景框內 */
+            .today-stats-panel {
+                padding: 15px !important;
+                margin: 15px 10px !important;
+            }
+            
             .stats-grid {
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(5, 1fr) !important;
+                gap: 8px !important;
+                justify-content: center !important;
+                padding: 0 !important;
+                margin: 0 auto !important;
+                max-width: 100% !important;
+            }
+            
+            .stat-item {
+                padding: 8px 4px !important;
+                margin: 0 !important;
+                min-width: 60px !important;
+                border-radius: 6px !important;
+            }
+            
+            .stat-item .number {
+                width: 28px !important;
+                height: 28px !important;
+                font-size: 12px !important;
+                line-height: 28px !important;
+                margin: 0 auto 4px auto !important;
+            }
+            
+            .stat-item .count {
+                font-size: 11px !important;
+                margin-bottom: 2px !important;
+            }
+            
+            .stat-item .percentage {
+                font-size: 9px !important;
             }
             
             .position-buttons,
