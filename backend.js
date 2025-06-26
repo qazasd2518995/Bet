@@ -3491,22 +3491,23 @@ app.get('/api/road-bead', async (req, res) => {
     const { position = 1, type = 'number', limit = 60 } = req.query;
     
     try {
-        // 計算今日期號範圍 (當日00:00到當前時間)
+        // 計算今日期號範圍 (使用與遊戲邏輯相同的期號格式)
         const today = new Date();
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const todayPeriodStart = Math.floor(todayStart.getTime() / 60000); // 今日第一期
+        const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+        const todayPeriodStart = parseInt(`${todayStr}001`); // 今日第一期，格式：YYYYMMDD001
         
-        console.log(`🔍 路珠API: 獲取今日期號 >= ${todayPeriodStart} 的最近 ${limit} 期開獎記錄`);
+        console.log(`🔍 路珠API: 獲取今日期號格式 ${todayStr}xxx 的最近 ${limit} 期開獎記錄`);
         
         // 獲取今日的最近開獎記錄，按期號降序排列
+        // 使用字符串匹配來確保只獲取今日格式的期號
         const drawHistory = await db.any(`
             SELECT period, result, created_at
             FROM result_history 
             WHERE result IS NOT NULL 
-            AND CAST(period AS BIGINT) >= $1
+            AND period::text LIKE $1
             ORDER BY period DESC 
             LIMIT $2
-        `, [todayPeriodStart, parseInt(limit)]);
+        `, [`${todayStr}%`, parseInt(limit)]);
         
         if (!drawHistory || drawHistory.length === 0) {
             return res.json({
@@ -3526,8 +3527,8 @@ app.get('/api/road-bead', async (req, res) => {
         
         console.log(`✅ 路珠API: 成功獲取 ${drawHistory.length} 期開獎記錄，最新期號: ${drawHistory.length > 0 ? drawHistory[drawHistory.length - 1].period : '無'}`);
         
-        // 使用已經計算的今日期號
-        const todayPeriod = todayPeriodStart;
+        // 使用今日期號起始值作為今日判斷基準
+        const todayPeriod = parseInt(`${todayStr}001`);
         
         // 處理路珠數據
         const roadBeadData = processRoadBeadData(orderedHistory, parseInt(position), type);
