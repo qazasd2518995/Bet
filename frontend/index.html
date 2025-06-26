@@ -506,12 +506,12 @@
             gap: 15px;
         }
         
-        .history-item .period-info {
+        .history-item .period-time-info {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             gap: 2px;
-            min-width: 80px;
+            min-width: 100px;
             flex-shrink: 0;
         }
         
@@ -4112,6 +4112,30 @@
             font-weight: bold;
             margin-bottom: 15px;
             color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .refresh-btn-small {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .refresh-btn-small:hover:not(:disabled) {
+            background: var(--secondary-color);
+            transform: scale(1.05);
+        }
+        
+        .refresh-btn-small:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         
         .bead-table {
@@ -4466,7 +4490,7 @@
                             <div class="dropdown-divider"></div>
 
                             <div class="hot-bets-section" v-if="hotBets && hotBets.length > 0">
-                                <div class="section-title">🔥 熱門投注</div>
+                                <div class="section-title">熱門投注</div>
                                 <div class="hot-bet-list">
                                     <div
                                         v-for="(bet, index) in hotBets.slice(0, 5)"
@@ -4475,7 +4499,7 @@
                                         @click="selectHotBet(bet)"
                                     >
                                         <span class="bet-label">{{ bet.label }}</span>
-                                        <span class="hot-indicator">HOT</span>
+                                        <span class="hot-indicator">熱門</span>
                                     </div>
                                 </div>
                             </div>
@@ -5319,9 +5343,9 @@
                     </div>
                     <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="history-item">
                         <div class="history-row">
-                            <div class="period-info">
+                            <div class="period-time-info">
                                 <div class="period">{{ record.period }}期</div>
-                                <div class="time">{{ formatTime(record.time) }}</div>
+                                <div class="time">{{ formatHistoryTime(record.time || record.created_at) }}</div>
                             </div>
                             <div class="result-balls">
                                 <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
@@ -5560,7 +5584,11 @@
                     <!-- 路珠棋盤 -->
                     <div class="road-bead-board" v-if="roadBeadData && roadBeadData.tableData">
                         <div class="board-title">
-                            {{ getPositionName(selectedRoadBeadPosition) }} - {{ getRoadBeadAnalysisTitle() }}
+                            <span>{{ getPositionName(selectedRoadBeadPosition) }} - {{ getRoadBeadAnalysisTitle() }}</span>
+                            <button class="refresh-btn-small" @click="loadRoadBeadData" :disabled="roadBeadLoading">
+                                <span v-if="roadBeadLoading">🔄</span>
+                                <span v-else>🔄 刷新</span>
+                            </button>
                         </div>
                         
                         <!-- 棋盤表格 -->
@@ -5937,6 +5965,13 @@
                     const secs = seconds % 60;
                     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 },
+                // 格式化歷史開獎時間為 HH:MM 格式
+                formatHistoryTime(dateStr) {
+                    if (!dateStr) return 'NaN:NaN';
+                    const date = new Date(dateStr);
+                    if (isNaN(date.getTime())) return 'NaN:NaN';
+                    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                },
                 formatOdds(odds) {
                     if (odds === undefined || odds === null) {
                         return "0.00";
@@ -6027,7 +6062,57 @@
                 },
                 showGameRules() {
                     // 顯示遊戲規則
-                    alert('遊戲規則說明：\n\n北京賽車PK10是一個數字競猜遊戲。\n\n投注選項：\n- 大小：1-5為小，6-10為大\n- 單雙：奇數為單，偶數為雙\n- 冠亞和：冠軍和亞軍號碼的和值\n- 龍虎：冠軍vs亞軍的大小比較');
+                    const rulesText = `重要聲明
+
+1.如果客戶懷疑自己的資料被盜用，應立即通知本公司，並更改詳細數據，以前的使用者名稱及密碼將全部無效。
+
+2.客戶有責任確保自己的賬戶及登入資料的保密性。以使用者名稱及密碼進行的任何網上投注將被視為有效。
+
+3.公佈賠率時出現的任何打字錯誤或非故意人為失誤，本公司保留改正錯誤和按正確賠率結算投注的權力。您居住所在地的法律有可能規定網絡博弈不合法；若此情況屬實，本公司將不會批准您使用付賬卡進行交易。
+
+4.每次登入時客戶都應該核對自己的賬戶結餘額。如對餘額有任何疑問，請在第一時間內通知本公司。
+
+5.一旦投注被接受，則不得取消或修改。
+
+6.所有號碼賠率將不時浮動，派彩時的賠率將以確認投注時之賠率為準。
+
+7.每注最高投注金額按不同[場次]及[投注項目]及[會員賬號]設定浮動。如投注金額超過上述設定，本公司有權取消超過之投注金額。
+
+8.所有投注都必須在開獎前時間內進行否則投注無效。
+
+9.所有投注派彩彩金皆含本金。
+
+具體遊戲規則如下：
+
+1. 1～10 兩面：指 單、雙；大、小。
+
+單、雙：號碼為雙數叫雙，如4、8；號碼為單數叫單，如5、9。
+
+大、小：開出之號碼大於或等於6為大，小於或等於5為小。
+
+第一名～第十名 車號指定：每一個車號為一投註組合，開獎結果「投註車號」對應所投名次視為中獎，其余情形視為不中獎。
+
+2. 1～5龍虎
+
+冠 軍 龍/虎：「第一名」車號大於「第十名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+
+亞 軍 龍/虎：「第二名」車號大於「第九名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+
+第三名 龍/虎：「第三名」車號大於「第八名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+
+第四名 龍/虎：「第四名」車號大於「第七名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+
+第五名 龍/虎：「第五名」車號大於「第六名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+
+3. 冠軍車號＋亞軍車號＝冠亞和值（為3~19)
+
+冠亞和單雙：「冠亞和值」為單視為投註「單」的註單視為中獎，為雙視為投註「雙」的註單視為中獎，其余視為不中獎。
+
+冠亞和大小：「冠亞和值」大於11時投註「大」的註單視為中獎，小於或等於11時投註「小」的註單視為中獎，其余視為不中獎。
+
+冠亞和指定：「冠亞和值」可能出現的結果為3～19， 投中對應「冠亞和值」數字的視為中獎，其余視為不中獎。`;
+
+                    alert(rulesText);
                     this.showDropdownMenu = false; // 關閉選單
                 },
                 toggleDropdown() {
@@ -6078,15 +6163,20 @@
                                 if (serverStatus === 'drawing' && previousStatus === 'betting') {
                                     console.log('🎲 封盤倒計時結束，開始開獎流程');
                                     this.startDrawingProcess();
-                                } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
-                                    console.log('✅ 開獎完成，停止所有動畫並更新結果');
-                                    this.completeDrawingProcess();
-                                    // 開獎完成後立即更新路珠走勢數據
-                                    if (this.roadBeadVisible) {
-                                        console.log('📊 開獎完成，立即更新路珠走勢數據');
+                                                            } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
+                                console.log('✅ 開獎完成，停止所有動畫並更新結果');
+                                this.completeDrawingProcess();
+                                // 開獎完成後立即更新路珠走勢數據
+                                if (this.roadBeadVisible) {
+                                    console.log('📊 開獎完成，立即更新路珠走勢數據');
+                                    // 延遲1秒確保數據庫已更新
+                                    setTimeout(() => {
                                         this.loadRoadBeadData();
-                                    }
+                                    }, 1000);
                                 }
+                                // 強制清除路珠數據緩存，確保下次打開時獲取最新數據
+                                this.roadBeadData = null;
+                            }
                             }
                             // 額外檢查：如果服務器是drawing狀態但本地是betting，強制切換
                             else if (serverStatus === 'drawing' && this.gameStatus === 'betting') {
@@ -8637,6 +8727,16 @@
                     if (!betValue) return '無';
                     
                     if (betType === 'dragonTiger') {
+                        // 處理龍虎投注格式：dragon_1_10 -> 龍(冠軍vs第10名)
+                        if (betValue && betValue.includes('_')) {
+                            const parts = betValue.split('_');
+                            if (parts.length === 3) {
+                                const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
+                                const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+                                const pos2 = parts[2] === '10' ? '第十名' : `第${parts[2]}名`;
+                                return `${dragonTiger}(${pos1}vs${pos2})`;
+                            }
+                        }
                         const dragonTigerMap = {
                             'dragon': '龍',
                             'tiger': '虎'
@@ -9231,6 +9331,9 @@
                 // 路珠走勢展示
                 showRoadBead() {
                     this.roadBeadVisible = true;
+                    // 清除舊數據，確保獲取最新結果
+                    this.roadBeadData = null;
+                    this.roadBeadTodayStats = [];
                     this.loadRoadBeadData();
                     this.showDropdownMenu = false; // 關閉選單
                 },
@@ -9245,10 +9348,13 @@
                         limit: 60 // 獲取最近60期數據
                     });
                     
+                    console.log(`🔄 載入路珠走勢數據: 名次=${this.selectedRoadBeadPosition}, 類型=${this.roadBeadAnalysisType}`);
+                    
                     fetch(`${this.API_BASE_URL}/api/road-bead?${params}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success && data.data) {
+                                console.log(`✅ 路珠數據載入成功，獲得 ${data.data.tableData ? data.data.tableData.length : 0} 行數據`);
                                 // 反向排列路珠數據，確保最新期號在左上角
                                 if (data.data.tableData && Array.isArray(data.data.tableData)) {
                                     data.data.tableData = data.data.tableData.map(row => {
@@ -9257,10 +9363,24 @@
                                         }
                                         return row;
                                     }).reverse(); // 反向整個表格
+                                    
+                                    // 調試：顯示最新的3個期號
+                                    const latestCells = [];
+                                    for (let i = 0; i < Math.min(3, data.data.tableData.length); i++) {
+                                        for (let j = 0; j < data.data.tableData[i].length; j++) {
+                                            if (data.data.tableData[i][j]) {
+                                                latestCells.push(data.data.tableData[i][j].period);
+                                                if (latestCells.length >= 3) break;
+                                            }
+                                        }
+                                        if (latestCells.length >= 3) break;
+                                    }
+                                    console.log(`📊 路珠最新期號:`, latestCells);
                                 }
                                 this.roadBeadData = data.data;
                                 this.roadBeadTodayStats = data.data.todayStats || [];
                             } else {
+                                console.log('⚠️ 路珠數據為空或格式錯誤:', data);
                                 this.roadBeadData = null;
                                 this.roadBeadTodayStats = [];
                             }
@@ -9397,14 +9517,14 @@
                 this.updateGameData();
                 this.fetchHotBets();  // 加載熱門投注數據
                 
-                // 每隔10秒刷新一次遊戲數據
+                // 每隔5秒刷新一次遊戲數據
                 setInterval(() => {
                     this.updateGameData();
                     // 如果路珠走勢彈窗是開啟的，也更新路珠數據
                     if (this.roadBeadVisible) {
                         this.loadRoadBeadData();
                     }
-                }, 10000);
+                }, 5000);
                 
                 // 每隔30秒刷新一次餘額
                 setInterval(() => {
