@@ -1680,9 +1680,32 @@
             }
             
             .menu-btn {
-                padding: 8px !important;
-                width: 40px;
-                height: 40px;
+                padding: 10px !important;
+                width: 48px !important;
+                height: 48px !important;
+                border-radius: 12px !important;
+                background: rgba(255, 255, 255, 0.15) !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
+                touch-action: manipulation !important;
+                position: relative !important;
+                z-index: 1000 !important;
+            }
+            
+            .menu-btn:active {
+                background: rgba(255, 255, 255, 0.25) !important;
+                transform: scale(0.95) !important;
+            }
+            
+            .menu-btn i {
+                font-size: 20px !important;
+                color: white !important;
+                pointer-events: none !important;
             }
             
             .login-section {
@@ -1698,6 +1721,11 @@
                 right: 0 !important;
                 left: auto !important;
                 transform: none !important;
+                z-index: 1002 !important;
+                max-width: 90vw !important;
+                margin-top: 12px !important;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+                border: 1px solid rgba(0, 0, 0, 0.1) !important;
             }
             
             /* 投注選項響應式設計 */
@@ -4698,7 +4726,11 @@
                     </div>
                     <!-- Hamburger menu -->
                     <div class="menu-dropdown" ref="menuContainer">
-                        <button class="action-btn menu-btn" @click="toggleDropdown">
+                        <button class="action-btn menu-btn" 
+                                @click="toggleDropdown($event)" 
+                                @touchend="toggleDropdown($event)"
+                                :aria-expanded="showDropdownMenu"
+                                aria-label="打開菜單">
                             <i class="fas fa-bars" style="font-size: 18px;"></i>
                         </button>
                         <div class="dropdown-panel" v-show="showDropdownMenu" style="right: 0;">
@@ -6364,9 +6396,17 @@
                     alert(rulesText);
                     this.showDropdownMenu = false; // 關閉選單
                 },
-                toggleDropdown() {
+                toggleDropdown(event) {
+                    // 防止事件冒泡和默認行為
+                    if (event) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                    }
+                    
                     // 切換下拉菜單的顯示狀態
+                    console.log('🍔 漢堡菜單按鈕被點擊，當前狀態:', this.showDropdownMenu);
                     this.showDropdownMenu = !this.showDropdownMenu;
+                    console.log('🍔 漢堡菜單新狀態:', this.showDropdownMenu);
                     
                     // 如果打開選單，立即更新今日盈虧
                     if (this.showDropdownMenu) {
