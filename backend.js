@@ -2309,6 +2309,24 @@ function calculateWinAmount(bet, winResult) {
         }
         break;
         
+      case 'position':
+        // 快速投注 - 位置投注
+        const position_num = parseInt(bet.position) || 1;
+        if (position_num >= 1 && position_num <= 10) {
+          const ballValue = winResult[position_num - 1];
+          
+          if (bet.bet_value === 'big' && ballValue > 5) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (bet.bet_value === 'small' && ballValue <= 5) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (bet.bet_value === 'odd' && ballValue % 2 === 1) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          } else if (bet.bet_value === 'even' && ballValue % 2 === 0) {
+            return Math.floor(amount * betOdds * 100) / 100;
+          }
+        }
+        break;
+        
       default:
         // 其他位置的大小單雙
         const posMap = {
@@ -2671,7 +2689,7 @@ function isValidBet(betType, value, position) {
   // 檢查下注類型
   const validBetTypes = [
     'sumValue', 'champion', 'runnerup', 'third', 'fourth', 'fifth', 
-    'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'dragonTiger', 'number'
+    'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'dragonTiger', 'number', 'position'
   ];
   
   if (!validBetTypes.includes(betType)) {
@@ -2728,6 +2746,14 @@ function isValidBet(betType, value, position) {
     // 檢查是否為有效的號碼投注(1-10)
     const numValue = parseInt(value);
     return !isNaN(numValue) && numValue >= 1 && numValue <= 10;
+  } else if (betType === 'position') {
+    // 快速投注：位置投注，支援大小單雙屬性
+    const validPropertyValues = ['big', 'small', 'odd', 'even'];
+    if (validPropertyValues.includes(value)) {
+      // 檢查位置是否有效(1-10)
+      return position && !isNaN(parseInt(position)) && parseInt(position) >= 1 && parseInt(position) <= 10;
+    }
+    return false;
   }
   
   return false;
@@ -2854,6 +2880,15 @@ function getOdds(betType, value) {
     else if (betType === 'dragonTiger') {
       return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
     } 
+    // 快速投注 (position類型)
+    else if (betType === 'position') {
+      if (['big', 'small', 'odd', 'even'].includes(value)) {
+        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙：1.96 × (1-4.1%) = 1.88
+      } else {
+        console.warn(`快速投注收到無效值: ${value}，返回默認賠率 1.0`);
+        return 1.0;
+      }
+    }
     // 冠軍、亞軍等位置投注
     else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
