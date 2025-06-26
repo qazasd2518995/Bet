@@ -44,7 +44,8 @@ Vue.component('bet-records', {
         'ninth': '第九名',
         'tenth': '第十名',
         'number': `第${bet.position || ''}名號碼`,
-        'dragonTiger': '龍虎'
+        'dragonTiger': '龍虎',
+        'position': '快速大小單雙'  // 修復position類型顯示
       };
       return typeMap[bet.betType || bet.type] || (bet.betType || bet.type);
     },
@@ -70,7 +71,23 @@ Vue.component('bet-records', {
       } else if (betType === 'number') {
         return `號碼 ${value}`;
       } else if (betType === 'dragonTiger') {
+        // 處理龍虎投注格式：dragon_1_10 -> 龍(冠軍vs第10名)
+        if (value && value.includes('_')) {
+          const parts = value.split('_');
+          if (parts.length === 3) {
+            const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
+            const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+            const pos2 = parts[2] === '10' ? '第十名' : `第${parts[2]}名`;
+            return `${dragonTiger}(${pos1}vs${pos2})`;
+          }
+        }
         return value === 'dragon' ? '龍' : '虎';
+      } else if (betType === 'position') {
+        // 處理position類型（快速大小單雙）
+        const valueMap = {
+          'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
+        };
+        return valueMap[value] || value;
       }
       return value;
     },
@@ -122,6 +139,13 @@ Vue.component('bet-records', {
         return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 10.0 × (1-4.1%) = 9.59
       } else if (betType === 'dragonTiger') {
         return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+      } else if (betType === 'position') {
+        // position類型（快速大小單雙）的賠率
+        if (['big', 'small', 'odd', 'even'].includes(value)) {
+          return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+        } else {
+          return 1.0; // 無效值返回預設賠率
+        }
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
