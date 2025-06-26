@@ -645,6 +645,11 @@ document.addEventListener('DOMContentLoaded', function() {
             setBetAmount(amount) {
                 this.betAmount = amount;
                 this.customAmount = '';
+                
+                // 同時更新所有已選擇投注項目的金額
+                this.selectedBets.forEach(bet => {
+                    bet.amount = amount;
+                });
             },
             
             // 清除投注
