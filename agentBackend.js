@@ -3629,6 +3629,24 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
       });
     }
     
+    // 創建會員到代理的映射
+    const memberToAgentMap = {};
+    const agentInfoMap = {};
+    
+    // 獲取代理信息
+    for (const member of members) {
+      memberToAgentMap[member.username] = member.agent_id;
+      if (!agentInfoMap[member.agent_id]) {
+        const agent = await AgentModel.findById(member.agent_id);
+        if (agent) {
+          agentInfoMap[member.agent_id] = {
+            username: agent.username,
+            level: agent.level
+          };
+        }
+      }
+    }
+    
     // 獲取這些會員的用戶名
     const memberUsernames = members.map(m => m.username);
     
@@ -3670,6 +3688,18 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     params.push(limit, offset);
     const bets = await db.any(betQuery, params);
     
+    // 為每筆下注添加代理信息
+    const betsWithAgentInfo = bets.map(bet => {
+      const agentId = memberToAgentMap[bet.username];
+      const agentInfo = agentInfoMap[agentId];
+      return {
+        ...bet,
+        agent_id: agentId,
+        agent_username: agentInfo ? agentInfo.username : '未知',
+        agent_level: agentInfo ? agentInfo.level : 1
+      };
+    });
+    
     // 計算統計數據
     const statsQuery = `
       SELECT 
@@ -3684,7 +3714,7 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     
     res.json({
       success: true,
-      bets,
+      bets: betsWithAgentInfo,
       total,
       stats: {
         totalBets: parseInt(stats.total_bets),

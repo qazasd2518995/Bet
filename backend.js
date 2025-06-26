@@ -1477,7 +1477,7 @@ async function settleBets(period, winResult) {
       
       // 在結算時分配退水給代理（不論輸贏，基於下注金額）
       try {
-        await distributeRebate(username, parseFloat(bet.amount));
+        await distributeRebate(username, parseFloat(bet.amount), period);
         console.log(`已為會員 ${username} 的注單 ${bet.id} 分配退水到代理`);
       } catch (rebateError) {
         console.error(`分配退水失敗 (注單ID=${bet.id}):`, rebateError);
@@ -1491,7 +1491,7 @@ async function settleBets(period, winResult) {
 }
 
 // 退水分配函數
-async function distributeRebate(username, betAmount) {
+async function distributeRebate(username, betAmount, period) {
   try {
     console.log(`開始為會員 ${username} 分配退水，下注金額: ${betAmount}`);
     
@@ -1547,7 +1547,7 @@ async function distributeRebate(username, betAmount) {
       
       if (agentRebateAmount > 0) {
         // 分配退水給代理
-        await allocateRebateToAgent(agent.id, agent.username, agentRebateAmount, username, betAmount);
+        await allocateRebateToAgent(agent.id, agent.username, agentRebateAmount, username, betAmount, period);
         console.log(`✅ 分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username} (模式: ${agent.rebate_mode}, 比例: ${(agent.rebate_percentage*100).toFixed(1)}%, 剩餘: ${remainingRebate.toFixed(2)})`);
         
         // 如果是全拿模式，直接結束分配
@@ -1587,7 +1587,7 @@ async function getAgentChain(username) {
 }
 
 // 分配退水給代理
-async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, memberUsername, betAmount) {
+async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, memberUsername, betAmount, period) {
   try {
     // 調用代理系統的退水分配API
     const response = await fetch(`${AGENT_API_URL}/allocate-rebate`, {
@@ -1601,7 +1601,7 @@ async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, membe
         rebateAmount: rebateAmount,
         memberUsername: memberUsername,
         betAmount: betAmount,
-        reason: '會員投注退水'
+        reason: period
       })
     });
     
