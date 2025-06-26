@@ -147,8 +147,8 @@
                 </div>
             </nav>
 
-            <!-- 全域新增會員模態框 - 不受頁籤限制，任何頁面都可以使用 -->
-            <div id="createMemberModal" v-if="showCreateMemberModal" 
+            <!-- 全域新增會員模態框 - 不受頁籤限制，任何頁面都可以使用，只在登入後顯示 -->
+            <div id="createMemberModal" v-if="showCreateMemberModal && isLoggedIn && user && user.id" 
                  style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
                 
                 <!-- 模態框主體 -->

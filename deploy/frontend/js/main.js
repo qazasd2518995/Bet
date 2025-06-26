@@ -340,6 +340,11 @@ const app = createApp({
     // 頁面載入時自動執行
     async mounted() {
         console.log('Vue應用已掛載');
+        
+        // 強制確保模態框初始狀態為關閉，防止登入前意外顯示
+        this.showCreateMemberModal = false;
+        this.showCreateAgentModal = false;
+        
         console.log('初始數據檢查:', {
             noticeForm: this.noticeForm,
             showNoticeForm: this.showNoticeForm,
@@ -504,6 +509,12 @@ const app = createApp({
         
         // 快速新增會員 - 專為會員管理頁面和下級代理管理設計
         quickCreateMember() {
+            // 安全檢查：確保已登入且有用戶資訊
+            if (!this.isLoggedIn || !this.user || !this.user.id) {
+                console.warn('⚠️ 未登入或用戶資訊不完整，無法新增會員');
+                return;
+            }
+            
             console.log('🚀 快速新增會員啟動');
             console.log('當前狀態:');
             console.log('- activeTab:', this.activeTab);
