@@ -5175,7 +5175,7 @@
                 
                 <div class="bet-confirm-actions">
                     <button class="cancel-bet-btn" @click="showBetModal = false">取消</button>
-                    <button class="confirm-bet-btn" @click="confirmBets" :disabled="gameStatus !== 'betting'">
+                    <button class="confirm-bet-btn" @click="confirmBets" :disabled="gameStatus !== 'betting' || !betAmount || betAmount < 1">
                         {{ gameStatus === 'betting' ? '確認' : '已封盤' }}
                     </button>
                 </div>
@@ -7115,12 +7115,12 @@
                     }
                 },
                 setAllCustomAmount() {
-                    if (this.customAmount && !isNaN(this.customAmount) && this.customAmount > 0) {
+                    if (this.customAmount && !isNaN(this.customAmount) && this.customAmount >= 1) {
                         const amount = parseFloat(this.customAmount);
                         this.setAllBetAmount(amount);
                         this.customAmount = ''; // 清空輸入框
                     } else {
-                        alert('請輸入有效的下注金額');
+                        alert('投注金額不能少於1元');
                     }
                 },
                 positionToKey(position) {
