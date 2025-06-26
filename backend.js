@@ -3167,10 +3167,26 @@ async function updateHotBets() {
     
     // 處理龍虎
     Object.entries(hotBetsData.byType.dragonTiger).forEach(([value, data]) => {
-      const valueMap = {
-        'dragon': '龍',
-        'tiger': '虎'
-      };
+      let label = '';
+      
+      // 處理龍虎投注格式：dragon_1_10 -> 龍(冠軍vs第10名)
+      if (value && value.includes('_')) {
+        const parts = value.split('_');
+        if (parts.length === 3) {
+          const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
+          const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+          const pos2 = parts[2] === '10' ? '第十名' : `第${parts[2]}名`;
+          label = `${dragonTiger}(${pos1}vs${pos2})`;
+        } else {
+          label = `龍虎 ${value}`;
+        }
+      } else {
+        const valueMap = {
+          'dragon': '龍',
+          'tiger': '虎'
+        };
+        label = `龍虎 ${valueMap[value] || value}`;
+      }
       
       allBets.push({
         type: 'dragonTiger',
@@ -3178,7 +3194,7 @@ async function updateHotBets() {
         value,
         count: data.count,
         amount: data.amount,
-        label: `龍虎 ${valueMap[value] || value}`
+        label
       });
     });
     
@@ -3300,9 +3316,9 @@ app.get('/api/hot-bets', (req, res) => {
     
     // 正常數據處理
     const hotBets = hotBetsData.topBets.map(bet => ({
-      type: bet.type,
+      betType: bet.type,      // 前端期望betType字段
+      betValue: bet.value,    // 前端期望betValue字段
       typeLabel: bet.typeLabel,
-      value: bet.value,
       position: bet.position,
       count: bet.count,
       label: bet.label,
@@ -3472,17 +3488,25 @@ function getPositionName(position) {
 
 // 🎴 路珠走勢數據
 app.get('/api/road-bead', async (req, res) => {
-    const { position = 1, type = 'number', limit = 30 } = req.query;
+    const { position = 1, type = 'number', limit = 60 } = req.query;
     
     try {
-        // 獲取指定數量的最近開獎記錄
+        // 計算今日期號範圍 (當日00:00到當前時間)
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayPeriodStart = Math.floor(todayStart.getTime() / 60000); // 今日第一期
+        
+        console.log(`🔍 路珠API: 獲取今日期號 >= ${todayPeriodStart} 的最近 ${limit} 期開獎記錄`);
+        
+        // 獲取今日的最近開獎記錄，按期號降序排列
         const drawHistory = await db.any(`
-            SELECT period, result
+            SELECT period, result, created_at
             FROM result_history 
             WHERE result IS NOT NULL 
+            AND CAST(period AS BIGINT) >= $1
             ORDER BY period DESC 
-            LIMIT $1
-        `, [parseInt(limit)]);
+            LIMIT $2
+        `, [todayPeriodStart, parseInt(limit)]);
         
         if (!drawHistory || drawHistory.length === 0) {
             return res.json({
@@ -3500,10 +3524,10 @@ app.get('/api/road-bead', async (req, res) => {
         // 反轉順序，從舊到新
         const orderedHistory = drawHistory.reverse();
         
-        // 今日開始時間（當天00:00）
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayPeriod = Math.floor(today.getTime() / 60000); // 轉換為期號格式
+        console.log(`✅ 路珠API: 成功獲取 ${drawHistory.length} 期開獎記錄，最新期號: ${drawHistory.length > 0 ? drawHistory[drawHistory.length - 1].period : '無'}`);
+        
+        // 使用已經計算的今日期號
+        const todayPeriod = todayPeriodStart;
         
         // 處理路珠數據
         const roadBeadData = processRoadBeadData(orderedHistory, parseInt(position), type);
