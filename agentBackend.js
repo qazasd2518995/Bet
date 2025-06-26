@@ -2037,7 +2037,7 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       }
 
       // 設定最大退水比例（不能超過上級代理的退水比例）
-      maxRebatePercentage = Math.min(parentAgent.max_rebate_percentage || 0.041, 0.041);
+      maxRebatePercentage = parentAgent.rebate_percentage || 0.041;
     } else {
          // 如果沒有指定上級，檢查是否正在創建總代理
          if (parsedLevel !== 0) {
@@ -3724,12 +3724,31 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
     
     // 獲取所有這些代理的會員
     let allMembers = [];
+    
+    // 創建代理ID到代理資訊的映射
+    const agentMap = {};
+    agentMap[rootAgentId] = { username: '本代理' }; // 根代理
+    downlineAgents.forEach(agent => {
+      agentMap[agent.id] = { username: agent.username };
+    });
+    
     for (const agentId of allAgentIds) {
-      const members = await MemberModel.findByAgentId(agentId, null, 1, 1000);
-      allMembers = allMembers.concat(members.map(member => ({
+      const { status, keyword } = req.query;
+      const members = await MemberModel.findByAgentId(agentId, status !== '-1' ? status : null, 1, 1000);
+      
+      // 如果有關鍵字篩選，進行過濾
+      let filteredMembers = members;
+      if (keyword) {
+        filteredMembers = members.filter(member => 
+          member.username.toLowerCase().includes(keyword.toLowerCase()) ||
+          member.id.toString().includes(keyword)
+        );
+      }
+      
+      allMembers = allMembers.concat(filteredMembers.map(member => ({
         ...member,
         agentId: agentId,
-        agentUsername: downlineAgents.find(a => a.id === agentId)?.username || 'unknown'
+        agentUsername: agentMap[agentId]?.username || '未知代理'
       })));
     }
     

@@ -161,6 +161,7 @@ const app = createApp({
                 totalPages: 1,
                 limit: 20
             },
+            memberViewMode: 'direct', // 'direct' 或 'downline'
             
             // 新增會員相關
             showCreateMemberModal: false,
@@ -1207,29 +1208,14 @@ const app = createApp({
         async searchMembers() {
             this.loading = true;
             try {
-                console.log('搜索會員...當前管理代理ID:', this.currentManagingAgent.id);
-                const params = new URLSearchParams();
-                if (this.memberFilters.status !== '-1') params.append('status', this.memberFilters.status);
-                if (this.memberFilters.keyword) params.append('keyword', this.memberFilters.keyword);
-                params.append('agentId', this.currentManagingAgent.id); // 使用當前管理代理的ID
+                console.log('搜索會員...當前管理代理ID:', this.currentManagingAgent.id, '查看模式:', this.memberViewMode);
                 
-                const url = `${API_BASE_URL}/members?${params.toString()}`;
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    console.error('搜索會員失敗:', response.status);
-                    this.members = [];
-                    return;
-                }
-                
-                const data = await response.json();
-                if (data.success && data.data) {
-                    this.members = data.data.list || [];
-                    this.memberPagination.totalPages = Math.ceil(data.data.total / this.memberPagination.limit);
-                    this.memberPagination.currentPage = data.data.page || 1;
+                if (this.memberViewMode === 'downline') {
+                    // 下級代理會員模式：獲取整條代理線的會員
+                    await this.loadDownlineMembers();
                 } else {
-                    console.error('會員數據格式錯誤:', data);
-                    this.members = [];
+                    // 直屬會員模式：只獲取當前代理的會員
+                    await this.loadDirectMembers();
                 }
             } catch (error) {
                 console.error('搜索會員錯誤:', error);
@@ -1237,6 +1223,72 @@ const app = createApp({
             } finally {
                 this.loading = false;
             }
+        },
+        
+        // 載入直屬會員
+        async loadDirectMembers() {
+            const params = new URLSearchParams();
+            if (this.memberFilters.status !== '-1') params.append('status', this.memberFilters.status);
+            if (this.memberFilters.keyword) params.append('keyword', this.memberFilters.keyword);
+            params.append('agentId', this.currentManagingAgent.id);
+            params.append('page', this.memberPagination.currentPage);
+            params.append('limit', this.memberPagination.limit);
+            
+            const url = `${API_BASE_URL}/members?${params.toString()}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                console.error('搜索直屬會員失敗:', response.status);
+                this.members = [];
+                return;
+            }
+            
+            const data = await response.json();
+            if (data.success && data.data) {
+                this.members = data.data.list || [];
+                this.memberPagination.totalPages = Math.ceil(data.data.total / this.memberPagination.limit);
+                this.memberPagination.currentPage = data.data.page || 1;
+            } else {
+                console.error('直屬會員數據格式錯誤:', data);
+                this.members = [];
+            }
+        },
+        
+        // 載入下級代理會員
+        async loadDownlineMembers() {
+            try {
+                console.log('📡 載入下級代理會員...');
+                const response = await axios.get(`${API_BASE_URL}/downline-members`, {
+                    params: { 
+                        rootAgentId: this.currentManagingAgent.id,
+                        status: this.memberFilters.status !== '-1' ? this.memberFilters.status : undefined,
+                        keyword: this.memberFilters.keyword || undefined
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.members = response.data.members || [];
+                    // 為下級代理會員模式設定分頁（簡化版）
+                    this.memberPagination.totalPages = 1;
+                    this.memberPagination.currentPage = 1;
+                    console.log('✅ 載入下級代理會員成功:', this.members.length, '個');
+                } else {
+                    console.error('❌ 載入下級代理會員失敗:', response.data.message);
+                    this.members = [];
+                }
+            } catch (error) {
+                console.error('❌ 載入下級代理會員錯誤:', error);
+                this.members = [];
+            }
+        },
+        
+        // 處理會員查看模式變更
+        async handleMemberViewModeChange() {
+            console.log('🔄 會員查看模式變更:', this.memberViewMode);
+            // 重置分頁
+            this.memberPagination.currentPage = 1;
+            // 重新載入會員列表
+            await this.searchMembers();
         },
         
         // 隱藏餘額調整模態框
@@ -1885,7 +1937,8 @@ const app = createApp({
             // 驗證退水設定
             if (this.newAgent.rebate_mode === 'percentage') {
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
-                const maxRebate = this.currentManagingAgent.max_rebate_percentage * 100;
+                // 修復：使用當前管理代理的實際退水比例作為最大限制
+                const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || 0.041) * 100;
                 
                 if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
                     this.showMessage(`退水比例必須在 0% - ${maxRebate.toFixed(1)}% 之間`, 'error');

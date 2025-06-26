@@ -682,9 +682,9 @@
                                                 <div class="mb-3" v-if="newAgent.rebate_mode === 'percentage'">
                                                     <label class="form-label">退水比例 (%)</label>
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
-                                                           step="0.01" min="0" :max="currentManagingAgent.max_rebate_percentage * 100" required>
+                                                           step="0.01" min="0" :max="(currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100" required>
                                                     <small class="form-text text-muted">
-                                                        可設定範圍：0% - {{ (currentManagingAgent.max_rebate_percentage * 100).toFixed(1) }}%
+                                                        可設定範圍：0% - {{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
                                                     </small>
                                                 </div>
                                                 <div class="card bg-light">
@@ -693,7 +693,7 @@
                                                     </div>
                                                     <div class="card-body">
                                                         <ul class="mb-0 small">
-                                                            <li><strong>全拿所有退水：</strong>該代理獲得所有可得退水 ({{ (currentManagingAgent.max_rebate_percentage * 100).toFixed(1) }}%)</li>
+                                                            <li><strong>全拿所有退水：</strong>該代理獲得所有可得退水 ({{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%)</li>
                                                             <li><strong>設定具體比例：</strong>該代理獲得指定比例的退水</li>
                                                             <li><strong>全退給下級：</strong>該代理不獲得退水，全部給下級代理</li>
                                                         </ul>
@@ -810,9 +810,22 @@
                 <div v-if="activeTab === 'members'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2>會員管理</h2>
-                        <button class="btn btn-primary" @click="quickCreateMember">
-                            <i class="fas fa-plus me-1"></i>新增會員
-                        </button>
+                        <div class="d-flex gap-2">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="memberViewMode" id="directMembers" v-model="memberViewMode" value="direct" @change="handleMemberViewModeChange">
+                                <label class="btn btn-outline-primary" for="directMembers">
+                                    <i class="fas fa-user me-1"></i>我的會員
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="memberViewMode" id="downlineMembers" v-model="memberViewMode" value="downline" @change="handleMemberViewModeChange">
+                                <label class="btn btn-outline-info" for="downlineMembers">
+                                    <i class="fas fa-sitemap me-1"></i>下級代理會員
+                                </label>
+                            </div>
+                            <button class="btn btn-primary" @click="quickCreateMember">
+                                <i class="fas fa-plus me-1"></i>新增會員
+                            </button>
+                        </div>
                     </div>
 
                     <div class="card mb-4">
@@ -848,6 +861,7 @@
                                         <tr>
                                             <th>ID</th>
                                             <th>用戶名</th>
+                                            <th v-if="memberViewMode === 'downline'">所屬代理</th>
                                             <th>餘額</th>
                                             <th>狀態</th>
                                             <th>創建時間</th>
@@ -856,11 +870,14 @@
                                     </thead>
                                     <tbody>
                                         <tr v-if="members.length === 0">
-                                            <td colspan="6" class="text-center">無會員數據</td>
+                                            <td :colspan="memberViewMode === 'downline' ? 7 : 6" class="text-center">無會員數據</td>
                                         </tr>
                                         <tr v-for="member in members" :key="member.id">
                                             <td>{{ member.id }}</td>
                                             <td>{{ member.username }}</td>
+                                            <td v-if="memberViewMode === 'downline'">
+                                                <span class="badge bg-secondary">{{ member.agentUsername || '未知代理' }}</span>
+                                            </td>
                                             <td>{{ formatMoney(member.balance) }}</td>
                                             <td>
                                                 <span class="badge" :class="member.status === 1 ? 'bg-success' : 'bg-danger'">
