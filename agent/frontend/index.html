@@ -2148,7 +2148,7 @@
         </div>
 
         <!-- 個人資料 Modal -->
-        <div v-if="isProfileModalVisible" class="modal d-block" id="profileModal" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                    <div v-if="isProfileModalVisible && isLoggedIn && user && user.id" class="modal d-block" id="profileModal" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">

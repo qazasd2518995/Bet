@@ -341,9 +341,32 @@ const app = createApp({
     async mounted() {
         console.log('Vue應用已掛載');
         
-        // 強制確保模態框初始狀態為關閉，防止登入前意外顯示
+        // 強制確保所有模態框初始狀態為關閉，防止登入前意外顯示
         this.showCreateMemberModal = false;
         this.showCreateAgentModal = false;
+        this.isProfileModalVisible = false;
+        this.showCSOperationModal = false;
+        this.showAdjustBalanceModal = false;
+        console.log('🔒 所有模態框狀態已重置為關閉');
+        
+        // 添加全域保護機制：監聽所有模態框狀態變化
+        this.$watch('showCreateMemberModal', (newVal) => {
+            if (newVal && (!this.isLoggedIn || !this.user || !this.user.id)) {
+                console.warn('🚫 阻止未登入狀態顯示新增會員模態框');
+                this.$nextTick(() => {
+                    this.showCreateMemberModal = false;
+                });
+            }
+        });
+        
+        this.$watch('isProfileModalVisible', (newVal) => {
+            if (newVal && (!this.isLoggedIn || !this.user || !this.user.id)) {
+                console.warn('🚫 阻止未登入狀態顯示個人資料模態框');
+                this.$nextTick(() => {
+                    this.isProfileModalVisible = false;
+                });
+            }
+        });
         
         console.log('初始數據檢查:', {
             noticeForm: this.noticeForm,
@@ -3704,6 +3727,12 @@ const app = createApp({
         
         // 顯示個人資料模態框
         async showProfileModal() {
+            // 安全檢查：確保已登入且有用戶資訊
+            if (!this.isLoggedIn || !this.user || !this.user.id) {
+                console.warn('⚠️ 未登入或用戶資訊不完整，無法顯示個人資料');
+                return;
+            }
+            
             console.log('顯示個人資料模態框');
             // 載入個人資料數據
             await this.loadProfileData();
