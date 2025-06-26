@@ -148,7 +148,7 @@
             </nav>
 
             <!-- 全域新增會員模態框 - 不受頁籤限制，任何頁面都可以使用，只在登入後顯示 -->
-            <div id="createMemberModal" v-if="showCreateMemberModal && isLoggedIn && user && user.id" 
+            <div id="createMemberModal" v-if="showCreateMemberModal && isLoggedIn && user && user.id && modalSystemReady" 
                  style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
                 
                 <!-- 模態框主體 -->
@@ -2148,7 +2148,7 @@
         </div>
 
         <!-- 個人資料 Modal -->
-                    <div v-if="isProfileModalVisible && isLoggedIn && user && user.id" class="modal d-block" id="profileModal" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                    <div v-if="isProfileModalVisible && isLoggedIn && user && user.id && modalSystemReady" class="modal d-block" id="profileModal" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">

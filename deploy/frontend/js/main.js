@@ -591,68 +591,9 @@ const app = createApp({
             this.currentManagingAgent = targetAgent;
             console.log('✅ 設置目標代理:', this.currentManagingAgent);
             
-            // 顯示模態框並等待DOM更新
+            // 簡化模態框顯示邏輯，只設置Vue狀態
             this.showCreateMemberModal = true;
-            console.log('🔄 設置showCreateMemberModal = true，等待Vue響應式更新...');
-            
-            // 使用$nextTick確保DOM已更新
-            this.$nextTick(() => {
-                console.log('📍 Vue $nextTick觸發，DOM應已更新');
-                // 再次等待一個微小的延遲確保渲染完成
-                setTimeout(() => {
-                    const modal = document.getElementById('createMemberModal');
-                    console.log('🔍 查找模態框DOM，結果:', modal ? '找到' : '未找到');
-                    
-                    if (modal) {
-                        // 確保模態框可見
-                        modal.style.display = 'flex';
-                        modal.style.zIndex = '99999';
-                        console.log('✅ 快速新增會員模態框已顯示');
-                        
-                        // 自動聚焦到用戶名輸入框
-                        setTimeout(() => {
-                            const usernameInput = modal.querySelector('input[type="text"]');
-                            if (usernameInput) {
-                                usernameInput.focus();
-                                console.log('🎯 用戶名輸入框已聚焦');
-                            }
-                        }, 100);
-                        
-                        // 滾動到視窗中央
-                        modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    } else {
-                        console.error('❌ 第一次嘗試：找不到模態框DOM，開始重試...');
-                        
-                        // 強制Vue重新渲染
-                        this.$forceUpdate();
-                        
-                        // 延長等待時間再次嘗試
-                        setTimeout(() => {
-                            const retryModal = document.getElementById('createMemberModal');
-                            console.log('🔍 重試查找模態框DOM，結果:', retryModal ? '找到' : '未找到');
-                            
-                            if (retryModal) {
-                                retryModal.style.display = 'flex';
-                                retryModal.style.zIndex = '99999';
-                                console.log('✅ 重試成功！模態框已顯示');
-                                
-                                // 自動聚焦
-                                setTimeout(() => {
-                                    const usernameInput = retryModal.querySelector('input[type="text"]');
-                                    if (usernameInput) {
-                                        usernameInput.focus();
-                                    }
-                                }, 100);
-                            } else {
-                                console.error('❌ 重試失敗，模態框仍然無法顯示');
-                                console.error('當前showCreateMemberModal狀態:', this.showCreateMemberModal);
-                                console.error('當前activeTab:', this.activeTab);
-                                this.showMessage('新增會員視窗載入失敗，請重新整理頁面', 'error');
-                            }
-                        }, 300);
-                    }
-                }, 50);
-            });
+            console.log('✅ 新增會員模態框已設置為顯示');
         },
         
         // 隱藏創建會員模態框 - 完全重新實現
