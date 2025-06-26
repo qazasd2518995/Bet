@@ -418,7 +418,7 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
     const subAgents = await AgentModel.findByParentId(agentId);
     const members = await MemberModel.findByAgentId(agentId);
     
-    if (subAgents.agents.length > 0 || members.members.length > 0) {
+    if (subAgents.length > 0 || members.length > 0) {
       return res.status(400).json({
         success: false,
         message: '無法刪除：該代理下還有下級代理或會員'
@@ -439,6 +439,54 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '刪除代理失敗',
+      error: error.message
+    });
+  }
+});
+
+// 刪除會員API
+app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少會員ID'
+      });
+    }
+    
+    // 檢查會員是否存在
+    const member = await MemberModel.findById(memberId);
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 檢查會員餘額是否為0
+    if (parseFloat(member.balance) > 0) {
+      return res.status(400).json({
+        success: false,
+        message: '無法刪除：會員餘額不為零，請先清空餘額'
+      });
+    }
+    
+    // 執行軟刪除（將狀態設為0）
+    await MemberModel.updateStatus(memberId, 0);
+    
+    res.json({
+      success: true,
+      message: '會員已成功刪除',
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('刪除會員失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '刪除會員失敗',
       error: error.message
     });
   }
