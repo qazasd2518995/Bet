@@ -495,7 +495,7 @@ const app = createApp({
         
         // 快速新增會員 - 專為會員管理頁面和下級代理管理設計
         quickCreateMember() {
-            console.log('快速新增會員啟動');
+            console.log('🚀 快速新增會員啟動');
             console.log('當前狀態:');
             console.log('- activeTab:', this.activeTab);
             console.log('- currentManagingAgent:', this.currentManagingAgent);
@@ -517,7 +517,7 @@ const app = createApp({
             if (this.activeTab === 'agents' && this.agentBreadcrumbs.length > 0) {
                 // 在下級代理管理頁面，為當前查看的代理新增會員
                 targetAgent = this.currentManagingAgent;
-                console.log('下級代理管理模式：為代理', targetAgent?.username, '新增會員');
+                console.log('📋 下級代理管理模式：為代理', targetAgent?.username, '新增會員');
             } else if (this.activeTab === 'members') {
                 // 在會員管理頁面，為自己新增會員
                 targetAgent = {
@@ -548,44 +548,67 @@ const app = createApp({
             this.currentManagingAgent = targetAgent;
             console.log('✅ 設置目標代理:', this.currentManagingAgent);
             
-            // 直接顯示模態框
+            // 顯示模態框並等待DOM更新
             this.showCreateMemberModal = true;
+            console.log('🔄 設置showCreateMemberModal = true，等待Vue響應式更新...');
             
-            // 立即確保模態框可見
+            // 使用$nextTick確保DOM已更新
             this.$nextTick(() => {
+                console.log('📍 Vue $nextTick觸發，DOM應已更新');
+                // 再次等待一個微小的延遲確保渲染完成
                 setTimeout(() => {
                     const modal = document.getElementById('createMemberModal');
+                    console.log('🔍 查找模態框DOM，結果:', modal ? '找到' : '未找到');
+                    
                     if (modal) {
+                        // 確保模態框可見
                         modal.style.display = 'flex';
-                        modal.style.zIndex = '10000';
+                        modal.style.zIndex = '99999';
                         console.log('✅ 快速新增會員模態框已顯示');
                         
                         // 自動聚焦到用戶名輸入框
-                        const usernameInput = modal.querySelector('input[type="text"]');
-                        if (usernameInput) {
-                            usernameInput.focus();
-                        }
+                        setTimeout(() => {
+                            const usernameInput = modal.querySelector('input[type="text"]');
+                            if (usernameInput) {
+                                usernameInput.focus();
+                                console.log('🎯 用戶名輸入框已聚焦');
+                            }
+                        }, 100);
                         
                         // 滾動到視窗中央
                         modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     } else {
-                        console.error('❌ 快速新增：找不到模態框DOM');
-                        this.showMessage('新增會員視窗載入失敗', 'error');
+                        console.error('❌ 第一次嘗試：找不到模態框DOM，開始重試...');
                         
-                        // 嘗試重新渲染
+                        // 強制Vue重新渲染
                         this.$forceUpdate();
+                        
+                        // 延長等待時間再次嘗試
                         setTimeout(() => {
                             const retryModal = document.getElementById('createMemberModal');
+                            console.log('🔍 重試查找模態框DOM，結果:', retryModal ? '找到' : '未找到');
+                            
                             if (retryModal) {
                                 retryModal.style.display = 'flex';
-                                retryModal.style.zIndex = '10000';
-                                console.log('✅ 重試成功顯示模態框');
+                                retryModal.style.zIndex = '99999';
+                                console.log('✅ 重試成功！模態框已顯示');
+                                
+                                // 自動聚焦
+                                setTimeout(() => {
+                                    const usernameInput = retryModal.querySelector('input[type="text"]');
+                                    if (usernameInput) {
+                                        usernameInput.focus();
+                                    }
+                                }, 100);
                             } else {
                                 console.error('❌ 重試失敗，模態框仍然無法顯示');
+                                console.error('當前showCreateMemberModal狀態:', this.showCreateMemberModal);
+                                console.error('當前activeTab:', this.activeTab);
+                                this.showMessage('新增會員視窗載入失敗，請重新整理頁面', 'error');
                             }
-                        }, 200);
+                        }, 300);
                     }
-                }, 100);
+                }, 50);
             });
         },
         
@@ -593,7 +616,14 @@ const app = createApp({
         hideCreateMemberModal() {
             console.log('🚫 關閉新增會員模態框');
             
-            // 直接隱藏模態框
+            // 立即隱藏模態框（先處理樣式避免視覺延遲）
+            const modal = document.getElementById('createMemberModal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('📋 模態框DOM已隱藏');
+            }
+            
+            // 設置Vue響應式狀態
             this.showCreateMemberModal = false;
             
             // 重置表單數據
@@ -605,14 +635,14 @@ const app = createApp({
                 status: 1
             };
             
-            // 清除任何內聯樣式
-            setTimeout(() => {
-                const modal = document.getElementById('createMemberModal');
-                if (modal) {
-                    modal.style.display = '';
-                    modal.style.zIndex = '';
+            // 確保完全清除樣式
+            this.$nextTick(() => {
+                const modalElement = document.getElementById('createMemberModal');
+                if (modalElement) {
+                    modalElement.style.display = '';
+                    modalElement.style.zIndex = '';
                 }
-            }, 50);
+            });
             
             console.log('✅ 模態框已關閉，數據已重置');
         },
