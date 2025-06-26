@@ -2642,32 +2642,47 @@ app.post('/api/bet', async (req, res) => {
       
       console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
-      // 原子性扣除用戶餘額（內建餘額檢查，解決並發安全問題）
+      // 使用代理系統檢查和扣除會員餘額
       let updatedBalance;
       try {
-        updatedBalance = await UserModel.deductBalance(username, amountNum);
-        console.log(`用戶 ${username} 下注 ${amountNum} 元後餘額: ${updatedBalance}`);
-      } catch (balanceError) {
-        console.error(`下注失敗: ${balanceError.message}`);
-        return res.status(400).json({ success: false, message: '餘額不足' });
-      }
-      
-      // 只同步餘額到代理系統（不扣代理點數）
-      try {
-        await fetch(`${AGENT_API_URL}/sync-member-balance`, {
+        console.log(`嘗試從代理系統扣除會員 ${username} 餘額 ${amountNum} 元`);
+        
+        // 調用代理系統API扣除餘額
+        const deductResponse = await fetch(`${AGENT_API_URL}/deduct-member-balance`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             username: username,
-            balance: updatedBalance,
-            reason: '下注扣除'
+            amount: amountNum,
+            reason: '遊戲下注'
           })
         });
-      } catch (syncError) {
-        console.warn('同步餘額到代理系統失敗，但會員餘額已更新:', syncError);
+        
+        const deductData = await deductResponse.json();
+        
+        if (!deductData.success) {
+          console.error(`代理系統扣除餘額失敗: ${deductData.message}`);
+          return res.status(400).json({ success: false, message: deductData.message || '餘額不足' });
+        }
+        
+        updatedBalance = deductData.balance;
+        console.log(`用戶 ${username} 下注 ${amountNum} 元後餘額: ${updatedBalance}`);
+        
+        // 同步餘額到本地users表（保持兼容性）
+        try {
+          await UserModel.createOrUpdate({ username: username, balance: updatedBalance });
+        } catch (syncError) {
+          console.warn('同步餘額到本地users表失敗:', syncError);
+        }
+        
+      } catch (balanceError) {
+        console.error(`下注失敗: ${balanceError.message}`);
+        return res.status(400).json({ success: false, message: '餘額檢查失敗，請稍後再試' });
       }
+      
+      // 餘額已由代理系統處理，無需重複同步
       
       // 準備下注數據
       const betData = {

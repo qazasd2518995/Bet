@@ -961,7 +961,7 @@ const AgentModel = {
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['agent', id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '代理點數調整']);
+      `, ['agent', id, amount, amount > 0 ? 'rebate' : 'withdraw', beforeBalance, afterBalance, amount > 0 ? '退水收入' : '代理點數調整']);
       
       return updatedAgent;
     } catch (error) {
@@ -2246,24 +2246,16 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
     // 保證金額精度，四捨五入到小數點後2位
     const roundedRebateAmount = Math.round(parseFloat(rebateAmount) * 100) / 100;
     
-    // 增加代理餘額
-    const currentBalance = parseFloat(agent.balance) || 0;
-    const newBalance = currentBalance + roundedRebateAmount;
+    // 增加代理餘額 - 修正：傳遞增加的金額而非新餘額
+    await AgentModel.updateBalance(agentId, roundedRebateAmount);
     
-    await AgentModel.updateBalance(agentId, newBalance);
+    // 獲取更新後的代理資訊以記錄正確的餘額
+    const updatedAgent = await AgentModel.findById(agentId);
     
-    // 記錄交易
-    await TransactionModel.create({
-      user_id: agentId,
-      user_type: 'agent',
-      amount: roundedRebateAmount,
-      type: 'rebate',
-      balance_before: currentBalance,
-      balance_after: newBalance,
-      description: `${reason} - 會員: ${memberUsername}, 下注: ${betAmount}`
-    });
+    // 記錄交易（AgentModel.updateBalance已經記錄了，這裡無需重複記錄）
+    // TransactionModel.create 已在 updateBalance 方法中處理
     
-    console.log(`成功分配退水 ${roundedRebateAmount} 給代理 ${agentUsername}，餘額: ${currentBalance} → ${newBalance}`);
+    console.log(`成功分配退水 ${roundedRebateAmount} 給代理 ${agentUsername}，新餘額: ${updatedAgent.balance}`);
     
     res.json({
       success: true,
@@ -4763,6 +4755,70 @@ app.post(`${API_PREFIX}/sync-bet-transaction`, async (req, res) => {
     });
   } catch (error) {
     console.error('同步下注/中獎出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增: 扣除會員餘額API（用於遊戲下注）
+app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
+  const { username, amount, reason } = req.body;
+  
+  console.log(`收到扣除會員餘額請求: 會員=${username}, 金額=${amount}, 原因=${reason}`);
+  
+  try {
+    if (!username || amount === undefined) {
+      return res.json({
+        success: false,
+        message: '請提供會員用戶名和扣除金額'
+      });
+    }
+    
+    const deductAmount = parseFloat(amount);
+    if (isNaN(deductAmount) || deductAmount <= 0) {
+      return res.json({
+        success: false,
+        message: '扣除金額必須大於0'
+      });
+    }
+    
+    // 查詢會員
+    const member = await MemberModel.findByUsername(username);
+    if (!member) {
+      console.log(`扣除餘額失敗: 會員 ${username} 不存在`);
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    const currentBalance = parseFloat(member.balance);
+    const afterBalance = currentBalance - deductAmount;
+    
+    // 檢查餘額是否足夠
+    if (afterBalance < 0) {
+      console.log(`扣除餘額失敗: 會員 ${username} 餘額不足 (當前: ${currentBalance}, 嘗試扣除: ${deductAmount})`);
+      return res.json({
+        success: false,
+        message: '餘額不足'
+      });
+    }
+    
+    // 執行扣除操作（使用負金額表示扣除）
+    const updatedMember = await MemberModel.updateBalance(username, -deductAmount);
+    
+    console.log(`成功扣除會員 ${username} 餘額 ${deductAmount} 元，新餘額: ${updatedMember.balance}`);
+    
+    res.json({
+      success: true,
+      message: '餘額扣除成功',
+      balance: parseFloat(updatedMember.balance),
+      deductedAmount: deductAmount
+    });
+  } catch (error) {
+    console.error('扣除會員餘額出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
