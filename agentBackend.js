@@ -419,9 +419,13 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
     const members = await MemberModel.findByAgentId(agentId);
     
     if (subAgents.length > 0 || members.length > 0) {
+      const details = [];
+      if (subAgents.length > 0) details.push(`${subAgents.length}個下級代理`);
+      if (members.length > 0) details.push(`${members.length}個會員`);
+      
       return res.status(400).json({
         success: false,
-        message: '無法刪除：該代理下還有下級代理或會員'
+        message: `無法刪除：該代理下還有${details.join('和')}，請先處理這些下級關係`
       });
     }
     
@@ -466,10 +470,11 @@ app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
     }
     
     // 檢查會員餘額是否為0
-    if (parseFloat(member.balance) > 0) {
+    const balance = parseFloat(member.balance);
+    if (balance > 0) {
       return res.status(400).json({
         success: false,
-        message: '無法刪除：會員餘額不為零，請先清空餘額'
+        message: `無法刪除：會員餘額為 $${balance.toFixed(2)}，請先將餘額清空至0`
       });
     }
     

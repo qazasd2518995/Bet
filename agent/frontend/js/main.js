@@ -2398,7 +2398,14 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('刪除會員錯誤:', error);
-                this.showMessage(error.response?.data?.message || '會員刪除失敗，請稍後再試', 'error');
+                // 提取具體的錯誤信息
+                let errorMessage = '會員刪除失敗，請稍後再試';
+                if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                this.showMessage(errorMessage, 'error');
             } finally {
                 this.loading = false;
             }
@@ -2606,7 +2613,14 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('刪除代理錯誤:', error);
-                this.showMessage(error.response?.data?.message || '代理刪除失敗，請稍後再試', 'error');
+                // 提取具體的錯誤信息
+                let errorMessage = '代理刪除失敗，請稍後再試';
+                if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                this.showMessage(errorMessage, 'error');
             } finally {
                 this.loading = false;
             }
