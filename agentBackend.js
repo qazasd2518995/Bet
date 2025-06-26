@@ -1743,16 +1743,16 @@ const TransactionModel = {
   async create(transactionData) {
     const { 
       user_type, user_id, amount, type, 
-      balance_before, balance_after, reference_id, description 
+      balance_before, balance_after, description 
     } = transactionData;
     
     try {
       return await db.one(`
         INSERT INTO transaction_records 
-        (user_type, user_id, amount, transaction_type, balance_before, balance_after, reference_id, description) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
         RETURNING *
-      `, [user_type, user_id, amount, type, balance_before, balance_after, reference_id, description]);
+      `, [user_type, user_id, amount, type, balance_before, balance_after, description]);
     } catch (error) {
       console.error('創建交易記錄出錯:', error);
       throw error;
@@ -2255,8 +2255,9 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       user_type: 'agent',
       amount: roundedRebateAmount,
       type: 'rebate',
-      description: `${reason} - 會員: ${memberUsername}, 下注: ${betAmount}`,
-      balance_after: newBalance
+      balance_before: currentBalance,
+      balance_after: newBalance,
+      description: `${reason} - 會員: ${memberUsername}, 下注: ${betAmount}`
     });
     
     console.log(`成功分配退水 ${roundedRebateAmount} 給代理 ${agentUsername}，餘額: ${currentBalance} → ${newBalance}`);
@@ -4265,6 +4266,9 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     } else if (type === 'withdraw') {
       // 提款記錄：包含 cs_withdraw 和 withdraw
       query += ` AND (t.transaction_type = 'cs_withdraw' OR t.transaction_type = 'withdraw')`;
+    } else if (type === 'rebate') {
+      // 退水記錄
+      query += ` AND t.transaction_type = 'rebate'`;
     }
     
     // 獲取總數
