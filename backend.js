@@ -1721,11 +1721,12 @@ app.get('/api/daily-profit', async (req, res) => {
     const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
     const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1));
 
-    // 查詢今日投注記錄
+    // 查詢今日投注記錄 - 修正盈虧計算邏輯
     const result = await db.oneOrNone(
       `SELECT 
         COALESCE(SUM(amount), 0) as total_bet,
-        COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win
+        COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win,
+        COALESCE(SUM(CASE WHEN win = true THEN (win_amount - amount) ELSE -amount END), 0) as net_profit
       FROM bet_history 
       WHERE username = $1 
         AND settled = true 
@@ -1736,7 +1737,7 @@ app.get('/api/daily-profit', async (req, res) => {
 
     const totalBet = result ? parseFloat(result.total_bet) || 0 : 0;
     const totalWin = result ? parseFloat(result.total_win) || 0 : 0;
-    const dailyProfit = totalWin - totalBet;
+    const dailyProfit = result ? parseFloat(result.net_profit) || 0 : 0;
 
     console.log(`用戶 ${username} 今日盈虧: 投注 ${totalBet}, 贏得 ${totalWin}, 盈虧 ${dailyProfit}`);
 
@@ -1786,13 +1787,13 @@ app.get('/api/profit-records', async (req, res) => {
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - parseInt(days));
 
-    // 獲取指定天數內的每日盈虧記錄
+    // 獲取指定天數內的每日盈虧記錄 - 修正win_amount問題
     const query = `
       SELECT 
         DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') as date,
         COUNT(*) as bet_count,
         COALESCE(SUM(amount), 0) as total_bet,
-        COALESCE(SUM(win_amount), 0) as total_win
+        COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win
       FROM bet_history 
       WHERE username = $1 
         AND settled = true 
@@ -1805,12 +1806,18 @@ app.get('/api/profit-records', async (req, res) => {
     // 執行查詢
     const result = await db.any(query, [username, startDate, endDate]);
     
-    // 處理查詢結果
-    const records = result && result.length > 0 ? result.map(row => ({
-      date: row.date,
-      betCount: parseInt(row.bet_count),
-      profit: parseFloat(row.total_win) - parseFloat(row.total_bet)
-    })) : [];
+    // 處理查詢結果 - 修正盈虧計算
+    const records = result && result.length > 0 ? result.map(row => {
+      const totalBet = parseFloat(row.total_bet);
+      const totalWin = parseFloat(row.total_win);
+      // 正確計算盈虧：實際獲得的錢減去投注的錢
+      const profit = totalWin - totalBet;
+      return {
+        date: row.date,
+        betCount: parseInt(row.bet_count),
+        profit: profit
+      };
+    }) : [];
     
     // 計算總計
     const totalBetCount = records.reduce((sum, record) => sum + record.betCount, 0);

@@ -5982,15 +5982,15 @@
                     });
                 },
                 
-                // 格式化盈虧金額，顯示+/-符號
+                // 格式化盈虧金額，顯示+/-符號和小數
                 formatProfit(amount) {
                     if (amount === null || amount === undefined || amount === 0) {
-                        return '$0';
+                        return '$0.00';
                     }
                     
                     const formattedAmount = Math.abs(amount).toLocaleString('zh-TW', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
                     });
                     
                     if (amount > 0) {
@@ -6397,11 +6397,11 @@
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
                     
-                    fetch(`${this.API_BASE_URL}/api/member/profit-loss/${username}?period=today`)
+                    fetch(`${this.API_BASE_URL}/api/daily-profit?username=${username}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                this.dailyProfit = parseFloat(data.data.net) || 0;
+                                this.dailyProfit = Math.round((parseFloat(data.profit) || 0) * 100) / 100; // 保留兩位小數
                             } else {
                                 console.error('獲取今日盈虧失敗:', data.message);
                             }
@@ -7168,9 +7168,9 @@
                         });
                     }
                     
-                    // 確保顯示為整數
+                    // 確保盈虧保留小數位，註數顯示為整數
                     this.dailyBetCount = dailyBetCount;
-                    this.dailyProfit = Math.round(dailyProfit);
+                    this.dailyProfit = Math.round(dailyProfit * 100) / 100; // 保留兩位小數
                 },
                 getBalance() {
                     const username = sessionStorage.getItem('username');
@@ -9053,101 +9053,56 @@
                         return;
                     }
                     
-                    // 直接獲取注單歷史來計算盈虧記錄
-                    fetch(`${this.API_BASE_URL}/api/bet-history?username=${username}&limit=1000`)
-                        .then(response => response.json())
+                    // 計算週的開始和結束日期
+                    const now = new Date();
+                    let startDate, endDate;
+                    
+                    if (this.profitTimeRange === 'thisWeek') {
+                        // 本週：從這週的星期一到星期日
+                        const currentWeekday = now.getDay(); // 0=星期日, 1=星期一, ...
+                        const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1; // 計算到星期一的天數
+                        
+                        startDate = new Date(now);
+                        startDate.setDate(now.getDate() - daysToMonday);
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + 6);
+                        endDate.setHours(23, 59, 59, 999);
+                    } else if (this.profitTimeRange === 'lastWeek') {
+                        // 上週：從上週的星期一到星期日
+                        const currentWeekday = now.getDay();
+                        const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
+                        
+                        startDate = new Date(now);
+                        startDate.setDate(now.getDate() - daysToMonday - 7); // 往前推一週
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + 6);
+                        endDate.setHours(23, 59, 59, 999);
+                    }
+                    
+                    const weekType = this.profitTimeRange === 'thisWeek' ? '本週' : '上週';
+                    console.log(`正在獲取用戶 ${username} 的${weekType}盈虧記錄...`);
+                    console.log(`週期範圍: ${startDate.toISOString()} 到 ${endDate.toISOString()}`);
+                    
+                    // 使用後端的weekly-profit-records API，保證完整顯示一週7天
+                    fetch(`${this.API_BASE_URL}/api/weekly-profit-records?username=${username}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
+                        .then(response => {
+                            console.log('盈虧記錄API響應狀態:', response.status);
+                            return response.json();
+                        })
                         .then(data => {
                             console.log('盈虧記錄API響應數據:', data);
-                            if (data.success && Array.isArray(data.records)) {
-                                const betHistory = data.records;
-                                
-                                // 計算週的開始和結束日期
-                                const now = new Date();
-                                let startDate, endDate;
-                                
-                                if (this.profitTimeRange === 'thisWeek') {
-                                    const currentWeekday = now.getDay();
-                                    const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
-                                    
-                                    startDate = new Date(now);
-                                    startDate.setDate(now.getDate() - daysToMonday);
-                                    startDate.setHours(0, 0, 0, 0);
-                                    
-                                    endDate = new Date(startDate);
-                                    endDate.setDate(startDate.getDate() + 6);
-                                    endDate.setHours(23, 59, 59, 999);
-                                } else if (this.profitTimeRange === 'lastWeek') {
-                                    const currentWeekday = now.getDay();
-                                    const daysToMonday = currentWeekday === 0 ? 6 : currentWeekday - 1;
-                                    
-                                    startDate = new Date(now);
-                                    startDate.setDate(now.getDate() - daysToMonday - 7);
-                                    startDate.setHours(0, 0, 0, 0);
-                                    
-                                    endDate = new Date(startDate);
-                                    endDate.setDate(startDate.getDate() + 6);
-                                    endDate.setHours(23, 59, 59, 999);
-                                }
-                                
-                                // 過濾指定週期內的注單
-                                const weekBets = betHistory.filter(bet => {
-                                    const betDate = new Date(bet.time);
-                                    return betDate >= startDate && betDate <= endDate;
-                                });
-                                
-                                // 按日期分組統計
-                                const dailyStats = {};
-                                let totalBetCount = 0;
-                                let totalBetAmount = 0;
-                                let totalProfit = 0;
-                                
-                                weekBets.forEach(bet => {
-                                    const betDate = new Date(bet.time);
-                                    const dateKey = betDate.toDateString();
-                                    
-                                    if (!dailyStats[dateKey]) {
-                                        dailyStats[dateKey] = {
-                                            date: dateKey,
-                                            betCount: 0,
-                                            totalBet: 0,
-                                            profit: 0,
-                                            weekday: this.getWeekday(dateKey)
-                                        };
-                                    }
-                                    
-                                    dailyStats[dateKey].betCount++;
-                                    dailyStats[dateKey].totalBet += parseFloat(bet.amount) || 0;
-                                    
-                                    if (bet.settled) {
-                                        if (bet.win) {
-                                            const winAmount = parseFloat(bet.winAmount) || 0;
-                                            dailyStats[dateKey].profit += winAmount - parseFloat(bet.amount);
-                                        } else {
-                                            dailyStats[dateKey].profit -= parseFloat(bet.amount) || 0;
-                                        }
-                                    }
-                                    
-                                    totalBetCount++;
-                                    totalBetAmount += parseFloat(bet.amount) || 0;
-                                });
-                                
-                                // 計算總盈虧
-                                Object.values(dailyStats).forEach(day => {
-                                    totalProfit += day.profit;
-                                });
-                                
-                                // 轉換為數組並排序
-                                this.profitRecords = Object.values(dailyStats)
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date));
-                                
-                                this.totalBetCount = totalBetCount;
-                                this.totalBetAmount = totalBetAmount;
-                                this.totalProfit = totalProfit;
-                                
-                                console.log(`成功載入 ${this.profitRecords.length} 條盈虧記錄`);
-                                console.log('總計:', { totalBetCount, totalBetAmount, totalProfit });
+                            if (data.success) {
+                                this.profitRecords = data.records || [];
+                                this.totalBetCount = data.totalBetCount || 0;
+                                this.totalBetAmount = data.totalBetAmount || 0;
+                                this.totalProfit = data.totalProfit || 0;
+                                console.log(`成功載入 ${this.profitRecords.length} 條盈虧記錄（完整一週）`);
                             } else {
-                                console.error('獲取注單歷史失敗:', data.message);
+                                console.error('獲取盈虧記錄失敗:', data.message);
                                 this.profitRecords = [];
                                 this.totalBetCount = 0;
                                 this.totalBetAmount = 0;
