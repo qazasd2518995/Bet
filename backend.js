@@ -2698,8 +2698,26 @@ function isValidBet(betType, value, position) {
                           '17', '18', '19'];
     return validValues.includes(value.toString());
   } else if (betType === 'dragonTiger') {
-    // 龍虎，檢查是否為龍或虎
-    return value === 'dragon' || value === 'tiger';
+    // 龍虎投注，支持簡單格式（dragon, tiger）和複雜格式（dragon_1_10, tiger_2_9等）
+    if (value === 'dragon' || value === 'tiger') {
+      return true;
+    }
+    
+    // 檢查複雜格式：dragon_pos1_pos2 或 tiger_pos1_pos2
+    if (typeof value === 'string' && (value.startsWith('dragon_') || value.startsWith('tiger_'))) {
+      const parts = value.split('_');
+      if (parts.length === 3) {
+        const pos1 = parseInt(parts[1]);
+        const pos2 = parseInt(parts[2]);
+        // 位置必須在1-10之間且不相等
+        return !isNaN(pos1) && !isNaN(pos2) && 
+               pos1 >= 1 && pos1 <= 10 && 
+               pos2 >= 1 && pos2 <= 10 && 
+               pos1 !== pos2;
+      }
+    }
+    
+    return false;
   } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
     // 位置投注：支援大小單雙 AND 指定號碼(1-10)
     const validPropertyValues = ['big', 'small', 'odd', 'even'];
