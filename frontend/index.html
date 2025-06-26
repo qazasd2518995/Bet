@@ -44,17 +44,36 @@
 
             // 會話驗證改為非阻塞式，避免網路問題造成無限重定向
             try {
+                const sessionToken = sessionStorage.getItem('sessionToken');
+                const headers = {
+                    'Authorization': `Bearer ${sessionStorage.getItem('token') || ''}`
+                };
+                
+                // 如果有新的會話token，使用它
+                if (sessionToken) {
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                
                 const response = await fetch('/api/member/check-session', {
                     method: 'GET',
                     credentials: 'include',
-                    headers: {
-                        'Authorization': `Bearer ${sessionStorage.getItem('token') || ''}`
-                    }
+                    headers: headers
                 });
 
                 if (!response.ok) {
                     console.warn('Session validation failed, but continuing...');
                     // 不立即清除登入狀態，讓用戶繼續使用
+                } else {
+                    const result = await response.json();
+                    if (!result.isAuthenticated && result.reason === 'session_invalid') {
+                        console.warn('⚠️ 檢測到會話已失效，可能在其他裝置登入');
+                        // 可以選擇立即跳轉到登入頁面或顯示警告
+                        if (confirm('您的帳號已在其他裝置登入，請重新登入。')) {
+                            sessionStorage.clear();
+                            window.location.href = 'login.html';
+                            return;
+                        }
+                    }
                 }
             } catch (error) {
                 console.warn('Session validation error:', error);

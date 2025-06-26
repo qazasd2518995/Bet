@@ -698,6 +698,44 @@ const app = createApp({
             }
         },
         
+        // 檢查會話狀態
+        async checkSession() {
+            try {
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (!sessionToken && !legacyToken) {
+                    console.log('沒有會話憑證');
+                    return false;
+                }
+                
+                const headers = {};
+                if (sessionToken) {
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/check-session`, { headers });
+                
+                if (response.data.success && response.data.isAuthenticated) {
+                    return true;
+                } else if (response.data.reason === 'session_invalid') {
+                    console.warn('⚠️ 檢測到代理會話已失效，可能在其他裝置登入');
+                    if (confirm('您的帳號已在其他裝置登入，請重新登入。')) {
+                        this.logout();
+                        return false;
+                    }
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('會話檢查失敗:', error);
+                return false;
+            }
+        },
+        
         // 檢查身份驗證狀態
         async checkAuth() {
             const token = localStorage.getItem('agent_token');
@@ -758,9 +796,15 @@ const app = createApp({
                 
                 if (response.data.success) {
                     // 保存用戶資訊和 token
-                    const { agent, token } = response.data;
+                    const { agent, token, sessionToken } = response.data;
                     localStorage.setItem('agent_token', token);
                     localStorage.setItem('agent_user', JSON.stringify(agent));
+                    
+                    // 保存新的會話token
+                    if (sessionToken) {
+                        localStorage.setItem('agent_session_token', sessionToken);
+                        console.log('✅ 代理會話token已保存');
+                    }
                     
                     // 設置 axios 身份驗證頭
                     axios.defaults.headers.common['Authorization'] = token;
@@ -802,10 +846,24 @@ const app = createApp({
         },
         
         // 登出方法
-        logout() {
+        async logout() {
+            console.log('執行登出操作');
+            
+            // 如果有會話token，通知伺服器登出
+            const sessionToken = localStorage.getItem('agent_session_token');
+            if (sessionToken) {
+                try {
+                    await axios.post(`${API_BASE_URL}/logout`, { sessionToken });
+                    console.log('✅ 會話已在伺服器端登出');
+                } catch (error) {
+                    console.error('伺服器端登出失敗:', error);
+                }
+            }
+            
             // 清除本地存儲
             localStorage.removeItem('agent_token');
             localStorage.removeItem('agent_user');
+            localStorage.removeItem('agent_session_token');
             
             // 重置狀態
             this.isLoggedIn = false;
@@ -820,6 +878,11 @@ const app = createApp({
             delete axios.defaults.headers.common['Authorization'];
             
             this.showMessage('已成功登出', 'success');
+            
+            // 重定向到登入頁面
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         },
         
         // 獲取儀表板數據

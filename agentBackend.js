@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import db from './db/config.js';
 // 導入基本數據庫初始化函數
 import initDatabaseBase from './db/init.js';
+import SessionManager from './security/session-manager.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -2080,11 +2081,28 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       });
     }
     
-    // 假設這是一個簡單的令牌生成
-    const token = Buffer.from(`${agent.id}:${Date.now()}`).toString('base64');
+    // 獲取請求信息
+    const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+    const userAgent = req.headers['user-agent'] || '';
+    
+    // 檢查可疑活動
+    const isSuspicious = await SessionManager.checkSuspiciousActivity(ipAddress);
+    if (isSuspicious) {
+      console.warn(`🚨 檢測到可疑登入活動 - IP: ${ipAddress}, 代理: ${username}`);
+      // 可以選擇阻止登入或記錄警告
+    }
+    
+    // 創建會話（這會自動登出其他裝置的會話）
+    const sessionToken = await SessionManager.createSession('agent', agent.id, ipAddress, userAgent);
+    
+    // 生成向後兼容的token
+    const legacyToken = Buffer.from(`${agent.id}:${Date.now()}`).toString('base64');
+    
+    console.log(`✅ 代理登入成功: ${username} (ID: ${agent.id}), IP: ${ipAddress}`);
     
     res.json({
       success: true,
+      message: '登入成功',
       agent: {
         id: agent.id,
         username: agent.username,
@@ -2095,13 +2113,97 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
         max_rebate_percentage: agent.max_rebate_percentage,
         rebate_mode: agent.rebate_mode
       },
-      token
+      token: legacyToken,
+      sessionToken: sessionToken // 新的會話token
     });
   } catch (error) {
     console.error('代理登入出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 代理會話檢查API
+app.get(`${API_PREFIX}/check-session`, async (req, res) => {
+  try {
+    const sessionToken = req.headers['x-session-token'] || req.query.sessionToken;
+    const legacyToken = req.headers['authorization']?.replace('Bearer ', '');
+    
+    if (sessionToken) {
+      // 使用新的會話管理系統驗證
+      const session = await SessionManager.validateSession(sessionToken);
+      
+      if (session && session.userType === 'agent') {
+        return res.json({ 
+          success: true, 
+          message: 'Session valid',
+          isAuthenticated: true,
+          sessionInfo: {
+            userId: session.userId,
+            lastActivity: session.lastActivity
+          }
+        });
+      } else {
+        return res.json({ 
+          success: false, 
+          message: 'Session expired or invalid',
+          needLogin: true,
+          isAuthenticated: false,
+          reason: 'session_invalid'
+        });
+      }
+    } else if (legacyToken) {
+      // 向後兼容舊的token系統
+      console.log('使用舊版token檢查代理會話');
+      return res.json({ 
+        success: true, 
+        message: 'Legacy session valid',
+        isAuthenticated: true 
+      });
+    } else {
+      // 沒有會話憑證
+      return res.json({ 
+        success: false, 
+        message: 'No session found',
+        needLogin: true,
+        isAuthenticated: false,
+        reason: 'no_token'
+      });
+    }
+  } catch (error) {
+    console.error('代理會話檢查錯誤:', error);
+    return res.json({ 
+      success: false, 
+      message: 'Session check failed',
+      needLogin: true,
+      isAuthenticated: false,
+      reason: 'system_error'
+    });
+  }
+});
+
+// 代理登出API
+app.post(`${API_PREFIX}/logout`, async (req, res) => {
+  try {
+    const sessionToken = req.headers['x-session-token'] || req.body.sessionToken;
+    
+    if (sessionToken) {
+      await SessionManager.logout(sessionToken);
+      console.log('✅ 代理登出成功');
+    }
+    
+    res.json({
+      success: true,
+      message: '登出成功'
+    });
+    
+  } catch (error) {
+    console.error('代理登出錯誤:', error);
+    res.json({
+      success: true, // 即使出錯也返回成功，因為登出應該總是成功
+      message: '登出成功'
     });
   }
 });
@@ -4084,6 +4186,9 @@ async function startServer() {
     }
     
     await initDatabase();
+    
+    // 初始化會話管理系統
+    await SessionManager.initialize();
     
     // 如果是Render環境且首次運行，創建標記文件避免下次重置
     if (isRenderPlatform && isFirstRun) {

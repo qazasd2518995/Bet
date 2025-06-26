@@ -15,6 +15,7 @@ import ensureDatabaseConstraints from './ensure-database-constraints.js';
 import UserModel from './db/models/user.js';
 import BetModel from './db/models/bet.js';
 import GameModel from './db/models/game.js';
+import SessionManager from './security/session-manager.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -116,39 +117,85 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 會話檢查API - 簡化版本，不返回401錯誤
+// 會話檢查API - 使用新的會話管理系統
 app.get('/api/member/check-session', async (req, res) => {
   try {
-    // 在本地驗證模式下，始終返回200狀態碼避免401錯誤
-    const token = req.headers.authorization?.split(' ')[1];
-    const sessionId = req.headers['x-session-id'] || req.query.sessionId;
+    const sessionToken = req.headers['x-session-token'] || req.query.sessionToken;
+    const legacyToken = req.headers.authorization?.split(' ')[1];
     
-    // 如果有任何會話憑證，認為是有效的
-    if (token || sessionId) {
-      console.log('會話檢查通過 - 有憑證');
+    if (sessionToken) {
+      // 使用新的會話管理系統驗證
+      const session = await SessionManager.validateSession(sessionToken);
+      
+      if (session && session.userType === 'member') {
+        return res.json({ 
+          success: true, 
+          message: 'Session valid',
+          isAuthenticated: true,
+          sessionInfo: {
+            userId: session.userId,
+            lastActivity: session.lastActivity
+          }
+        });
+      } else {
+        return res.json({ 
+          success: false, 
+          message: 'Session expired or invalid',
+          needLogin: true,
+          isAuthenticated: false,
+          reason: 'session_invalid'
+        });
+      }
+    } else if (legacyToken) {
+      // 向後兼容舊的token系統
+      console.log('使用舊版token檢查會話');
       return res.json({ 
         success: true, 
-        message: 'Session valid',
+        message: 'Legacy session valid',
         isAuthenticated: true 
       });
+    } else {
+      // 沒有會話憑證
+      return res.json({ 
+        success: false, 
+        message: 'No session found',
+        needLogin: true,
+        isAuthenticated: false,
+        reason: 'no_token'
+      });
     }
-
-    // 沒有會話憑證，但不返回401，返回200和需要登入提示
-    console.log('會話檢查 - 沒有會話憑證');
-    return res.json({ 
-      success: false, 
-      message: 'No session found',
-      needLogin: true,
-      isAuthenticated: false
-    });
   } catch (error) {
     console.error('Session check error:', error);
-    // 即使出錯也返回200狀態碼
     return res.json({ 
       success: false, 
       message: 'Session check failed',
       needLogin: true,
-      isAuthenticated: false
+      isAuthenticated: false,
+      reason: 'system_error'
+    });
+  }
+});
+
+// 會員登出API
+app.post('/api/member/logout', async (req, res) => {
+  try {
+    const sessionToken = req.headers['x-session-token'] || req.body.sessionToken;
+    
+    if (sessionToken) {
+      await SessionManager.logout(sessionToken);
+      console.log('✅ 會員登出成功');
+    }
+    
+    res.json({
+      success: true,
+      message: '登出成功'
+    });
+    
+  } catch (error) {
+    console.error('會員登出錯誤:', error);
+    res.json({
+      success: true, // 即使出錯也返回成功，因為登出應該總是成功
+      message: '登出成功'
     });
   }
 });
@@ -204,6 +251,15 @@ app.post('/api/member/login', async (req, res) => {
           
           console.log(`✅ 代理系統登入成功: ${username}, ID: ${memberData.member.id}`);
           
+          // 獲取請求信息
+          const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+          const userAgent = req.headers['user-agent'] || '';
+          
+          // 創建會話（這會自動登出其他裝置的會話）
+          const sessionToken = await SessionManager.createSession('member', memberData.member.id, ipAddress, userAgent);
+          
+          console.log(`✅ 會員登入成功: ${username} (ID: ${memberData.member.id}), IP: ${ipAddress}`);
+          
           return res.json({
             success: true,
             message: '登入成功',
@@ -213,7 +269,8 @@ app.post('/api/member/login', async (req, res) => {
               balance: memberData.member.balance,
               agent_id: memberData.member.agent_id,
               status: memberData.member.status
-            }
+            },
+            sessionToken: sessionToken // 新的會話token
           });
         } else {
           console.log(`❌ 代理系統登入失敗: ${memberData.message}`);
@@ -262,6 +319,15 @@ app.post('/api/member/login', async (req, res) => {
           ? '登入成功' 
           : '登入成功（本地模式）';
         
+        // 獲取請求信息
+        const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+        const userAgent = req.headers['user-agent'] || '';
+        
+        // 創建會話（這會自動登出其他裝置的會話）
+        const sessionToken = await SessionManager.createSession('member', user.id, ipAddress, userAgent);
+        
+        console.log(`✅ 本地模式會員登入成功: ${username} (ID: ${user.id}), IP: ${ipAddress}`);
+        
         return res.json({
           success: true,
           message: message,
@@ -271,7 +337,8 @@ app.post('/api/member/login', async (req, res) => {
             balance: user.balance,
             agent_id: 1,
             status: 1
-          }
+          },
+          sessionToken: sessionToken // 新的會話token
         });
       } catch (dbError) {
         console.error('❌ 創建本地用戶失敗:', dbError);
@@ -2851,6 +2918,9 @@ async function startServer() {
     
     // 確保數據庫約束正確設置
     await ensureDatabaseConstraints();
+    
+    // 初始化會話管理系統
+    await SessionManager.initialize();
     
     console.log('開始初始化熱門投注數據...');
     // 更新熱門投注數據
