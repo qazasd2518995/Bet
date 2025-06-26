@@ -96,7 +96,7 @@ const app = createApp({
             agents: [],
             agentFilters: {
                 level: '-1',
-                status: '-1',
+                status: '1', // 預設只顯示啟用狀態的代理
                 keyword: ''
             },
             agentPagination: {
@@ -153,7 +153,7 @@ const app = createApp({
             // 會員管理相關
             members: [],
             memberFilters: {
-                status: '-1',
+                status: '1', // 預設只顯示啟用狀態的會員
                 keyword: ''
             },
             memberPagination: {
@@ -2381,7 +2381,7 @@ const app = createApp({
         
         // 刪除會員
         async deleteMember(memberId, username) {
-            if (!confirm(`確定要刪除會員 ${username} 嗎？此操作不可恢復！`)) {
+            if (!confirm(`確定要停用會員 ${username} 嗎？此操作將停用該會員（軟刪除），會員將無法登入但數據會保留。`)) {
                 return;
             }
             
@@ -2596,7 +2596,7 @@ const app = createApp({
         
         // 刪除代理
         async deleteAgent(agentId, username) {
-            if (!confirm(`確定要刪除代理 ${username} 嗎？此操作將刪除該代理及其所有下級代理和會員，不可恢復！`)) {
+            if (!confirm(`確定要停用代理 ${username} 嗎？此操作將停用該代理（軟刪除），代理將無法登入但數據會保留。`)) {
                 return;
             }
             

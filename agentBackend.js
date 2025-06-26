@@ -434,7 +434,7 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
     
     res.json({
       success: true,
-      message: '代理已成功刪除',
+      message: '代理已停用（軟刪除）',
       timestamp: new Date().toISOString()
     });
     
@@ -483,7 +483,7 @@ app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
     
     res.json({
       success: true,
-      message: '會員已成功刪除',
+      message: '會員已停用（軟刪除）',
       timestamp: new Date().toISOString()
     });
     
