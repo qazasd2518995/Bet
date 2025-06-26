@@ -579,6 +579,25 @@ async function initDatabase() {
       console.log('代理退水字段已存在或添加失敗:', error.message);
     }
     
+    // 檢查並添加退水記錄相關字段
+    try {
+      await db.none(`
+        ALTER TABLE transaction_records ADD COLUMN IF NOT EXISTS member_username VARCHAR(50)
+      `);
+      await db.none(`
+        ALTER TABLE transaction_records ADD COLUMN IF NOT EXISTS bet_amount DECIMAL(10, 2)
+      `);
+      await db.none(`
+        ALTER TABLE transaction_records ADD COLUMN IF NOT EXISTS rebate_percentage DECIMAL(8, 6)
+      `);
+      await db.none(`
+        ALTER TABLE transaction_records ADD COLUMN IF NOT EXISTS period VARCHAR(20)
+      `);
+      console.log('退水記錄字段添加成功');
+    } catch (error) {
+      console.log('退水記錄字段已存在或添加失敗:', error.message);
+    }
+    
     // 創建開獎記錄表
     await db.none(`
       CREATE TABLE IF NOT EXISTS draw_records (
@@ -2246,14 +2265,37 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
     // 保證金額精度，四捨五入到小數點後2位
     const roundedRebateAmount = Math.round(parseFloat(rebateAmount) * 100) / 100;
     
-    // 增加代理餘額 - 修正：傳遞增加的金額而非新餘額
-    await AgentModel.updateBalance(agentId, roundedRebateAmount);
+    // 計算退水比例
+    const rebatePercentage = parseFloat(betAmount) > 0 ? roundedRebateAmount / parseFloat(betAmount) : 0;
     
-    // 獲取更新後的代理資訊以記錄正確的餘額
+    const beforeBalance = parseFloat(agent.balance);
+    const afterBalance = beforeBalance + roundedRebateAmount;
+    
+    // 增加代理餘額
+    await db.none(`UPDATE agents SET balance = $1 WHERE id = $2`, [afterBalance, agentId]);
+    
+    // 記錄詳細的退水交易記錄（包含會員信息）
+    await db.none(`
+      INSERT INTO transaction_records 
+      (user_type, user_id, amount, transaction_type, balance_before, balance_after, description, 
+       member_username, bet_amount, rebate_percentage, period) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `, [
+      'agent', 
+      agentId, 
+      roundedRebateAmount, 
+      'rebate', 
+      beforeBalance, 
+      afterBalance, 
+      `退水收入 - ${memberUsername || '未知會員'}`, 
+      memberUsername || null,
+      parseFloat(betAmount) || 0,
+      rebatePercentage,
+      reason || null
+    ]);
+    
+    // 獲取更新後的代理資訊
     const updatedAgent = await AgentModel.findById(agentId);
-    
-    // 記錄交易（AgentModel.updateBalance已經記錄了，這裡無需重複記錄）
-    // TransactionModel.create 已在 updateBalance 方法中處理
     
     console.log(`成功分配退水 ${roundedRebateAmount} 給代理 ${agentUsername}，新餘額: ${updatedAgent.balance}`);
     

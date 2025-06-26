@@ -1083,7 +1083,11 @@
                                 <i class="fas fa-money-bill-wave me-1"></i>提款記錄
                             </a>
                         </li>
-
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{active: transactionTab === 'rebate'}" href="#" @click="transactionTab = 'rebate'; loadRebateRecords()">
+                                <i class="fas fa-gift me-1"></i>退水記錄
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'transfers'}" href="#" @click="loadPointTransfers(); transactionTab = 'transfers'">
                                 <i class="fas fa-exchange-alt me-1"></i>點數轉移記錄
@@ -1185,6 +1189,139 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 退水記錄 -->
+                    <div v-if="transactionTab === 'rebate'" class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-gift me-2 text-warning"></i>退水記錄
+                                    <span class="badge bg-warning text-dark ms-2">{{ rebateRecords.length }}</span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-warning me-2" @click="loadRebateRecords()">
+                                        <i class="fas fa-sync me-1"></i>刷新
+                                    </button>
+                                    <span class="text-muted small">
+                                        總退水: <span class="fw-bold text-warning">{{ formatMoney(totalRebateAmount) }}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- 篩選選項 -->
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">會員</span>
+                                        <input type="text" class="form-control" placeholder="輸入會員名稱" v-model="rebateFilters.member">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">日期</span>
+                                        <input type="date" class="form-control" v-model="rebateFilters.date">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-sm btn-warning w-100" @click="filterRebateRecords">
+                                        <i class="fas fa-filter me-1"></i>篩選
+                                    </button>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-sm btn-outline-secondary w-100" @click="clearRebateFilters">
+                                        <i class="fas fa-times me-1"></i>清除
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-warning">
+                                        <tr>
+                                            <th scope="col">編號</th>
+                                            <th scope="col">會員名稱</th>
+                                            <th scope="col">下注金額</th>
+                                            <th scope="col">退水比例</th>
+                                            <th scope="col">退水金額</th>
+                                            <th scope="col">操作前餘額</th>
+                                            <th scope="col">操作後餘額</th>
+                                            <th scope="col">期數</th>
+                                            <th scope="col">時間</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="record in filteredRebateRecords" :key="record.id" class="align-middle">
+                                            <td>
+                                                <span class="badge bg-warning text-dark">{{ record.id }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-user me-2 text-muted"></i>
+                                                    <strong>{{ record.member_username || '未知會員' }}</strong>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="text-primary fw-bold">{{ formatMoney(record.bet_amount) }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ (record.rebate_percentage * 100).toFixed(1) }}%</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-success fw-bold">+{{ formatMoney(record.amount) }}</span>
+                                            </td>
+                                            <td>{{ formatMoney(record.before_balance) }}</td>
+                                            <td>{{ formatMoney(record.after_balance) }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ record.period || '-' }}</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">{{ formatDate(record.created_at) }}</small>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="filteredRebateRecords.length === 0">
+                                            <td colspan="9" class="text-center py-4">
+                                                <div class="text-muted">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                                    <p>{{ rebateRecords.length === 0 ? '尚無退水記錄' : '沒有符合條件的記錄' }}</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 統計信息 -->
+                            <div v-if="rebateRecords.length > 0" class="border-top pt-3 mt-3">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <div class="p-2 bg-light rounded">
+                                            <div class="text-muted small">總筆數</div>
+                                            <div class="fw-bold text-primary">{{ filteredRebateRecords.length }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-2 bg-light rounded">
+                                            <div class="text-muted small">總下注金額</div>
+                                            <div class="fw-bold text-info">{{ formatMoney(totalFilteredBetAmount) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-2 bg-light rounded">
+                                            <div class="text-muted small">總退水金額</div>
+                                            <div class="fw-bold text-success">{{ formatMoney(totalFilteredRebateAmount) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="p-2 bg-light rounded">
+                                            <div class="text-muted small">平均退水比例</div>
+                                            <div class="fw-bold text-warning">{{ averageRebatePercentage }}%</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
