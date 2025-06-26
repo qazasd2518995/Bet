@@ -3034,21 +3034,51 @@
         /* 週報表響應式設計 */
         @media (max-width: 768px) {
             .weekly-table-header, .table-row {
-                grid-template-columns: 1.5fr 1fr 1fr 1fr;
-                font-size: 14px;
+                grid-template-columns: 1.2fr 0.8fr 1fr 1.2fr;
+                font-size: 13px;
             }
 
             .header-cell, .row-cell {
-                padding: 8px 4px;
+                padding: 8px 3px;
+                font-size: 12px;
             }
 
             .date-number {
-                font-size: 14px;
-                padding: 2px 6px;
+                font-size: 13px;
+                padding: 2px 4px;
+                min-width: 28px;
             }
 
             .weekday-label {
-                font-size: 11px;
+                font-size: 10px;
+            }
+            
+            /* 手機端修復：防止輸贏金額擠壓表格 */
+            .profit-cell {
+                word-break: break-all;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 11px !important;
+                font-weight: 600;
+                min-width: 0;
+            }
+            
+            /* 確保各欄位都有足夠空間不被擠壓 */
+            .row-cell:nth-child(1) {
+                min-width: 60px;
+            }
+            
+            .row-cell:nth-child(2) {
+                min-width: 40px;
+            }
+            
+            .row-cell:nth-child(3) {
+                min-width: 50px;
+            }
+            
+            .row-cell:nth-child(4) {
+                min-width: 60px;
             }
         }
 
