@@ -393,7 +393,7 @@ app.post(`${API_PREFIX}/toggle-agent-status`, async (req, res) => {
   }
 });
 
-// 刪除代理API
+// 刪除代理API - 物理刪除
 app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
   try {
     const { agentId } = req.params;
@@ -414,9 +414,24 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
       });
     }
     
-    // 檢查是否有下級代理或會員
-    const subAgents = await AgentModel.findByParentId(agentId);
-    const members = await MemberModel.findByAgentId(agentId);
+    // 檢查代理餘額是否為0
+    const balance = parseFloat(agent.balance) || 0;
+    if (balance !== 0) {
+      return res.status(400).json({
+        success: false,
+        message: `無法刪除：代理餘額為 $${balance.toFixed(2)}，必須先將餘額清空至0才能刪除`
+      });
+    }
+    
+    // 檢查是否有下級代理（只查詢啟用狀態的）
+    const subAgents = await db.any(`
+      SELECT * FROM agents WHERE parent_id = $1 AND status = 1
+    `, [agentId]);
+    
+    // 檢查是否有會員（只查詢啟用狀態的）
+    const members = await db.any(`
+      SELECT * FROM members WHERE agent_id = $1 AND status = 1
+    `, [agentId]);
     
     if (subAgents.length > 0 || members.length > 0) {
       const details = [];
@@ -429,14 +444,21 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
       });
     }
     
-    // 執行軟刪除（將狀態設為0）
-    await AgentModel.updateStatus(agentId, 0);
+    // 執行物理刪除（完全從數據庫移除）
+    const deleted = await AgentModel.delete(agentId);
     
-    res.json({
-      success: true,
-      message: '代理已停用（軟刪除）',
-      timestamp: new Date().toISOString()
-    });
+    if (deleted) {
+      res.json({
+        success: true,
+        message: '代理已永久刪除',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: '刪除代理失敗'
+      });
+    }
     
   } catch (error) {
     console.error('刪除代理失敗:', error);
@@ -448,7 +470,7 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
   }
 });
 
-// 刪除會員API
+// 刪除會員API - 物理刪除
 app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
   try {
     const { memberId } = req.params;
@@ -470,22 +492,29 @@ app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
     }
     
     // 檢查會員餘額是否為0
-    const balance = parseFloat(member.balance);
-    if (balance > 0) {
+    const balance = parseFloat(member.balance) || 0;
+    if (balance !== 0) {
       return res.status(400).json({
         success: false,
-        message: `無法刪除：會員餘額為 $${balance.toFixed(2)}，請先將餘額清空至0`
+        message: `無法刪除：會員餘額為 $${balance.toFixed(2)}，必須先將餘額清空至0才能刪除`
       });
     }
     
-    // 執行軟刪除（將狀態設為0）
-    await MemberModel.updateStatus(memberId, 0);
+    // 執行物理刪除（完全從數據庫移除）
+    const deleted = await MemberModel.delete(memberId);
     
-    res.json({
-      success: true,
-      message: '會員已停用（軟刪除）',
-      timestamp: new Date().toISOString()
-    });
+    if (deleted) {
+      res.json({
+        success: true,
+        message: '會員已永久刪除',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: '刪除會員失敗'
+      });
+    }
     
   } catch (error) {
     console.error('刪除會員失敗:', error);
@@ -1137,6 +1166,19 @@ const AgentModel = {
       console.error('更新代理退水設定出錯:', error);
       throw error;
     }
+  },
+
+  // 物理刪除代理（不可恢復）
+  async delete(id) {
+    try {
+      const result = await db.result(`
+        DELETE FROM agents WHERE id = $1
+      `, [id]);
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('物理刪除代理出錯:', error);
+      throw error;
+    }
   }
 };
 
@@ -1422,6 +1464,19 @@ const MemberModel = {
       return result;
     } catch (error) {
       console.error('更新會員密碼出錯:', error);
+      throw error;
+    }
+  },
+
+  // 物理刪除會員（不可恢復）
+  async delete(id) {
+    try {
+      const result = await db.result(`
+        DELETE FROM members WHERE id = $1
+      `, [id]);
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('物理刪除會員出錯:', error);
       throw error;
     }
   }

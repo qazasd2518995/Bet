@@ -96,7 +96,7 @@ const app = createApp({
             agents: [],
             agentFilters: {
                 level: '-1',
-                status: '1', // 預設只顯示啟用狀態的代理
+                status: '-1', // 顯示所有狀態（物理刪除後不會有已刪除項目）
                 keyword: ''
             },
             agentPagination: {
@@ -153,7 +153,7 @@ const app = createApp({
             // 會員管理相關
             members: [],
             memberFilters: {
-                status: '1', // 預設只顯示啟用狀態的會員
+                status: '-1', // 顯示所有狀態（物理刪除後不會有已刪除項目）
                 keyword: ''
             },
             memberPagination: {
@@ -2381,7 +2381,7 @@ const app = createApp({
         
         // 刪除會員
         async deleteMember(memberId, username) {
-            if (!confirm(`確定要停用會員 ${username} 嗎？此操作將停用該會員（軟刪除），會員將無法登入但數據會保留。`)) {
+            if (!confirm(`⚠️ 警告：確定要永久刪除會員 ${username} 嗎？\n\n此操作將：\n✓ 完全從系統中移除該會員\n✓ 無法復原任何數據\n✓ 必須確保會員餘額為0\n\n請確認您真的要執行此不可逆操作！`)) {
                 return;
             }
             
@@ -2596,7 +2596,7 @@ const app = createApp({
         
         // 刪除代理
         async deleteAgent(agentId, username) {
-            if (!confirm(`確定要停用代理 ${username} 嗎？此操作將停用該代理（軟刪除），代理將無法登入但數據會保留。`)) {
+            if (!confirm(`⚠️ 警告：確定要永久刪除代理 ${username} 嗎？\n\n此操作將：\n✓ 完全從系統中移除該代理\n✓ 無法復原任何數據\n✓ 必須確保代理餘額為0且無下級代理/會員\n\n請確認您真的要執行此不可逆操作！`)) {
                 return;
             }
             
