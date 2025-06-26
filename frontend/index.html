@@ -9653,18 +9653,13 @@
                 getRoadBeadExtraInfo(cell) {
                     if (!cell) return '';
                     
-                    // 如果是號碼分析，顯示大小單雙
-                    if (this.roadBeadAnalysisType === 'number') {
-                        const size = cell.isBig ? '大' : '小';
-                        const parity = cell.isOdd ? '單' : '雙';
-                        return `${size}${parity}`;
-                    }
+                    // 移除號碼分析的大小單雙顯示，避免重複
+                    // 因為已經有專門的大小走勢和單雙走勢分析
                     
-                    // 如果是冠亞和分析，顯示具體和值
-                    if (this.roadBeadAnalysisType.startsWith('sum') && cell.sum) {
-                        return `和${cell.sum}`;
-                    }
+                    // 移除冠亞和分析的和值顯示，避免重複
+                    // 因為主要值已經顯示了具體數字
                     
+                    // 只在特殊情況下顯示額外信息
                     return '';
                 },
                 
