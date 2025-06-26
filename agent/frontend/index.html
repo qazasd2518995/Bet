@@ -960,14 +960,20 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="mb-3">
-                                            <label class="form-label">點數轉移金額</label>
-                                            <div class="input-group">
-                                                <input type="number" step="0.01" class="form-control" v-model="transferAmount" 
-                                                       placeholder="請輸入要轉移的點數金額" min="0" required>
-                                                <span class="input-group-text">元</span>
-                                            </div>
-                                        </div>
+                                                                <div class="mb-3">
+                            <label class="form-label">點數轉移金額</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" v-model="transferAmount" 
+                                       placeholder="請輸入要轉移的點數金額" min="0" required>
+                                <button type="button" class="btn btn-outline-primary" @click="setMaxAmount()">
+                                    <i class="fas fa-coins me-1"></i>全部餘額
+                                </button>
+                                <span class="input-group-text">元</span>
+                            </div>
+                            <small class="form-text text-muted">
+                                {{ transferType === 'deposit' ? '點擊「全部餘額」將填入您的全部餘額' : '點擊「全部餘額」將填入會員的全部餘額' }}
+                            </small>
+                        </div>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">轉移後會員點數</label>
@@ -2039,8 +2045,14 @@
                             <div class="input-group">
                                 <input type="number" step="0.01" class="form-control" v-model="agentTransferAmount" 
                                        placeholder="請輸入要轉移的點數金額" min="0" required>
+                                <button type="button" class="btn btn-outline-primary" @click="setMaxAgentAmount()">
+                                    <i class="fas fa-coins me-1"></i>全部餘額
+                                </button>
                                 <span class="input-group-text">元</span>
                             </div>
+                            <small class="form-text text-muted">
+                                {{ agentTransferType === 'deposit' ? '點擊「全部餘額」將填入您的全部餘額' : '點擊「全部餘額」將填入下級代理的全部餘額' }}
+                            </small>
                         </div>
                         
                         <div class="mb-3">

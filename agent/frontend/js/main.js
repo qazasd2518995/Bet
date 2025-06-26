@@ -1333,6 +1333,17 @@ const app = createApp({
                 return currentBalance + amount;
             }
         },
+
+        // 設置最大轉移金額（會員點數轉移）
+        setMaxAmount() {
+            if (this.transferType === 'deposit') {
+                // 存入：使用代理的全部餘額
+                this.transferAmount = parseFloat(this.agentCurrentBalance) || 0;
+            } else if (this.transferType === 'withdraw') {
+                // 提領：使用會員的全部餘額
+                this.transferAmount = parseFloat(this.balanceAdjustData.currentBalance) || 0;
+            }
+        },
         
         // 格式化時間
         formatTime(dateString) {
@@ -2467,6 +2478,17 @@ const app = createApp({
                 return currentBalance - transferAmount;
             } else {
                 return currentBalance + transferAmount;
+            }
+        },
+
+        // 設置最大轉移金額（代理點數轉移）
+        setMaxAgentAmount() {
+            if (this.agentTransferType === 'deposit') {
+                // 存入：使用上級代理（自己）的全部餘額
+                this.agentTransferAmount = parseFloat(this.user.balance) || 0;
+            } else if (this.agentTransferType === 'withdraw') {
+                // 提領：使用下級代理的全部餘額
+                this.agentTransferAmount = parseFloat(this.agentBalanceData.currentBalance) || 0;
             }
         },
         
