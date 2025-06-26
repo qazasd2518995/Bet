@@ -2211,6 +2211,11 @@ app.get('/api/next-result', (req, res) => {
   }
 });
 
+// 輔助函數：計算獎金並保留兩位小數
+function calculateWinningAmount(amount, odds) {
+  return Math.round(amount * odds * 100) / 100;
+}
+
 // 計算下注獎金
 function calculateWinAmount(bet, winResult) {
   try {
@@ -2247,7 +2252,7 @@ function calculateWinAmount(bet, winResult) {
         
         // 檢查結果
         if (position >= 1 && position <= 10 && value === winResult[position - 1]) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return Math.round(amount * betOdds * 100) / 100;
         }
         break;
         
@@ -2256,56 +2261,56 @@ function calculateWinAmount(bet, winResult) {
         const betValue = bet.bet_value;
         
         if (betValue === 'big' && sumValue > 11) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (betValue === 'small' && sumValue <= 11) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (betValue === 'odd' && sumValue % 2 === 1) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (betValue === 'even' && sumValue % 2 === 0) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (parseInt(betValue) === sumValue) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         }
         break;
         
       case 'champion':
         // 冠軍投注
         if (bet.bet_value === 'big' && champion > 5) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'small' && champion <= 5) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'odd' && champion % 2 === 1) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'even' && champion % 2 === 0) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (!isNaN(parseInt(bet.bet_value)) && parseInt(bet.bet_value) === champion) {
           // 指定號碼投注
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         }
         break;
         
       case 'runnerup':
         // 亞軍投注
         if (bet.bet_value === 'big' && runnerup > 5) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'small' && runnerup <= 5) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'odd' && runnerup % 2 === 1) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'even' && runnerup % 2 === 0) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (!isNaN(parseInt(bet.bet_value)) && parseInt(bet.bet_value) === runnerup) {
           // 指定號碼投注
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         }
         break;
         
       case 'dragonTiger':
         // 龍虎
         if (bet.bet_value === 'dragon' && champion > runnerup) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         } else if (bet.bet_value === 'tiger' && champion < runnerup) {
-          return Math.floor(amount * betOdds * 100) / 100;
+          return calculateWinningAmount(amount, betOdds);
         }
         break;
         
@@ -2316,13 +2321,13 @@ function calculateWinAmount(bet, winResult) {
           const ballValue = winResult[position_num - 1];
           
           if (bet.bet_value === 'big' && ballValue > 5) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (bet.bet_value === 'small' && ballValue <= 5) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (bet.bet_value === 'odd' && ballValue % 2 === 1) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (bet.bet_value === 'even' && ballValue % 2 === 0) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           }
         }
         break;
@@ -2340,16 +2345,16 @@ function calculateWinAmount(bet, winResult) {
           const ballValue = winResult[pos];
           
           if (bet.bet_value === 'big' && ballValue > 5) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (bet.bet_value === 'small' && ballValue <= 5) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (bet.bet_value === 'odd' && ballValue % 2 === 1) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (bet.bet_value === 'even' && ballValue % 2 === 0) {
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           } else if (!isNaN(parseInt(bet.bet_value)) && parseInt(bet.bet_value) === ballValue) {
             // 指定號碼投注
-            return Math.floor(amount * betOdds * 100) / 100;
+            return calculateWinningAmount(amount, betOdds);
           }
         }
         break;
@@ -2572,6 +2577,13 @@ app.post('/api/bet', async (req, res) => {
     if (isNaN(amountNum) || amountNum <= 0) {
       console.error('下注失敗: 無效的下注金額');
       return res.status(400).json({ success: false, message: '無效的下注金額' });
+    }
+    
+    // 檢查最低投注金額限制（防止小額套利）
+    const MIN_BET_AMOUNT = 1;
+    if (amountNum < MIN_BET_AMOUNT) {
+      console.error(`下注失敗: 投注金額不能少於 ${MIN_BET_AMOUNT} 元`);
+      return res.status(400).json({ success: false, message: `投注金額不能少於 ${MIN_BET_AMOUNT} 元` });
     }
     
     // 檢查下注類型和選項的有效性

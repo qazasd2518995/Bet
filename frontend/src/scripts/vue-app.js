@@ -667,8 +667,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.showNotification('請選擇投注項目');
                     return;
                 }
-                if (this.betAmount <= 0) {
-                    this.showNotification('請設置投注金額');
+                if (this.betAmount < 1) {
+                    this.showNotification('投注金額不能少於1元');
                     return;
                 }
                 this.showBetModal = true;
