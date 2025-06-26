@@ -143,16 +143,26 @@
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
         }
         
-        /* 賽車形狀 */
+        /* 賽車形狀 - 水平翻轉讓車頭朝右 */
         .car-racer::before {
             content: '🏎️';
             position: absolute;
             font-size: 35px;
             left: -5px;
             top: 50%;
-            transform: translateY(-50%);
+            transform: translateY(-50%) scaleX(-1);
             z-index: 1;
             filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+        }
+        
+        /* 賽車移動時的速度線條效果 */
+        .car-racer.racing::before {
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)) drop-shadow(-3px 0 8px rgba(255,255,255,0.3));
+        }
+        
+        /* 賽車後面的速度尾流效果 */
+        .car-racer.racing::after {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3), -5px 0 10px rgba(255,215,0,0.4);
         }
         
         /* 車號顯示 */
