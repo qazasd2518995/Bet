@@ -4046,9 +4046,28 @@
         .stat-item .number {
             font-size: 20px;
             font-weight: bold;
-            color: var(--primary-color);
             margin-bottom: 5px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 5px auto;
+            color: white;
         }
+        
+        /* 統計面板號碼顏色 - 與開獎結果球號一致 */
+        .stat-item .number.stat-number-1 { background: #e74c3c; }
+        .stat-item .number.stat-number-2 { background: #3498db; }
+        .stat-item .number.stat-number-3 { background: #95a5a6; }
+        .stat-item .number.stat-number-4 { background: #f39c12; }
+        .stat-item .number.stat-number-5 { background: #1abc9c; }
+        .stat-item .number.stat-number-6 { background: #9b59b6; }
+        .stat-item .number.stat-number-7 { background: #34495e; }
+        .stat-item .number.stat-number-8 { background: #e67e22; }
+        .stat-item .number.stat-number-9 { background: #2ecc71; }
+        .stat-item .number.stat-number-10 { background: #f1c40f; color: #333; }
         
         .stat-item .count {
             font-size: 14px;
@@ -4213,34 +4232,54 @@
             opacity: 0.8;
         }
         
-        /* 號碼樣式 */
-        .bead-item.number-1,
+        /* 號碼樣式 - 使用與開獎結果球號一致的10種顏色 */
+        .bead-item.number-1 {
+            background: #e74c3c;
+            color: white;
+        }
+        
         .bead-item.number-2 {
-            background: #ff6b6b;
+            background: #3498db;
             color: white;
         }
         
-        .bead-item.number-3,
+        .bead-item.number-3 {
+            background: #95a5a6;
+            color: white;
+        }
+        
         .bead-item.number-4 {
-            background: #4ecdc4;
+            background: #f39c12;
             color: white;
         }
         
-        .bead-item.number-5,
+        .bead-item.number-5 {
+            background: #1abc9c;
+            color: white;
+        }
+        
         .bead-item.number-6 {
-            background: #45b7d1;
+            background: #9b59b6;
             color: white;
         }
         
-        .bead-item.number-7,
+        .bead-item.number-7 {
+            background: #34495e;
+            color: white;
+        }
+        
         .bead-item.number-8 {
-            background: #96ceb4;
+            background: #e67e22;
             color: white;
         }
         
-        .bead-item.number-9,
+        .bead-item.number-9 {
+            background: #2ecc71;
+            color: white;
+        }
+        
         .bead-item.number-10 {
-            background: #feca57;
+            background: #f1c40f;
             color: #333;
         }
         
@@ -5521,7 +5560,7 @@
                                 :key="stat.number"
                                 :class="['stat-item', { 'hot-number': stat.count > 0 }]"
                             >
-                                <div class="number">{{ stat.number }}</div>
+                                <div :class="['number', `stat-number-${stat.number}`]">{{ stat.number }}</div>
                                 <div class="count">{{ stat.count }}次</div>
                                 <div class="percentage">{{ stat.percentage }}%</div>
                             </div>
