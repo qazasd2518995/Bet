@@ -1875,14 +1875,14 @@ app.get('/api/weekly-profit-records', async (req, res) => {
 
     console.log(`獲取用戶 ${username} 的週盈虧記錄，時間範圍: ${start.toISOString()} 到 ${end.toISOString()}`);
 
-    // 獲取指定週期內的每日盈虧記錄
+    // 獲取指定週期內的每日盈虧記錄 - 使用正確的盈虧計算公式
     const query = `
       SELECT 
         DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') as date,
         COUNT(*) as bet_count,
         COALESCE(SUM(amount), 0) as total_bet,
         COALESCE(SUM(CASE WHEN win = true THEN win_amount ELSE 0 END), 0) as total_win,
-        COALESCE(SUM(amount), 0) as total_amount
+        COALESCE(SUM(CASE WHEN win = true THEN (win_amount - amount) ELSE -amount END), 0) as net_profit
       FROM bet_history 
       WHERE username = $1 
         AND settled = true 
@@ -1906,18 +1906,32 @@ app.get('/api/weekly-profit-records', async (req, res) => {
       const dateStr = currentDate.toISOString().split('T')[0];
       
       // 查找該日期的實際記錄
-      const dayRecord = result.find(row => row.date === dateStr);
+      const dayRecord = result.find(row => {
+        // row.date 是Date對象（台北時間），需要正確轉換為字符串比較
+        let rowDateStr;
+        if (row.date instanceof Date) {
+          // 由於date已經是台北時間的日期，直接格式化
+          const year = row.date.getFullYear();
+          const month = String(row.date.getMonth() + 1).padStart(2, '0');
+          const day = String(row.date.getDate()).padStart(2, '0');
+          rowDateStr = `${year}-${month}-${day}`;
+        } else {
+          rowDateStr = String(row.date).split('T')[0];
+        }
+        return rowDateStr === dateStr;
+      });
       
       if (dayRecord) {
         const totalBet = parseFloat(dayRecord.total_bet);
         const totalWin = parseFloat(dayRecord.total_win);
+        const netProfit = parseFloat(dayRecord.net_profit); // 使用正確的淨盈虧
         records.push({
           date: dateStr,
           weekday: weekDays[i],
           betCount: parseInt(dayRecord.bet_count),
           totalBet: totalBet,
           totalWin: totalWin,
-          profit: totalWin - totalBet
+          profit: netProfit // 使用正確計算的盈虧
         });
       } else {
         // 如果該日期沒有記錄，填充空記錄
