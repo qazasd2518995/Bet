@@ -3588,27 +3588,58 @@
                 max-height: 60vh;
             }
             
-            /* 手機端修復：歷史開獎球號被擠壓問題 */
-            .history-item .result-balls {
+            /* 手機端修復：歷史開獎完整顯示1-10名球號 */
+            .history-item {
+                padding: 8px 10px;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .history-row {
                 display: flex;
-                flex-direction: row;
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                gap: 6px;
-                padding: 8px 0;
-                scroll-behavior: smooth;
-                -webkit-overflow-scrolling: touch;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .period-time-info {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                min-height: 24px;
+            }
+            
+            .period-time-info .period {
+                font-size: 13px !important;
+                font-weight: bold;
+                color: var(--primary-color);
+            }
+            
+            .period-time-info .time {
+                font-size: 11px !important;
+                color: #888;
+            }
+            
+            .history-item .result-balls {
+                display: grid;
+                grid-template-columns: repeat(10, 1fr);
+                gap: 2px;
+                width: 100%;
+                padding: 0;
             }
             
             .history-item .number-ball,
             .history-item .result-ball {
-                min-width: 32px !important;
-                width: 32px !important;
-                height: 32px !important;
+                width: 100% !important;
+                aspect-ratio: 1 !important;
+                min-width: auto !important;
+                height: auto !important;
                 flex-shrink: 0;
-                font-size: 13px !important;
-                line-height: 32px !important;
-                margin: 0 1px;
+                font-size: 11px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 50% !important;
+                margin: 0;
+                line-height: 1 !important;
             }
             
             /* 手機端修復：長龍排名選項被遮擋問題 */
@@ -3651,11 +3682,11 @@
                 min-width: calc(33.333% - 4px);
             }
             
-            /* 手機端修復：路珠棋盤期號遮擋數字問題 */
+            /* 手機端修復：路珠棋盤垂直置中和期號位置優化 */
             .bead-item {
-                width: 90%;
-                height: 90%;
-                border-radius: 8px;
+                width: 95%;
+                height: 95%;
+                border-radius: 6px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -3663,37 +3694,50 @@
                 font-weight: bold;
                 position: relative;
                 transition: all 0.3s;
-                padding: 2px;
+                padding: 0;
             }
             
             .period-info {
                 position: absolute;
-                top: 1px;
-                right: 1px;
-                font-size: 7px;
-                background: rgba(0, 0, 0, 0.7);
+                top: 0px;
+                right: 0px;
+                font-size: 6px;
+                background: rgba(0, 0, 0, 0.6);
                 color: white;
-                padding: 1px 2px;
-                border-radius: 2px;
-                font-weight: bold;
-                z-index: 5;
-                line-height: 1;
-                min-width: 14px;
+                padding: 1px 3px;
+                border-radius: 0 6px 0 6px;
+                font-weight: normal;
+                z-index: 10;
+                line-height: 1.2;
+                min-width: 12px;
                 text-align: center;
             }
             
             .main-value {
-                font-size: 16px;
-                margin-bottom: 1px;
-                margin-top: 6px;
+                font-size: 14px;
+                margin: 0;
                 z-index: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 80%;
+                height: 80%;
             }
             
             .extra-info {
-                font-size: 8px;
+                font-size: 7px;
                 opacity: 0.8;
-                margin-top: auto;
+                position: absolute;
+                bottom: 1px;
+                left: 50%;
+                transform: translateX(-50%);
                 z-index: 1;
+                white-space: nowrap;
             }
             
             /* 路珠棋盤格子大小調整 */
