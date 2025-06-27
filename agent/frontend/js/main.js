@@ -1917,7 +1917,7 @@ const app = createApp({
         // 获取级别名稱
         getLevelName(level) {
             const levels = {
-                0: '總代理',
+                0: '客服',
                 1: '一級代理', 
                 2: '二級代理',
                 3: '三級代理',

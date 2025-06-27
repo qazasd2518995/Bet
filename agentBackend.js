@@ -5660,7 +5660,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         0 as depth,
         CASE 
           WHEN a.level = 0 THEN '客服'
-          WHEN a.level = 1 THEN '總代理'
+          WHEN a.level = 1 THEN '一級代理'
           WHEN a.level = 2 THEN '二級代理'
           WHEN a.level = 3 THEN '三級代理'
           WHEN a.level = 4 THEN '四級代理'
