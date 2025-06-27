@@ -580,6 +580,66 @@ let odds = {
   dragonTiger: 1.88
 };
 
+// 盤口配置系統
+const MARKET_CONFIG = {
+  A: {
+    name: 'A盤',
+    rebatePercentage: 0.011, // 1.1%退水
+    description: '高賠率盤口',
+    numberOdds: 9.89,        // 單號賠率
+    twoSideOdds: 1.9,        // 兩面賠率 
+    dragonTigerOdds: 1.9     // 龍虎賠率
+  },
+  D: {
+    name: 'D盤', 
+    rebatePercentage: 0.041, // 4.1%退水
+    description: '標準盤口',
+    numberOdds: 9.59,        // 單號賠率
+    twoSideOdds: 1.88,       // 兩面賠率
+    dragonTigerOdds: 1.88    // 龍虎賠率
+  }
+};
+
+// 限紅配置
+const BET_LIMITS = {
+  // 1-10車號
+  number: {
+    minBet: 1,      // 單注最低
+    maxBet: 2500,   // 單注最高
+    periodLimit: 5000 // 單期限額
+  },
+  // 兩面 (大小單雙)
+  twoSide: {
+    minBet: 1,
+    maxBet: 5000,
+    periodLimit: 5000
+  },
+  // 冠亞軍和大小
+  sumValueSize: {
+    minBet: 1,
+    maxBet: 5000,
+    periodLimit: 5000
+  },
+  // 冠亞軍和單雙
+  sumValueOddEven: {
+    minBet: 1,
+    maxBet: 5000,
+    periodLimit: 5000
+  },
+  // 冠亞軍和
+  sumValue: {
+    minBet: 1,
+    maxBet: 1000,
+    periodLimit: 2000
+  },
+  // 龍虎
+  dragonTiger: {
+    minBet: 1,
+    maxBet: 5000,
+    periodLimit: 5000
+  }
+};
+
 // 初始化一個特定用戶的本地資料
 async function initializeUserData(username) {
   console.log('初始化用戶資料:', username);
@@ -2695,9 +2755,9 @@ app.post('/api/bet', async (req, res) => {
       return res.status(400).json({ success: false, message: '當前不是下注階段' });
     }
     
-    // 獲取賠率
-    const odds = getOdds(betType, value);
-    console.log(`下注賠率: ${odds}`);
+    // 獲取賠率（暫時使用默認D盤，會在會員信息檢查後更新）
+    let odds = getOdds(betType, value, 'D');
+    console.log(`初始下注賠率: ${odds}`);
     
     try {
       // 獲取總代理ID
@@ -2709,9 +2769,10 @@ app.post('/api/bet', async (req, res) => {
       
       console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
-      // 首先检查会员状态
+      // 首先检查会员状态和盤口信息
+      let memberMarketType = 'D'; // 默認D盤
       try {
-        console.log(`检查会员 ${username} 状态`);
+        console.log(`检查会员 ${username} 状态和盤口信息`);
         
         // 调用代理系统API检查会员状态
         const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
@@ -2733,11 +2794,35 @@ app.post('/api/bet', async (req, res) => {
               console.error(`会员 ${username} 已被凍結`);
               return res.status(400).json({ success: false, message: '帐号已被凍結，只能观看游戏无法下注' });
             }
+            
+            // 獲取會員盤口類型
+            memberMarketType = memberData.member.market_type || 'D';
+            console.log(`会员 ${username} 盤口類型: ${memberMarketType}`);
           }
         }
       } catch (statusError) {
         console.warn('检查会员状态失败，继续使用原有逻辑:', statusError.message);
       }
+      
+      // 獲取用戶當前期投注記錄，用於限紅檢查
+      let userCurrentBets = [];
+      try {
+        const existingBets = await BetModel.findByUserAndPeriod(username, period);
+        userCurrentBets = existingBets || [];
+      } catch (betError) {
+        console.warn('获取用户当期投注记录失败:', betError.message);
+      }
+      
+             // 限紅驗證
+       const limitCheck = validateBetLimits(betType, value, amountNum, userCurrentBets);
+       if (!limitCheck.valid) {
+         console.error(`限紅驗證失敗: ${limitCheck.message}`);
+         return res.status(400).json({ success: false, message: limitCheck.message });
+       }
+       
+       // 根據會員盤口類型重新計算賠率
+       odds = getOdds(betType, value, memberMarketType);
+       console.log(`根據盤口 ${memberMarketType} 調整後賠率: ${odds}`);
 
       // 使用代理系統檢查和扣除會員餘額
       let updatedBalance;
@@ -2991,16 +3076,94 @@ async function startServer() {
 // 啟動服務器
 startServer();
 
-// 獲取下注賠率函數
-function getOdds(betType, value) {
+// 限紅驗證函數
+function validateBetLimits(betType, value, amount, userBets = []) {
+  let limits;
+  
+  // 根據投注類型確定限紅配置
+  if (betType === 'number' || (
+    ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
+    !['big', 'small', 'odd', 'even'].includes(value)
+  )) {
+    limits = BET_LIMITS.number;
+  } else if (betType === 'dragonTiger') {
+    limits = BET_LIMITS.dragonTiger;
+  } else if (betType === 'sumValue') {
+    if (['big', 'small'].includes(value)) {
+      limits = BET_LIMITS.sumValueSize;
+    } else if (['odd', 'even'].includes(value)) {
+      limits = BET_LIMITS.sumValueOddEven;
+    } else {
+      limits = BET_LIMITS.sumValue;
+    }
+  } else {
+    limits = BET_LIMITS.twoSide;
+  }
+  
+  // 檢查單注限額
+  if (amount < limits.minBet) {
+    return {
+      valid: false,
+      message: `單注金額不能低於 ${limits.minBet} 元`
+    };
+  }
+  
+  if (amount > limits.maxBet) {
+    return {
+      valid: false,
+      message: `單注金額不能超過 ${limits.maxBet} 元`
+    };
+  }
+  
+  // 檢查單期限額（計算當前期已投注金額）
+  const sameTypeBets = userBets.filter(bet => {
+    if (betType === 'number' || (
+      ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
+      !['big', 'small', 'odd', 'even'].includes(value)
+    )) {
+      return bet.betType === 'number' || (
+        ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(bet.betType) && 
+        !['big', 'small', 'odd', 'even'].includes(bet.value)
+      );
+    } else if (betType === 'dragonTiger') {
+      return bet.betType === 'dragonTiger';
+    } else if (betType === 'sumValue') {
+      if (['big', 'small'].includes(value)) {
+        return bet.betType === 'sumValue' && ['big', 'small'].includes(bet.value);
+      } else if (['odd', 'even'].includes(value)) {
+        return bet.betType === 'sumValue' && ['odd', 'even'].includes(bet.value);
+      } else {
+        return bet.betType === 'sumValue' && !['big', 'small', 'odd', 'even'].includes(bet.value);
+      }
+    } else {
+      return ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'position'].includes(bet.betType) && 
+             ['big', 'small', 'odd', 'even'].includes(bet.value);
+    }
+  });
+  
+  const currentPeriodAmount = sameTypeBets.reduce((sum, bet) => sum + bet.amount, 0);
+  
+  if (currentPeriodAmount + amount > limits.periodLimit) {
+    return {
+      valid: false,
+      message: `單期限額為 ${limits.periodLimit} 元，已投注 ${currentPeriodAmount} 元，無法再投注 ${amount} 元`
+    };
+  }
+  
+  return { valid: true };
+}
+
+// 獲取下注賠率函數 - 支持盤口系統
+function getOdds(betType, value, marketType = 'D') {
   try {
-    // 退水比例 4.1%
-    const rebatePercentage = 0.041;
+    // 根據盤口類型獲取配置
+    const config = MARKET_CONFIG[marketType] || MARKET_CONFIG.D;
+    const rebatePercentage = config.rebatePercentage;
     
     // 冠亞和值賠率
     if (betType === 'sumValue') {
       if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙賠率：1.96 × (1-4.1%) = 1.88
+        return config.twoSideOdds;  // 使用盤口配置的兩面賠率
       } else {
         // 和值賠率表 (扣除退水4.1%)
         const sumOdds = {
@@ -3027,16 +3190,16 @@ function getOdds(betType, value) {
     } 
     // 單號投注
     else if (betType === 'number') {
-      return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 10.0 × (1-4.1%) = 9.59
+      return config.numberOdds;  // 使用盤口配置的單號賠率
     }
     // 龍虎
     else if (betType === 'dragonTiger') {
-      return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+      return config.dragonTigerOdds;  // 使用盤口配置的龍虎賠率
     } 
     // 快速投注 (position類型)
     else if (betType === 'position') {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙：1.96 × (1-4.1%) = 1.88
+        return config.twoSideOdds;  // 使用盤口配置的兩面賠率
       } else {
         console.warn(`快速投注收到無效值: ${value}，返回默認賠率 1.0`);
         return 1.0;
@@ -3045,12 +3208,12 @@ function getOdds(betType, value) {
     // 冠軍、亞軍等位置投注
     else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
       if (['big', 'small', 'odd', 'even'].includes(value)) {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 大小單雙：1.96 × (1-4.1%) = 1.88
+        return config.twoSideOdds;  // 使用盤口配置的兩面賠率
       } else {
-        // 指定號碼投注：10.0 × (1-4.1%) = 9.59 (與單號投注相同賠率)
+        // 指定號碼投注：使用盤口配置的單號賠率
         const numValue = parseInt(value);
         if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
-          return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));
+          return config.numberOdds;
         } else {
           // 無效值，返回最低賠率並記錄警告
           console.warn(`位置投注 ${betType} 收到無效值: ${value}，返回默認賠率 1.0`);

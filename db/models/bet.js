@@ -121,6 +121,20 @@ const BetModel = {
       console.error('獲取最近已結算注單出錯:', error);
       return [];
     }
+  },
+  
+  // 獲取用戶指定期數的投注記錄（用於限紅檢查）
+  async findByUserAndPeriod(username, period) {
+    try {
+      return await db.any(`
+        SELECT bet_type as betType, bet_value as value, amount, position
+        FROM bet_history 
+        WHERE username = $1 AND period = $2
+      `, [username, period]);
+    } catch (error) {
+      console.error('獲取用戶當期投注記錄出錯:', error);
+      return [];
+    }
   }
 };
 

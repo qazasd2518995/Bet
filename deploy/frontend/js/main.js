@@ -112,6 +112,7 @@ const app = createApp({
                 password: '',
                 level: '1',
                 parent: '',
+                market_type: 'D', // 默認D盤
                 rebate_mode: 'percentage',
                 rebate_percentage: 2.0,
                 notes: ''
@@ -183,7 +184,8 @@ const app = createApp({
                 confirmPassword: '',
                 balance: 0,
                 status: 1,
-                notes: ''
+                notes: '',
+                market_type: 'D' // 默認繼承代理盤口
             },
             
 
@@ -1460,6 +1462,38 @@ const app = createApp({
             });
         },
         
+        // 獲取盤口最大退水比例
+        getMaxRebateForMarket(marketType) {
+            if (marketType === 'A') {
+                return 1.1; // A盤最大1.1%
+            } else if (marketType === 'D') {
+                return 4.1; // D盤最大4.1%
+            }
+            return 4.1; // 默認D盤
+        },
+        
+        // 獲取盤口信息
+        getMarketInfo(marketType) {
+            if (marketType === 'A') {
+                return {
+                    name: 'A盤',
+                    rebate: '1.1%',
+                    description: '高賠率盤口',
+                    numberOdds: '9.89',
+                    twoSideOdds: '1.9'
+                };
+            } else if (marketType === 'D') {
+                return {
+                    name: 'D盤',
+                    rebate: '4.1%',
+                    description: '標準盤口',
+                    numberOdds: '9.59',
+                    twoSideOdds: '1.88'
+                };
+            }
+            return this.getMarketInfo('D'); // 默認D盤
+        },
+        
         // 处理查看范围變更
         async handleViewScopeChange() {
             console.log('🔄 查看范围變更:', this.betFilters.viewScope);
@@ -2107,6 +2141,7 @@ const app = createApp({
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
                     parent: this.newAgent.parent,
+                    market_type: this.newAgent.market_type,
                     rebate_mode: this.newAgent.rebate_mode,
                     notes: this.newAgent.notes || ''
                 };
@@ -2129,6 +2164,7 @@ const app = createApp({
                         password: '',
                         level: '1',
                         parent: '',
+                        market_type: 'D',
                         rebate_mode: 'percentage',
                         rebate_percentage: 2.0,
                         notes: ''

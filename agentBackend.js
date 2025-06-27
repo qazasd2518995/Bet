@@ -183,6 +183,42 @@ app.post(`${API_PREFIX}/member/verify-login`, async (req, res) => {
   }
 });
 
+// 獲取會員信息API（包含盤口類型）
+app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      member: {
+        id: member.id,
+        username: member.username,
+        balance: member.balance,
+        agent_id: member.agent_id,
+        status: member.status,
+        market_type: member.market_type || 'D',
+        created_at: member.created_at
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取會員信息錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '服務暫時不可用'
+    });
+  }
+});
+
 // 獲取會員餘額API
 app.get(`${API_PREFIX}/member/balance/:username`, async (req, res) => {
   try {
@@ -658,6 +694,10 @@ async function initDatabase() {
       await db.none(`
         ALTER TABLE agents ADD COLUMN IF NOT EXISTS max_rebate_percentage DECIMAL(5, 4) DEFAULT 0.041
       `);
+      // 新增盤口類型字段 - A盤(1.1%退水)或D盤(4.1%退水)
+      await db.none(`
+        ALTER TABLE agents ADD COLUMN IF NOT EXISTS market_type VARCHAR(1) DEFAULT 'D'
+      `);
       console.log('代理退水字段添加成功');
     } catch (error) {
       console.log('代理退水字段已存在或添加失敗:', error.message);
@@ -695,6 +735,10 @@ async function initDatabase() {
       `);
       await db.none(`
         ALTER TABLE members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      // 新增會員盤口類型字段，從代理繼承
+      await db.none(`
+        ALTER TABLE members ADD COLUMN IF NOT EXISTS market_type VARCHAR(1) DEFAULT 'D'
       `);
       console.log('備註字段添加成功');
     } catch (error) {
@@ -1056,14 +1100,14 @@ const AgentModel = {
   
   // 創建代理
   async create(agentData) {
-    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes } = agentData;
+    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type } = agentData;
     
     try {
       return await db.one(`
-        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
         RETURNING *
-      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041, notes || '']);
+      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041, notes || '', market_type || 'D']);
     } catch (error) {
       console.error('創建代理出錯:', error);
       throw error;
@@ -1378,14 +1422,22 @@ const MemberModel = {
   
   // 創建會員
   async create(memberData) {
-    const { username, password, agent_id, balance = 0, notes } = memberData;
+    const { username, password, agent_id, balance = 0, notes, market_type } = memberData;
     
     try {
+      // 如果沒有指定盤口類型，從代理繼承
+      let finalMarketType = market_type;
+      if (!finalMarketType && agent_id) {
+        const agent = await AgentModel.findById(agent_id);
+        finalMarketType = agent ? agent.market_type : 'D';
+      }
+      finalMarketType = finalMarketType || 'D';
+      
       return await db.one(`
-        INSERT INTO members (username, password, agent_id, balance, notes) 
-        VALUES ($1, $2, $3, $4, $5) 
+        INSERT INTO members (username, password, agent_id, balance, notes, market_type) 
+        VALUES ($1, $2, $3, $4, $5, $6) 
         RETURNING *
-      `, [username, password, agent_id, balance, notes || '']);
+      `, [username, password, agent_id, balance, notes || '', finalMarketType]);
     } catch (error) {
       console.error('創建會員出錯:', error);
       throw error;

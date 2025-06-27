@@ -97,6 +97,15 @@
             -moz-osx-font-smoothing: grayscale;
         }
         
+        /* 限紅提示樣式 */
+        .bet-limit-message {
+            font-size: 11px;
+            color: #ff6b6b;
+            margin-top: 2px;
+            text-align: center;
+            line-height: 1.2;
+        }
+        
         /* 增強版开奖動畫系统 */
         
         /* 基礎動畫效果 */
@@ -5413,6 +5422,9 @@
                     <!-- 金额输入框 -->
                     <div class="compact-amount-input">
                         <input type="number" v-model="betAmount" min="1" step="1" placeholder="金额">
+                        <div v-if="betLimitMessage" class="bet-limit-message">
+                            {{ betLimitMessage }}
+                        </div>
                     </div>
                 </div>
                 
@@ -6205,7 +6217,18 @@
                 roadBeadAnalysisType: 'number', // 分析類型：number|size|parity|sum|sumSize|sumParity|dragonTiger
                 roadBeadData: null, // 路珠數據
                 roadBeadTodayStats: [], // 今日统计
-                roadBeadLoading: false, // 加載狀態
+                
+                                 // 限紅相關
+                 betLimitMessage: '', // 限紅提示訊息
+                 betLimits: {
+                     number: { minBet: 2500, maxBet: 5000 },
+                     twoSide: { minBet: 5000, maxBet: 5000 },
+                     sumValueSize: { minBet: 5000, maxBet: 5000 },
+                     sumValueOddEven: { minBet: 5000, maxBet: 5000 },
+                     sumValue: { minBet: 1000, maxBet: 2000 },
+                     dragonTiger: { minBet: 5000, maxBet: 5000 }
+                 },
+                  roadBeadLoading: false, // 加載狀態
                 };
             },
             created() {
@@ -6847,6 +6870,66 @@
                             this.isLoading = false;
                         });
                 },
+                
+                // 檢查限紅並更新提示
+                checkBetLimits() {
+                    if (!this.betAmount || this.selectedBets.length === 0) {
+                        this.betLimitMessage = '';
+                        return;
+                    }
+                    
+                    const amount = parseInt(this.betAmount);
+                    let messages = [];
+                    
+                    // 檢查每個投注項目的限紅
+                    for (let bet of this.selectedBets) {
+                        let betType = this.getBetLimitType(bet);
+                        let limits = this.betLimits[betType];
+                        
+                        if (limits) {
+                            if (amount < limits.minBet) {
+                                messages.push(`${this.getBetTypeDisplayName(betType)}單注最低${limits.minBet}元`);
+                            } else if (amount > limits.maxBet) {
+                                messages.push(`${this.getBetTypeDisplayName(betType)}單期限額${limits.maxBet}元`);
+                            }
+                        }
+                    }
+                    
+                    this.betLimitMessage = messages.length > 0 ? messages[0] : '';
+                },
+                
+                // 獲取投注類型對應的限紅配置
+                getBetLimitType(bet) {
+                    if (bet.type === 'number' || (bet.position && !bet.property)) {
+                        return 'number';
+                    } else if (bet.type === 'dragonTiger') {
+                        return 'dragonTiger';
+                    } else if (bet.type === 'sumValue') {
+                        if (['big', 'small'].includes(bet.value)) {
+                            return 'sumValueSize';
+                        } else if (['odd', 'even'].includes(bet.value)) {
+                            return 'sumValueOddEven';
+                        } else {
+                            return 'sumValue';
+                        }
+                    } else {
+                        return 'twoSide';
+                    }
+                },
+                
+                // 獲取投注類型的顯示名稱
+                getBetTypeDisplayName(betType) {
+                    const names = {
+                        number: '1-10車號',
+                        twoSide: '兩面',
+                        sumValueSize: '冠亞軍和大小',
+                        sumValueOddEven: '冠亞軍和單雙',
+                        sumValue: '冠亞軍和',
+                        dragonTiger: '龍虎'
+                    };
+                    return names[betType] || '投注';
+                },
+                
                 updateBetHistory(page = 1) {
                     fetch(`${this.API_BASE_URL}/api/bet-history?username=${this.username}&page=${page}`)
                         .then(response => response.json())
@@ -9879,6 +9962,14 @@
                             document.removeEventListener('click', this.handleClickOutside);
                         }
                     }
+                },
+                // 監聽投注金額變化，檢查限紅
+                betAmount() {
+                    this.checkBetLimits();
+                },
+                // 監聽選中投注項目變化，檢查限紅
+                selectedBets() {
+                    this.checkBetLimits();
                 }
             },
         });

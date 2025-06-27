@@ -691,6 +691,7 @@
                                             <th>ID</th>
                                             <th>用戶名</th>
                                             <th>级别</th>
+                                            <th>盤口</th>
                                             <th>余额</th>
                                             <th>退水设定</th>
                                             <th>備註</th>
@@ -710,6 +711,12 @@
                                                 </a>
                                             </td>
                                             <td>{{ getLevelName(agent.level) }}</td>
+                                            <td>
+                                                <span class="badge" :class="agent.market_type === 'A' ? 'bg-warning' : 'bg-primary'">
+                                                    {{ agent.market_type }}盤 
+                                                    <small>({{ getMarketInfo(agent.market_type).rebate }})</small>
+                                                </span>
+                                            </td>
                                             <td>{{ formatMoney(agent.balance) }}</td>
                                             <td>
                                                 <span class="badge bg-info">
@@ -841,6 +848,14 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="mb-3">
+                                                    <label class="form-label">盤口類型</label>
+                                                    <select class="form-select" v-model="newAgent.market_type" required>
+                                                        <option value="A">A盤 (1.1%退水 - 高賠率)</option>
+                                                        <option value="D">D盤 (4.1%退水 - 標準)</option>
+                                                    </select>
+                                                    <small class="form-text text-muted">不同盤口有不同的退水比例和賠率</small>
+                                                </div>
+                                                <div class="mb-3">
                                                     <label class="form-label">退水模式</label>
                                                     <select class="form-select" v-model="newAgent.rebate_mode" required>
                                                         <option value="all">全拿所有退水</option>
@@ -852,9 +867,9 @@
                                                 <div class="mb-3" v-if="newAgent.rebate_mode === 'percentage'">
                                                     <label class="form-label">退水比例 (%)</label>
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
-                                                           step="0.01" min="0" :max="(currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100" required>
+                                                           step="0.01" min="0" :max="getMaxRebateForMarket(newAgent.market_type)" required>
                                                     <small class="form-text text-muted">
-                                                        可设定范围：0% - {{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
+                                                        可设定范围：0% - {{ getMaxRebateForMarket(newAgent.market_type) }}% ({{ newAgent.market_type }}盤限制)
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
