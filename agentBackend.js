@@ -5379,6 +5379,257 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
   }
 });
 
+// 代理層級分析報表API - 新的報表格式
+app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
+  try {
+    const agentToken = req.headers.authorization?.replace('Bearer ', '');
+    if (!agentToken) {
+      return res.status(401).json({
+        success: false,
+        message: '未提供授權令牌'
+      });
+    }
+
+    // 驗證代理會話
+    const session = SessionManager.getSession(agentToken);
+    if (!session) {
+      return res.status(401).json({
+        success: false,
+        message: '無效的授權令牌'
+      });
+    }
+
+    const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount } = req.query;
+    
+    console.log('📊 代理層級分析API: 接收請求', { startDate, endDate, username, session: session.username });
+    
+    // 獲取當前代理信息
+    const currentAgent = await AgentModel.findByUsername(session.username);
+    if (!currentAgent) {
+      return res.status(401).json({
+        success: false,
+        message: '代理信息不存在'
+      });
+    }
+
+    // 構建時間查詢條件
+    let timeWhereClause = '';
+    let timeParams = [];
+    let paramIndex = 1;
+    
+    if (startDate && endDate) {
+      timeWhereClause = ` AND bh.created_at >= $${paramIndex} AND bh.created_at <= $${paramIndex + 1}`;
+      timeParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
+      paramIndex += 2;
+    }
+    
+    if (username) {
+      timeWhereClause += ` AND bh.username ILIKE $${paramIndex}`;
+      timeParams.push(`%${username}%`);
+      paramIndex++;
+    }
+
+    // 查詢代理層級數據
+    const agentLevelQuery = `
+      WITH RECURSIVE agent_hierarchy AS (
+        -- 基礎查詢：當前代理
+        SELECT 
+          id, username, level, balance, parent_id, rebate_percentage,
+          CAST(username AS TEXT) as path,
+          0 as depth
+        FROM agents 
+        WHERE id = $${paramIndex}
+        
+        UNION ALL
+        
+        -- 遞歸查詢：下級代理
+        SELECT 
+          a.id, a.username, a.level, a.balance, a.parent_id, a.rebate_percentage,
+          ah.path || ' -> ' || a.username,
+          ah.depth + 1
+        FROM agents a
+        INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
+        WHERE ah.depth < 10  -- 限制遞歸深度
+      )
+      SELECT DISTINCT
+        ah.id,
+        ah.username,
+        ah.level,
+        ah.balance,
+        ah.rebate_percentage,
+        ah.depth,
+        CASE 
+          WHEN ah.level = 0 THEN '客服'
+          WHEN ah.level = 1 THEN '總代理'
+          WHEN ah.level = 2 THEN '二級代理'
+          WHEN ah.level = 3 THEN '三級代理'
+          WHEN ah.level = 4 THEN '四級代理'
+          WHEN ah.level = 5 THEN '五級代理'
+          WHEN ah.level = 6 THEN '六級代理'
+          WHEN ah.level = 7 THEN '七級代理'
+          WHEN ah.level = 8 THEN '八級代理'
+          WHEN ah.level = 9 THEN '九級代理'
+          ELSE '代理'
+        END as level_name
+      FROM agent_hierarchy ah
+      ORDER BY ah.depth, ah.level, ah.username
+    `;
+    
+    timeParams.push(currentAgent.id);
+    paramIndex++;
+
+    const agentLevels = await db.any(agentLevelQuery, [currentAgent.id]);
+    
+    // 為每個代理級別查詢投注數據
+    const reportData = [];
+    let totalSummary = {
+      betCount: 0,
+      betAmount: 0.0,
+      validAmount: 0.0,
+      memberWinLoss: 0.0,
+      ninthAgentWinLoss: 0.0,
+      upperDelivery: 0.0,
+      upperSettlement: 0.0,
+      rebate: 0.0,
+      profitLoss: 0.0,
+      downlineReceivable: 0.0,
+      commission: 0.0,
+      commissionAmount: 0.0,
+      commissionResult: 0.0,
+      actualRebate: 0.0,
+      rebateProfit: 0.0,
+      finalProfitLoss: 0.0
+    };
+    
+    for (const agent of agentLevels) {
+      // 查詢該代理下的所有會員投注記錄
+      const memberBetQuery = `
+        SELECT 
+          COUNT(bh.*) as bet_count,
+          COALESCE(SUM(bh.amount), 0) as bet_amount,
+          COALESCE(SUM(bh.amount), 0) as valid_amount,
+          COALESCE(SUM(CASE WHEN bh.win THEN bh.win_amount - bh.amount ELSE -bh.amount END), 0) as member_win_loss,
+          COALESCE(SUM(bh.amount * 0.02), 0) as rebate_amount
+        FROM bet_history bh
+        INNER JOIN members m ON bh.username = m.username
+        WHERE m.agent_id = $1
+        ${timeWhereClause}
+      `;
+      
+      const betParams = [agent.id, ...timeParams.slice(0, -1)];
+      const betStats = await db.oneOrNone(memberBetQuery, betParams) || {
+        bet_count: 0,
+        bet_amount: 0,
+        valid_amount: 0,
+        member_win_loss: 0,
+        rebate_amount: 0
+      };
+      
+      // 計算代理相關數據
+      const betCount = parseInt(betStats.bet_count) || 0;
+      const betAmount = parseFloat(betStats.bet_amount) || 0.0;
+      const validAmount = parseFloat(betStats.valid_amount) || 0.0;
+      const memberWinLoss = parseFloat(betStats.member_win_loss) || 0.0;
+      const rebateAmount = parseFloat(betStats.rebate_amount) || 0.0;
+      
+      // 代理輸贏計算（與會員相反）
+      const ninthAgentWinLoss = -memberWinLoss;
+      const upperDelivery = betAmount * 0.85; // 上交貨量
+      const upperSettlement = ninthAgentWinLoss * 0.9; // 上級交收
+      const downlineReceivable = betAmount * 0.1; // 應收下線
+      const commissionRate = (agent.rebate_percentage || 0.02) * 100; // 佔成比例
+      const commissionAmount = betAmount * (agent.rebate_percentage || 0.02); // 佔成金額
+      const commissionResult = commissionAmount; // 佔成結果
+      const actualRebate = rebateAmount; // 實佔退水
+      const rebateProfit = commissionAmount - rebateAmount; // 賺水
+      const finalProfitLoss = ninthAgentWinLoss + rebateProfit; // 最終盈虧結果
+      
+      const agentData = {
+        level: agent.level_name,
+        username: agent.username,
+        balance: parseFloat(agent.balance) || 0.0,
+        betCount: betCount,
+        betAmount: betAmount,
+        validAmount: validAmount,
+        memberWinLoss: memberWinLoss,
+        ninthAgentWinLoss: ninthAgentWinLoss,
+        upperDelivery: upperDelivery,
+        upperSettlement: upperSettlement,
+        rebate: rebateAmount,
+        profitLoss: memberWinLoss,
+        downlineReceivable: downlineReceivable,
+        commission: commissionRate,
+        commissionAmount: commissionAmount,
+        commissionResult: commissionResult,
+        actualRebate: actualRebate,
+        rebateProfit: rebateProfit,
+        finalProfitLoss: finalProfitLoss
+      };
+      
+      reportData.push(agentData);
+      
+      // 累計到總計
+      totalSummary.betCount += betCount;
+      totalSummary.betAmount += betAmount;
+      totalSummary.validAmount += validAmount;
+      totalSummary.memberWinLoss += memberWinLoss;
+      totalSummary.ninthAgentWinLoss += ninthAgentWinLoss;
+      totalSummary.upperDelivery += upperDelivery;
+      totalSummary.upperSettlement += upperSettlement;
+      totalSummary.rebate += rebateAmount;
+      totalSummary.profitLoss += memberWinLoss;
+      totalSummary.downlineReceivable += downlineReceivable;
+      totalSummary.commissionAmount += commissionAmount;
+      totalSummary.commissionResult += commissionResult;
+      totalSummary.actualRebate += actualRebate;
+      totalSummary.rebateProfit += rebateProfit;
+      totalSummary.finalProfitLoss += finalProfitLoss;
+    }
+    
+    console.log('📊 代理層級分析API: 成功獲取數據', { 
+      agentCount: agentLevels.length, 
+      dataCount: reportData.length,
+      totalBets: totalSummary.betCount 
+    });
+
+    res.json({
+      success: true,
+      reportData: reportData,
+      totalSummary: totalSummary,
+      hasData: reportData.length > 0 && totalSummary.betCount > 0
+    });
+
+  } catch (error) {
+    console.error('獲取代理層級分析失敗:', error);
+    
+    // 返回空數據結構
+    res.json({
+      success: true,
+      reportData: [],
+      totalSummary: {
+        betCount: 0,
+        betAmount: 0.0,
+        validAmount: 0.0,
+        memberWinLoss: 0.0,
+        ninthAgentWinLoss: 0.0,
+        upperDelivery: 0.0,
+        upperSettlement: 0.0,
+        rebate: 0.0,
+        profitLoss: 0.0,
+        downlineReceivable: 0.0,
+        commission: 0.0,
+        commissionAmount: 0.0,
+        commissionResult: 0.0,
+        actualRebate: 0.0,
+        rebateProfit: 0.0,
+        finalProfitLoss: 0.0
+      },
+      hasData: false,
+      message: error.message || '查詢失敗'
+    });
+  }
+});
+
 // 報表匯出API - 匯出Excel格式報表
 app.get(`${API_PREFIX}/reports/export`, async (req, res) => {
   try {

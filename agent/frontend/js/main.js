@@ -831,6 +831,17 @@ const app = createApp({
                     this.user = agent;
                     this.isLoggedIn = true;
                     
+                    // 設置當前管理代理為自己 - 修復儀表板數據獲取問題
+                    this.currentManagingAgent = {
+                        id: agent.id,
+                        username: agent.username,
+                        level: agent.level,
+                        rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || 0.041,
+                        max_rebate_percentage: agent.max_rebate_percentage || 0.041
+                    };
+                    
+                    console.log('✅ 登錄成功，設置當前管理代理:', this.currentManagingAgent);
+                    
                     // 检查是否為客服
                     this.isCustomerService = this.user.level === 0;
                     console.log('登录後是否為客服:', this.isCustomerService, '用戶级别:', this.user.level);
@@ -4161,7 +4172,9 @@ const app = createApp({
                      params.append('gameTypes', selectedGameTypes.join(','));
                  }
 
-                 const response = await fetch(`${this.API_BASE_URL}/reports?${params.toString()}`, {
+                 console.log('📊 前端: 調用代理層級分析API');
+                 
+                 const response = await fetch(`${this.API_BASE_URL}/reports/agent-analysis?${params.toString()}`, {
                      method: 'GET',
                      headers: {
                          'Content-Type': 'application/json',
@@ -4174,12 +4187,70 @@ const app = createApp({
                  }
 
                  const data = await response.json();
-                 this.reportData = data;
-                 this.showMessage('報表查詢完成', 'success');
+                 
+                 console.log('📊 前端: 接收到報表數據', data);
+                 
+                 // 轉換數據格式以適應新的表格結構
+                 this.reportData = {
+                     success: data.success,
+                     reportData: data.reportData || [],
+                     totalSummary: data.totalSummary || {
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
+                     hasData: data.hasData || false,
+                     message: data.message
+                 };
+                 
+                 if (data.hasData) {
+                     this.showMessage('報表查詢完成', 'success');
+                 } else {
+                     this.showMessage(data.message || '查詢期間內沒有數據', 'info');
+                 }
                  
              } catch (error) {
                  console.error('查詢報表失敗:', error);
                  this.showMessage('查詢報表失敗: ' + error.message, 'error');
+                 
+                 // 設置空的報表數據結構
+                 this.reportData = {
+                     success: false,
+                     reportData: [],
+                     totalSummary: {
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
+                     hasData: false,
+                     message: error.message
+                 };
              } finally {
                  this.loading = false;
              }
