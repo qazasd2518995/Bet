@@ -2882,10 +2882,6 @@ const app = createApp({
         // 編輯會員備註
         editMemberNotes(member) {
             console.log('🔧 editMemberNotes 方法被調用，member:', member);
-            console.log('🔧 當前Vue實例狀態:', {
-                showEditMemberNotesModal: this.showEditMemberNotesModal,
-                editNotesData: this.editNotesData
-            });
             
             this.editNotesData = {
                 id: member.id,
@@ -2895,30 +2891,29 @@ const app = createApp({
             };
             this.showEditMemberNotesModal = true;
             
-            console.log('🔧 設置後的狀態:', {
-                showEditMemberNotesModal: this.showEditMemberNotesModal,
-                editNotesData: this.editNotesData
-            });
-            
-            // 添加模態框背景
+            // 使用正確的Bootstrap模態框顯示方式
             this.$nextTick(() => {
-                console.log('🔧 在nextTick中處理模態框背景');
-                document.body.classList.add('modal-open');
-                if (!document.querySelector('.modal-backdrop')) {
-                    const backdrop = document.createElement('div');
-                    backdrop.className = 'modal-backdrop fade show';
-                    document.body.appendChild(backdrop);
-                    console.log('🔧 已添加模態框背景');
-                } else {
-                    console.log('🔧 模態框背景已存在');
-                }
-                
-                // 檢查模態框元素
                 const modalElement = document.getElementById('editMemberNotesModal');
-                console.log('🔧 查找模態框元素:', modalElement);
                 if (modalElement) {
-                    console.log('🔧 模態框元素的classes:', modalElement.className);
-                    console.log('🔧 模態框元素的style:', modalElement.style.cssText);
+                    // 強制添加Bootstrap需要的CSS類別和樣式
+                    modalElement.classList.add('show');
+                    modalElement.style.display = 'block';
+                    modalElement.style.paddingRight = '17px';
+                    modalElement.setAttribute('aria-modal', 'true');
+                    modalElement.setAttribute('role', 'dialog');
+                    
+                    // 添加模態框背景
+                    if (!document.querySelector('.modal-backdrop')) {
+                        const backdrop = document.createElement('div');
+                        backdrop.className = 'modal-backdrop fade show';
+                        document.body.appendChild(backdrop);
+                    }
+                    
+                    // 防止背景滾動
+                    document.body.classList.add('modal-open');
+                    document.body.style.paddingRight = '17px';
+                    
+                    console.log('🔧 會員備註模態框已正確設置Bootstrap樣式');
                 }
             });
         },
@@ -2933,8 +2928,19 @@ const app = createApp({
                 type: ''
             };
             
-            // 移除模態框背景
+            // 正確清理Bootstrap模態框樣式
+            const modalElement = document.getElementById('editMemberNotesModal');
+            if (modalElement) {
+                modalElement.classList.remove('show');
+                modalElement.style.display = 'none';
+                modalElement.style.paddingRight = '';
+                modalElement.removeAttribute('aria-modal');
+                modalElement.removeAttribute('role');
+            }
+            
+            // 移除模態框背景和body樣式
             document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
             const backdrop = document.querySelector('.modal-backdrop');
             if (backdrop) {
                 backdrop.remove();
