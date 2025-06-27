@@ -4765,6 +4765,126 @@
                 font-size: 18px;
             }
         }
+        
+        /* 限紅規定模態框樣式 */
+        .bet-limits-modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: fadeInScale 0.3s ease-out;
+        }
+
+        .bet-limits-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bet-limits-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .bet-limits-content {
+            padding: 25px;
+        }
+
+        .limits-table {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        .table-row:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .col-game, .col-max, .col-period {
+            padding: 15px;
+            text-align: center;
+            border-right: 1px solid #eee;
+        }
+
+        .col-game {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .col-period {
+            border-right: none;
+        }
+
+        .limits-note {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .limits-note p {
+            margin: 0 0 10px 0;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .limits-note ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .limits-note li {
+            margin-bottom: 8px;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .bet-limits-modal {
+                width: 95%;
+                max-height: 90vh;
+            }
+            
+            .table-header, .table-row {
+                grid-template-columns: 1.5fr 1fr 1fr;
+            }
+            
+            .col-game, .col-max, .col-period {
+                padding: 12px 8px;
+                font-size: 14px;
+            }
+            
+            .bet-limits-content {
+                padding: 20px 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -4829,6 +4949,9 @@
                             </button>
                             <button class="dropdown-action" @click="showRoadBead">
                                 <span>路珠走勢</span>
+                            </button>
+                            <button class="dropdown-action" @click="showBetLimits">
+                                <span>限紅規定</span>
                             </button>
 
                             <div class="dropdown-divider"></div>
@@ -5758,6 +5881,59 @@
             </div>
         </div>
 
+        <!-- 限紅規定彈窗 -->
+        <div class="modal" v-if="showBetLimitsModal">
+            <div class="bet-limits-modal">
+                <div class="bet-limits-header">
+                    <h3>限紅規定</h3>
+                    <button class="close-btn" @click="showBetLimitsModal = false">×</button>
+                </div>
+                <div class="bet-limits-content">
+                    <div class="limits-table">
+                        <div class="table-header">
+                            <div class="col-game">玩法</div>
+                            <div class="col-max">單注最高</div>
+                            <div class="col-period">單期限額</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="col-game">1-10車號</div>
+                            <div class="col-max">2,500元</div>
+                            <div class="col-period">5,000元</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="col-game">兩面</div>
+                            <div class="col-max">5,000元</div>
+                            <div class="col-period">5,000元</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="col-game">冠亞軍和大小</div>
+                            <div class="col-max">5,000元</div>
+                            <div class="col-period">5,000元</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="col-game">冠亞軍和單雙</div>
+                            <div class="col-max">5,000元</div>
+                            <div class="col-period">5,000元</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="col-game">冠亞軍和</div>
+                            <div class="col-max">1,000元</div>
+                            <div class="col-period">2,000元</div>
+                        </div>
+                    </div>
+                    <div class="limits-note">
+                        <p><strong>注意事項：</strong></p>
+                        <ul>
+                            <li>單注最高：每筆投注的最高金額限制</li>
+                            <li>單期限額：每個開獎期同類型投注的累計限額</li>
+                            <li>最低投注金額統一為1元</li>
+                            <li>超過限額的投注將被系統拒絕</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 長龍排行彈窗 -->
         <div class="modal" v-if="dragonRankingVisible">
             <div class="dragon-ranking">
@@ -6085,6 +6261,7 @@
                     dragonRankingVisible: false, // 控制長龍排行顯示狀態
                     themeSelectorVisible: false, // 控制主題选择器顯示狀態
                     roadBeadVisible: false, // 控制路珠走勢顯示狀態
+                    showBetLimitsModal: false, // 控制限紅規定顯示狀態
                     roadBeadRows: [], // 路珠走勢數據
                     
                     // 熱門投注
@@ -6221,12 +6398,12 @@
                                  // 限紅相關
                  betLimitMessage: '', // 限紅提示訊息
                  betLimits: {
-                     number: { minBet: 2500, maxBet: 5000 },
-                     twoSide: { minBet: 5000, maxBet: 5000 },
-                     sumValueSize: { minBet: 5000, maxBet: 5000 },
-                     sumValueOddEven: { minBet: 5000, maxBet: 5000 },
-                     sumValue: { minBet: 1000, maxBet: 2000 },
-                     dragonTiger: { minBet: 5000, maxBet: 5000 }
+                     number: { maxBet: 2500, periodLimit: 5000 },
+                     twoSide: { maxBet: 5000, periodLimit: 5000 },
+                     sumValueSize: { maxBet: 5000, periodLimit: 5000 },
+                     sumValueOddEven: { maxBet: 5000, periodLimit: 5000 },
+                     sumValue: { maxBet: 1000, periodLimit: 2000 },
+                     dragonTiger: { maxBet: 5000, periodLimit: 5000 }
                  },
                   roadBeadLoading: false, // 加載狀態
                 };
@@ -6293,7 +6470,7 @@
                     if (amount === null || amount === undefined) {
                         return '0';
                     }
-                    return amount.toLocaleString('zh-TW', {
+                    return amount.toLocaleString('zh-CN', {
                         style: 'currency',
                         currency: 'TWD',
                         minimumFractionDigits: 0,
@@ -6307,7 +6484,7 @@
                         return '$0.00';
                     }
                     
-                    const formattedAmount = Math.abs(amount).toLocaleString('zh-TW', {
+                    const formattedAmount = Math.abs(amount).toLocaleString('zh-CN', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                     });
@@ -6887,10 +7064,8 @@
                         let limits = this.betLimits[betType];
                         
                         if (limits) {
-                            if (amount < limits.minBet) {
-                                messages.push(`${this.getBetTypeDisplayName(betType)}單注最低${limits.minBet}元`);
-                            } else if (amount > limits.maxBet) {
-                                messages.push(`${this.getBetTypeDisplayName(betType)}單期限額${limits.maxBet}元`);
+                            if (amount > limits.maxBet) {
+                                messages.push(`${this.getBetTypeDisplayName(betType)}單注最高${limits.maxBet}元`);
                             }
                         }
                     }
@@ -9202,7 +9377,7 @@
                 addHotBet(bet) {
                     // 检查投注額
                     if (!this.betAmount || this.betAmount < 1) {
-                        this.displayNotification('请先设置投注金额');
+                        this.displayNotification('投注金額不能少於1元');
                         return;
                     }
                     
@@ -9328,6 +9503,12 @@
                 // 主題选择器展示
                 showThemeSelector() {
                     this.themeSelectorVisible = true;
+                    this.showDropdownMenu = false; // 关闭選單
+                },
+                
+                // 限紅規定展示
+                showBetLimits() {
+                    this.showBetLimitsModal = true;
                     this.showDropdownMenu = false; // 关闭選單
                 },
                 

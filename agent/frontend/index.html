@@ -849,11 +849,18 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label class="form-label">盤口類型</label>
-                                                    <select class="form-select" v-model="newAgent.market_type" required>
-                                                        <option value="A">A盤 (1.1%退水 - 高賠率)</option>
-                                                        <option value="D">D盤 (4.1%退水 - 標準)</option>
+                                                    <select class="form-select" v-model="newAgent.market_type" required :disabled="!(user.level === 0 && currentManagingAgent.id === user.id)">
+                                                        <option value="A" :disabled="!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'A'" :style="(!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'A') ? 'color: #999; font-style: italic;' : ''">
+                                                            {{ (!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'A') ? '🚫 ' : '' }}A盤 (1.1%退水 - 高賠率)
+                                                        </option>
+                                                        <option value="D" :disabled="!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'D'" :style="(!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'D') ? 'color: #999; font-style: italic;' : ''">
+                                                            {{ (!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'D') ? '🚫 ' : '' }}D盤 (4.1%退水 - 標準)
+                                                        </option>
                                                     </select>
-                                                    <small class="form-text text-muted">不同盤口有不同的退水比例和賠率</small>
+                                                    <small class="form-text text-muted" v-if="user.level === 0 && currentManagingAgent.id === user.id">總代理可自由選擇盤口類型</small>
+                                                    <small class="form-text text-muted" v-else>
+                                                        盤口類型必須繼承自 {{ currentManagingAgent.username }} ({{ getMarketInfo(currentManagingAgent.market_type || 'D').name }})，灰色選項不可選
+                                                    </small>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">退水模式</label>
@@ -2869,52 +2876,52 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- 編輯會員備註 Modal -->
-    <div class="modal fade" id="editMemberNotesModal" tabindex="-1" :class="{show: showEditMemberNotesModal}" :style="{display: showEditMemberNotesModal ? 'block' : 'none'}">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-sticky-note me-2 text-success"></i>
-                        編輯會員備註 - {{ editNotesData.username }}
-                    </h5>
-                    <button type="button" class="btn-close" @click="hideEditMemberNotesModal"></button>
-                </div>
-                <div class="modal-body">
-                    <form @submit.prevent="updateMemberNotes">
-                        <div class="mb-3">
-                            <label class="form-label">會員資訊</label>
-                            <div class="p-3 bg-light rounded">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <strong>會員ID:</strong> {{ editNotesData.id }}
-                                    </div>
-                                    <div class="col-6">
-                                        <strong>用戶名:</strong> {{ editNotesData.username }}
+        
+        <!-- 編輯會員備註 Modal -->
+        <div class="modal fade" id="editMemberNotesModal" tabindex="-1" :class="{show: showEditMemberNotesModal}" :style="{display: showEditMemberNotesModal ? 'block' : 'none'}">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-sticky-note me-2 text-success"></i>
+                            編輯會員備註 - {{ editNotesData.username }}
+                        </h5>
+                        <button type="button" class="btn-close" @click="hideEditMemberNotesModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form @submit.prevent="updateMemberNotes">
+                            <div class="mb-3">
+                                <label class="form-label">會員資訊</label>
+                                <div class="p-3 bg-light rounded">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>會員ID:</strong> {{ editNotesData.id }}
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>用戶名:</strong> {{ editNotesData.username }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">備註說明</label>
-                            <textarea class="form-control" v-model="editNotesData.notes" 
-                                      placeholder="請輸入會員備註說明" rows="5" 
-                                      style="resize: vertical;"></textarea>
-                            <small class="form-text text-muted">
-                                可用於記錄會員的特殊情況、聯繫方式、投注習慣、重要提醒等
-                            </small>
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary me-2" @click="hideEditMemberNotesModal">取消</button>
-                            <button type="submit" class="btn btn-success" :disabled="loading">
-                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                <i v-else class="fas fa-save me-1"></i>
-                                {{ loading ? '儲存中...' : '儲存備註' }}
-                            </button>
-                        </div>
-                    </form>
+                            <div class="mb-3">
+                                <label class="form-label">備註說明</label>
+                                <textarea class="form-control" v-model="editNotesData.notes" 
+                                          placeholder="請輸入會員備註說明" rows="5" 
+                                          style="resize: vertical;"></textarea>
+                                <small class="form-text text-muted">
+                                    可用於記錄會員的特殊情況、聯繫方式、投注習慣、重要提醒等
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary me-2" @click="hideEditMemberNotesModal">取消</button>
+                                <button type="submit" class="btn btn-success" :disabled="loading">
+                                    <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <i v-else class="fas fa-save me-1"></i>
+                                    {{ loading ? '儲存中...' : '儲存備註' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

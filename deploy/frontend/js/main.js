@@ -564,15 +564,43 @@ const app = createApp({
         showAgentModal() {
             this.showCreateAgentModal = true;
             
+            // 確定盤口類型和選擇權限：
+            // 1. 如果是總代理且為自己創建代理(level 0 -> level 1)，可自由選擇
+            // 2. 如果是總代理但在代理管理界面為下級代理創建代理，要遵守下級代理的盤口類型
+            // 3. 其他情況都固定繼承
+            let marketType = 'D'; // 默認D盤
+            let canChooseMarket = false;
+            
+            if (this.user.level === 0 && this.currentManagingAgent.id === this.user.id) {
+                // 總代理為自己創建一級代理，可自由選擇
+                canChooseMarket = true;
+                marketType = 'D'; // 預設D盤
+            } else {
+                // 其他情況：固定繼承當前管理代理的盤口類型
+                canChooseMarket = false;
+                marketType = this.currentManagingAgent.market_type || 'D';
+            }
+            
             // 根據当前管理代理级别，设置默認的下級代理级别
             this.newAgent = {
                 username: '',
                 password: '',
                 level: (this.currentManagingAgent.level + 1).toString(),
                 parent: this.currentManagingAgent.id,
+                market_type: marketType,  // 設置盤口繼承
                 rebate_mode: 'percentage',
-                rebate_percentage: 2.0
+                rebate_percentage: 2.0,
+                notes: ''
             };
+            
+            console.log('🔧 創建代理模態框設定:', {
+                currentUserLevel: this.user.level,
+                currentManagingAgentLevel: this.currentManagingAgent.level,
+                currentManagingAgentMarketType: this.currentManagingAgent.market_type,
+                isCreatingForSelf: this.currentManagingAgent.id === this.user.id,
+                marketType: marketType,
+                canChooseMarket: canChooseMarket
+            });
             
             this.$nextTick(() => {
                 // 确保模態框元素已经被渲染到DOM後再初始化和顯示
@@ -702,6 +730,7 @@ const app = createApp({
                         id: this.user.id,
                         username: this.user.username,
                         level: this.user.level,
+                        market_type: this.user.market_type,
                         rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                         max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                     };
@@ -793,6 +822,7 @@ const app = createApp({
                         id: this.user.id,
                         username: this.user.username,
                         level: this.user.level,
+                        market_type: this.user.market_type,
                         rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                         max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                     };
@@ -850,6 +880,7 @@ const app = createApp({
                         id: agent.id,
                         username: agent.username,
                         level: agent.level,
+                        market_type: agent.market_type,
                         rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || 0.041,
                         max_rebate_percentage: agent.max_rebate_percentage || 0.041
                     };
@@ -1047,7 +1078,7 @@ const app = createApp({
         // 格式化金额顯示
         formatMoney(amount) {
             if (amount === undefined || amount === null) return '0.00';
-            return Number(amount).toLocaleString('zh-TW', {
+            return Number(amount).toLocaleString('zh-CN', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
@@ -1057,7 +1088,7 @@ const app = createApp({
         formatDate(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleString('zh-TW', {
+            return date.toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -1071,7 +1102,7 @@ const app = createApp({
         formatDateTime(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleString('zh-TW', {
+            return date.toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -1236,7 +1267,7 @@ const app = createApp({
         
         // 获取当前日期时间
         getCurrentDateTime() {
-            return new Date().toLocaleString('zh-TW', {
+            return new Date().toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -1455,7 +1486,7 @@ const app = createApp({
         formatTime(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleTimeString('zh-TW', { 
+            return date.toLocaleTimeString('zh-CN', { 
                 hour: '2-digit', 
                 minute: '2-digit',
                 hour12: false
@@ -2275,15 +2306,17 @@ const app = createApp({
                 id: this.currentManagingAgent.id,
                 username: this.currentManagingAgent.username,
                 level: this.currentManagingAgent.level,
+                market_type: this.currentManagingAgent.market_type,
                 rebate_percentage: this.currentManagingAgent.rebate_percentage,
                 max_rebate_percentage: this.currentManagingAgent.max_rebate_percentage
             });
             
-            // 更新当前管理代理 - 包含完整的退水比例资讯
+            // 更新当前管理代理 - 包含完整的退水比例和盤口类型资讯
             this.currentManagingAgent = {
                 id: agent.id,
                 username: agent.username,
                 level: agent.level,
+                market_type: agent.market_type,
                 rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || 0.041,
                 max_rebate_percentage: agent.max_rebate_percentage || 0.041
             };
@@ -2307,6 +2340,7 @@ const app = createApp({
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
+                    market_type: this.user.market_type,
                     rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                     max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                 };
@@ -2318,6 +2352,7 @@ const app = createApp({
                     id: targetBreadcrumb.id,
                     username: targetBreadcrumb.username,
                     level: targetBreadcrumb.level,
+                    market_type: targetBreadcrumb.market_type,
                     rebate_percentage: targetBreadcrumb.rebate_percentage || targetBreadcrumb.max_rebate_percentage || 0.041,
                     max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || 0.041
                 };
@@ -2338,6 +2373,7 @@ const app = createApp({
                     id: parentBreadcrumb.id,
                     username: parentBreadcrumb.username,
                     level: parentBreadcrumb.level,
+                    market_type: parentBreadcrumb.market_type,
                     rebate_percentage: parentBreadcrumb.rebate_percentage || parentBreadcrumb.max_rebate_percentage || 0.041,
                     max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || 0.041
                 };
@@ -2347,6 +2383,7 @@ const app = createApp({
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
+                    market_type: this.user.market_type,
                     rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
                     max_rebate_percentage: this.user.max_rebate_percentage || 0.041
                 };
@@ -2919,60 +2956,46 @@ const app = createApp({
         editMemberNotes(member) {
             console.log('🔧 editMemberNotes 方法被調用，member:', member);
             
+            // 重置loading狀態
+            this.loading = false;
+            
+            // 確保數據設置正確
             this.editNotesData = {
                 id: member.id,
                 username: member.username,
                 notes: member.notes || '',
                 type: 'member'
             };
+            
+            console.log('🔧 設置editNotesData:', this.editNotesData);
+            
+            // 使用Vue.js反應式方式顯示模態框
             this.showEditMemberNotesModal = true;
             
-            // 使用正確的Bootstrap模態框顯示方式
+            // 添加背景和防止滾動
             this.$nextTick(() => {
-                const modalElement = document.getElementById('editMemberNotesModal');
-                if (modalElement) {
-                    // 強制添加Bootstrap需要的CSS類別和樣式
-                    modalElement.classList.add('show');
-                    modalElement.style.display = 'block';
-                    modalElement.style.paddingRight = '17px';
-                    modalElement.setAttribute('aria-modal', 'true');
-                    modalElement.setAttribute('role', 'dialog');
-                    
-                    // 添加模態框背景
-                    if (!document.querySelector('.modal-backdrop')) {
-                        const backdrop = document.createElement('div');
-                        backdrop.className = 'modal-backdrop fade show';
-                        document.body.appendChild(backdrop);
-                    }
-                    
-                    // 防止背景滾動
-                    document.body.classList.add('modal-open');
-                    document.body.style.paddingRight = '17px';
-                    
-                    console.log('🔧 會員備註模態框已正確設置Bootstrap樣式');
+                // 添加模態框背景
+                if (!document.querySelector('.modal-backdrop')) {
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
                 }
+                
+                // 防止背景滾動
+                document.body.classList.add('modal-open');
+                document.body.style.paddingRight = '17px';
+                
+                console.log('🔧 會員備註模態框已顯示，Vue綁定應該正常工作');
             });
         },
 
         // 隱藏編輯會員備註模態框
         hideEditMemberNotesModal() {
-            this.showEditMemberNotesModal = false;
-            this.editNotesData = {
-                id: null,
-                username: '',
-                notes: '',
-                type: ''
-            };
+            console.log('🔧 hideEditMemberNotesModal 方法被調用');
             
-            // 正確清理Bootstrap模態框樣式
-            const modalElement = document.getElementById('editMemberNotesModal');
-            if (modalElement) {
-                modalElement.classList.remove('show');
-                modalElement.style.display = 'none';
-                modalElement.style.paddingRight = '';
-                modalElement.removeAttribute('aria-modal');
-                modalElement.removeAttribute('role');
-            }
+            // 重置Vue.js狀態
+            this.showEditMemberNotesModal = false;
+            this.loading = false;
             
             // 移除模態框背景和body樣式
             document.body.classList.remove('modal-open');
@@ -2981,6 +3004,16 @@ const app = createApp({
             if (backdrop) {
                 backdrop.remove();
             }
+            
+            // 清理編輯數據
+            this.editNotesData = {
+                id: null,
+                username: '',
+                notes: '',
+                type: ''
+            };
+            
+            console.log('🔧 會員備註模態框已隱藏，數據已重置');
         },
 
         // 更新會員備註
@@ -4248,7 +4281,7 @@ const app = createApp({
          // 報表查詢相關方法
          getCurrentDateText() {
              const today = new Date();
-             return today.toLocaleDateString('zh-TW', {
+             return today.toLocaleDateString('zh-CN', {
                  year: 'numeric',
                  month: '2-digit',
                  day: '2-digit'
@@ -4757,7 +4790,7 @@ const app = createApp({
           formatLoginDateTime(dateString) {
               if (!dateString) return '-';
               const date = new Date(dateString);
-              return date.toLocaleString('zh-TW', {
+                                  return date.toLocaleString('zh-CN', {
                   year: 'numeric',
                   month: '2-digit',
                   day: '2-digit',
