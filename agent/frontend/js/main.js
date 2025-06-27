@@ -224,6 +224,19 @@ const app = createApp({
                 profitLoss: 0,
                 records: []
             },
+
+            // 登錄日誌相关
+            loginLogs: [],
+            loginLogFilters: {
+                startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7天前
+                endDate: new Date().toISOString().split('T')[0], // 今日
+                username: ''
+            },
+            loginLogPagination: {
+                currentPage: 1,
+                totalPages: 1,
+                limit: 20
+            },
             transferType: 'deposit',
             transferAmount: 0,
             agentCurrentBalance: 0,
@@ -4285,11 +4298,147 @@ const app = createApp({
          formatPercentage(rate) {
              if (!rate) return '0%';
              return `${(rate * 100).toFixed(1)}%`;
-         }
+         },
+
+         // 登錄日誌相關方法
+         async loadLoginLogs() {
+             try {
+                 this.loading = true;
+                 
+                 const params = new URLSearchParams({
+                     startDate: this.loginLogFilters.startDate,
+                     endDate: this.loginLogFilters.endDate,
+                     username: this.loginLogFilters.username
+                 });
+
+                 const response = await fetch(`${this.API_BASE_URL}/login-logs?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 const data = await response.json();
+                 this.loginLogs = data.logs || [];
+                 this.calculateLoginLogPagination();
+                 this.showMessage('登錄日誌載入完成', 'success');
+                 
+             } catch (error) {
+                 console.error('載入登錄日誌失敗:', error);
+                 this.showMessage('載入登錄日誌失敗: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
+
+         async searchLoginLogs() {
+             await this.loadLoginLogs();
+         },
+
+         setLoginLogDateRange(type) {
+             const today = new Date();
+             const yesterday = new Date(today);
+             yesterday.setDate(today.getDate() - 1);
+             
+             switch(type) {
+                 case 'today':
+                     this.loginLogFilters.startDate = today.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case 'yesterday':
+                     this.loginLogFilters.startDate = yesterday.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = yesterday.toISOString().split('T')[0];
+                     break;
+                 case 'week':
+                     const weekStart = new Date(today);
+                     weekStart.setDate(today.getDate() - today.getDay());
+                     this.loginLogFilters.startDate = weekStart.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case '7days':
+                     const sevenDaysAgo = new Date(today);
+                     sevenDaysAgo.setDate(today.getDate() - 7);
+                     this.loginLogFilters.startDate = sevenDaysAgo.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+             }
+             // 設定日期範圍後自動查詢
+             this.searchLoginLogs();
+         },
+
+         calculateLoginLogPagination() {
+             this.loginLogPagination.totalPages = Math.ceil(this.loginLogs.length / this.loginLogPagination.limit);
+             if (this.loginLogPagination.currentPage > this.loginLogPagination.totalPages) {
+                 this.loginLogPagination.currentPage = 1;
+             }
+         },
+
+         changeLoginLogPage(page) {
+             if (page >= 1 && page <= this.loginLogPagination.totalPages) {
+                 this.loginLogPagination.currentPage = page;
+             }
+         },
+
+         getLoginLogPageRange() {
+             const currentPage = this.loginLogPagination.currentPage;
+             const totalPages = this.loginLogPagination.totalPages;
+             const range = [];
+             
+             const startPage = Math.max(1, currentPage - 2);
+             const endPage = Math.min(totalPages, currentPage + 2);
+             
+             for (let i = startPage; i <= endPage; i++) {
+                 range.push(i);
+             }
+             
+             return range;
+         },
+
+         formatLoginDate(dateString) {
+             if (!dateString) return '-';
+             const date = new Date(dateString);
+             return date.toLocaleDateString('zh-TW', {
+                 year: 'numeric',
+                 month: '2-digit',
+                 day: '2-digit'
+             });
+         },
+
+                   formatLoginTime(dateString) {
+              if (!dateString) return '-';
+              const date = new Date(dateString);
+              return date.toLocaleTimeString('zh-TW', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+              });
+          },
+
+          formatUserType(userType) {
+              const typeMap = {
+                  'member': '會員',
+                  'agent': '代理',
+                  'admin': '管理員'
+              };
+              return typeMap[userType] || userType;
+          }
     },
-        
+
     // 计算屬性
     computed: {
+        // 分頁後的登錄日誌
+        paginatedLoginLogs() {
+            const start = (this.loginLogPagination.currentPage - 1) * this.loginLogPagination.limit;
+            const end = start + this.loginLogPagination.limit;
+            return this.loginLogs.slice(start, end);
+        },
+        
         // 计算最终代理余额（会员点数转移用）- 作為计算屬性
         finalAgentBalance() {
             const currentBalance = parseFloat(this.agentCurrentBalance) || 0;
@@ -4507,6 +4656,10 @@ const app = createApp({
             if (newTab === 'reports') {
                 // 載入報表查詢頁面時，自動執行一次查詢（今日報表）
                 this.searchReports();
+            }
+            if (newTab === 'login-logs') {
+                // 載入登錄日誌頁面時，自動執行一次查詢（最近7天）
+                this.loadLoginLogs();
             }
                                  if (newTab === 'customer-service' && this.user.level === 0) {
                          this.loadCSTransactions();
