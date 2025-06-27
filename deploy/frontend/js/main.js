@@ -113,7 +113,8 @@ const app = createApp({
                 level: '1',
                 parent: '',
                 rebate_mode: 'percentage',
-                rebate_percentage: 2.0
+                rebate_percentage: 2.0,
+                notes: ''
             },
             parentAgents: [],
             
@@ -150,6 +151,16 @@ const app = createApp({
             },
             editAgentModal: null,
             
+            // 編輯備註相关
+            showEditAgentNotesModal: false,
+            showEditMemberNotesModal: false,
+            editNotesData: {
+                id: null,
+                username: '',
+                notes: '',
+                type: '' // 'agent' 或 'member'
+            },
+            
             // 会员管理相关
             members: [],
             memberFilters: {
@@ -165,12 +176,14 @@ const app = createApp({
             
             // 新增会员相关
             showCreateMemberModal: false,
+            modalSystemReady: false, // 模態框系统是否准备就緒
             newMember: {
                 username: '',
                 password: '',
                 confirmPassword: '',
                 balance: 0,
-                status: 1
+                status: 1,
+                notes: ''
             },
             
 
@@ -184,6 +197,44 @@ const app = createApp({
                 currentBalance: 0,
                 amount: 0,
                 description: ''
+            },
+
+            // 報表查詢相关
+            reportFilters: {
+                startDate: new Date().toISOString().split('T')[0], // 今日
+                endDate: new Date().toISOString().split('T')[0],   // 今日
+                gameTypes: {
+                    all: true,
+                    pk10: false,
+                    ssc: false,
+                    lottery539: false,
+                    lottery: false,
+                    other: false
+                },
+                settlementStatus: '', // 'settled', 'unsettled', ''(全部)
+                betType: '',          // 'single', 'multiple', ''(全部)
+                minAmount: '',
+                maxAmount: '',
+                username: ''
+            },
+            reportData: {
+                totalBets: 0,
+                totalAmount: 0,
+                validAmount: 0,
+                profitLoss: 0,
+                records: []
+            },
+
+            // 登錄日誌相关
+            loginLogs: [],
+            loginLogFilters: {
+                startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7天前
+                endDate: new Date().toISOString().split('T')[0] // 今日
+            },
+            loginLogPagination: {
+                currentPage: 1,
+                totalPages: 1,
+                limit: 20
             },
             transferType: 'deposit',
             transferAmount: 0,
@@ -433,6 +484,12 @@ const app = createApp({
         // 初始化模態框
         this.$nextTick(() => {
             this.initModals();
+            
+            // 延遲启用模態框系统，确保所有組件都已初始化
+            setTimeout(() => {
+                this.modalSystemReady = true;
+                console.log('🔓 模態框系统已启用');
+            }, 1000); // 延遲1秒确保一切就緒
         });
     },
     
@@ -551,7 +608,8 @@ const app = createApp({
                 password: '', 
                 confirmPassword: '',
                 balance: 0,
-                status: 1
+                status: 1,
+                notes: ''
             };
             
             // 根據当前頁面和狀態确定管理代理
@@ -596,16 +654,9 @@ const app = createApp({
             console.log('✅ 新增会员模態框已设置為顯示');
         },
         
-        // 隱藏创建会员模態框 - 完全重新實現
+        // 隱藏创建会员模態框 - 簡化版本
         hideCreateMemberModal() {
             console.log('🚫 关闭新增会员模態框');
-            
-            // 立即隱藏模態框（先处理樣式避免視覺延遲）
-            const modal = document.getElementById('createMemberModal');
-            if (modal) {
-                modal.style.display = 'none';
-                console.log('📋 模態框DOM已隱藏');
-            }
             
             // 设置Vue響應式狀態
             this.showCreateMemberModal = false;
@@ -616,17 +667,9 @@ const app = createApp({
                 password: '', 
                 confirmPassword: '',
                 balance: 0,
-                status: 1
+                status: 1,
+                notes: ''
             };
-            
-            // 确保完全清除樣式
-            this.$nextTick(() => {
-                const modalElement = document.getElementById('createMemberModal');
-                if (modalElement) {
-                    modalElement.style.display = '';
-                    modalElement.style.zIndex = '';
-                }
-            });
             
             console.log('✅ 模態框已关闭，數據已重置');
         },
@@ -1929,7 +1972,8 @@ const app = createApp({
                 const response = await axios.post(`${API_BASE_URL}/create-member`, {
                     username: this.newMember.username,
                     password: this.newMember.password,
-                    agentId: this.currentManagingAgent.id // 使用当前管理代理的ID而非登录代理
+                    agentId: this.currentManagingAgent.id, // 使用当前管理代理的ID而非登录代理
+                    notes: this.newMember.notes || ''
                 });
                 if (response.data.success) {
                     const agentName = this.currentManagingAgent.username;
@@ -1945,7 +1989,8 @@ const app = createApp({
                         password: '',
                         confirmPassword: '',
                         balance: 0,
-                        status: 1
+                        status: 1,
+                        notes: ''
                     };
                     await this.searchMembers(); // 刷新会员列表
                 } else {
@@ -2012,7 +2057,8 @@ const app = createApp({
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
                     parent: this.newAgent.parent,
-                    rebate_mode: this.newAgent.rebate_mode
+                    rebate_mode: this.newAgent.rebate_mode,
+                    notes: this.newAgent.notes || ''
                 };
                 
                 // 只有在选择具體比例時才傳送退水比例
@@ -2034,7 +2080,8 @@ const app = createApp({
                         level: '1',
                         parent: '',
                         rebate_mode: 'percentage',
-                        rebate_percentage: 2.0
+                        rebate_percentage: 2.0,
+                        notes: ''
                     };
                     
                     this.searchAgents(); // 刷新代理列表
@@ -2307,8 +2354,20 @@ const app = createApp({
 
         // 新增：切換会员狀態
         async toggleMemberStatus(memberId, currentStatus) {
-            const newStatus = currentStatus === 1 ? 0 : 1;
-            const actionText = newStatus === 1 ? '启用' : '停用';
+            // 支援三種狀態的切換：启用(1) -> 停用(0) -> 凍結(2) -> 启用(1)
+            let newStatus, actionText;
+            
+            if (currentStatus === 1) {
+                newStatus = 0;
+                actionText = '停用';
+            } else if (currentStatus === 0) {
+                newStatus = 2;
+                actionText = '凍結';
+            } else {
+                newStatus = 1;
+                actionText = '启用';
+            }
+            
             if (!confirm(`确定要${actionText}該会员嗎？`)) {
                 return;
             }
@@ -2331,6 +2390,48 @@ const app = createApp({
                 this.showMessage(error.response?.data?.message || `${actionText}会员失败，请稍後再試`, 'error');
             } finally {
                 this.loading = false;
+            }
+        },
+        
+        // 获取狀態文字
+        getStatusText(status) {
+            switch (parseInt(status)) {
+                case 1:
+                    return '启用';
+                case 0:
+                    return '停用';
+                case 2:
+                    return '凍結';
+                default:
+                    return '未知';
+            }
+        },
+        
+        // 获取狀態徽章樣式類別
+        getStatusBadgeClass(status) {
+            switch (parseInt(status)) {
+                case 1:
+                    return 'badge bg-success'; // 绿色 - 启用
+                case 0:
+                    return 'badge bg-secondary'; // 灰色 - 停用
+                case 2:
+                    return 'badge bg-warning text-dark'; // 黄色 - 凍結
+                default:
+                    return 'badge bg-dark'; // 黑色 - 未知狀態
+            }
+        },
+        
+        // 获取狀態圖標類別
+        getStatusIconClass(status) {
+            switch (parseInt(status)) {
+                case 1:
+                    return 'fa-check'; // 勾選 - 启用
+                case 0:
+                    return 'fa-ban'; // 禁止 - 停用
+                case 2:
+                    return 'fa-snowflake'; // 雪花 - 凍結
+                default:
+                    return 'fa-question'; // 問號 - 未知狀態
             }
         },
         
@@ -2532,8 +2633,20 @@ const app = createApp({
         
         // 切換代理狀態
         async toggleAgentStatus(agent) {
-            const newStatus = agent.status === 1 ? 0 : 1;
-            const actionText = newStatus === 1 ? '启用' : '停用';
+            // 支援三種狀態的切換：启用(1) -> 停用(0) -> 凍結(2) -> 启用(1)
+            let newStatus, actionText;
+            
+            if (agent.status === 1) {
+                newStatus = 0;
+                actionText = '停用';
+            } else if (agent.status === 0) {
+                newStatus = 2;
+                actionText = '凍結';
+            } else {
+                newStatus = 1;
+                actionText = '启用';
+            }
+            
             if (!confirm(`确定要${actionText}該代理嗎？`)) {
                 return;
             }
@@ -2558,6 +2671,188 @@ const app = createApp({
             } catch (error) {
                 console.error(`${actionText}代理出錯:`, error);
                 this.showMessage(error.response?.data?.message || `${actionText}代理失败，请稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 直接設定代理狀態（新的下拉選單功能）
+        async changeAgentStatus(agent, newStatus) {
+            const statusNames = { 1: '启用', 0: '停用', 2: '凍結' };
+            const actionText = statusNames[newStatus];
+            
+            if (!confirm(`确定要将代理 ${agent.username} 设为${actionText}状态嗎？`)) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/toggle-agent-status`, { 
+                    agentId: agent.id, 
+                    status: newStatus 
+                });
+                
+                if (response.data.success) {
+                    this.showMessage(`代理已设为${actionText}`, 'success');
+                    // 更新本地代理列表中的狀態
+                    const agentInList = this.agents.find(a => a.id === agent.id);
+                    if (agentInList) {
+                        agentInList.status = newStatus;
+                    }
+                } else {
+                    this.showMessage(response.data.message || `设置代理状态失败`, 'error');
+                }
+            } catch (error) {
+                console.error(`设置代理状态出錯:`, error);
+                this.showMessage(error.response?.data?.message || `设置代理状态失败，请稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 直接設定會員狀態（新的下拉選單功能）
+        async changeMemberStatus(member, newStatus) {
+            const statusNames = { 1: '启用', 0: '停用', 2: '凍結' };
+            const actionText = statusNames[newStatus];
+            
+            if (!confirm(`确定要将会员 ${member.username} 设为${actionText}状态嗎？`)) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/toggle-member-status`, { 
+                    memberId: member.id, 
+                    status: newStatus 
+                });
+                
+                if (response.data.success) {
+                    this.showMessage(`会员已设为${actionText}`, 'success');
+                    // 更新本地會員列表中的狀態
+                    const memberInList = this.members.find(m => m.id === member.id);
+                    if (memberInList) {
+                        memberInList.status = newStatus;
+                    }
+                } else {
+                    this.showMessage(response.data.message || `设置会员状态失败`, 'error');
+                }
+            } catch (error) {
+                console.error(`设置会员状态出錯:`, error);
+                this.showMessage(error.response?.data?.message || `设置会员状态失败，请稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 編輯代理備註
+        editAgentNotes(agent) {
+            this.editNotesData = {
+                id: agent.id,
+                username: agent.username,
+                notes: agent.notes || '',
+                type: 'agent'
+            };
+            this.showEditAgentNotesModal = true;
+        },
+
+        // 隱藏編輯代理備註模態框
+        hideEditAgentNotesModal() {
+            this.showEditAgentNotesModal = false;
+            this.editNotesData = {
+                id: null,
+                username: '',
+                notes: '',
+                type: ''
+            };
+        },
+
+        // 更新代理備註
+        async updateAgentNotes() {
+            if (!this.editNotesData.id) {
+                this.showMessage('無效的代理ID', 'error');
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/update-agent-notes`, {
+                    agentId: this.editNotesData.id,
+                    notes: this.editNotesData.notes || ''
+                });
+
+                if (response.data.success) {
+                    this.showMessage('代理備註更新成功', 'success');
+                    
+                    // 更新本地代理列表中的備註
+                    const agentInList = this.agents.find(a => a.id === this.editNotesData.id);
+                    if (agentInList) {
+                        agentInList.notes = this.editNotesData.notes;
+                    }
+                    
+                    this.hideEditAgentNotesModal();
+                } else {
+                    this.showMessage(response.data.message || '更新代理備註失敗', 'error');
+                }
+            } catch (error) {
+                console.error('更新代理備註錯誤:', error);
+                this.showMessage(error.response?.data?.message || '更新代理備註失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 編輯會員備註
+        editMemberNotes(member) {
+            this.editNotesData = {
+                id: member.id,
+                username: member.username,
+                notes: member.notes || '',
+                type: 'member'
+            };
+            this.showEditMemberNotesModal = true;
+        },
+
+        // 隱藏編輯會員備註模態框
+        hideEditMemberNotesModal() {
+            this.showEditMemberNotesModal = false;
+            this.editNotesData = {
+                id: null,
+                username: '',
+                notes: '',
+                type: ''
+            };
+        },
+
+        // 更新會員備註
+        async updateMemberNotes() {
+            if (!this.editNotesData.id) {
+                this.showMessage('無效的會員ID', 'error');
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/update-member-notes`, {
+                    memberId: this.editNotesData.id,
+                    notes: this.editNotesData.notes || ''
+                });
+
+                if (response.data.success) {
+                    this.showMessage('會員備註更新成功', 'success');
+                    
+                    // 更新本地會員列表中的備註
+                    const memberInList = this.members.find(m => m.id === this.editNotesData.id);
+                    if (memberInList) {
+                        memberInList.notes = this.editNotesData.notes;
+                    }
+                    
+                    this.hideEditMemberNotesModal();
+                } else {
+                    this.showMessage(response.data.message || '更新會員備註失敗', 'error');
+                }
+            } catch (error) {
+                console.error('更新會員備註錯誤:', error);
+                this.showMessage(error.response?.data?.message || '更新會員備註失敗，請稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
@@ -3788,11 +4083,380 @@ const app = createApp({
                      }
                  }, 1000);
              }
-         }
+         },
+
+         // 報表查詢相關方法
+         getCurrentDateText() {
+             const today = new Date();
+             return today.toLocaleDateString('zh-TW', {
+                 year: 'numeric',
+                 month: '2-digit',
+                 day: '2-digit'
+             });
+         },
+
+         setDateRange(type) {
+             const today = new Date();
+             const yesterday = new Date(today);
+             yesterday.setDate(today.getDate() - 1);
+             
+             switch(type) {
+                 case 'today':
+                     this.reportFilters.startDate = today.toISOString().split('T')[0];
+                     this.reportFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case 'yesterday':
+                     this.reportFilters.startDate = yesterday.toISOString().split('T')[0];
+                     this.reportFilters.endDate = yesterday.toISOString().split('T')[0];
+                     break;
+                 case 'week':
+                     const weekStart = new Date(today);
+                     weekStart.setDate(today.getDate() - today.getDay());
+                     this.reportFilters.startDate = weekStart.toISOString().split('T')[0];
+                     this.reportFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case 'month':
+                     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                     this.reportFilters.startDate = monthStart.toISOString().split('T')[0];
+                     this.reportFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+             }
+         },
+
+         toggleAllGames() {
+             const allChecked = this.reportFilters.gameTypes.all;
+             this.reportFilters.gameTypes.pk10 = allChecked;
+             this.reportFilters.gameTypes.ssc = allChecked;
+             this.reportFilters.gameTypes.lottery539 = allChecked;
+             this.reportFilters.gameTypes.lottery = allChecked;
+             this.reportFilters.gameTypes.other = allChecked;
+         },
+
+         async searchReports() {
+             try {
+                 this.loading = true;
+                 
+                 // 準備篩選參數
+                 const params = new URLSearchParams({
+                     startDate: this.reportFilters.startDate,
+                     endDate: this.reportFilters.endDate,
+                     settlementStatus: this.reportFilters.settlementStatus,
+                     betType: this.reportFilters.betType,
+                     username: this.reportFilters.username,
+                     minAmount: this.reportFilters.minAmount,
+                     maxAmount: this.reportFilters.maxAmount
+                 });
+
+                 // 處理遊戲類型篩選
+                 const selectedGameTypes = [];
+                 if (!this.reportFilters.gameTypes.all) {
+                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
+                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
+                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
+                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
+                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
+                 }
+                 
+                 if (selectedGameTypes.length > 0) {
+                     params.append('gameTypes', selectedGameTypes.join(','));
+                 }
+
+                 const response = await fetch(`${this.API_BASE_URL}/reports?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 const data = await response.json();
+                 this.reportData = data;
+                 this.showMessage('報表查詢完成', 'success');
+                 
+             } catch (error) {
+                 console.error('查詢報表失敗:', error);
+                 this.showMessage('查詢報表失敗: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
+
+
+
+         async refreshReportData() {
+             await this.searchReports();
+         },
+
+         async exportReport() {
+             try {
+                 this.loading = true;
+                 
+                 // 準備篩選參數
+                 const params = new URLSearchParams({
+                     startDate: this.reportFilters.startDate,
+                     endDate: this.reportFilters.endDate,
+                     settlementStatus: this.reportFilters.settlementStatus,
+                     betType: this.reportFilters.betType,
+                     username: this.reportFilters.username,
+                     minAmount: this.reportFilters.minAmount,
+                     maxAmount: this.reportFilters.maxAmount,
+                     export: 'true'
+                 });
+
+                 // 處理遊戲類型篩選
+                 const selectedGameTypes = [];
+                 if (!this.reportFilters.gameTypes.all) {
+                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
+                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
+                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
+                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
+                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
+                 }
+                 
+                 if (selectedGameTypes.length > 0) {
+                     params.append('gameTypes', selectedGameTypes.join(','));
+                 }
+
+                 const response = await fetch(`${this.API_BASE_URL}/reports/export?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 // 處理檔案下載
+                 const blob = await response.blob();
+                 const url = window.URL.createObjectURL(blob);
+                 const a = document.createElement('a');
+                 a.href = url;
+                 a.download = `報表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
+                 document.body.appendChild(a);
+                 a.click();
+                 window.URL.revokeObjectURL(url);
+                 document.body.removeChild(a);
+                 
+                 this.showMessage('報表匯出完成', 'success');
+                 
+             } catch (error) {
+                 console.error('匯出報表失敗:', error);
+                 this.showMessage('匯出報表失敗: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
+
+
+
+         formatGameType(gameType) {
+             const gameTypeMap = {
+                 'pk10': 'AR PK10',
+                 'ssc': 'AR 時時彩',
+                 'lottery539': 'AR 539',
+                 'lottery': 'AR 六合彩',
+                 'racing': '極速賽車'
+             };
+             return gameTypeMap[gameType] || '其他遊戲';
+         },
+
+         formatBetContent(record) {
+             if (!record.bet_content) return '-';
+             
+             try {
+                 // 如果是JSON字符串，解析它
+                 const content = typeof record.bet_content === 'string' ? 
+                               JSON.parse(record.bet_content) : record.bet_content;
+                 
+                 if (content.position) {
+                     return `位置投注: ${content.position}`;
+                 } else if (content.numbers) {
+                     return `號碼投注: ${content.numbers.join(', ')}`;
+                 } else if (content.type) {
+                     return `${content.type}投注`;
+                 }
+                 return JSON.stringify(content);
+             } catch (e) {
+                 return record.bet_content;
+             }
+         },
+
+         getProfitClass(profit) {
+             if (!profit || profit === 0) return 'text-muted';
+             return profit > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+         },
+
+         formatProfit(amount) {
+             if (!amount || amount === 0) return '$0.00';
+             const formatted = this.formatMoney(Math.abs(amount));
+             return amount > 0 ? `+${formatted}` : `-${formatted}`;
+         },
+
+         formatPercentage(rate) {
+             if (!rate) return '0%';
+             return `${(rate * 100).toFixed(1)}%`;
+         },
+
+         // 登錄日誌相關方法
+         async loadLoginLogs() {
+             try {
+                 this.loading = true;
+                 
+                 const params = new URLSearchParams({
+                     startDate: this.loginLogFilters.startDate,
+                     endDate: this.loginLogFilters.endDate
+                 });
+
+                 const response = await fetch(`${this.API_BASE_URL}/login-logs?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 const data = await response.json();
+                 this.loginLogs = data.logs || [];
+                 this.calculateLoginLogPagination();
+                 this.showMessage('登錄日誌載入完成', 'success');
+                 
+             } catch (error) {
+                 console.error('載入登錄日誌失敗:', error);
+                 this.showMessage('載入登錄日誌失敗: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
+
+
+
+         searchLoginLogs() {
+             this.loadLoginLogs();
+         },
+
+         setLoginLogDateRange(type) {
+             const today = new Date();
+             const yesterday = new Date(today);
+             yesterday.setDate(today.getDate() - 1);
+             
+             switch(type) {
+                 case 'today':
+                     this.loginLogFilters.startDate = today.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case 'yesterday':
+                     this.loginLogFilters.startDate = yesterday.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = yesterday.toISOString().split('T')[0];
+                     break;
+                 case 'week':
+                     const weekStart = new Date(today);
+                     weekStart.setDate(today.getDate() - today.getDay());
+                     this.loginLogFilters.startDate = weekStart.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case '7days':
+                     const sevenDaysAgo = new Date(today);
+                     sevenDaysAgo.setDate(today.getDate() - 7);
+                     this.loginLogFilters.startDate = sevenDaysAgo.toISOString().split('T')[0];
+                     this.loginLogFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+             }
+             // 設定日期範圍後自動查詢
+             this.loadLoginLogs();
+         },
+
+         calculateLoginLogPagination() {
+             this.loginLogPagination.totalPages = Math.ceil(this.loginLogs.length / this.loginLogPagination.limit);
+             if (this.loginLogPagination.currentPage > this.loginLogPagination.totalPages) {
+                 this.loginLogPagination.currentPage = 1;
+             }
+         },
+
+         changeLoginLogPage(page) {
+             if (page >= 1 && page <= this.loginLogPagination.totalPages) {
+                 this.loginLogPagination.currentPage = page;
+             }
+         },
+
+         getLoginLogPageRange() {
+             const currentPage = this.loginLogPagination.currentPage;
+             const totalPages = this.loginLogPagination.totalPages;
+             const range = [];
+             
+             const startPage = Math.max(1, currentPage - 2);
+             const endPage = Math.min(totalPages, currentPage + 2);
+             
+             for (let i = startPage; i <= endPage; i++) {
+                 range.push(i);
+             }
+             
+             return range;
+         },
+
+         formatLoginDate(dateString) {
+             if (!dateString) return '-';
+             const date = new Date(dateString);
+             return date.toLocaleDateString('zh-TW', {
+                 year: 'numeric',
+                 month: '2-digit',
+                 day: '2-digit'
+             });
+         },
+
+                   formatLoginTime(dateString) {
+              if (!dateString) return '-';
+              const date = new Date(dateString);
+              return date.toLocaleTimeString('zh-TW', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+              });
+          },
+
+          formatLoginDateTime(dateString) {
+              if (!dateString) return '-';
+              const date = new Date(dateString);
+              return date.toLocaleString('zh-TW', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+              });
+          },
+
+          formatUserType(userType) {
+              const typeMap = {
+                  'member': '會員',
+                  'agent': '代理',
+                  'admin': '管理員'
+              };
+              return typeMap[userType] || userType;
+          }
     },
-        
+
     // 计算屬性
     computed: {
+        // 分頁後的登錄日誌
+        paginatedLoginLogs() {
+            const start = (this.loginLogPagination.currentPage - 1) * this.loginLogPagination.limit;
+            const end = start + this.loginLogPagination.limit;
+            return this.loginLogs.slice(start, end);
+        },
+        
         // 计算最终代理余额（会员点数转移用）- 作為计算屬性
         finalAgentBalance() {
             const currentBalance = parseFloat(this.agentCurrentBalance) || 0;
@@ -3979,6 +4643,8 @@ const app = createApp({
             return (totalPercentage / this.filteredRebateRecords.length).toFixed(1);
         }
     },
+
+
     
     // 監聽屬性
     watch: {
@@ -4004,6 +4670,14 @@ const app = createApp({
             }
             if (newTab === 'transactions' && this.transactionTab === 'transfers') {
                 this.loadPointTransfers();
+            }
+            if (newTab === 'reports') {
+                // 載入報表查詢頁面時，自動執行一次查詢（今日報表）
+                this.searchReports();
+            }
+            if (newTab === 'login-logs') {
+                // 載入登錄日誌頁面時，自動執行一次查詢（最近7天）
+                this.loadLoginLogs();
             }
                                  if (newTab === 'customer-service' && this.user.level === 0) {
                          this.loadCSTransactions();
