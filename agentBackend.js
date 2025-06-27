@@ -5546,6 +5546,31 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     
     for (const agent of agentLevels) {
       // 查詢該代理下的所有會員投注記錄
+      // 構建會員投注查詢的時間條件
+      let memberTimeWhereClause = '';
+      let memberTimeParams = [];
+      let memberParamIndex = 2; // 從$2開始，$1是agent.id
+      
+      if (validStartDate && validEndDate) {
+        memberTimeWhereClause = ` AND bh.created_at >= $${memberParamIndex} AND bh.created_at <= $${memberParamIndex + 1}`;
+        memberTimeParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
+        memberParamIndex += 2;
+      } else if (validStartDate) {
+        memberTimeWhereClause = ` AND bh.created_at >= $${memberParamIndex}`;
+        memberTimeParams.push(startDate + ' 00:00:00');
+        memberParamIndex++;
+      } else if (validEndDate) {
+        memberTimeWhereClause = ` AND bh.created_at <= $${memberParamIndex}`;
+        memberTimeParams.push(endDate + ' 23:59:59');
+        memberParamIndex++;
+      }
+      
+      if (username) {
+        memberTimeWhereClause += ` AND bh.username ILIKE $${memberParamIndex}`;
+        memberTimeParams.push(`%${username}%`);
+        memberParamIndex++;
+      }
+
       const memberBetQuery = `
         SELECT 
           COUNT(bh.*) as bet_count,
@@ -5556,10 +5581,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         FROM bet_history bh
         INNER JOIN members m ON bh.username = m.username
         WHERE m.agent_id = $1
-        ${timeWhereClause}
+        ${memberTimeWhereClause}
       `;
       
-      const betParams = [agent.id, ...timeParams.slice(0, -1)];
+      const betParams = [agent.id, ...memberTimeParams];
       const betStats = await db.oneOrNone(memberBetQuery, betParams) || {
         bet_count: 0,
         bet_amount: 0,
@@ -5577,14 +5602,16 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       
       // 代理輸贏計算（與會員相反）
       const ninthAgentWinLoss = -memberWinLoss;
-      const upperDelivery = betAmount * 0.85; // 上交貨量
-      const upperSettlement = ninthAgentWinLoss * 0.9; // 上級交收
-      const downlineReceivable = betAmount * 0.1; // 應收下線
+      const upperDelivery = betAmount; // 上交貨量（全部）
+      const upperSettlement = ninthAgentWinLoss; // 上級交收輸贏（全部）
+      const downlineReceivable = betAmount; // 應收下線（全部）
       const commissionRate = (agent.rebate_percentage || 0.02) * 100; // 佔成比例
       const commissionAmount = betAmount * (agent.rebate_percentage || 0.02); // 佔成金額
       const commissionResult = commissionAmount; // 佔成結果
-      const actualRebate = rebateAmount; // 實佔退水
-      const rebateProfit = commissionAmount - rebateAmount; // 賺水
+      const actualRebatePercentage = (agent.rebate_percentage || 0.02) * 100; // 實佔退水百分比
+      const actualRebate = rebateAmount; // 實佔退水金額
+      // 賺水：沒有佣金時單純退水，有佣金時是佣金減去退水的差額
+      const rebateProfit = commissionAmount > 0 ? commissionAmount - rebateAmount : rebateAmount;
       const finalProfitLoss = ninthAgentWinLoss + rebateProfit; // 最終盈虧結果
       
       const agentData = {
@@ -5604,7 +5631,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         commission: commissionRate,
         commissionAmount: commissionAmount,
         commissionResult: commissionResult,
-        actualRebate: actualRebate,
+        actualRebate: actualRebatePercentage, // 實佔退水百分比
         rebateProfit: rebateProfit,
         finalProfitLoss: finalProfitLoss
       };
@@ -5624,7 +5651,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       totalSummary.downlineReceivable += downlineReceivable;
       totalSummary.commissionAmount += commissionAmount;
       totalSummary.commissionResult += commissionResult;
-      totalSummary.actualRebate += actualRebate;
+      totalSummary.actualRebate += actualRebatePercentage;
       totalSummary.rebateProfit += rebateProfit;
       totalSummary.finalProfitLoss += finalProfitLoss;
     }
