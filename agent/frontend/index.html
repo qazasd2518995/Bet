@@ -555,11 +555,11 @@
                                 <table class="table table-striped table-hover">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th style="width: 80px;">NO.</th>
-                                            <th style="width: 150px;">用戶名</th>
-                                            <th style="width: 180px;">登錄時間</th>
-                                            <th style="width: 150px;">IP</th>
-                                            <th>IP歸屬地</th>
+                                            <th style="width: 80px; color: white; font-weight: bold;">NO.</th>
+                                            <th style="width: 150px; color: white; font-weight: bold;">用戶名</th>
+                                            <th style="width: 180px; color: white; font-weight: bold;">登錄時間</th>
+                                            <th style="width: 150px; color: white; font-weight: bold;">IP</th>
+                                            <th style="color: white; font-weight: bold;">IP歸屬地</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -567,7 +567,7 @@
                                             <td>{{ (loginLogPagination.currentPage - 1) * loginLogPagination.limit + index + 1 }}</td>
                                             <td><strong>{{ log.username || currentUsername }}</strong></td>
                                             <td>{{ formatLoginDateTime(log.login_time) }}</td>
-                                            <td><span class="font-monospace">{{ log.ip_address }}</span></td>
+                                            <td><span class="font-monospace">{{ formatIPAddress(log.ip_address) }}</span></td>
                                             <td>{{ log.ip_location || '未知位置' }}</td>
                                         </tr>
                                         <tr v-if="loginLogs.length === 0">

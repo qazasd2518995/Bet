@@ -4516,6 +4516,12 @@ const app = createApp({
                   'admin': '管理員'
               };
               return typeMap[userType] || userType;
+          },
+
+          formatIPAddress(ipAddress) {
+              if (!ipAddress) return '-';
+              // 移除IPv6映射的前綴 ::ffff:
+              return ipAddress.replace(/^::ffff:/i, '');
           }
     },
 

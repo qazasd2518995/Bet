@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             
             // 显示通知
-            showNotification(message, type = 'info') {
+            showNotification(message) {
                 this.notificationText = message;
                 this.notificationVisible = true;
                 setTimeout(() => {
