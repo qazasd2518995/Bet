@@ -4178,7 +4178,7 @@ const app = createApp({
                      method: 'GET',
                      headers: {
                          'Content-Type': 'application/json',
-                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
                      }
                  });
 
@@ -4295,7 +4295,7 @@ const app = createApp({
                  const response = await fetch(`${this.API_BASE_URL}/reports/export?${params.toString()}`, {
                      method: 'GET',
                      headers: {
-                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
                      }
                  });
 
@@ -4388,7 +4388,7 @@ const app = createApp({
                      method: 'GET',
                      headers: {
                          'Content-Type': 'application/json',
-                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
                      }
                  });
 
