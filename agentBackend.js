@@ -4330,7 +4330,7 @@ async function syncDrawRecords() {
     `, params);
     
     if (recordsToSync.length === 0) {
-      console.log('沒有新的開獎記錄需要同步');
+      // console.log('沒有新的開獎記錄需要同步'); // 減少日誌輸出
       return;
     }
     
@@ -4353,7 +4353,7 @@ async function syncDrawRecords() {
           SET result = $2::jsonb, draw_time = $3
         `, [record.period, JSON.stringify(result), record.created_at, new Date()]);
         
-        console.log(`同步開獎記錄: 期數=${record.period} 成功`);
+        // console.log(`同步開獎記錄: 期數=${record.period} 成功`); // 減少日誌輸出
       } catch (insertError) {
         console.error(`同步開獎記錄: 期數=${record.period} 失敗:`, insertError);
       }
@@ -4417,8 +4417,8 @@ async function startServer() {
     // 首次同步開獎記錄
     await syncDrawRecords();
     
-    // 每30秒同步一次開獎記錄作為備援（主要依靠即時同步）
-    setInterval(syncDrawRecords, 30 * 1000);
+    // 每60秒同步一次開獎記錄作為備援（主要依靠即時同步）
+    setInterval(syncDrawRecords, 60 * 1000);
     
     // 啟動Express服務器
     const PORT = process.env.PORT || 3003;

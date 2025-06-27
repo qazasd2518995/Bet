@@ -2995,26 +2995,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script>
-        // 延遲载入主腳本，确保 Vue 已完全载入
-        window.addEventListener('load', function() {
-            console.log('頁面完全载入，Vue可用性:', typeof Vue);
-            if (typeof Vue !== 'undefined') {
-                const script = document.createElement('script');
-                                 script.src = 'js/main.js?v=' + Date.now();
-                script.onload = function() {
-                    console.log('main.js 载入完成');
-                };
-                script.onerror = function() {
-                    console.error('main.js 载入失败');
-                };
-                document.body.appendChild(script);
-            } else {
-                console.error('Vue 未正确载入');
-                alert('系统载入失败，请重新整理頁面');
-            }
-        });
-    </script>
+    <script src="js/main.js"></script>
     <script>
         async function updateProfile() {
             console.log('开始更新个人资料...');

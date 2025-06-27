@@ -2796,6 +2796,12 @@ const app = createApp({
 
         // 編輯代理備註
         editAgentNotes(agent) {
+            console.log('editAgentNotes 方法被調用，agent:', agent);
+            console.log('當前Vue實例狀態:', {
+                showEditAgentNotesModal: this.showEditAgentNotesModal,
+                editNotesData: this.editNotesData
+            });
+            
             this.editNotesData = {
                 id: agent.id,
                 username: agent.username,
@@ -2803,6 +2809,11 @@ const app = createApp({
                 type: 'agent'
             };
             this.showEditAgentNotesModal = true;
+            
+            console.log('設置後的狀態:', {
+                showEditAgentNotesModal: this.showEditAgentNotesModal,
+                editNotesData: this.editNotesData
+            });
         },
 
         // 隱藏編輯代理備註模態框
