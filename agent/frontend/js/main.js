@@ -218,11 +218,28 @@ const app = createApp({
                 username: ''
             },
             reportData: {
-                totalBets: 0,
-                totalAmount: 0,
-                validAmount: 0,
-                profitLoss: 0,
-                records: []
+                success: true,
+                reportData: [],
+                totalSummary: {
+                    betCount: 0,
+                    betAmount: 0.0,
+                    validAmount: 0.0,
+                    memberWinLoss: 0.0,
+                    ninthAgentWinLoss: 0.0,
+                    upperDelivery: 0.0,
+                    upperSettlement: 0.0,
+                    rebate: 0.0,
+                    profitLoss: 0.0,
+                    downlineReceivable: 0.0,
+                    commission: 0.0,
+                    commissionAmount: 0.0,
+                    commissionResult: 0.0,
+                    actualRebate: 0.0,
+                    rebateProfit: 0.0,
+                    finalProfitLoss: 0.0
+                },
+                hasData: false,
+                message: ''
             },
 
             // 登錄日誌相关
