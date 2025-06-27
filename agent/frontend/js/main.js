@@ -2619,6 +2619,74 @@ const app = createApp({
                 this.loading = false;
             }
         },
+
+        // 直接設定代理狀態（新的下拉選單功能）
+        async changeAgentStatus(agent, newStatus) {
+            const statusNames = { 1: '启用', 0: '停用', 2: '凍結' };
+            const actionText = statusNames[newStatus];
+            
+            if (!confirm(`确定要将代理 ${agent.username} 设为${actionText}状态嗎？`)) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/toggle-agent-status`, { 
+                    agentId: agent.id, 
+                    status: newStatus 
+                });
+                
+                if (response.data.success) {
+                    this.showMessage(`代理已设为${actionText}`, 'success');
+                    // 更新本地代理列表中的狀態
+                    const agentInList = this.agents.find(a => a.id === agent.id);
+                    if (agentInList) {
+                        agentInList.status = newStatus;
+                    }
+                } else {
+                    this.showMessage(response.data.message || `设置代理状态失败`, 'error');
+                }
+            } catch (error) {
+                console.error(`设置代理状态出錯:`, error);
+                this.showMessage(error.response?.data?.message || `设置代理状态失败，请稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 直接設定會員狀態（新的下拉選單功能）
+        async changeMemberStatus(member, newStatus) {
+            const statusNames = { 1: '启用', 0: '停用', 2: '凍結' };
+            const actionText = statusNames[newStatus];
+            
+            if (!confirm(`确定要将会员 ${member.username} 设为${actionText}状态嗎？`)) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/toggle-member-status`, { 
+                    memberId: member.id, 
+                    status: newStatus 
+                });
+                
+                if (response.data.success) {
+                    this.showMessage(`会员已设为${actionText}`, 'success');
+                    // 更新本地會員列表中的狀態
+                    const memberInList = this.members.find(m => m.id === member.id);
+                    if (memberInList) {
+                        memberInList.status = newStatus;
+                    }
+                } else {
+                    this.showMessage(response.data.message || `设置会员状态失败`, 'error');
+                }
+            } catch (error) {
+                console.error(`设置会员状态出錯:`, error);
+                this.showMessage(error.response?.data?.message || `设置会员状态失败，请稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
         
         // 隱藏代理额度修改模態框
         hideAdjustAgentBalanceModal() {
