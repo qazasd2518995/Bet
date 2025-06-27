@@ -5439,16 +5439,55 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
 
     const { agent: currentAgent } = authResult;
 
-    const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount } = req.query;
+    const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount, targetAgent } = req.query;
     
     console.log('📊 代理層級分析API: 接收請求', { 
       startDate, 
       endDate, 
       settlementStatus, 
       username, 
+      targetAgent,
       agentId: currentAgent.id,
       fullQuery: req.query 
     });
+    
+    // 確定查詢的代理ID
+    let queryAgentId = currentAgent.id;
+    
+    if (targetAgent) {
+      // 查找目標代理
+      const targetAgentData = await AgentModel.findByUsername(targetAgent);
+      if (targetAgentData) {
+        queryAgentId = targetAgentData.id;
+        console.log('📊 切換到目標代理:', targetAgent, 'ID:', queryAgentId);
+      } else {
+        console.log('⚠️ 目標代理不存在:', targetAgent);
+        return res.json({
+          success: true,
+          reportData: [],
+          totalSummary: {
+            betCount: 0,
+            betAmount: 0.0,
+            validAmount: 0.0,
+            memberWinLoss: 0.0,
+            ninthAgentWinLoss: 0.0,
+            upperDelivery: 0.0,
+            upperSettlement: 0.0,
+            rebate: 0.0,
+            profitLoss: 0.0,
+            downlineReceivable: 0.0,
+            commission: 0.0,
+            commissionAmount: 0.0,
+            commissionResult: 0.0,
+            actualRebate: 0.0,
+            rebateProfit: 0.0,
+            finalProfitLoss: 0.0
+          },
+          hasData: false,
+          message: `目標代理 ${targetAgent} 不存在`
+        });
+      }
+    }
 
     // 構建時間查詢條件
     let timeWhereClause = '';
@@ -5526,7 +5565,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     `;
     
     // agentLevelQuery不需要timeParams，只需要agent id
-    const agentLevels = await db.any(agentLevelQuery, [currentAgent.id]);
+    const agentLevels = await db.any(agentLevelQuery, [queryAgentId]);
     
     // 為每個代理級別查詢投注數據
     const reportData = [];

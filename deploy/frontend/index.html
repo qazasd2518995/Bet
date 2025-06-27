@@ -1534,16 +1534,45 @@
 
                     <!-- 代理層級分析報表 -->
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">
-                                <i class="fas fa-sitemap me-2"></i>代理層級分析報表
-                            </h5>
-                            <div class="d-flex gap-2">
-                                <span class="badge bg-secondary">共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個層級</span>
-                                <button class="btn btn-sm btn-outline-primary" @click="refreshReportData()">
-                                    <i class="fas fa-sync me-1"></i>刷新
-                                </button>
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-sitemap me-2"></i>代理層級分析報表
+                                </h5>
+                                <div class="d-flex gap-2">
+                                    <span class="badge bg-secondary">共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個層級</span>
+                                    <button class="btn btn-sm btn-outline-primary" @click="refreshReportData()">
+                                        <i class="fas fa-sync me-1"></i>刷新
+                                    </button>
+                                </div>
                             </div>
+                            
+                            <!-- 面包屑導航 -->
+                            <nav v-if="reportBreadcrumb.length > 0" aria-label="報表層級導航">
+                                <ol class="breadcrumb mb-0 bg-light p-2 rounded">
+                                    <li class="breadcrumb-item">
+                                        <button class="btn btn-link p-0 text-decoration-none" @click="reportBreadcrumb = []; searchReports()">
+                                            <i class="fas fa-home me-1"></i>根報表
+                                        </button>
+                                    </li>
+                                    <li v-for="(item, index) in reportBreadcrumb" :key="index" 
+                                        class="breadcrumb-item"
+                                        :class="{ 'active': index === reportBreadcrumb.length - 1 }">
+                                        <span v-if="index === reportBreadcrumb.length - 1" class="fw-bold">
+                                            {{ item.username }} ({{ item.level }})
+                                        </span>
+                                        <button v-else class="btn btn-link p-0 text-decoration-none" 
+                                                @click="reportBreadcrumb.splice(index + 1); goBackToLevel(item)">
+                                            {{ item.username }} ({{ item.level }})
+                                        </button>
+                                    </li>
+                                    <li class="breadcrumb-item ms-auto">
+                                        <button class="btn btn-sm btn-outline-secondary" @click="goBackToParentReport()">
+                                            <i class="fas fa-arrow-left me-1"></i>返回上級
+                                        </button>
+                                    </li>
+                                </ol>
+                            </nav>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive" style="font-size: 12px;">
@@ -1571,11 +1600,56 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        <!-- 各代理數據行 -->
+                                        <tr v-for="agent in reportData.reportData" :key="agent.username">
+                                            <td class="text-center">{{ agent.level }}</td>
+                                            <td class="text-center">
+                                                <button class="btn btn-link p-0 text-decoration-none fw-bold" 
+                                                        @click="enterAgentReport(agent)"
+                                                        :class="agent.betCount > 0 ? 'text-primary' : 'text-muted'">
+                                                    {{ agent.username }}
+                                                    <i class="fas fa-chevron-right ms-1 small"></i>
+                                                </button>
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(agent.balance) }}</td>
+                                            <td class="text-center">{{ agent.betCount }}</td>
+                                            <td class="text-end">{{ formatMoney(agent.betAmount) }}</td>
+                                            <td class="text-end">{{ formatMoney(agent.validAmount) }}</td>
+                                            <td class="text-end" :class="getProfitClass(agent.memberWinLoss)">
+                                                {{ formatProfit(agent.memberWinLoss) }}
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(agent.rebate) }}</td>
+                                            <td class="text-end" :class="getProfitClass(agent.profitLoss)">
+                                                {{ formatProfit(agent.profitLoss) }}
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(agent.downlineReceivable) }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info">0.0%</span>
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(agent.commissionAmount) }}</td>
+                                            <td class="text-end" :class="getProfitClass(agent.commissionResult)">
+                                                {{ formatProfit(agent.commissionResult) }}
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning">{{ agent.actualRebate.toFixed(1) }}%</span>
+                                            </td>
+                                            <td class="text-end" :class="getProfitClass(agent.rebateProfit)">
+                                                {{ formatProfit(agent.rebateProfit) }}
+                                            </td>
+                                            <td class="text-end" :class="getProfitClass(agent.finalProfitLoss)">
+                                                {{ formatProfit(agent.finalProfitLoss) }}
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(agent.upperDelivery) }}</td>
+                                            <td class="text-end" :class="getProfitClass(agent.upperSettlement)">
+                                                {{ formatProfit(agent.upperSettlement) }}
+                                            </td>
+                                        </tr>
+                                        
                                         <!-- 總計行 -->
-                                        <tr class="fw-bold" style="background-color: #f8f9fa;">
+                                        <tr class="fw-bold" style="background-color: #f8f9fa; border-top: 2px solid #2c3e50;">
                                             <td class="text-center">總計</td>
                                             <td class="text-center">-</td>
-                                            <td class="text-end">{{ formatMoney(reportData.totalSummary.betAmount) }}</td>
+                                            <td class="text-end">-</td>
                                             <td class="text-center">{{ reportData.totalSummary.betCount }}</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.betAmount) }}</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.validAmount) }}</td>
@@ -1608,6 +1682,7 @@
                                                 {{ formatProfit(reportData.totalSummary.upperSettlement) }}
                                             </td>
                                         </tr>
+                                        
                                         <tr v-if="!reportData.reportData || reportData.reportData.length === 0">
                                             <td colspan="18" class="text-center text-muted py-4">
                                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
