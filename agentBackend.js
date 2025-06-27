@@ -5251,9 +5251,19 @@ app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
     let whereClause = 'WHERE username = $1';
     let queryParams = [agent.username];
     
-    if (startDate && endDate) {
+    // 檢查日期參數是否有效（不是空字符串、undefined或null）
+    const validStartDate = startDate && startDate.trim() !== '';
+    const validEndDate = endDate && endDate.trim() !== '';
+    
+    if (validStartDate && validEndDate) {
       whereClause += ' AND login_time >= $2 AND login_time <= $3';
       queryParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
+    } else if (validStartDate) {
+      whereClause += ' AND login_time >= $2';
+      queryParams.push(startDate + ' 00:00:00');
+    } else if (validEndDate) {
+      whereClause += ' AND login_time <= $2';
+      queryParams.push(endDate + ' 23:59:59');
     }
     
     // 查詢登錄日誌（假設有 user_login_logs 表）
@@ -5311,10 +5321,22 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
     // 暫時移除代理權限過濾，因為bet_history表沒有agent_id欄位
     // TODO: 未來需要加入代理關聯查詢
     
-    if (startDate && endDate) {
+    // 檢查日期參數是否有效
+    const validStartDate = startDate && startDate.trim() !== '';
+    const validEndDate = endDate && endDate.trim() !== '';
+    
+    if (validStartDate && validEndDate) {
       whereClause += ` AND bh.created_at >= $${paramIndex} AND bh.created_at <= $${paramIndex + 1}`;
       queryParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
       paramIndex += 2;
+    } else if (validStartDate) {
+      whereClause += ` AND bh.created_at >= $${paramIndex}`;
+      queryParams.push(startDate + ' 00:00:00');
+      paramIndex++;
+    } else if (validEndDate) {
+      whereClause += ` AND bh.created_at <= $${paramIndex}`;
+      queryParams.push(endDate + ' 23:59:59');
+      paramIndex++;
     }
     
     if (username) {
@@ -5426,10 +5448,22 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     let timeParams = [];
     let paramIndex = 1;
     
-    if (startDate && endDate) {
+    // 檢查日期參數是否有效
+    const validStartDate = startDate && startDate.trim() !== '';
+    const validEndDate = endDate && endDate.trim() !== '';
+    
+    if (validStartDate && validEndDate) {
       timeWhereClause = ` AND bh.created_at >= $${paramIndex} AND bh.created_at <= $${paramIndex + 1}`;
       timeParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
       paramIndex += 2;
+    } else if (validStartDate) {
+      timeWhereClause = ` AND bh.created_at >= $${paramIndex}`;
+      timeParams.push(startDate + ' 00:00:00');
+      paramIndex++;
+    } else if (validEndDate) {
+      timeWhereClause = ` AND bh.created_at <= $${paramIndex}`;
+      timeParams.push(endDate + ' 23:59:59');
+      paramIndex++;
     }
     
     if (username) {
