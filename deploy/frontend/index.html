@@ -987,54 +987,7 @@
                         </div>
                     </div>
 
-                    <!-- 編輯會員備註 Modal -->
-                    <div class="modal fade" id="editMemberNotesModal" tabindex="-1" :class="{show: showEditMemberNotesModal}" :style="{display: showEditMemberNotesModal ? 'block' : 'none'}">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">
-                                        <i class="fas fa-sticky-note me-2 text-success"></i>
-                                        編輯會員備註 - {{ editNotesData.username }}
-                                    </h5>
-                                    <button type="button" class="btn-close" @click="hideEditMemberNotesModal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form @submit.prevent="updateMemberNotes">
-                                        <div class="mb-3">
-                                            <label class="form-label">會員資訊</label>
-                                            <div class="p-3 bg-light rounded">
-                                                <div class="row">
-                                                    <div class="col-6">
-                                                        <strong>會員ID:</strong> {{ editNotesData.id }}
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <strong>用戶名:</strong> {{ editNotesData.username }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">備註說明</label>
-                                            <textarea class="form-control" v-model="editNotesData.notes" 
-                                                      placeholder="請輸入會員備註說明" rows="5" 
-                                                      style="resize: vertical;"></textarea>
-                                            <small class="form-text text-muted">
-                                                可用於記錄會員的特殊情況、聯繫方式、投注習慣、重要提醒等
-                                            </small>
-                                        </div>
-                                        <div class="text-end">
-                                            <button type="button" class="btn btn-secondary me-2" @click="hideEditMemberNotesModal">取消</button>
-                                            <button type="submit" class="btn btn-success" :disabled="loading">
-                                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                                <i v-else class="fas fa-save me-1"></i>
-                                                {{ loading ? '儲存中...' : '儲存備註' }}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                     
                     <!-- 编辑代理 Modal -->
                     <div class="modal" id="editAgentModal" tabindex="-1" v-if="showEditAgentModal">
@@ -2898,6 +2851,55 @@
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編輯會員備註 Modal -->
+    <div class="modal fade" id="editMemberNotesModal" tabindex="-1" :class="{show: showEditMemberNotesModal}" :style="{display: showEditMemberNotesModal ? 'block' : 'none'}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sticky-note me-2 text-success"></i>
+                        編輯會員備註 - {{ editNotesData.username }}
+                    </h5>
+                    <button type="button" class="btn-close" @click="hideEditMemberNotesModal"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="updateMemberNotes">
+                        <div class="mb-3">
+                            <label class="form-label">會員資訊</label>
+                            <div class="p-3 bg-light rounded">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>會員ID:</strong> {{ editNotesData.id }}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>用戶名:</strong> {{ editNotesData.username }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">備註說明</label>
+                            <textarea class="form-control" v-model="editNotesData.notes" 
+                                      placeholder="請輸入會員備註說明" rows="5" 
+                                      style="resize: vertical;"></textarea>
+                            <small class="form-text text-muted">
+                                可用於記錄會員的特殊情況、聯繫方式、投注習慣、重要提醒等
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2" @click="hideEditMemberNotesModal">取消</button>
+                            <button type="submit" class="btn btn-success" :disabled="loading">
+                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                <i v-else class="fas fa-save me-1"></i>
+                                {{ loading ? '儲存中...' : '儲存備註' }}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
