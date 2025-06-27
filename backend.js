@@ -24,7 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3000;
 
 // 代理後端URL
 const AGENT_API_URL = process.env.NODE_ENV === 'production'
@@ -100,16 +100,16 @@ app.options('*', cors());
 app.use(express.json());
 
 // 提供靜態文件 - 這使得前端文件可以被訪問
-app.use(express.static(path.join(__dirname, 'deploy/frontend')));
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 // 所有路由都導向 index.html (SPA 設置)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'deploy/frontend', 'index.html'));
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
 // Favicon 路由處理
 app.get('/favicon.ico', (req, res) => {
-  res.sendFile(path.join(__dirname, 'deploy/frontend', 'favicon.svg'));
+  res.sendFile(path.join(__dirname, 'frontend', 'favicon.svg'));
 });
 
 // 健康檢查端點 - 用於 Render 監控
