@@ -939,7 +939,7 @@
                     </div>
                     
                     <!-- 編輯代理備註 Modal -->
-                    <div class="modal" id="editAgentNotesModal" tabindex="-1" v-if="showEditAgentNotesModal">
+                    <div class="modal fade" id="editAgentNotesModal" tabindex="-1" :class="{show: showEditAgentNotesModal}" :style="{display: showEditAgentNotesModal ? 'block' : 'none'}">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
@@ -988,7 +988,7 @@
                     </div>
 
                     <!-- 編輯會員備註 Modal -->
-                    <div class="modal" id="editMemberNotesModal" tabindex="-1" v-if="showEditMemberNotesModal">
+                    <div class="modal fade" id="editMemberNotesModal" tabindex="-1" :class="{show: showEditMemberNotesModal}" :style="{display: showEditMemberNotesModal ? 'block' : 'none'}">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">

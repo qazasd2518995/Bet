@@ -2810,6 +2810,16 @@ const app = createApp({
             };
             this.showEditAgentNotesModal = true;
             
+            // 添加模態框背景
+            this.$nextTick(() => {
+                document.body.classList.add('modal-open');
+                if (!document.querySelector('.modal-backdrop')) {
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                }
+            });
+            
             console.log('設置後的狀態:', {
                 showEditAgentNotesModal: this.showEditAgentNotesModal,
                 editNotesData: this.editNotesData
@@ -2825,6 +2835,13 @@ const app = createApp({
                 notes: '',
                 type: ''
             };
+            
+            // 移除模態框背景
+            document.body.classList.remove('modal-open');
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
         },
 
         // 更新代理備註
@@ -2871,6 +2888,16 @@ const app = createApp({
                 type: 'member'
             };
             this.showEditMemberNotesModal = true;
+            
+            // 添加模態框背景
+            this.$nextTick(() => {
+                document.body.classList.add('modal-open');
+                if (!document.querySelector('.modal-backdrop')) {
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                }
+            });
         },
 
         // 隱藏編輯會員備註模態框
@@ -2882,6 +2909,13 @@ const app = createApp({
                 notes: '',
                 type: ''
             };
+            
+            // 移除模態框背景
+            document.body.classList.remove('modal-open');
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
         },
 
         // 更新會員備註
