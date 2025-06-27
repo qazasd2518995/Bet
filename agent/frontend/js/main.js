@@ -2881,6 +2881,12 @@ const app = createApp({
 
         // 編輯會員備註
         editMemberNotes(member) {
+            console.log('🔧 editMemberNotes 方法被調用，member:', member);
+            console.log('🔧 當前Vue實例狀態:', {
+                showEditMemberNotesModal: this.showEditMemberNotesModal,
+                editNotesData: this.editNotesData
+            });
+            
             this.editNotesData = {
                 id: member.id,
                 username: member.username,
@@ -2889,13 +2895,30 @@ const app = createApp({
             };
             this.showEditMemberNotesModal = true;
             
+            console.log('🔧 設置後的狀態:', {
+                showEditMemberNotesModal: this.showEditMemberNotesModal,
+                editNotesData: this.editNotesData
+            });
+            
             // 添加模態框背景
             this.$nextTick(() => {
+                console.log('🔧 在nextTick中處理模態框背景');
                 document.body.classList.add('modal-open');
                 if (!document.querySelector('.modal-backdrop')) {
                     const backdrop = document.createElement('div');
                     backdrop.className = 'modal-backdrop fade show';
                     document.body.appendChild(backdrop);
+                    console.log('🔧 已添加模態框背景');
+                } else {
+                    console.log('🔧 模態框背景已存在');
+                }
+                
+                // 檢查模態框元素
+                const modalElement = document.getElementById('editMemberNotesModal');
+                console.log('🔧 查找模態框元素:', modalElement);
+                if (modalElement) {
+                    console.log('🔧 模態框元素的classes:', modalElement.className);
+                    console.log('🔧 模態框元素的style:', modalElement.style.cssText);
                 }
             });
         },
