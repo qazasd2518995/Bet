@@ -5481,7 +5481,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
           CAST(username AS TEXT) as path,
           0 as depth
         FROM agents 
-        WHERE id = $${paramIndex}
+        WHERE id = $1
         
         UNION ALL
         
@@ -5518,9 +5518,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       ORDER BY ah.depth, ah.level, ah.username
     `;
     
-    timeParams.push(currentAgent.id);
-    paramIndex++;
-
+    // agentLevelQuery不需要timeParams，只需要agent id
     const agentLevels = await db.any(agentLevelQuery, [currentAgent.id]);
     
     // 為每個代理級別查詢投注數據
