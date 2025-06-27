@@ -5568,6 +5568,15 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         memberTimeParams.push(`%${username}%`);
         memberParamIndex++;
       }
+      
+      // 添加結算狀態篩選
+      if (settlementStatus) {
+        if (settlementStatus === 'settled') {
+          memberTimeWhereClause += ` AND bh.win IS NOT NULL`;
+        } else if (settlementStatus === 'unsettled') {
+          memberTimeWhereClause += ` AND bh.win IS NULL`;
+        }
+      }
 
       const memberBetQuery = `
         SELECT 
@@ -5603,13 +5612,13 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       const upperDelivery = betAmount; // 上交貨量（全部）
       const upperSettlement = ninthAgentWinLoss; // 上級交收輸贏（全部）
       const downlineReceivable = betAmount; // 應收下線（全部）
-      const commissionRate = (agent.rebate_percentage || 0.02) * 100; // 佔成比例
-      const commissionAmount = betAmount * (agent.rebate_percentage || 0.02); // 佔成金額
-      const commissionResult = commissionAmount; // 佔成結果
+      const commissionRate = 0; // 佔成比例：固定顯示0，還沒設置占成機制
+      const commissionAmount = 0; // 佔成金額：固定顯示0
+      const commissionResult = 0; // 佔成結果：固定顯示0
       const actualRebatePercentage = (agent.rebate_percentage || 0.02) * 100; // 實佔退水百分比
       const actualRebate = rebateAmount; // 實佔退水金額
-      // 賺水：沒有佣金時單純退水，有佣金時是佣金減去退水的差額
-      const rebateProfit = commissionAmount > 0 ? commissionAmount - rebateAmount : rebateAmount;
+      // 賺水：佣金機制未啟用時單純為退水
+      const rebateProfit = rebateAmount;
       const finalProfitLoss = ninthAgentWinLoss + rebateProfit; // 最終盈虧結果
       
       const agentData = {

@@ -204,17 +204,9 @@ const app = createApp({
                 startDate: new Date().toISOString().split('T')[0], // 今日
                 endDate: new Date().toISOString().split('T')[0],   // 今日
                 gameTypes: {
-                    all: true,
-                    pk10: false,
-                    ssc: false,
-                    lottery539: false,
-                    lottery: false,
-                    other: false
+                    pk10: true  // 只支援極速賽車
                 },
                 settlementStatus: '', // 'settled', 'unsettled', ''(全部)
-                betType: '',          // 'single', 'multiple', ''(全部)
-                minAmount: '',
-                maxAmount: '',
                 username: ''
             },
             reportData: {
@@ -4151,43 +4143,35 @@ const app = createApp({
              }
          },
 
-         toggleAllGames() {
-             const allChecked = this.reportFilters.gameTypes.all;
-             this.reportFilters.gameTypes.pk10 = allChecked;
-             this.reportFilters.gameTypes.ssc = allChecked;
-             this.reportFilters.gameTypes.lottery539 = allChecked;
-             this.reportFilters.gameTypes.lottery = allChecked;
-             this.reportFilters.gameTypes.other = allChecked;
-         },
+
 
          async searchReports() {
              try {
                  this.loading = true;
                  
                  // 準備篩選參數
-                 const params = new URLSearchParams({
-                     startDate: this.reportFilters.startDate,
-                     endDate: this.reportFilters.endDate,
-                     settlementStatus: this.reportFilters.settlementStatus,
-                     betType: this.reportFilters.betType,
-                     username: this.reportFilters.username,
-                     minAmount: this.reportFilters.minAmount,
-                     maxAmount: this.reportFilters.maxAmount
-                 });
-
-                 // 處理遊戲類型篩選
-                 const selectedGameTypes = [];
-                 if (!this.reportFilters.gameTypes.all) {
-                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
-                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
-                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
-                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
-                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
+                 const params = new URLSearchParams();
+                 
+                 // 日期參數
+                 if (this.reportFilters.startDate) {
+                     params.append('startDate', this.reportFilters.startDate);
+                 }
+                 if (this.reportFilters.endDate) {
+                     params.append('endDate', this.reportFilters.endDate);
                  }
                  
-                 if (selectedGameTypes.length > 0) {
-                     params.append('gameTypes', selectedGameTypes.join(','));
+                 // 結算狀態
+                 if (this.reportFilters.settlementStatus) {
+                     params.append('settlementStatus', this.reportFilters.settlementStatus);
                  }
+                 
+                 // 用戶名篩選
+                 if (this.reportFilters.username && this.reportFilters.username.trim()) {
+                     params.append('username', this.reportFilters.username.trim());
+                 }
+                 
+                 // 遊戲類型：只支援極速賽車
+                 params.append('gameTypes', 'pk10');
 
                  console.log('📊 前端: 調用代理層級分析API');
                  

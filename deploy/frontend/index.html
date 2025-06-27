@@ -1441,34 +1441,15 @@
                                     <label class="form-label fw-bold">遊戲類型</label>
                                     <div class="d-flex flex-wrap gap-2">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gameAll" v-model="reportFilters.gameTypes.all" @change="toggleAllGames">
-                                            <label class="form-check-label fw-bold" for="gameAll">全選</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gamePK10" v-model="reportFilters.gameTypes.pk10">
-                                            <label class="form-check-label" for="gamePK10">AR PK10</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gameSSC" v-model="reportFilters.gameTypes.ssc">
-                                            <label class="form-check-label" for="gameSSC">AR 時時彩</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="game539" v-model="reportFilters.gameTypes.lottery539">
-                                            <label class="form-check-label" for="game539">AR 539</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gameLottery" v-model="reportFilters.gameTypes.lottery">
-                                            <label class="form-check-label" for="gameLottery">AR 六合彩</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="gameOther" v-model="reportFilters.gameTypes.other">
-                                            <label class="form-check-label" for="gameOther">其他遊戲</label>
+                                            <input class="form-check-input" type="checkbox" id="gamePK10" v-model="reportFilters.gameTypes.pk10" checked disabled>
+                                            <label class="form-check-label fw-bold" for="gamePK10">極速賽車</label>
                                         </div>
                                     </div>
+                                    <small class="text-muted">目前僅支援極速賽車遊戲</small>
                                 </div>
                             </div>
 
-                            <!-- 第三行：結算狀態和投注類型 -->
+                            <!-- 第三行：結算狀態和用戶篩選 -->
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">結算狀態</label>
@@ -1485,37 +1466,6 @@
                                             <input class="form-check-input" type="radio" name="settlementStatus" id="statusUnsettled" value="unsettled" v-model="reportFilters.settlementStatus">
                                             <label class="form-check-label" for="statusUnsettled">未結算</label>
                                         </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">投注類型</label>
-                                    <div class="d-flex gap-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="betType" id="betAll" value="" v-model="reportFilters.betType">
-                                            <label class="form-check-label" for="betAll">全部</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="betType" id="betSingle" value="single" v-model="reportFilters.betType">
-                                            <label class="form-check-label" for="betSingle">單號投注</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="betType" id="betMultiple" value="multiple" v-model="reportFilters.betType">
-                                            <label class="form-check-label" for="betMultiple">組合投注</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 第四行：金額範圍和用戶篩選 -->
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">投注金額範圍</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" v-model="reportFilters.minAmount" placeholder="最小金額">
-                                        <span class="input-group-text">至</span>
-                                        <span class="input-group-text">$</span>
-                                        <input type="number" class="form-control" v-model="reportFilters.maxAmount" placeholder="最大金額">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -1638,7 +1588,7 @@
                                             </td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.downlineReceivable) }}</td>
                                             <td class="text-center">
-                                                <span class="badge bg-info">{{ reportData.reportData.length > 0 ? (reportData.totalSummary.actualRebate / reportData.reportData.length).toFixed(1) : '0.0' }}%</span>
+                                                <span class="badge bg-info">0.0%</span>
                                             </td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.commissionAmount) }}</td>
                                             <td class="text-end" :class="getProfitClass(reportData.totalSummary.commissionResult)">
