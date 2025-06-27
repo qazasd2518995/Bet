@@ -1683,7 +1683,13 @@
                                             </td>
                                         </tr>
                                         
-                                        <tr v-if="!reportData.reportData || reportData.reportData.length === 0">
+                                        <tr v-if="loading">
+                                            <td colspan="18" class="text-center text-muted py-4">
+                                                <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
+                                                載入中...
+                                            </td>
+                                        </tr>
+                                        <tr v-else-if="!reportData.reportData || reportData.reportData.length === 0">
                                             <td colspan="18" class="text-center text-muted py-4">
                                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                                 沒有資料

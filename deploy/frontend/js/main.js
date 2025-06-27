@@ -4306,6 +4306,9 @@ const app = createApp({
          
          async enterAgentReport(agent) {
              try {
+                 // 設置載入狀態，避免短暫顯示「沒有資料」
+                 this.loading = true;
+                 
                  // 添加到面包屑導航
                  this.reportBreadcrumb.push({
                      username: agent.username,
@@ -4387,6 +4390,9 @@ const app = createApp({
              } catch (error) {
                  console.error('查看代理報表失敗:', error);
                  this.showMessage('查看代理報表失敗: ' + error.message, 'error');
+             } finally {
+                 // 取消載入狀態
+                 this.loading = false;
              }
          },
          
