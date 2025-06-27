@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-cn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極速賽車 - 會員登入</title>
+    <title>極速赛车 - 会员登录</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <style>
         * {
@@ -252,32 +252,32 @@
 <body>
     <div class="login-container">
         <div class="logo">
-                            <h1>極速賽車</h1>
-            <p>會員登入系統</p>
+                            <h1>極速赛车</h1>
+            <p>会员登录系统</p>
         </div>
 
         <form class="login-form" id="loginForm">
             <div class="form-group">
-                <label for="username">會員帳號</label>
+                <label for="username">会员账号</label>
                 <input 
                     type="text" 
                     id="username" 
                     name="username" 
                     class="form-input" 
-                    placeholder="請輸入您的會員帳號"
+                    placeholder="请输入您的会员账号"
                     required
                     autocomplete="username"
                 >
             </div>
 
             <div class="form-group">
-                <label for="password">登入密碼</label>
+                <label for="password">登录密碼</label>
                 <input 
                     type="password" 
                     id="password" 
                     name="password" 
                     class="form-input" 
-                    placeholder="請輸入您的密碼"
+                    placeholder="请输入您的密碼"
                     required
                     autocomplete="current-password"
                 >
@@ -291,7 +291,7 @@
                         id="captcha" 
                         name="captcha" 
                         class="form-input captcha-input" 
-                        placeholder="請輸入驗證碼"
+                        placeholder="请输入驗證碼"
                         required
                         maxlength="4"
                     >
@@ -306,32 +306,32 @@
 
             <div class="remember-me">
                 <input type="checkbox" id="rememberMe" name="rememberMe">
-                <label for="rememberMe">記住我的登入狀態</label>
+                <label for="rememberMe">記住我的登录狀態</label>
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
-                立即登入
+                立即登录
             </button>
 
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
-                <span>登入中，請稍候...</span>
+                <span>登录中，请稍候...</span>
             </div>
 
             <div class="error-message" id="errorMessage" style="display: none;"></div>
         </form>
 
         <div class="footer-links">
-            <a href="#" onclick="showContactInfo()">聯繫客服</a>
-            <a href="#" onclick="showHelp()">使用說明</a>
+            <a href="#" onclick="showContactInfo()">联系客服</a>
+            <a href="#" onclick="showHelp()">使用说明</a>
         </div>
     </div>
 
     <script>
-        // 當前驗證碼答案
+        // 当前驗證碼答案
         let currentCaptcha = '';
 
-        // 頁面載入時初始化
+        // 頁面载入時初始化
         document.addEventListener('DOMContentLoaded', function() {
             refreshCaptcha();
             checkRememberedUser();
@@ -339,7 +339,7 @@
             // 綁定表單提交事件
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
             
-            // 綁定Enter鍵登入
+            // 綁定Enter鍵登录
             document.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     handleLogin(e);
@@ -364,7 +364,7 @@
             document.getElementById('captcha').value = '';
         }
 
-        // 檢查記住的用戶
+        // 检查記住的用戶
         function checkRememberedUser() {
             const rememberedUser = localStorage.getItem('rememberedUser');
             if (rememberedUser) {
@@ -376,7 +376,7 @@
         // API基礎URL配置
         const API_BASE_URL = window.location.origin;
         
-        // 處理登入
+        // 处理登录
         async function handleLogin(e) {
             e.preventDefault();
             
@@ -385,27 +385,27 @@
             const captcha = document.getElementById('captcha').value.trim().toUpperCase();
             const rememberMe = document.getElementById('rememberMe').checked;
             
-            // 重置錯誤訊息
+            // 重置错误訊息
             hideError();
             
             // 驗證表單
             if (!username || !password || !captcha) {
-                showError('請填寫完整的登入資訊');
+                showError('请填寫完整的登录资讯');
                 return;
             }
             
             // 驗證驗證碼
             if (captcha !== currentCaptcha) {
-                showError('驗證碼輸入錯誤，請重新輸入');
+                showError('驗證碼输入错误，请重新输入');
                 refreshCaptcha();
                 return;
             }
             
-            // 顯示載入狀態
+            // 顯示载入狀態
             showLoading();
             
             try {
-                // 發送登入請求
+                // 發送登录请求
                 const response = await fetch(`${API_BASE_URL}/api/member/login`, {
                     method: 'POST',
                     headers: {
@@ -417,67 +417,67 @@
                     })
                 });
                 
-                // 檢查響應狀態
+                // 检查響應狀態
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API錯誤響應:', errorText);
-                    throw new Error(`服務器錯誤 (${response.status}): ${response.statusText}`);
+                    console.error('API错误響應:', errorText);
+                    throw new Error(`服務器错误 (${response.status}): ${response.statusText}`);
                 }
                 
-                // 檢查響應類型
+                // 检查響應類型
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const responseText = await response.text();
                     console.error('非JSON響應:', responseText);
-                    throw new Error('服務器響應格式錯誤');
+                    throw new Error('服務器響應格式错误');
                 }
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 登入成功
+                    // 登录成功
                     if (rememberMe) {
                         localStorage.setItem('rememberedUser', username);
                     } else {
                         localStorage.removeItem('rememberedUser');
                     }
                     
-                    // 儲存登入資訊到sessionStorage
+                    // 储存登录资讯到sessionStorage
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('username', data.member.username);
                     sessionStorage.setItem('memberId', data.member.id);
                     sessionStorage.setItem('balance', data.member.balance || 0);
                     sessionStorage.setItem('agentId', data.member.agent_id || '');
                     
-                    // 儲存新的會話token
+                    // 储存新的會話token
                     if (data.sessionToken) {
                         sessionStorage.setItem('sessionToken', data.sessionToken);
                         console.log('✅ 會話token已保存');
                     }
                     
                     // 顯示成功訊息並跳轉
-                    showSuccess('登入成功，正在跳轉到遊戲...');
+                    showSuccess('登录成功，正在跳轉到游戏...');
                     
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 1000);
                     
                 } else {
-                    // 登入失敗
-                    showError(data.message || '登入失敗，請檢查帳號密碼');
+                    // 登录失败
+                    showError(data.message || '登录失败，请检查账号密碼');
                     refreshCaptcha();
                 }
                 
             } catch (error) {
-                console.error('登入請求失敗:', error);
-                showError('網路連線錯誤，請稍後再試');
+                console.error('登录请求失败:', error);
+                showError('网络连线错误，请稍後再試');
                 refreshCaptcha();
             } finally {
                 hideLoading();
             }
         }
 
-        // 顯示錯誤訊息
+        // 顯示错误訊息
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
@@ -497,31 +497,31 @@
             errorDiv.style.borderLeft = '4px solid #27ae60';
         }
 
-        // 隱藏錯誤訊息
+        // 隱藏错误訊息
         function hideError() {
             document.getElementById('errorMessage').style.display = 'none';
         }
 
-        // 顯示載入狀態
+        // 顯示载入狀態
         function showLoading() {
             document.getElementById('loginBtn').disabled = true;
             document.getElementById('loading').style.display = 'block';
         }
 
-        // 隱藏載入狀態
+        // 隱藏载入狀態
         function hideLoading() {
             document.getElementById('loginBtn').disabled = false;
             document.getElementById('loading').style.display = 'none';
         }
 
-        // 顯示聯繫資訊
+        // 顯示联系资讯
         function showContactInfo() {
-            alert('客服聯繫方式：\n\nQQ: 123456789\nWeChat: customer_service\nTelegram: @customer_support\n\n服務時間：24小時全天候服務');
+            alert('客服联系方式：\n\nQQ: 123456789\nWeChat: customer_service\nTelegram: @customer_support\n\n服務时间：24小時全天候服務');
         }
 
-        // 顯示使用說明
+        // 顯示使用说明
         function showHelp() {
-            alert('使用說明：\n\n1. 請使用代理為您開設的會員帳號登入\n2. 首次登入請聯繫代理商獲取密碼\n3. 如遇登入問題請聯繫客服\n4. 請妥善保管您的帳號密碼');
+            alert('使用说明：\n\n1. 请使用代理為您開設的会员账号登录\n2. 首次登录请联系代理商获取密碼\n3. 如遇登录問題请联系客服\n4. 请妥善保管您的账号密碼');
         }
     </script>
 </body>

@@ -1,28 +1,28 @@
 // filepath: /Users/justin/Desktop/Bet/frontend/src/components/DrawHistory.js
-// 開獎歷史組件 - 顯示歷史開獎結果，支持多種視圖模式
+// 开奖历史組件 - 顯示历史开奖结果，支持多種視圖模式
 Vue.component('draw-history', {
   template: /* html */`
     <div class="draw-history">
       <div class="history-header">
-        <div class="title">歷史開獎</div>
+        <div class="title">历史开奖</div>
         <button class="close-btn" @click="$emit('close')">×</button>
       </div>
       
       <div class="draw-type-tabs">
         <div class="tabs">
-          <div :class="['tab', viewMode === 'number' ? 'active' : '']" @click="viewMode = 'number'">號碼</div>
+          <div :class="['tab', viewMode === 'number' ? 'active' : '']" @click="viewMode = 'number'">号码</div>
           <div :class="['tab', viewMode === 'bigSmall' ? 'active' : '']" @click="viewMode = 'bigSmall'">大小</div>
           <div :class="['tab', viewMode === 'oddEven' ? 'active' : '']" @click="viewMode = 'oddEven'">單雙</div>
           <div :class="['tab', viewMode === 'dragonTiger' ? 'active' : '']" @click="viewMode = 'dragonTiger'">冠亞和/龍虎</div>
         </div>
       </div>
       
-      <!-- 日期選擇區域 -->
+      <!-- 日期选择區域 -->
       <div class="date-selector">
         <div class="current-date" @click="showDatePicker = !showDatePicker">
           {{ formatDate(selectedDate) }} <i class="fas fa-calendar-alt"></i>
         </div>
-        <!-- 日期選擇器彈窗 -->
+        <!-- 日期选择器彈窗 -->
         <div class="date-picker" v-if="showDatePicker">
           <div class="picker-header">
             <button @click="changeMonth(-1)">&lt;</button>
@@ -44,14 +44,14 @@ Vue.component('draw-history', {
           
           <div class="picker-actions">
             <button class="cancel-btn" @click="showDatePicker = false">取消</button>
-            <button class="confirm-btn" @click="confirmDateSelection">確認</button>
+            <button class="confirm-btn" @click="confirmDateSelection">确认</button>
           </div>
         </div>
       </div>
       
-      <!-- 開獎記錄列表 -->
+      <!-- 开奖记录列表 -->
       <div class="history-list">
-        <!-- 號碼視圖 -->
+        <!-- 号码視圖 -->
         <div v-if="viewMode === 'number'" class="number-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -124,12 +124,12 @@ Vue.component('draw-history', {
         
         <!-- 加載更多按鈕 -->
         <div class="load-more" @click="loadMoreHistory" v-if="hasMoreHistory">
-          查看更多開獎結果
+          查看更多开奖结果
         </div>
         
-        <!-- 無記錄提示 -->
+        <!-- 無记录提示 -->
         <div class="no-records" v-if="historyRecords.length === 0">
-          暫無開獎記錄
+          暫無开奖记录
         </div>
       </div>
     </div>
@@ -145,31 +145,31 @@ Vue.component('draw-history', {
   data() {
     return {
       viewMode: 'number', // 視圖模式: number, bigSmall, oddEven, dragonTiger
-      historyRecords: [], // 歷史記錄
-      selectedDate: new Date(), // 當前選中日期
-      currentYear: new Date().getFullYear(), // 當前日曆年份
-      currentMonth: new Date().getMonth() + 1, // 當前日曆月份
-      showDatePicker: false, // 是否顯示日期選擇器
-      hasMoreHistory: true, // 是否有更多歷史記錄
-      page: 1, // 當前頁碼
-      itemsPerPage: 10 // 每頁記錄數
+      historyRecords: [], // 历史记录
+      selectedDate: new Date(), // 当前選中日期
+      currentYear: new Date().getFullYear(), // 当前日曆年份
+      currentMonth: new Date().getMonth() + 1, // 当前日曆月份
+      showDatePicker: false, // 是否顯示日期选择器
+      hasMoreHistory: true, // 是否有更多历史记录
+      page: 1, // 当前頁碼
+      itemsPerPage: 10 // 每頁记录數
     };
   },
   
   computed: {
-    // 計算日曆天數
+    // 计算日曆天數
     calendarDays() {
       const year = this.currentYear;
       const month = this.currentMonth - 1;
       
-      // 獲取當前月份第一天
+      // 获取当前月份第一天
       const firstDayOfMonth = new Date(year, month, 1);
       const lastDayOfMonth = new Date(year, month + 1, 0);
       
-      // 獲取當前月份第一天是星期幾
+      // 获取当前月份第一天是星期幾
       const firstDayWeekday = firstDayOfMonth.getDay();
       
-      // 獲取上個月的最後幾天
+      // 获取上個月的最后幾天
       const days = [];
       const prevMonthLastDay = new Date(year, month, 0).getDate();
       
@@ -179,7 +179,7 @@ Vue.component('draw-history', {
         days.push({ date, currentMonth: false });
       }
       
-      // 添加當前月份的日期
+      // 添加当前月份的日期
       for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
         const date = new Date(year, month, i);
         days.push({ date, currentMonth: true });
@@ -197,19 +197,19 @@ Vue.component('draw-history', {
   },
   
   created() {
-    // 設置初始日期
+    // 设置初始日期
     if (this.initialDate) {
       this.selectedDate = new Date(this.initialDate);
       this.currentYear = this.selectedDate.getFullYear();
       this.currentMonth = this.selectedDate.getMonth() + 1;
     }
     
-    // 載入初始歷史記錄
+    // 载入初始历史记录
     this.loadHistoryRecords();
   },
   
   methods: {
-    // 載入歷史記錄
+    // 载入历史记录
     async loadHistoryRecords() {
       try {
         // 格式化日期為YYYYMMDD格式
@@ -224,32 +224,32 @@ Vue.component('draw-history', {
         });
         
         if (this.page === 1) {
-          // 首次載入替換所有記錄
+          // 首次载入替換所有记录
           this.historyRecords = response.data || [];
         } else {
-          // 加載更多時追加記錄
+          // 加載更多時追加记录
           this.historyRecords = [...this.historyRecords, ...(response.data || [])];
         }
         
-        // 判斷是否還有更多記錄
+        // 判斷是否還有更多记录
         this.hasMoreHistory = (response.data || []).length >= this.itemsPerPage;
       } catch (error) {
-        console.error('獲取歷史記錄失敗:', error);
+        console.error('获取历史记录失败:', error);
       }
     },
     
-    // 載入更多歷史記錄
+    // 载入更多历史记录
     loadMoreHistory() {
       this.page++;
       this.loadHistoryRecords();
     },
     
-    // 選擇日期
+    // 选择日期
     selectDate(date) {
       this.selectedDate = new Date(date);
     },
     
-    // 確認日期選擇
+    // 确认日期选择
     confirmDateSelection() {
       this.showDatePicker = false;
       this.page = 1;
@@ -273,9 +273,9 @@ Vue.component('draw-history', {
       this.currentYear = newYear;
     },
     
-    // 切換年份選擇器
+    // 切換年份选择器
     toggleYearSelector() {
-      // 這裡可以實現年份選擇的彈窗
+      // 这里可以實現年份选择的彈窗
       // 簡化版先不實現
     },
     
@@ -285,20 +285,20 @@ Vue.component('draw-history', {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     },
     
-    // 格式化日期為API請求格式
+    // 格式化日期為API请求格式
     formatDateForApi(date) {
       if (!date) return '';
       return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
     },
     
-    // 格式化時間顯示
+    // 格式化时间顯示
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
       return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     },
     
-    // 獲取和值的樣式類
+    // 获取和值的樣式類
     getSumClass(sum) {
       let classes = [];
       if (sum > 11) {
@@ -316,7 +316,7 @@ Vue.component('draw-history', {
       return classes.join(' ');
     },
     
-    // 獲取和值的標籤
+    // 获取和值的標籤
     getSumLabel(sum) {
       let label = '';
       if (sum > 11) {

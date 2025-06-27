@@ -1049,7 +1049,7 @@ const AgentModel = {
       const afterBalance = beforeBalance + parseFloat(amount);
       
       // 確保餘額不會小於0
-      if (afterBalance < 0) throw new Error('代理餘額不足');
+      if (afterBalance < 0) throw new Error('代理余额不足');
       
       const updatedAgent = await db.one(`
         UPDATE agents 
@@ -1336,7 +1336,7 @@ const MemberModel = {
       const afterBalance = beforeBalance + parseFloat(amount);
       
       // 確保餘額不會小於0
-      if (afterBalance < 0) throw new Error('會員餘額不足');
+      if (afterBalance < 0) throw new Error('会员余额不足');
       
       // 更新餘額
       const updatedMember = await db.one(`
@@ -2864,7 +2864,7 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
       if (parseFloat(creator.balance) < initialBal) {
         return res.json({
           success: false,
-          message: '您的餘額不足以設定該初始餘額'
+          message: '您的余额不足以设定该初始余额'
         });
       }
     }
@@ -5084,10 +5084,10 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
     
     // 檢查餘額是否足夠
     if (afterBalance < 0) {
-      console.log(`扣除餘額失敗: 會員 ${username} 餘額不足 (當前: ${currentBalance}, 嘗試扣除: ${deductAmount})`);
+      console.log(`扣除余额失败: 会员 ${username} 余额不足 (当前: ${currentBalance}, 尝试扣除: ${deductAmount})`);
       return res.json({
         success: false,
-        message: '餘額不足'
+        message: '余额不足'
       });
     }
     

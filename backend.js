@@ -2675,8 +2675,8 @@ app.post('/api/bet', async (req, res) => {
     // 檢查最低投注金額限制（防止小額套利）
     const MIN_BET_AMOUNT = 1;
     if (amountNum < MIN_BET_AMOUNT) {
-      console.error(`下注失敗: 投注金額不能少於 ${MIN_BET_AMOUNT} 元`);
-      return res.status(400).json({ success: false, message: `投注金額不能少於 ${MIN_BET_AMOUNT} 元` });
+              console.error(`下注失败: 投注金额不能少于 ${MIN_BET_AMOUNT} 元`);
+        return res.status(400).json({ success: false, message: `投注金额不能少于 ${MIN_BET_AMOUNT} 元` });
     }
     
     // 檢查下注類型和選項的有效性
@@ -2731,7 +2731,7 @@ app.post('/api/bet', async (req, res) => {
         
         if (!deductData.success) {
           console.error(`代理系統扣除餘額失敗: ${deductData.message}`);
-          return res.status(400).json({ success: false, message: deductData.message || '餘額不足' });
+          return res.status(400).json({ success: false, message: deductData.message || '余额不足' });
         }
         
         updatedBalance = deductData.balance;
@@ -3100,8 +3100,8 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
     
     // 檢查餘額是否為負數
     if (newBalance < 0) {
-      console.error(`更新會員餘額失敗: 餘額不足 (當前: ${currentBalance}, 嘗試扣除: ${Math.abs(amount)})`);
-      return { success: false, message: '餘額不足' };
+              console.error(`更新会员余额失败: 余额不足 (当前: ${currentBalance}, 尝试扣除: ${Math.abs(amount)})`);
+        return { success: false, message: '余额不足' };
     }
     
     // 先更新本地用戶餘額

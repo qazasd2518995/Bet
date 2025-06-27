@@ -1,4 +1,4 @@
-// Vue 應用實例
+// Vue 应用實例
 document.addEventListener('DOMContentLoaded', function() {
     new Vue({
         el: '#app',
@@ -7,29 +7,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:3002' 
                     : '', // 在production環境中使用相同域名
-                // 用戶相關
+                // 用戶相关
                 isLoggedIn: false,
                 username: '',
                 balance: 0,
                 balanceChanged: false,
                 
-                // 遊戲狀態
+                // 游戏状态
                 gameStatus: 'betting', // betting or drawing
                 currentPeriod: '',
                 nextPeriod: '',
                 countdownSeconds: 0,
                 
-                // 開獎結果
+                // 开奖结果
                 lastResult: [],
                 lastResults: [],
                 
-                // 投注相關
-                defaultBetAmount: 1, // 默認投注金額
+                // 投注相关
+                defaultBetAmount: 1, // 默認投注金额
                 betAmount: 1,
                 selectedBets: [],
-                activeTab: 'combined', // 當前活躍的標籤頁
+                activeTab: 'combined', // 当前活躍的標籤頁
                 
-                // 位置選擇相關
+                // 位置选择相关
                 selectedPosition: null,
                 selectedPositions: [], // 多選位置
                 positions: [
@@ -45,17 +45,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     { value: 10, label: '第十名' }
                 ],
                 
-                // 顯示狀態
+                // 显示状态
                 showHistory: false,
                 showRecords: false,
                 showProfitModal: false,
                 showDayDetailModal: false,
-                showDropdownMenu: false, // 控制下拉菜單顯示狀態
+                showDropdownMenu: false, // 控制下拉菜单显示状态
                 
-                // 熱門投注
+                // 热门投注
                 hotBets: [],
                 
-                // 投注記錄
+                // 投注记录
                 betRecords: [],
                 betRecordsPagination: {
                     page: 1,
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     total: 0
                 },
                 
-                // 歷史開獎記錄
+                // 历史开奖记录
                 historyRecords: [],
                 historyPagination: {
                     page: 1,
@@ -71,11 +71,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     total: 0
                 },
                 
-                // 統計數據
+                // 统计数据
                 dailyBetCount: 0,
                 dailyProfit: 0,
                 
-                // 盈虧記錄相關
+                // 盈亏记录相关
                 profitTimeRange: '7days',
                 profitRecords: [],
                 totalBetCount: 0,
@@ -87,14 +87,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     profit: 0
                 },
                 
-                // 通知系統
+                // 通知系统
                 notificationText: '',
                 notificationVisible: false,
                 
-                // 自訂金額
+                // 自訂金额
                 customAmount: '',
                 
-                // 賠率數據 - 包含退水0.41，與後端一致
+                // 赔率数据 - 包含退水0.41，與後端一致
                 odds: {
                     sumValue: {
                         '3': 39.319, '4': 20.139, '5': 15.344, '6': 12.467, '7': 10.549,
@@ -143,23 +143,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmPassword: ''
                 },
                 
-                // 開獎結果標籤
+                // 开奖结果標籤
                 resultLabels: Array.from({ length: 10 }, (_, i) => `${i + 1}名`),
                 
-                // 新的下注確認相關
+                // 新的下注确认相关
                 showBetModal: false,
                 autoAcceptBetterOdds: true,
                 hasLastBets: false,
                 lastBets: [],
                 showChips: false,
                 
-                // 新增缺失的數據屬性
-                dragonRankingVisible: false, // 控制長龍排行顯示狀態
-                themeSelectorVisible: false, // 控制主題選擇器顯示狀態
-                showRaceAnimation: false, // 控制賽車動畫顯示狀態
+                // 新增缺失的数据屬性
+                dragonRankingVisible: false, // 控制長龙排行显示状态
+                themeSelectorVisible: false, // 控制主題选择器显示状态
+                showRaceAnimation: false, // 控制赛车动画显示状态
                 selectedPositions: [], // 多選位置
                 
-                // 盈虧記錄相關
+                // 盈亏记录相关
                 profitTimeRange: 'thisWeek',
                 selectedDate: '',
                 dayDetailRecords: [],
@@ -168,14 +168,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     profit: 0
                 },
                 
-                // 長龍排行數據
+                // 長龙排行数据
                 dragonRankingData: {
-                    champion: { type: '冠軍', current: 0, max: 0, trend: [] },
-                    runnerup: { type: '亞軍', current: 0, max: 0, trend: [] },
+                    champion: { type: '冠军', current: 0, max: 0, trend: [] },
+                    runnerup: { type: '亚军', current: 0, max: 0, trend: [] },
                     big: { type: '大', current: 0, max: 0, trend: [] },
                     small: { type: '小', current: 0, max: 0, trend: [] },
-                    odd: { type: '單', current: 0, max: 0, trend: [] },
-                    even: { type: '雙', current: 0, max: 0, trend: [] }
+                    odd: { type: '单', current: 0, max: 0, trend: [] },
+                    even: { type: '双', current: 0, max: 0, trend: [] }
                 },
                 
                 // 主題配置
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     { id: 'gold', name: '黃金色', primary: '#f39c12', secondary: '#e67e22' }
                 ],
                 roadBeadVisible: false, // 路珠走勢開關
-                roadBeadRows: [] , // 路珠資料 6xN
+                roadBeadRows: [] , // 路珠资料 6xN
             };
         },
         created() {
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     removeItem: function(key) {}
                 };
             }
-            // 初始化歷史開獎記錄為空數組，防止undefined錯誤
+            // 初始化历史开奖记录为空數組，防止undefined错误
             this.recentResults = [];
             this.checkLoginStatus();
         },
@@ -214,9 +214,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         methods: {
-            // 初始化倒計時功能
+            // 初始化倒计时功能
             initCountdown() {
-                // 每秒更新倒計時
+                // 每秒更新倒计时
                 this.countdownTimer = setInterval(() => {
                     if (this.countdownSeconds > 0) {
                         this.countdownSeconds--;
@@ -225,15 +225,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 1000);
             },
             
-            // 更新倒計時顯示
+            // 更新倒计时显示
             updateCountdownDisplay() {
-                // 實時更新倒計時顯示
+                // 实时更新倒计时显示
             },
             
-            // 檢查登入狀態
+            // 检查登录状态
             checkLoginStatus() {
-                console.log('🔍 Vue檢查登入狀態 - isLoggedIn:', sessionStorage.getItem('isLoggedIn'), 'username:', sessionStorage.getItem('username'), 'balance:', sessionStorage.getItem('balance'));
-                console.log('🧹 登入檢查時執行遮罩清理...');
+                console.log('🔍 Vue检查登录状态 - isLoggedIn:', sessionStorage.getItem('isLoggedIn'), 'username:', sessionStorage.getItem('username'), 'balance:', sessionStorage.getItem('balance'));
+                console.log('🧹 登录检查时执行遮罩清理...');
                 
                 // 緊急清理任何遮罩
                 const overlaySelectors = [
@@ -254,10 +254,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 });
                 
-                // 確保#app容器顯示
+                // 确保#app容器显示
                 const appContainer = document.querySelector('#app');
                 if (appContainer) {
-                    console.log('✅ 確保#app容器顯示');
+                    console.log('✅ 确保#app容器显示');
                     appContainer.style.display = 'block';
                     appContainer.style.visibility = 'visible';
                     appContainer.style.opacity = '1';
@@ -268,23 +268,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 const balance = sessionStorage.getItem('balance');
                 
                 if (isLoggedIn === 'true' && username && balance !== null) {
-                    console.log('✅ 登入狀態有效，設置用戶資訊');
+                    console.log('✅ 登录状态有效，设置用戶资讯');
                     this.isLoggedIn = true;
                     this.username = username;
                     this.balance = parseFloat(balance) || 0;
                 } else {
-                    console.log('❌ 登入狀態無效，顯示登入表單');
+                    console.log('❌ 登录状态无效，显示登录表单');
                     this.isLoggedIn = false;
                     this.username = '';
                     this.balance = 0;
                 }
             },
             
-            // 更新遊戲數據
+            // 更新游戏数据
             updateGameData() {
-                console.log('開始獲取遊戲數據...');
+                console.log('开始获取游戏数据...');
                 
-                // 獲取遊戲狀態
+                // 获取游戏状态
                 fetch(`${this.API_BASE_URL}/api/game-data`)
                     .then(response => response.json())
                     .then(data => {
@@ -300,30 +300,30 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('獲取遊戲狀態失敗:', error);
+                        console.error('获取游戏状态失败:', error);
                     });
                 
-                // 更新歷史開獎記錄
+                // 更新历史开奖记录
                 this.updateHistoryRecords();
             },
             
-            // 更新歷史記錄
+            // 更新历史记录
             updateHistoryRecords() {
                 fetch(`${this.API_BASE_URL}/api/history?limit=20`)
                     .then(response => response.json())
                     .then(data => {
-                        console.log('開獎歷史API返回數據:', JSON.stringify(data).substring(0, 200) + '...');
+                        console.log('开奖历史API返回数据:', JSON.stringify(data).substring(0, 200) + '...');
                         if (data.success && data.records) {
                             this.historyRecords = data.records;
-                            console.log('開獎歷史更新成功，記錄數量:', this.historyRecords.length);
+                            console.log('开奖历史更新成功，记录数量:', this.historyRecords.length);
                         }
                     })
                     .catch(error => {
-                        console.error('獲取歷史記錄失敗:', error);
+                        console.error('获取历史记录失败:', error);
                     });
             },
             
-            // 更新餘額
+            // 更新余额
             updateBalance() {
                 if (!this.isLoggedIn) return;
                 
@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.balance = data.balance;
                         sessionStorage.setItem('balance', data.balance);
                         
-                        // 如果餘額有變化，觸發動畫
+                        // 如果余额有變化，觸發动画
                         if (oldBalance !== this.balance) {
                             this.balanceChanged = true;
                             setTimeout(() => {
@@ -351,11 +351,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch(error => {
-                    console.error('更新餘額失敗:', error);
+                    console.error('更新余额失败:', error);
                 });
             },
             
-            // 更新每日統計
+            // 更新每日统计
             updateDailyStats() {
                 if (!this.isLoggedIn) return;
                 
@@ -368,11 +368,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('獲取每日統計失敗:', error);
+                        console.error('获取每日统计失败:', error);
                     });
             },
             
-            // 更新投注歷史
+            // 更新投注历史
             updateBetHistory() {
                 if (!this.isLoggedIn) return;
                 
@@ -384,108 +384,108 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('獲取投注歷史失敗:', error);
+                        console.error('获取投注历史失败:', error);
                     });
             },
             
-            // 獲取熱門投注
+            // 获取热门投注
             fetchHotBets() {
                 fetch(`${this.API_BASE_URL}/api/hot-bets`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.hotBets) {
                             this.hotBets = data.hotBets;
-                            console.log('熱門投注數據獲取成功，共有', this.hotBets.length, '個熱門投注');
+                            console.log('热门投注数据获取成功，共有', this.hotBets.length, '個热门投注');
                         }
                     })
                     .catch(error => {
-                        console.error('獲取熱門投注失敗:', error);
+                        console.error('获取热门投注失败:', error);
                     });
             },
             
-            // 選擇熱門投注
+            // 选择热门投注
             selectHotBet(bet) {
-                // 實現選擇熱門投注的邏輯
-                console.log('選擇熱門投注:', bet);
+                // 實現选择热门投注的邏輯
+                console.log('选择热门投注:', bet);
                 this.showDropdownMenu = false;
             },
             
-            // 切換下拉菜單
+            // 切換下拉菜单
             toggleDropdown() {
                 this.showDropdownMenu = !this.showDropdownMenu;
             },
             
-            // 顯示歷史開獎
+            // 显示历史开奖
             showDrawHistory() {
                 this.showHistory = true;
                 this.showDropdownMenu = false;
             },
             
-            // 顯示投注記錄
+            // 显示投注记录
             showBetRecords() {
                 this.showRecords = true;
                 this.showDropdownMenu = false;
             },
             
-            // 顯示盈虧記錄
+            // 显示盈亏记录
             showProfitRecords() {
                 this.showProfitModal = true;
                 this.showDropdownMenu = false;
-                // 立即載入盈虧記錄
+                // 立即载入盈亏记录
                 this.loadProfitRecords();
             },
             
-            // 顯示遊戲規則
+            // 显示游戏規則
             showGameRules() {
-                const rulesText = `重要聲明
+                const rulesText = `重要声明
 
-1.如果客戶懷疑自己的資料被盜用，應立即通知本公司，並更改詳細數據，以前的使用者名稱及密碼將全部無效。
+            1.如果客户怀疑自己的资料被盗用，应立即通知本公司，并更改详细数据，以前的用户名称及密码将全部无效。
 
-2.客戶有責任確保自己的賬戶及登入資料的保密性。以使用者名稱及密碼進行的任何網上投注將被視為有效。
+2.客户有责任确保自己的账户及登录资料的保密性。以用户名称及密码进行的任何网上投注將被视为有效。
 
-3.公佈賠率時出現的任何打字錯誤或非故意人為失誤，本公司保留改正錯誤和按正確賠率結算投注的權力。您居住所在地的法律有可能規定網絡博弈不合法；若此情況屬實，本公司將不會批准您使用付賬卡進行交易。
+3.公佈赔率时出现的任何打字错误或非故意人为失誤，本公司保留改正错误和按正确赔率结算投注的權力。您居住所在地的法律有可能規定网络博弈不合法；若此情況屬實，本公司將不會批准您使用付賬卡进行交易。
 
-4.每次登入時客戶都應該核對自己的賬戶結餘額。如對餘額有任何疑問，請在第一時間內通知本公司。
+4.每次登录时客户都应该核对自己的账户結余额。如對余额有任何疑问，请在第一时间內通知本公司。
 
 5.一旦投注被接受，則不得取消或修改。
 
-6.所有號碼賠率將不時浮動，派彩時的賠率將以確認投注時之賠率為準。
+6.所有号码赔率將不时浮動，派彩时的赔率將以确认投注时之赔率为準。
 
-7.每注最高投注金額按不同[場次]及[投注項目]及[會員賬號]設定浮動。如投注金額超過上述設定，本公司有權取消超過之投注金額。
+7.每注最高投注金额按不同[場次]及[投注項目]及[会员賬号]设定浮動。如投注金额超過上述设定，本公司有權取消超過之投注金额。
 
-8.所有投注都必須在開獎前時間內進行否則投注無效。
+            8.所有投注都必须在开奖前时间内进行否则投注无效。
 
 9.所有投注派彩彩金皆含本金。
 
-具體遊戲規則如下：
+具體游戏規則如下：
 
-1. 1～10 兩面：指 單、雙；大、小。
+1. 1～10 兩面：指 单、双；大、小。
 
-單、雙：號碼為雙數叫雙，如4、8；號碼為單數叫單，如5、9。
+单、双：号码为双數叫双，如4、8；号码为单數叫单，如5、9。
 
-大、小：開出之號碼大於或等於6為大，小於或等於5為小。
+大、小：開出之号码大于或等于6为大，小于或等于5为小。
 
-第一名～第十名 車號指定：每一個車號為一投註組合，開獎結果「投註車號」對應所投名次視為中獎，其余情形視為不中獎。
+第一名～第十名 車号指定：每一個車号为一投注组合，开奖结果「投注車号」对应所投名次视为中奖，其余情形视为不中奖。
 
-2. 1～5龍虎
+2. 1～5龙虎
 
-冠 軍 龍/虎：「第一名」車號大於「第十名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+冠 军 龙/虎：「第一名」車号大于「第十名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-亞 軍 龍/虎：「第二名」車號大於「第九名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+亞 军 龙/虎：「第二名」車号大于「第九名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-第三名 龍/虎：「第三名」車號大於「第八名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+第三名 龙/虎：「第三名」車号大于「第八名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-第四名 龍/虎：「第四名」車號大於「第七名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+第四名 龙/虎：「第四名」車号大于「第七名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-第五名 龍/虎：「第五名」車號大於「第六名」車號視為【龍】中獎、反之小於視為【虎】中獎，其余情形視為不中獎。
+第五名 龙/虎：「第五名」車号大于「第六名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-3. 冠軍車號＋亞軍車號＝冠亞和值（為3~19)
+3. 冠军車号＋亚军車号＝冠亞和值（为3~19)
 
-冠亞和單雙：「冠亞和值」為單視為投註「單」的註單視為中獎，為雙視為投註「雙」的註單視為中獎，其余視為不中獎。
+冠亞和单双：「冠亞和值」为单视为投注「单」的註单视为中奖，为双视为投注「双」的註单视为中奖，其余视为不中奖。
 
-冠亞和大小：「冠亞和值」大於11時投註「大」的註單視為中獎，小於或等於11時投註「小」的註單視為中獎，其余視為不中獎。
+冠亞和大小：「冠亞和值」大于11时投注「大」的註单视为中奖，小于或等于11时投注「小」的註单视为中奖，其余视为不中奖。
 
-冠亞和指定：「冠亞和值」可能出現的結果為3～19， 投中對應「冠亞和值」數字的視為中獎，其余視為不中獎。`;
+冠亞和指定：「冠亞和值」可能出现的结果为3～19， 投中对应「冠亞和值」数字的视为中奖，其余视为不中奖。`;
 
                 alert(rulesText);
                 this.showDropdownMenu = false;
@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = 'login.html';
             },
             
-            // 登入
+            // 登录
             login() {
                 fetch(`${this.API_BASE_URL}/api/member/login`, {
                     method: 'POST',
@@ -520,18 +520,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.username = data.user.username;
                         this.balance = data.user.balance;
                         this.checkLoginStatus();
-                        this.showNotification('登入成功！');
+                        this.showNotification('登录成功！');
                     } else {
-                        this.showNotification('登入失敗，請檢查用戶名和密碼。');
+                        this.showNotification('登录失败，请检查用戶名和密码。');
                     }
                 })
                 .catch(error => {
-                    console.error('登入失敗:', error);
-                    this.showNotification('登入失敗，請稍後再試。');
+                    console.error('登录失败:', error);
+                    this.showNotification('登录失败，请稍後再試。');
                 });
             },
             
-            // 顯示通知
+            // 显示通知
             showNotification(message) {
                 this.notificationText = message;
                 this.notificationVisible = true;
@@ -540,14 +540,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 3000);
             },
             
-            // 格式化時間
+            // 格式化时间
             formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const remainingSeconds = seconds % 60;
                 return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
             },
             
-            // 格式化歷史開獎時間為 HH:MM:SS 格式
+            // 格式化历史开奖时间为 HH:MM:SS 格式
             formatHistoryTime(dateStr) {
                 if (!dateStr) return 'NaN:NaN:NaN';
                 const date = new Date(dateStr);
@@ -555,40 +555,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
             },
             
-            // 格式化金額
+            // 格式化金额
             formatMoney(amount) {
                 return `¥${parseFloat(amount || 0).toFixed(2)}`;
             },
             
-            // 格式化賠率
+            // 格式化赔率
             formatOdds(odds) {
                 return parseFloat(odds || 0).toFixed(2);
             },
             
-            // 格式化盈虧
+            // 格式化盈亏
             formatProfit(profit) {
                 const amount = parseFloat(profit || 0);
                 return amount >= 0 ? `+¥${amount.toFixed(2)}` : `-¥${Math.abs(amount).toFixed(2)}`;
             },
             
-            // 檢查是否已選擇
+            // 检查是否已选择
             isSelected(betType, value) {
                 return this.selectedBets.some(bet => 
                     bet.betType === betType && bet.value === value
                 );
             },
             
-            // 選擇投注
+            // 选择投注
             selectBet(betType, value) {
                 const existingIndex = this.selectedBets.findIndex(bet => 
                     bet.betType === betType && bet.value === value
                 );
                 
                 if (existingIndex !== -1) {
-                    // 如果已選擇，則取消選擇
+                    // 如果已选择，則取消选择
                     this.selectedBets.splice(existingIndex, 1);
                 } else {
-                    // 添加新的選擇
+                    // 添加新的选择
                     this.selectedBets.push({
                         betType: betType,
                         value: value,
@@ -598,42 +598,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             
-            // 獲取投注賠率
+            // 获取投注赔率
             getOddsForBet(betType, value) {
                 if (this.odds[betType] && this.odds[betType][value]) {
                     return this.odds[betType][value];
                 }
-                return 1.96; // 默認賠率
+                return 1.96; // 默認赔率
             },
             
-            // 點擊外部關閉
+            // 点击外部关闭
             handleClickOutside(event) {
                 const menuContainer = this.$refs.menuContainer;
                 if (menuContainer && !menuContainer.contains(event.target)) {
                     this.showDropdownMenu = false;
                 }
                 
-                // 檢查是否點擊在籌碼選單外部
+                // 检查是否点击在籌碼選单外部
                 const chipsDropdown = document.querySelector('.chips-dropdown');
                 if (chipsDropdown && !chipsDropdown.contains(event.target)) {
                     this.showChips = false;
                 }
             },
             
-            // 顯示長龍排行
+            // 显示長龙排行
             showDragonRanking() {
                 this.dragonRankingVisible = true;
                 this.loadDragonRankingData();
                 this.showDropdownMenu = false;
             },
             
-            // 顯示主題選擇器
+            // 显示主題选择器
             showThemeSelector() {
                 this.themeSelectorVisible = true;
                 this.showDropdownMenu = false;
             },
             
-            // 切換賽車動畫
+            // 切換赛车动画
             toggleAnimation() {
                 this.showRaceAnimation = !this.showRaceAnimation;
                 if (this.showRaceAnimation) {
@@ -641,12 +641,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             
-            // 設置投注金額
+            // 设置投注金额
             setBetAmount(amount) {
                 this.betAmount = amount;
                 this.customAmount = '';
                 
-                // 同時更新所有已選擇投注項目的金額
+                // 同时更新所有已选择投注項目的金额
                 this.selectedBets.forEach(bet => {
                     bet.amount = amount;
                 });
@@ -666,41 +666,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             
-            // 顯示投注確認彈窗
+            // 显示投注确认彈窗
             showBetConfirmation() {
                 if (this.selectedBets.length === 0) {
-                    this.showNotification('請選擇投注項目');
+                    this.showNotification('请选择投注項目');
                     return;
                 }
                 if (this.betAmount < 1) {
-                    this.showNotification('投注金額不能少於1元');
+                    this.showNotification('投注金额不能少于1元');
                     return;
                 }
                 this.showBetModal = true;
             },
             
-            // 從確認彈窗中移除投注
+            // 從确认彈窗中移除投注
             removeBetFromConfirm(index) {
                 this.selectedBets.splice(index, 1);
             },
             
-            // 確認投注
+            // 确认投注
             confirmBets() {
                 if (this.gameStatus !== 'betting') {
-                    this.showNotification('當前無法下注');
+                    this.showNotification('当前無法下注');
                     return;
                 }
                 
-                // 保存當前投注為最後投注
+                // 保存当前投注为最后投注
                 this.lastBets = [...this.selectedBets];
                 this.hasLastBets = true;
                 
-                // 執行投注邏輯
+                // 执行投注邏輯
                 this.placeBets();
                 this.showBetModal = false;
             },
             
-            // 執行投注
+            // 执行投注
             placeBets() {
                 const bets = this.selectedBets.map(bet => ({
                     betType: bet.betType,
@@ -727,43 +727,43 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.clearBets();
                         this.updateBetHistory();
                     } else {
-                        this.showNotification(`投注失敗：${data.message}`);
+                        this.showNotification(`投注失败：${data.message}`);
                     }
                 })
                 .catch(error => {
-                    console.error('投注失敗:', error);
-                    this.showNotification('投注失敗，請稍後再試');
+                    console.error('投注失败:', error);
+                    this.showNotification('投注失败，请稍後再試');
                 });
             },
             
-            // 切換盈虧時間範圍
+            // 切換盈亏时间范围
             switchProfitRange(range) {
                 this.profitTimeRange = range;
                 this.loadProfitRecords();
             },
             
-            // 顯示日期詳情
+            // 显示日期詳情
             showDayDetail(date) {
                 this.selectedDate = date;
                 this.loadDayDetailRecords(date);
                 this.showDayDetailModal = true;
             },
             
-            // 搜尋今日歷史
+            // 搜索今日历史
             searchTodayHistory() {
                 const today = new Date().toISOString().split('T')[0];
                 this.loadHistoryRecords(today);
             },
             
-            // 清除歷史搜尋
+            // 清除历史搜索
             clearHistorySearch() {
                 this.loadHistoryRecords();
             },
             
-            // 註冊
+            // 注册
             register() {
                 if (this.registerForm.password !== this.registerForm.confirmPassword) {
-                    this.showNotification('密碼確認不一致');
+                    this.showNotification('密码确认不一致');
                     return;
                 }
                 
@@ -778,21 +778,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        this.showNotification('註冊成功！請登入');
+                        this.showNotification('注册成功！请登录');
                         this.showRegisterModal = false;
                         this.showLoginModal = true;
                         this.registerForm = { username: '', password: '', confirmPassword: '' };
                     } else {
-                        this.showNotification(`註冊失敗：${data.message}`);
+                        this.showNotification(`注册失败：${data.message}`);
                     }
                 })
                 .catch(error => {
-                    console.error('註冊失敗:', error);
-                    this.showNotification('註冊失敗，請稍後再試');
+                    console.error('注册失败:', error);
+                    this.showNotification('注册失败，请稍後再試');
                 });
             },
             
-            // 載入長龍排行數據
+            // 载入長龙排行数据
             loadDragonRankingData() {
                 fetch(`${this.API_BASE_URL}/api/dragon-ranking`)
                     .then(response => response.json())
@@ -802,23 +802,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('載入長龍排行失敗:', error);
+                        console.error('载入長龙排行失败:', error);
                     });
             },
             
-            // 播放賽車動畫
+            // 播放赛车动画
             playRaceAnimation() {
-                // 使用預先生成的結果播放賽車動畫
+                // 使用預先生成的结果播放赛车动画
                 if (this.lastResult && this.lastResult.length > 0) {
                     this.animateRace(this.lastResult);
                 }
             },
             
-            // 賽車動畫邏輯
+            // 赛车动画邏輯
             animateRace(result) {
-                // 實際的賽車動畫邏輯
-                console.log('播放賽車動畫:', result);
-                // 這裡可以添加具體的賽車動畫實現
+                // 實際的赛车动画邏輯
+                console.log('播放赛车动画:', result);
+                // 这里可以添加具體的赛车动画實現
             },
             
             // 切換主題
@@ -830,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.documentElement.style.setProperty('--primary-color', theme.primary);
                     document.documentElement.style.setProperty('--secondary-color', theme.secondary);
 
-                    // 依主要顏色動態計算 hover 與淡色背景
+                    // 依主要顏色動態计算 hover 與淡色背景
                     const rgb = this.hexToRgb(theme.primary);
                     if (rgb) {
                         document.documentElement.style.setProperty('--primary-light', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.themeSelectorVisible = false;
             },
 
-            // 新增：將 HEX 轉為 RGB
+            // 新增：將 HEX 轉为 RGB
             hexToRgb(hex) {
                 const sanitized = hex.replace('#', '');
                 if (sanitized.length !== 6) return null;
@@ -890,20 +890,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 return { r, g, b };
             },
             
-            // 載入盈虧記錄
+            // 载入盈亏记录
             loadProfitRecords() {
                 if (!this.isLoggedIn) return;
                 
-                // 根據時間範圍選擇不同的API
+                // 根據时间范围选择不同的API
                 let apiUrl;
                 if (this.profitTimeRange === 'thisWeek' || this.profitTimeRange === 'lastWeek') {
-                    // 計算週的開始和結束日期
+                    // 计算週的开始和结束日期
                     const today = new Date();
                     const startDate = new Date();
                     const endDate = new Date();
                     
                     if (this.profitTimeRange === 'thisWeek') {
-                        // 本週（從星期一 00:00:00 開始）
+                        // 本週（從星期一 00:00:00 开始）
                         const dayOfWeek = today.getDay();
                         const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
                         startDate.setDate(diff);
@@ -916,13 +916,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         endDate.setDate(diff + 6);
                     }
 
-                    // 使查詢涵蓋整天 00:00:00 ~ 23:59:59
+                    // 使查询涵蓋整天 00:00:00 ~ 23:59:59
                     startDate.setHours(0, 0, 0, 0);
                     endDate.setHours(23, 59, 59, 999);
 
                     apiUrl = `${this.API_BASE_URL}/api/weekly-profit-records?username=${this.username}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
                 } else {
-                    // 其他時間範圍使用原有API
+                    // 其他时间范围使用原有API
                     const days = this.profitTimeRange === '7days' ? 7 : parseInt(this.profitTimeRange) || 7;
                     apiUrl = `${this.API_BASE_URL}/api/profit-records?username=${this.username}&days=${days}`;
                 }
@@ -932,17 +932,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(data => {
                         if (data.success) {
                             this.profitRecords = data.records || [];
-                            // 後端若未回傳統計，前端自行彙總
+                            // 後端若未回傳统计，前端自行彙總
                             this.totalBetCount = ('totalBetCount' in data) ? (data.totalBetCount || 0) : this.profitRecords.reduce((s, r) => s + (r.betCount || 0), 0);
                             this.totalProfit = ('totalProfit' in data) ? (data.totalProfit || 0) : this.profitRecords.reduce((s, r) => s + (r.profit || 0), 0);
                         }
                     })
                     .catch(error => {
-                        console.error('載入盈虧記錄失敗:', error);
+                        console.error('载入盈亏记录失败:', error);
                     });
             },
             
-            // 載入日期詳情記錄
+            // 载入日期詳情记录
             loadDayDetailRecords(date) {
                 if (!this.isLoggedIn) return;
                 
@@ -955,11 +955,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('載入日期詳情失敗:', error);
+                        console.error('载入日期詳情失败:', error);
                     });
             },
             
-            // 切換位置選擇
+            // 切換位置选择
             togglePosition(position) {
                 const index = this.selectedPositions.indexOf(position);
                 if (index > -1) {
@@ -969,15 +969,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             
-            // 清除位置選擇
+            // 清除位置选择
             clearPositions() {
                 this.selectedPositions = [];
             },
             
-            // 選擇多位置號碼
+            // 选择多位置号码
             selectMultiPositionNumber(num) {
                 if (this.selectedPositions.length === 0) {
-                    this.showNotification('請先選擇位置');
+                    this.showNotification('请先选择位置');
                     return;
                 }
                 
@@ -986,10 +986,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             },
             
-            // 選擇多位置屬性
+            // 选择多位置屬性
             selectMultiPositionProperty(property) {
                 if (this.selectedPositions.length === 0) {
-                    this.showNotification('請先選擇位置');
+                    this.showNotification('请先选择位置');
                     return;
                 }
                 
@@ -999,7 +999,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             },
             
-            // 獲取位置投注類型
+            // 获取位置投注類型
             getPositionBetType(position) {
                 const positionMap = {
                     1: 'champion',
@@ -1028,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             // 轉置成 6 行
                             const rows=[[],[],[],[],[],[]];
                             numbersList.forEach((nums, idx)=>{
-                                // nums 為 10 號，這裡示範第一名號碼
+                                // nums 为 10 号，这里示範第一名号码
                                 const val = nums[0];
                                 const rowIdx = idx % 6;
                                 rows[rowIdx].push(val);
@@ -1036,53 +1036,53 @@ document.addEventListener('DOMContentLoaded', function() {
                             this.roadBeadRows = rows;
                         }
                     })
-                    .catch(e=>console.error('載入路珠失敗',e));
+                    .catch(e=>console.error('载入路珠失败',e));
             },
         },
         mounted() {
             this.initCountdown();
             this.updateGameData();
-            this.fetchHotBets();  // 加載熱門投注數據
+            this.fetchHotBets();  // 加載热门投注数据
             
-            // 每隔10秒刷新一次遊戲數據
+            // 每隔10秒刷新一次游戏数据
             setInterval(() => {
                 this.updateGameData();
             }, 10000);
             
-            // 每隔30秒刷新一次餘額
+            // 每隔30秒刷新一次余额
             setInterval(() => {
                 if (this.isLoggedIn) {
                     this.updateBalance();
                 }
             }, 30000);
             
-            // 每隔60秒刷新一次注單歷史
+            // 每隔60秒刷新一次注单历史
             setInterval(() => {
                 if (this.isLoggedIn) {
                     this.updateBetHistory();
                 }
             }, 60000);
             
-            // 每隔5分鐘刷新一次熱門投注數據
+            // 每隔5分鐘刷新一次热门投注数据
             setInterval(() => {
                 this.fetchHotBets();
             }, 5 * 60 * 1000);
             
-            // 初始檢查登入狀態
+            // 初始检查登录状态
             this.checkLoginStatus();
             
-            // 更新初始資料
+            // 更新初始资料
             this.updateDailyStats();
             this.updateHistoryRecords();
             
-            // 強制清理任何剩餘的遮罩
-            console.log('🚀 執行強制遮罩清理...');
+            // 强制清理任何剩餘的遮罩
+            console.log('🚀 执行强制遮罩清理...');
             let cleanupCount = 0;
             const maxCleanupAttempts = 10;
             
             const forceCleanup = setInterval(() => {
                 cleanupCount++;
-                console.log(`🧹 第${cleanupCount}次清理檢查...`);
+                console.log(`🧹 第${cleanupCount}次清理检查...`);
                 
                 const problematicElements = document.querySelectorAll(`
                     #login-overlay,
@@ -1102,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (cleanupCount >= maxCleanupAttempts) {
                     clearInterval(forceCleanup);
-                    console.log('✅ 清理任務完成');
+                    console.log('✅ 清理任务完成');
                 }
             }, 200);
         },

@@ -1,6 +1,6 @@
-// 投注記錄組件 - 顯示用戶的下注記錄和派彩結果
+// 投注记录組件 - 顯示用戶的下注记录和派彩结果
 Vue.component('bet-records', {
-  // 使用render函數而不是template字符串，避免TypeScript錯誤提示
+  // 使用render函數而不是template字符串，避免TypeScript错误提示
   props: {
     records: {
       type: Array,
@@ -26,15 +26,15 @@ Vue.component('bet-records', {
   
   methods: {
     getBetStatus(bet) {
-      if (!bet.settled) return '進行中';
+      if (!bet.settled) return '进行中';
       return bet.win ? '贏' : '輸';
     },
     
     getBetTypeDesc(bet) {
       const typeMap = {
         'sumValue': '冠亞和',
-        'champion': '冠軍',
-        'runnerup': '亞軍',
+        'champion': '冠军',
+        'runnerup': '亚军',
         'third': '第三名',
         'fourth': '第四名',
         'fifth': '第五名',
@@ -43,7 +43,7 @@ Vue.component('bet-records', {
         'eighth': '第八名',
         'ninth': '第九名',
         'tenth': '第十名',
-        'number': `第${bet.position || ''}名號碼`,
+        'number': `第${bet.position || ''}名号码`,
         'dragonTiger': '龍虎',
         'position': '快速大小單雙'  // 修復position類型顯示
       };
@@ -67,23 +67,23 @@ Vue.component('bet-records', {
         const valueMap = {
           'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
         };
-        return valueMap[value] || `號碼 ${value}`;
+        return valueMap[value] || `号码 ${value}`;
       } else if (betType === 'number') {
-        return `號碼 ${value}`;
+        return `号码 ${value}`;
       } else if (betType === 'dragonTiger') {
-        // 處理龍虎投注格式：dragon_1_10 -> 龍(冠軍vs第10名)
+        // 处理龍虎投注格式：dragon_1_10 -> 龍(冠军vs第10名)
         if (value && value.includes('_')) {
           const parts = value.split('_');
           if (parts.length === 3) {
             const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
-            const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+            const pos1 = parts[1] === '1' ? '冠军' : parts[1] === '2' ? '亚军' : `第${parts[1]}名`;
             const pos2 = parts[2] === '10' ? '第十名' : `第${parts[2]}名`;
             return `${dragonTiger}(${pos1}vs${pos2})`;
           }
         }
         return value === 'dragon' ? '龍' : '虎';
       } else if (betType === 'position') {
-        // 處理position類型（快速大小單雙）
+        // 处理position類型（快速大小單雙）
         const valueMap = {
           'big': '大', 'small': '小', 'odd': '單', 'even': '雙'
         };
@@ -107,12 +107,12 @@ Vue.component('bet-records', {
       return parseFloat(odds).toFixed(2);
     },
 
-    // 根據投注類型和值獲取正確的賠率 - 包含退水4.1%，與後端一致
+    // 根據投注類型和值获取正确的赔率 - 包含退水4.1%，與後端一致
     getCorrectOdds(bet) {
       const betType = bet.betType || bet.type;
       const value = bet.value;
       
-      // 如果bet對象已經有正確的賠率，直接使用
+      // 如果bet對象已经有正确的赔率，直接使用
       if (bet.odds && bet.odds > 0) {
         return bet.odds;
       }
@@ -120,12 +120,12 @@ Vue.component('bet-records', {
       // 退水比例 4.1%
       const rebatePercentage = 0.041;
       
-      // 根據投注類型計算賠率 (包含退水4.1%)
+      // 根據投注類型计算赔率 (包含退水4.1%)
       if (betType === 'sumValue') {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
         } else {
-          // 冠亞和值賠率表 (扣除退水4.1%)
+          // 冠亞和值赔率表 (扣除退水4.1%)
           const baseOdds = {
             '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
             '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
@@ -140,21 +140,21 @@ Vue.component('bet-records', {
       } else if (betType === 'dragonTiger') {
         return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
       } else if (betType === 'position') {
-        // position類型（快速大小單雙）的賠率
+        // position類型（快速大小單雙）的赔率
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
         } else {
-          return 1.0; // 無效值返回預設賠率
+          return 1.0; // 無效值返回預設赔率
         }
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
         } else {
-          return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 單號投注：10.0 × (1-4.1%) = 9.59
+          return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 單号投注：10.0 × (1-4.1%) = 9.59
         }
       }
       
-      return 1.0; // 預設賠率
+      return 1.0; // 預設赔率
     },
     
     formatMoney(amount) {
@@ -164,11 +164,11 @@ Vue.component('bet-records', {
   },
   
   render(h) {
-    // 使用render函數創建模板，避免TypeScript檢查錯誤
+    // 使用render函數创建模板，避免TypeScript检查错误
     return h('div', { class: 'bet-records' }, [
       // 頭部
       h('div', { class: 'record-header' }, [
-        h('div', { class: 'title' }, '投注記錄'),
+        h('div', { class: 'title' }, '投注记录'),
         h('button', { 
           class: 'close-btn',
           on: { click: () => this.$emit('close') } 
@@ -180,19 +180,19 @@ Vue.component('bet-records', {
         h('div', { 
           class: ['tab', this.activeTab === 'ongoing' ? 'active' : ''],
           on: { click: () => this.activeTab = 'ongoing' } 
-        }, '進行中'),
+        }, '进行中'),
         h('div', { 
           class: ['tab', this.activeTab === 'settled' ? 'active' : ''],
           on: { click: () => this.activeTab = 'settled' } 
         }, '已結算')
       ]),
       
-      // 記錄列表
+      // 记录列表
       this.filteredRecords.length > 0 
         ? h('div', { class: 'record-list' }, 
             this.filteredRecords.map(bet => 
               h('div', { class: 'record-item', key: bet.id }, [
-                // 頂部信息：期數和狀態
+                // 頂部信息：期数和狀態
                 h('div', { class: 'record-top' }, [
                   h('div', { class: 'period' }, `${bet.period}期`),
                   h('div', { 
@@ -200,7 +200,7 @@ Vue.component('bet-records', {
                   }, this.getBetStatus(bet))
                 ]),
                 
-                // 投注資訊區域：投注類型和選項
+                // 投注资讯區域：投注類型和選項
                 h('div', { class: 'record-bet-info' }, [
                   h('div', { class: 'bet-detail-row' }, [
                     h('span', { class: 'bet-label' }, '投注類型:'),
@@ -211,12 +211,12 @@ Vue.component('bet-records', {
                     h('span', { class: 'bet-value' }, this.getBetValueDesc(bet))
                   ]),
                   h('div', { class: 'bet-detail-row' }, [
-                    h('span', { class: 'bet-label' }, '賠率:'),
+                    h('span', { class: 'bet-label' }, '赔率:'),
                     h('span', { class: 'bet-value' }, this.formatOdds(this.getCorrectOdds(bet)))
                   ]),
-                  // 開獎號碼顯示
+                  // 开奖号码顯示
                   bet.drawResult ? h('div', { class: 'bet-detail-row draw-result-row' }, [
-                    h('span', { class: 'bet-label' }, '開獎號碼:'),
+                    h('span', { class: 'bet-label' }, '开奖号码:'),
                     h('div', { class: 'draw-result-balls' }, 
                       bet.drawResult.map((number, index) => 
                         h('div', { 
@@ -228,23 +228,23 @@ Vue.component('bet-records', {
                   ]) : null
                 ]),
                 
-                // 底部信息：金額和時間
+                // 底部信息：金额和时间
                 h('div', { class: 'record-bottom' }, [
-                  // 時間信息
+                  // 时间信息
                   h('div', { class: 'bet-time-info' }, [
-                    h('span', { class: 'bet-label' }, '下注時間:'),
+                    h('span', { class: 'bet-label' }, '下注时间:'),
                     h('span', { class: 'time-value' }, this.formatTime(bet.time))
                   ]),
                   
-                  // 金額信息
+                  // 金额信息
                   h('div', { class: 'bet-amount-info' }, [
                     h('div', { class: 'amount-row' }, [
-                      h('span', { class: 'amount-label' }, '下注金額:'),
+                      h('span', { class: 'amount-label' }, '下注金额:'),
                       h('span', { class: 'amount-value' }, this.formatMoney(bet.amount))
                     ]),
                     bet.settled && bet.win && bet.winAmount ? 
                       h('div', { class: 'amount-row win-amount' }, [
-                        h('span', { class: 'amount-label' }, '派彩金額:'),
+                        h('span', { class: 'amount-label' }, '派彩金额:'),
                         h('span', { class: 'amount-value' }, this.formatMoney(bet.winAmount))
                       ]) : null
                   ])
@@ -252,7 +252,7 @@ Vue.component('bet-records', {
               ])
             )
           )
-        : h('div', { class: 'no-records' }, '暫無記錄')
+        : h('div', { class: 'no-records' }, '暫無记录')
     ]);
   }
 });

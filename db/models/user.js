@@ -84,7 +84,7 @@ const UserModel = {
       `, [amount, username]);
       
       if (!result) {
-        throw new Error('餘額不足或用戶不存在');
+        throw new Error('余额不足或用户不存在');
       }
       
       return result.balance;

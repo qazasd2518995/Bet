@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-tw">
+<html lang="zh-cn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代理管理系統</title>
+    <title>代理管理系统</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -16,22 +16,22 @@
         }
         /* ... 其他現有樣式 ... */
 
-        /* 添加球號顏色規則 */
+        /* 添加球号顏色規則 */
         .number-ball {
-            width: 28px; /* 根據需要調整大小 */
+            width: 28px; /* 根據需要调整大小 */
             height: 28px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px; /* 根據需要調整大小 */
+            font-size: 14px; /* 根據需要调整大小 */
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             margin: 0 2px; /* 添加一些間距 */
             color: #fff; /* 預設文字顏色 */
         }
 
-        /* 與遊戲前端一致的顏色 */
+        /* 與游戏前端一致的顏色 */
         .color-1 { background-color: #ffcc00; color: #000; } /* 金黃色 */
         .color-2 { background-color: #3399ff; color: #fff; } /* 鮮藍色 */
         .color-3 { background-color: #777777; color: #fff; } /* 深灰色 */
@@ -46,13 +46,13 @@
 </head>
 <body>
     <div id="app">
-        <!-- 登入頁面 -->
+        <!-- 登录頁面 -->
         <div v-if="!isLoggedIn" class="container login-container">
             <div class="row justify-content-center">
                 <div class="col-md-6 col-lg-5">
                     <div class="card shadow">
                         <div class="card-header bg-primary text-white">
-                            <h3 class="text-center mb-0">代理管理系統</h3>
+                            <h3 class="text-center mb-0">代理管理系统</h3>
                         </div>
                         <div class="card-body">
                             <form @submit.prevent="login">
@@ -60,14 +60,14 @@
                                     <label for="username">用戶名</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        <input type="text" id="username" v-model="loginForm.username" class="form-control" placeholder="請輸入用戶名" required>
+                                        <input type="text" id="username" v-model="loginForm.username" class="form-control" placeholder="请输入用戶名" required>
                                     </div>
                                 </div>
                                 <div class="form-group mb-3">
                                     <label for="password">密碼</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" id="password" v-model="loginForm.password" class="form-control" placeholder="請輸入密碼" required>
+                                        <input type="password" id="password" v-model="loginForm.password" class="form-control" placeholder="请输入密碼" required>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
@@ -77,7 +77,7 @@
                                     </div>
                                     <button type="submit" class="btn btn-primary" :disabled="loading">
                                         <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
-                                        登入
+                                        登录
                                     </button>
                                 </div>
                             </form>
@@ -91,7 +91,7 @@
         <div v-else>
             <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
                 <div class="container-fluid">
-                    <a class="navbar-brand" href="#">代理管理系統</a>
+                    <a class="navbar-brand" href="#">代理管理系统</a>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                         <span class="navbar-toggler-icon"></span>
                     </button>
@@ -104,19 +104,19 @@
                                 <a class="nav-link" :class="{active: activeTab === 'agents'}" href="#" @click="setActiveTab('agents')">代理管理</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'members'}" href="#" @click="setActiveTab('members')">會員管理</a>
+                                <a class="nav-link" :class="{active: activeTab === 'members'}" href="#" @click="setActiveTab('members')">会员管理</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'transactions'}" href="#" @click="setActiveTab('transactions')">交易記錄</a>
+                                <a class="nav-link" :class="{active: activeTab === 'transactions'}" href="#" @click="setActiveTab('transactions')">交易记录</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'stats'}" href="#" @click="setActiveTab('stats')">下注記錄</a>
+                                <a class="nav-link" :class="{active: activeTab === 'stats'}" href="#" @click="setActiveTab('stats')">下注记录</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'draw'}" href="#" @click="setActiveTab('draw')">開獎記錄</a>
+                                <a class="nav-link" :class="{active: activeTab === 'draw'}" href="#" @click="setActiveTab('draw')">开奖记录</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'notices'}" href="#" @click="setActiveTab('notices')">系統公告</a>
+                                <a class="nav-link" :class="{active: activeTab === 'notices'}" href="#" @click="setActiveTab('notices')">系统公告</a>
                             </li>
                             <li class="nav-item" v-if="user.level === 0">
                                 <a class="nav-link" :class="{active: activeTab === 'customer-service'}" href="#" @click="setActiveTab('customer-service')">客服功能</a>
@@ -125,7 +125,7 @@
                         <ul class="navbar-nav ms-auto">
                             <li class="nav-item me-3">
                                 <a class="nav-link">
-                                    <i class="fas fa-wallet me-1"></i>額度: {{ formatMoney(user.balance) }}
+                                    <i class="fas fa-wallet me-1"></i>额度: {{ formatMoney(user.balance) }}
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
@@ -134,7 +134,7 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="#" @click.prevent="showProfileModal()">
-                                        <i class="fas fa-user-edit me-2"></i>個人資料
+                                        <i class="fas fa-user-edit me-2"></i>个人资料
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="#" @click="logout">
@@ -147,7 +147,7 @@
                 </div>
             </nav>
 
-            <!-- 全域新增會員模態框 - 不受頁籤限制，任何頁面都可以使用，只在登入後顯示 -->
+            <!-- 全域新增会员模態框 - 不受頁籤限制，任何頁面都可以使用，只在登录後顯示 -->
             <div id="createMemberModal" v-if="showCreateMemberModal && isLoggedIn && user && user.id && modalSystemReady" 
                  style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
                 
@@ -159,7 +159,7 @@
                         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; position: relative;">
                             <h4 style="margin: 0; font-weight: 600; text-align: center;">
                                 <i class="fas fa-user-plus me-2"></i>
-                                {{ (currentManagingAgent && currentManagingAgent.id === user.id) || !currentManagingAgent ? '新增會員' : '為 ' + (currentManagingAgent ? currentManagingAgent.username : '') + ' 新增會員' }}
+                                {{ (currentManagingAgent && currentManagingAgent.id === user.id) || !currentManagingAgent ? '新增会员' : '為 ' + (currentManagingAgent ? currentManagingAgent.username : '') + ' 新增会员' }}
                             </h4>
                             <button type="button" @click="hideCreateMemberModal" 
                                     style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
@@ -189,7 +189,7 @@
                                     </label>
                                     <input type="text" class="form-control form-control-lg" 
                                            v-model="newMember.username" 
-                                           placeholder="請輸入會員用戶名" 
+                                           placeholder="请输入会员用戶名" 
                                            style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s;"
                                            onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
                                            onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
@@ -202,7 +202,7 @@
                                     </label>
                                     <input type="password" class="form-control form-control-lg" 
                                            v-model="newMember.password" 
-                                           placeholder="請輸入密碼" 
+                                           placeholder="请输入密碼" 
                                            style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s;"
                                            onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
                                            onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
@@ -211,11 +211,11 @@
                                 
                                 <div class="mb-4">
                                     <label class="form-label fw-bold">
-                                        <i class="fas fa-lock me-1 text-primary"></i>確認密碼
+                                        <i class="fas fa-lock me-1 text-primary"></i>确认密碼
                                     </label>
                                     <input type="password" class="form-control form-control-lg" 
                                            v-model="newMember.confirmPassword" 
-                                           placeholder="請再次輸入密碼" 
+                                           placeholder="请再次输入密碼" 
                                            style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s;"
                                            onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
                                            onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
@@ -234,7 +234,7 @@
                                             style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; border-radius: 8px; font-weight: 500; min-width: 120px;">
                                         <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
                                         <i v-else class="fas fa-plus me-1"></i>
-                                        {{ loading ? '建立中...' : '建立會員' }}
+                                        {{ loading ? '建立中...' : '建立会员' }}
                                     </button>
                                 </div>
                             </form>
@@ -254,7 +254,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h5 class="card-title mb-1">我的點數餘額</h5>
+                                            <h5 class="card-title mb-1">我的点数余额</h5>
                                             <h2 class="card-text mb-0">{{ formatMoney(user.balance) }}</h2>
                                         </div>
                                         <i class="fas fa-wallet fa-2x opacity-75"></i>
@@ -267,7 +267,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h5 class="card-title mb-1">總會員數</h5>
+                                            <h5 class="card-title mb-1">總会员數</h5>
                                             <h2 class="card-text mb-0">{{ dashboardData.memberCount }}</h2>
                                         </div>
                                         <i class="fas fa-users fa-2x opacity-75"></i>
@@ -303,14 +303,14 @@
                         </div>
                     </div>
 
-                    <!-- 第二排卡片 - 詳細統計 -->
+                    <!-- 第二排卡片 - 詳細统计 -->
                     <div class="row">
                         <div class="col-md-3 mb-4">
                             <div class="card bg-light border-start border-primary border-4">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">活躍會員</h6>
+                                            <h6 class="text-muted mb-1">活躍会员</h6>
                                             <h4 class="text-primary mb-0">{{ dashboardData.activeMembers }}</h4>
                                         </div>
                                         <i class="fas fa-user-check fa-lg text-primary"></i>
@@ -336,7 +336,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                                                        <h6 class="text-muted mb-1">代理虧損</h6>
+                                                                        <h6 class="text-muted mb-1">代理亏损</h6>
                             <h4 class="text-danger mb-0">{{ formatMoney(dashboardData.totalWithdraw) }}</h4>
                                         </div>
                                 
@@ -378,7 +378,7 @@
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">系統公告</h5>
+                                    <h5 class="mb-0">系统公告</h5>
                                     <button class="btn btn-sm btn-outline-primary" @click="setActiveTab('notices')">
                                         查看全部
                                     </button>
@@ -425,19 +425,19 @@
                                         <div class="col-6">
                                             <button class="btn btn-outline-success w-100" @click="setActiveTab('members')">
                                                 <i class="fas fa-user-friends mb-1"></i><br>
-                                                <small>會員管理</small>
+                                                <small>会员管理</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
                                             <button class="btn btn-outline-info w-100" @click="setActiveTab('transactions')">
                                                 <i class="fas fa-exchange-alt mb-1"></i><br>
-                                                <small>交易記錄</small>
+                                                <small>交易记录</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
                                             <button class="btn btn-outline-warning w-100" @click="setActiveTab('stats')">
                                                 <i class="fas fa-dice mb-1"></i><br>
-                                                <small>下注記錄</small>
+                                                <small>下注记录</small>
                                             </button>
                                         </div>
                                     </div>
@@ -447,14 +447,14 @@
                         <div class="col-md-6 mb-4">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5 class="mb-0">系統狀態</h5>
+                                    <h5 class="mb-0">系统狀態</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="row text-center">
                                         <div class="col-4">
                                             <div class="text-success">
                                                 <i class="fas fa-server fa-2x mb-2"></i>
-                                                <div>系統正常</div>
+                                                <div>系统正常</div>
                                             </div>
                                         </div>
                                         <div class="col-4">
@@ -466,14 +466,14 @@
                                         <div class="col-4">
                                             <div class="text-info">
                                                 <i class="fas fa-wifi fa-2x mb-2"></i>
-                                                <div>連線穩定</div>
+                                                <div>连线穩定</div>
                                             </div>
                                         </div>
                                     </div>
                                     <hr>
                                     <div class="text-center">
                                         <small class="text-muted">
-                                            最後更新：{{ new Date().toLocaleString() }}
+                                            最后更新：{{ new Date().toLocaleString() }}
                                         </small>
                                     </div>
                                 </div>
@@ -515,7 +515,7 @@
                                 <i class="fas fa-arrow-left me-1"></i>返回上級
                             </button>
                             <button v-if="agentBreadcrumbs.length > 0" class="btn btn-success me-2" @click="quickCreateMember">
-                                <i class="fas fa-user-plus me-1"></i>新增會員
+                                <i class="fas fa-user-plus me-1"></i>新增会员
                             </button>
                             <button class="btn btn-primary" @click="showAgentModal">
                                 <i class="fas fa-plus me-1"></i>新增代理
@@ -525,7 +525,7 @@
 
                     <div class="card mb-4">
                         <div class="card-header">
-                            搜尋條件
+                            搜索條件
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
@@ -533,16 +533,16 @@
                                     <label class="form-label">狀態</label>
                                     <select class="form-select" v-model="agentFilters.status">
                                         <option value="-1">全部</option>
-                                        <option value="1">啟用</option>
+                                        <option value="1">启用</option>
                                         <option value="0">停用</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">關鍵字</label>
+                                    <label class="form-label">关键字</label>
                                     <input type="text" class="form-control" placeholder="用戶名/ID" v-model="agentFilters.keyword">
                                 </div>
                                 <div class="col-md-3 d-flex align-items-end">
-                                    <button class="btn btn-primary w-100" @click="searchAgents">搜尋</button>
+                                    <button class="btn btn-primary w-100" @click="searchAgents">搜索</button>
                                 </div>
                             </div>
                         </div>
@@ -556,10 +556,10 @@
                                         <tr>
                                             <th>ID</th>
                                             <th>用戶名</th>
-                                            <th>級別</th>
-                                            <th>餘額</th>
-                                            <th>退水設定</th>
-                                            <th>創建時間</th>
+                                            <th>级别</th>
+                                            <th>余额</th>
+                                            <th>退水设定</th>
+                                            <th>创建时间</th>
                                             <th>狀態</th>
                                             <th>操作</th>
                                         </tr>
@@ -585,27 +585,27 @@
                                             <td>{{ formatDate(agent.created_at) }}</td>
                                             <td>
                                                 <span :class="agent.status === 1 ? 'badge bg-success' : 'badge bg-danger'">
-                                                    {{ agent.status === 1 ? '啟用' : '停用' }}
+                                                    {{ agent.status === 1 ? '启用' : '停用' }}
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <button class="btn btn-outline-primary" @click="adjustAgentBalance(agent)">
-                                                        <i class="fas fa-exchange-alt me-1"></i>點數轉移
+                                                        <i class="fas fa-exchange-alt me-1"></i>点数转移
                                                     </button>
                                                     <button class="btn btn-outline-info" @click="showRebateSettingsModal(agent)">
-                                                        <i class="fas fa-percent me-1"></i>退水設定
+                                                        <i class="fas fa-percent me-1"></i>退水设定
                                                     </button>
                                                     <button class="btn btn-outline-warning" @click="resetAgentPassword(agent)">
-                                                        <i class="fas fa-key me-1"></i>重設密碼
+                                                        <i class="fas fa-key me-1"></i>重设密碼
                                                     </button>
                                                     <button class="btn" :class="agent.status === 1 ? 'btn-outline-danger' : 'btn-outline-success'" 
                                                             @click="toggleAgentStatus(agent)">
                                                         <i class="fas" :class="agent.status === 1 ? 'fa-ban' : 'fa-check'"></i>
-                                                        {{ agent.status === 1 ? '停用' : '啟用' }}
+                                                        {{ agent.status === 1 ? '停用' : '启用' }}
                                                     </button>
                                                     <button class="btn btn-outline-danger" @click="deleteAgent(agent.id, agent.username)">
-                                                        <i class="fas fa-trash-alt me-1"></i>刪除
+                                                        <i class="fas fa-trash-alt me-1"></i>删除
                                                     </button>
                                                 </div>
                                             </td>
@@ -659,13 +659,13 @@
                                                     <input type="password" class="form-control" v-model="newAgent.password" required>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label">代理級別</label>
+                                                    <label class="form-label">代理级别</label>
                                                     <select class="form-select" v-model="newAgent.level" required disabled>
                                                         <option v-for="i in 16" :key="i-1" :value="(i-1).toString()" v-if="i-1 === currentManagingAgent.level + 1">
                                                             {{ getLevelName(i-1) }}
                                                         </option>
                                                     </select>
-                                                    <small class="form-text text-muted">您只能創建比目前層級低一級的代理</small>
+                                                    <small class="form-text text-muted">您只能创建比目前层级低一級的代理</small>
                                                 </div>
 
                                             </div>
@@ -674,7 +674,7 @@
                                                     <label class="form-label">退水模式</label>
                                                     <select class="form-select" v-model="newAgent.rebate_mode" required>
                                                         <option value="all">全拿所有退水</option>
-                                                        <option value="percentage">設定具體比例</option>
+                                                        <option value="percentage">设定具體比例</option>
                                                         <option value="none">全退給下級</option>
                                                     </select>
                                                     <small class="form-text text-muted">退水分配方式</small>
@@ -684,18 +684,18 @@
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
                                                            step="0.01" min="0" :max="(currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100" required>
                                                     <small class="form-text text-muted">
-                                                        可設定範圍：0% - {{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
+                                                        可设定范围：0% - {{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
                                                     </small>
                                                 </div>
                                                 <div class="card bg-light">
                                                     <div class="card-header">
-                                                        <h6 class="mb-0">退水說明</h6>
+                                                        <h6 class="mb-0">退水说明</h6>
                                                     </div>
                                                     <div class="card-body">
                                                         <ul class="mb-0 small">
-                                                            <li><strong>全拿所有退水：</strong>該代理獲得所有可得退水 ({{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%)</li>
-                                                            <li><strong>設定具體比例：</strong>該代理獲得指定比例的退水</li>
-                                                            <li><strong>全退給下級：</strong>該代理不獲得退水，全部給下級代理</li>
+                                                            <li><strong>全拿所有退水：</strong>該代理获得所有可得退水 ({{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%)</li>
+                                                            <li><strong>设定具體比例：</strong>該代理获得指定比例的退水</li>
+                                                            <li><strong>全退給下級：</strong>該代理不获得退水，全部給下級代理</li>
                                                         </ul>
                                                     </div>
                                                 </div>
@@ -716,12 +716,12 @@
                         </div>
                     </div>
 
-                    <!-- 退水設定 Modal -->
+                    <!-- 退水设定 Modal -->
                     <div class="modal" id="rebateSettingsModal" tabindex="-1" v-if="showRebateModal">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">退水設定 - {{ rebateAgent.username }}</h5>
+                                    <h5 class="modal-title">退水设定 - {{ rebateAgent.username }}</h5>
                                     <button type="button" class="btn-close" @click="hideRebateSettingsModal"></button>
                                 </div>
                                 <div class="modal-body">
@@ -730,7 +730,7 @@
                                             <label class="form-label">退水模式</label>
                                             <select class="form-select" v-model="rebateSettings.rebate_mode" required>
                                                 <option value="all">全拿所有退水</option>
-                                                <option value="percentage">設定具體比例</option>
+                                                <option value="percentage">设定具體比例</option>
                                                 <option value="none">全退給下級</option>
                                             </select>
                                         </div>
@@ -739,11 +739,11 @@
                                             <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
                                                    step="0.01" min="0" :max="(rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100" required>
                                             <small class="form-text text-muted">
-                                                可設定範圍：0% - {{ ((rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
+                                                可设定范围：0% - {{ ((rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
                                             </small>
                                         </div>
                                         <div class="alert alert-info">
-                                            <h6>目前設定：</h6>
+                                            <h6>目前设定：</h6>
                                             <p class="mb-0">
                                                 {{ getRebateModeText(rebateAgent.rebate_mode) }}
                                                 {{ rebateAgent.rebate_mode === 'percentage' ? ` ${(rebateAgent.rebate_percentage * 100).toFixed(1)}%` : '' }}
@@ -762,12 +762,12 @@
                         </div>
                     </div>
                     
-                    <!-- 編輯代理 Modal -->
+                    <!-- 编辑代理 Modal -->
                     <div class="modal" id="editAgentModal" tabindex="-1" v-if="showEditAgentModal">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">編輯代理</h5>
+                                    <h5 class="modal-title">编辑代理</h5>
                                     <button type="button" class="btn-close" @click="hideEditAgentModal"></button>
                                 </div>
                                 <div class="modal-body">
@@ -788,7 +788,7 @@
                                         <div class="mb-3">
                                             <label class="form-label">狀態</label>
                                             <select class="form-select" v-model="editAgentData.status">
-                                                <option value="1">啟用</option>
+                                                <option value="1">启用</option>
                                                 <option value="0">停用</option>
                                             </select>
                                         </div>
@@ -806,31 +806,31 @@
                     </div>
                 </div>
 
-                <!-- 會員管理 -->
+                <!-- 会员管理 -->
                 <div v-if="activeTab === 'members'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2>會員管理</h2>
+                        <h2>会员管理</h2>
                         <div class="d-flex gap-2">
                             <div class="btn-group" role="group">
                                 <input type="radio" class="btn-check" name="memberViewMode" id="directMembers" v-model="memberViewMode" value="direct" @change="handleMemberViewModeChange">
                                 <label class="btn btn-outline-primary" for="directMembers">
-                                    <i class="fas fa-user me-1"></i>我的會員
+                                    <i class="fas fa-user me-1"></i>我的会员
                                 </label>
                                 
                                 <input type="radio" class="btn-check" name="memberViewMode" id="downlineMembers" v-model="memberViewMode" value="downline" @change="handleMemberViewModeChange">
                                 <label class="btn btn-outline-info" for="downlineMembers">
-                                    <i class="fas fa-sitemap me-1"></i>下級代理會員
+                                    <i class="fas fa-sitemap me-1"></i>下級代理会员
                                 </label>
                             </div>
                             <button class="btn btn-primary" @click="quickCreateMember">
-                                <i class="fas fa-plus me-1"></i>新增會員
+                                <i class="fas fa-plus me-1"></i>新增会员
                             </button>
                         </div>
                     </div>
 
                     <div class="card mb-4">
                         <div class="card-header">
-                            搜尋條件
+                            搜索條件
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
@@ -838,16 +838,16 @@
                                     <label class="form-label">狀態</label>
                                     <select class="form-select" v-model="memberFilters.status">
                                         <option value="-1">全部</option>
-                                        <option value="1">啟用</option>
+                                        <option value="1">启用</option>
                                         <option value="0">停用</option>
                                     </select>
                                 </div>
                                 <div class="col-md-5">
-                                    <label class="form-label">關鍵字</label>
+                                    <label class="form-label">关键字</label>
                                     <input type="text" class="form-control" placeholder="用戶名/ID" v-model="memberFilters.keyword">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
-                                    <button class="btn btn-primary" @click="searchMembers">搜尋</button>
+                                    <button class="btn btn-primary" @click="searchMembers">搜索</button>
                                 </div>
                             </div>
                         </div>
@@ -862,15 +862,15 @@
                                             <th>ID</th>
                                             <th>用戶名</th>
                                             <th v-if="memberViewMode === 'downline'">所屬代理</th>
-                                            <th>餘額</th>
+                                            <th>余额</th>
                                             <th>狀態</th>
-                                            <th>創建時間</th>
+                                            <th>创建时间</th>
                                             <th>操作</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-if="members.length === 0">
-                                            <td :colspan="memberViewMode === 'downline' ? 7 : 6" class="text-center">無會員數據</td>
+                                            <td :colspan="memberViewMode === 'downline' ? 7 : 6" class="text-center">無会员數據</td>
                                         </tr>
                                         <tr v-for="member in members" :key="member.id">
                                             <td>{{ member.id }}</td>
@@ -881,25 +881,25 @@
                                             <td>{{ formatMoney(member.balance) }}</td>
                                             <td>
                                                 <span class="badge" :class="member.status === 1 ? 'bg-success' : 'bg-danger'">
-                                                    {{ member.status === 1 ? '啟用' : '停用' }}
+                                                    {{ member.status === 1 ? '启用' : '停用' }}
                                                 </span>
                                             </td>
                                             <td>{{ formatDate(member.created_at) }}</td>
                                             <td>
                                                 <div class="btn-group">
                                                     <button class="btn btn-sm btn-outline-primary" @click="adjustMemberBalance(member)">
-                                                        <i class="fas fa-exchange-alt me-1"></i>點數轉移
+                                                        <i class="fas fa-exchange-alt me-1"></i>点数转移
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-warning" @click="resetMemberPassword(member)">
-                                                        <i class="fas fa-key me-1"></i>重設密碼
+                                                        <i class="fas fa-key me-1"></i>重设密碼
                                                     </button>
                                                     <button class="btn btn-sm" :class="member.status === 1 ? 'btn-outline-danger' : 'btn-outline-success'" 
                                                             @click="toggleMemberStatus(member.id, member.status)">
                                                         <i class="fas" :class="member.status === 1 ? 'fa-ban' : 'fa-check'"></i>
-                                                        {{ member.status === 1 ? '停用' : '啟用' }}
+                                                        {{ member.status === 1 ? '停用' : '启用' }}
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-danger" @click="deleteMember(member.id, member.username)">
-                                                        <i class="fas fa-trash-alt me-1"></i>刪除
+                                                        <i class="fas fa-trash-alt me-1"></i>删除
                                                     </button>
                                                 </div>
                                             </td>
@@ -928,96 +928,96 @@
 
 
 
-                    <!-- 會員餘額調整模態框 -->
+                    <!-- 会员余额调整模態框 -->
                     <div class="modal fade" id="adjustBalanceModal" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">點數轉移 - {{ balanceAdjustData.memberUsername }}</h5>
+                                    <h5 class="modal-title">点数转移 - {{ balanceAdjustData.memberUsername }}</h5>
                                     <button type="button" class="btn-close" @click="hideAdjustBalanceModal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <form @submit.prevent="submitBalanceAdjustment">
                                         <div class="row mb-3">
                                             <div class="col-md-6">
-                                                <label class="form-label">代理餘額</label>
+                                                <label class="form-label">代理余额</label>
                                                 <input type="text" class="form-control" :value="formatMoney(agentCurrentBalance)" disabled>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label">會員餘額</label>
+                                                <label class="form-label">会员余额</label>
                                                 <input type="text" class="form-control" :value="formatMoney(balanceAdjustData.currentBalance)" disabled>
                                             </div>
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">轉移類型</label>
+                                            <label class="form-label">转移類型</label>
                                             <div class="btn-group w-100">
                                                 <input type="radio" class="btn-check" name="transferType" id="deposit" v-model="transferType" value="deposit">
-                                                <label class="btn btn-outline-success" for="deposit">存入 (代理→會員)</label>
+                                                <label class="btn btn-outline-success" for="deposit">存入 (代理→会员)</label>
                                                 
                                                 <input type="radio" class="btn-check" name="transferType" id="withdraw" v-model="transferType" value="withdraw">
-                                                <label class="btn btn-outline-danger" for="withdraw">提領 (會員→代理)</label>
+                                                <label class="btn btn-outline-danger" for="withdraw">提领 (会员→代理)</label>
                                             </div>
                                         </div>
                                         
                                                                 <div class="mb-3">
-                            <label class="form-label">點數轉移金額</label>
+                            <label class="form-label">点数转移金额</label>
                             <div class="input-group">
                                 <input type="number" step="0.01" class="form-control" v-model="transferAmount" 
-                                       placeholder="請輸入要轉移的點數金額" min="0" required>
+                                       placeholder="请输入要转移的点数金额" min="0" required>
                                 <button type="button" class="btn btn-outline-primary" @click="setMaxAmount()">
-                                    <i class="fas fa-coins me-1"></i>全部餘額
+                                    <i class="fas fa-coins me-1"></i>全部余额
                                 </button>
                                 <span class="input-group-text">元</span>
                             </div>
                             <small class="form-text text-muted">
-                                {{ transferType === 'deposit' ? '點擊「全部餘額」將填入您的全部餘額' : '點擊「全部餘額」將填入會員的全部餘額' }}
+                                {{ transferType === 'deposit' ? '点击「全部余额」將填入您的全部余额' : '点击「全部余额」將填入会员的全部余额' }}
                             </small>
                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">轉移後會員點數</label>
+                                            <label class="form-label">转移後会员点数</label>
                                             <input type="text" class="form-control" 
                                                    :value="formatMoney(calculateFinalMemberBalance())" 
                                                    disabled>
                                         </div>
                                         
                                                                 <div class="mb-3">
-                            <label class="form-label">轉移後您的點數</label>
+                            <label class="form-label">转移後您的点数</label>
                             <input type="text" class="form-control" 
                                    :value="formatMoney(finalAgentBalance)" 
                                    disabled>
                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">備註說明</label>
+                                            <label class="form-label">備註说明</label>
                                             <textarea class="form-control" v-model="balanceAdjustData.description" 
-                                                      placeholder="請輸入點數轉移原因"></textarea>
+                                                      placeholder="请输入点数转移原因"></textarea>
                                         </div>
                                     </form>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" @click="hideAdjustBalanceModal">取消</button>
                                     <button type="button" class="btn btn-primary" @click="submitBalanceAdjustment" :disabled="!isValidTransfer">
-                                        <i class="fas fa-check me-1"></i>確認轉移
+                                        <i class="fas fa-check me-1"></i>确认转移
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 會員額度修改模態框 -->
+                    <!-- 会员额度修改模態框 -->
                     <div class="modal fade" id="modifyMemberBalanceModal" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">修改會員額度 - {{ modifyBalanceData.memberUsername }}</h5>
+                                    <h5 class="modal-title">修改会员额度 - {{ modifyBalanceData.memberUsername }}</h5>
                                     <button type="button" class="btn-close" @click="hideModifyMemberBalanceModal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <form @submit.prevent="submitModifyMemberBalance">
                                         <div class="mb-3">
-                                            <label class="form-label">當前額度</label>
+                                            <label class="form-label">当前额度</label>
                                             <input type="text" class="form-control" :value="formatMoney(modifyBalanceData.currentBalance)" disabled>
                                         </div>
                                         
@@ -1025,7 +1025,7 @@
                                             <label class="form-label">修改方式</label>
                                             <div class="btn-group w-100">
                                                 <input type="radio" class="btn-check" name="modifyType" id="modifyAbsolute" v-model="modifyBalanceType" value="absolute">
-                                                <label class="btn btn-outline-primary" for="modifyAbsolute">設置絕對值</label>
+                                                <label class="btn btn-outline-primary" for="modifyAbsolute">设置絕對值</label>
                                                 
                                                 <input type="radio" class="btn-check" name="modifyType" id="modifyRelative" v-model="modifyBalanceType" value="relative">
                                                 <label class="btn btn-outline-success" for="modifyRelative">增加/減少</label>
@@ -1033,7 +1033,7 @@
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">{{ modifyBalanceType === 'absolute' ? '新額度' : '變更額度' }}</label>
+                                            <label class="form-label">{{ modifyBalanceType === 'absolute' ? '新额度' : '變更额度' }}</label>
                                             <div class="input-group">
                                                 <span v-if="modifyBalanceType === 'relative'" class="input-group-text">
                                                     <div class="btn-group">
@@ -1045,27 +1045,27 @@
                                                     </div>
                                                 </span>
                                                 <input type="number" step="0.01" class="form-control" v-model="modifyBalanceAmount" 
-                                                    placeholder="請輸入金額" min="0" required>
+                                                    placeholder="请输入金额" min="0" required>
                                                 <span class="input-group-text">元</span>
                                             </div>
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label class="form-label">修改後額度</label>
+                                            <label class="form-label">修改後额度</label>
                                             <input type="text" class="form-control" :value="formatMoney(calculateFinalModifiedBalance())" disabled>
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">操作原因</label>
                                             <textarea class="form-control" v-model="modifyBalanceData.reason" 
-                                                placeholder="請輸入修改額度的原因" required></textarea>
+                                                placeholder="请输入修改额度的原因" required></textarea>
                                         </div>
                                     </form>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" @click="hideModifyMemberBalanceModal">取消</button>
                                     <button type="button" class="btn btn-primary" @click="submitModifyMemberBalance" :disabled="!isValidBalanceModification">
-                                        <i class="fas fa-check me-1"></i>確認修改
+                                        <i class="fas fa-check me-1"></i>确认修改
                                     </button>
                                 </div>
                             </div>
@@ -1074,37 +1074,37 @@
 
                 </div>
 
-                <!-- 事務記錄頁面 -->
+                <!-- 事務记录頁面 -->
                 <div v-if="activeTab === 'transactions'">
-                    <h2>交易記錄</h2>
+                    <h2>交易记录</h2>
                     
                     <ul class="nav nav-tabs mb-3">
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'deposit'}" href="#" @click="transactionTab = 'deposit'; loadDepositRecords()">
-                                <i class="fas fa-credit-card me-1"></i>存款記錄
+                                <i class="fas fa-credit-card me-1"></i>存款记录
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'withdraw'}" href="#" @click="transactionTab = 'withdraw'; loadWithdrawRecords()">
-                                <i class="fas fa-money-bill-wave me-1"></i>提款記錄
+                                <i class="fas fa-money-bill-wave me-1"></i>提款记录
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'rebate'}" href="#" @click="transactionTab = 'rebate'; loadRebateRecords()">
-                                <i class="fas fa-gift me-1"></i>退水記錄
+                                <i class="fas fa-gift me-1"></i>退水记录
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'transfers'}" href="#" @click="loadPointTransfers(); transactionTab = 'transfers'">
-                                <i class="fas fa-exchange-alt me-1"></i>點數轉移記錄
+                                <i class="fas fa-exchange-alt me-1"></i>点数转移记录
                             </a>
                         </li>
                     </ul>
                     
-                    <!-- 存款記錄 -->
+                    <!-- 存款记录 -->
                     <div v-if="transactionTab === 'deposit'" class="card">
                         <div class="card-header">
-                            存款記錄
+                            存款记录
                             <div class="float-end">
                                 <button class="btn btn-sm btn-outline-primary" @click="loadDepositRecords()">
                                     <i class="fas fa-sync me-1"></i>刷新
@@ -1116,15 +1116,15 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th scope="col">編號</th>
+                                            <th scope="col">編号</th>
                                             <th scope="col">用戶類型</th>
                                             <th scope="col">用戶名稱</th>
                                             <th scope="col">交易類型</th>
-                                            <th scope="col">金額</th>
-                                            <th scope="col">操作前餘額</th>
-                                            <th scope="col">操作後餘額</th>
-                                            <th scope="col">說明</th>
-                                            <th scope="col">時間</th>
+                                            <th scope="col">金额</th>
+                                            <th scope="col">操作前余额</th>
+                                            <th scope="col">操作後余额</th>
+                                            <th scope="col">说明</th>
+                                            <th scope="col">时间</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1142,7 +1142,7 @@
                                             <td>{{ formatDate(record.created_at) }}</td>
                                         </tr>
                                         <tr v-if="depositRecords.length === 0">
-                                            <td colspan="9" class="text-center">無存款記錄</td>
+                                            <td colspan="9" class="text-center">無存款记录</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1150,10 +1150,10 @@
                         </div>
                     </div>
                     
-                    <!-- 提款記錄 -->
+                    <!-- 提款记录 -->
                     <div v-if="transactionTab === 'withdraw'" class="card">
                         <div class="card-header">
-                            提款記錄
+                            提款记录
                             <div class="float-end">
                                 <button class="btn btn-sm btn-outline-primary" @click="loadWithdrawRecords()">
                                     <i class="fas fa-sync me-1"></i>刷新
@@ -1165,15 +1165,15 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th scope="col">編號</th>
+                                            <th scope="col">編号</th>
                                             <th scope="col">用戶類型</th>
                                             <th scope="col">用戶名稱</th>
                                             <th scope="col">交易類型</th>
-                                            <th scope="col">金額</th>
-                                            <th scope="col">操作前餘額</th>
-                                            <th scope="col">操作後餘額</th>
-                                            <th scope="col">說明</th>
-                                            <th scope="col">時間</th>
+                                            <th scope="col">金额</th>
+                                            <th scope="col">操作前余额</th>
+                                            <th scope="col">操作後余额</th>
+                                            <th scope="col">说明</th>
+                                            <th scope="col">时间</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1191,7 +1191,7 @@
                                             <td>{{ formatDate(record.created_at) }}</td>
                                         </tr>
                                         <tr v-if="withdrawRecords.length === 0">
-                                            <td colspan="9" class="text-center">無提款記錄</td>
+                                            <td colspan="9" class="text-center">無提款记录</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1199,12 +1199,12 @@
                         </div>
                     </div>
 
-                    <!-- 退水記錄 -->
+                    <!-- 退水记录 -->
                     <div v-if="transactionTab === 'rebate'" class="card">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <i class="fas fa-gift me-2 text-warning"></i>退水記錄
+                                    <i class="fas fa-gift me-2 text-warning"></i>退水记录
                                     <span class="badge bg-warning text-dark ms-2">{{ rebateRecords.length }}</span>
                                 </div>
                                 <div>
@@ -1222,8 +1222,8 @@
                             <div class="row mb-3">
                                 <div class="col-md-3">
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text">會員</span>
-                                        <input type="text" class="form-control" placeholder="輸入會員名稱" v-model="rebateFilters.member">
+                                        <span class="input-group-text">会员</span>
+                                        <input type="text" class="form-control" placeholder="输入会员名稱" v-model="rebateFilters.member">
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -1248,15 +1248,15 @@
                                 <table class="table table-striped table-hover">
                                     <thead class="table-warning">
                                         <tr>
-                                            <th scope="col">編號</th>
-                                            <th scope="col">會員名稱</th>
-                                            <th scope="col">下注金額</th>
+                                            <th scope="col">編号</th>
+                                            <th scope="col">会员名稱</th>
+                                            <th scope="col">下注金额</th>
                                             <th scope="col">退水比例</th>
-                                            <th scope="col">退水金額</th>
-                                            <th scope="col">操作前餘額</th>
-                                            <th scope="col">操作後餘額</th>
-                                            <th scope="col">期數</th>
-                                            <th scope="col">時間</th>
+                                            <th scope="col">退水金额</th>
+                                            <th scope="col">操作前余额</th>
+                                            <th scope="col">操作後余额</th>
+                                            <th scope="col">期数</th>
+                                            <th scope="col">时间</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1267,7 +1267,7 @@
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-user me-2 text-muted"></i>
-                                                    <strong>{{ record.member_username || '未知會員' }}</strong>
+                                                    <strong>{{ record.member_username || '未知会员' }}</strong>
                                                 </div>
                                             </td>
                                             <td>
@@ -1292,7 +1292,7 @@
                                             <td colspan="9" class="text-center py-4">
                                                 <div class="text-muted">
                                                     <i class="fas fa-inbox fa-2x mb-2"></i>
-                                                    <p>{{ rebateRecords.length === 0 ? '尚無退水記錄' : '沒有符合條件的記錄' }}</p>
+                                                    <p>{{ rebateRecords.length === 0 ? '尚無退水记录' : '沒有符合條件的记录' }}</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1300,7 +1300,7 @@
                                 </table>
                             </div>
                             
-                            <!-- 統計信息 -->
+                            <!-- 统计信息 -->
                             <div v-if="rebateRecords.length > 0" class="border-top pt-3 mt-3">
                                 <div class="row text-center">
                                     <div class="col-md-3">
@@ -1311,13 +1311,13 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="p-2 bg-light rounded">
-                                            <div class="text-muted small">總下注金額</div>
+                                            <div class="text-muted small">總下注金额</div>
                                             <div class="fw-bold text-info">{{ formatMoney(totalFilteredBetAmount) }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="p-2 bg-light rounded">
-                                            <div class="text-muted small">總退水金額</div>
+                                            <div class="text-muted small">總退水金额</div>
                                             <div class="fw-bold text-success">{{ formatMoney(totalFilteredRebateAmount) }}</div>
                                         </div>
                                     </div>
@@ -1332,10 +1332,10 @@
                         </div>
                     </div>
 
-                    <!-- 點數轉移記錄 -->
+                    <!-- 点数转移记录 -->
                     <div v-if="transactionTab === 'transfers'" class="card">
                         <div class="card-header">
-                            點數轉移記錄
+                            点数转移记录
                             <div class="float-end">
                                 <button class="btn btn-sm btn-outline-primary" @click="loadPointTransfers()">
                                     <i class="fas fa-sync me-1"></i>刷新
@@ -1347,16 +1347,16 @@
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
-                                            <th scope="col">編號</th>
+                                            <th scope="col">編号</th>
                                             <th scope="col">類型</th>
-                                            <th scope="col">轉移方向</th>
-                                            <th scope="col">金額</th>
-                                            <th scope="col">轉出前餘額</th>
-                                            <th scope="col">轉出後餘額</th>
-                                            <th scope="col">轉入前餘額</th>
-                                            <th scope="col">轉入後餘額</th>
-                                            <th scope="col">說明</th>
-                                            <th scope="col">時間</th>
+                                            <th scope="col">转移方向</th>
+                                            <th scope="col">金额</th>
+                                            <th scope="col">转出前余额</th>
+                                            <th scope="col">转出後余额</th>
+                                            <th scope="col">转入前余额</th>
+                                            <th scope="col">转入後余额</th>
+                                            <th scope="col">说明</th>
+                                            <th scope="col">时间</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1373,7 +1373,7 @@
                                             <td>{{ formatDate(transfer.created_at) }}</td>
                                         </tr>
                                         <tr v-if="pointTransfers.length === 0">
-                                            <td colspan="10" class="text-center">無點數轉移記錄</td>
+                                            <td colspan="10" class="text-center">無点数转移记录</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1384,10 +1384,10 @@
                     <!-- ... other transaction tabs ... -->
                 </div>
 
-                <!-- 開獎記錄 -->
+                <!-- 开奖记录 -->
                 <div v-if="activeTab === 'draw'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2>開獎記錄</h2>
+                        <h2>开奖记录</h2>
                         <button class="btn btn-primary" @click="loadDrawHistory">
                             <i class="fas fa-sync-alt me-1"></i>刷新
                         </button>
@@ -1398,8 +1398,8 @@
                             <div class="row g-2">
                                 <div class="col-md-4">
                                     <div class="input-group">
-                                        <span class="input-group-text">期數</span>
-                                        <input type="text" class="form-control" placeholder="輸入期數查詢" v-model="drawFilters.period">
+                                        <span class="input-group-text">期数</span>
+                                        <input type="text" class="form-control" placeholder="输入期数查询" v-model="drawFilters.period">
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -1410,12 +1410,12 @@
                                 </div>
                                 <div class="col-md-2">
                                     <button class="btn btn-primary w-100" @click="searchDrawHistory">
-                                        <i class="fas fa-search me-1"></i>搜尋
+                                        <i class="fas fa-search me-1"></i>搜索
                                     </button>
                                 </div>
                                 <div class="col-md-2">
                                     <button class="btn btn-secondary w-100" @click="searchTodayDrawHistory">
-                                        <i class="fas fa-calendar-day me-1"></i>今日開獎
+                                        <i class="fas fa-calendar-day me-1"></i>今日开奖
                                     </button>
                                 </div>
                             </div>
@@ -1425,10 +1425,10 @@
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
-                                            <th>期數</th>
-                                            <th>開獎號碼</th>
-                                            <th>開獎時間</th>
-                                            <th>冠亞軍</th>
+                                            <th>期数</th>
+                                            <th>开奖号码</th>
+                                            <th>开奖时间</th>
+                                            <th>冠亚军</th>
                                             <th>龍虎</th>
                                         </tr>
                                     </thead>
@@ -1461,9 +1461,9 @@
                                     </tbody>
                                 </table>
                                 
-                                <!-- 無記錄顯示 -->
+                                <!-- 無记录顯示 -->
                                 <div v-if="drawRecords.length === 0" class="text-center py-4">
-                                    <p class="text-muted">暫無開獎記錄</p>
+                                    <p class="text-muted">暫無开奖记录</p>
                                 </div>
                             </div>
                         </div>
@@ -1498,28 +1498,28 @@
                     </div>
                 </div>
 
-                <!-- 統計數據 -->
+                <!-- 统计數據 -->
                 <div v-if="activeTab === 'stats'">
-                    <h2>下注記錄</h2>
+                    <h2>下注记录</h2>
                     <div class="card mb-4">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span>搜尋條件</span>
+                                <span>搜索條件</span>
                                 <div class="d-flex align-items-center">
-                                    <span class="me-2 small text-muted">當前查看:</span>
+                                    <span class="me-2 small text-muted">当前查看:</span>
                                     <span class="badge bg-info">{{ currentManagingAgent.username }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="card-body">
-                            <!-- 查看範圍選擇 -->
+                            <!-- 查看范围选择 -->
                             <div class="row g-3 mb-3">
                                 <div class="col-md-12">
-                                    <label class="form-label">查看範圍</label>
+                                    <label class="form-label">查看范围</label>
                                     <div class="btn-group w-100" role="group">
                                         <input type="radio" class="btn-check" name="betViewScope" id="viewOwnOnly" v-model="betFilters.viewScope" value="own" @change="handleViewScopeChange">
                                         <label class="btn btn-outline-primary" for="viewOwnOnly">
-                                            <i class="fas fa-user me-1"></i>僅本代理下級會員
+                                            <i class="fas fa-user me-1"></i>僅本代理下級会员
                                         </label>
                                         
                                         <input type="radio" class="btn-check" name="betViewScope" id="viewDownline" v-model="betFilters.viewScope" value="downline" @change="handleViewScopeChange">
@@ -1529,14 +1529,14 @@
                                         
                                         <input type="radio" class="btn-check" name="betViewScope" id="viewSpecific" v-model="betFilters.viewScope" value="specific" @change="handleViewScopeChange">
                                         <label class="btn btn-outline-info" for="viewSpecific">
-                                            <i class="fas fa-search-plus me-1"></i>指定代理/會員
+                                            <i class="fas fa-search-plus me-1"></i>指定代理/会员
                                         </label>
                                     </div>
                                     <div class="form-text">
                                         <small class="text-muted">
-                                            • <strong>僅本代理下級會員</strong>：只顯示您直接管理的會員下注記錄<br>
-                                            • <strong>整條代理線</strong>：顯示您及所有下級代理的會員下注記錄<br>
-                                            • <strong>指定代理/會員</strong>：自由選擇特定代理或會員的下注記錄
+                                            • <strong>僅本代理下級会员</strong>：只顯示您直接管理的会员下注记录<br>
+                                            • <strong>整條代理線</strong>：顯示您及所有下級代理的会员下注记录<br>
+                                            • <strong>指定代理/会员</strong>：自由选择特定代理或会员的下注记录
                                         </small>
                                     </div>
                                 </div>
@@ -1547,16 +1547,16 @@
                                 <div class="col-md-3" v-if="betFilters.viewScope === 'specific'">
                                     <label class="form-label">指定代理</label>
                                     <select class="form-select" v-model="betFilters.specificAgent" @change="loadSpecificAgentMembers">
-                                        <option value="">選擇代理...</option>
+                                        <option value="">选择代理...</option>
                                         <option v-for="agent in allDownlineAgents" :key="agent.id" :value="agent.id">
                                             {{ agent.username }} ({{ getLevelName(agent.level) }})
                                         </option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">會員</label>
+                                    <label class="form-label">会员</label>
                                     <select class="form-select" v-model="betFilters.member">
-                                        <option value="">全部會員</option>
+                                        <option value="">全部会员</option>
                                         <option v-for="member in availableMembers" :key="member.id" :value="member.username">
                                             {{ member.username }}
                                             <span v-if="member.agent_username && betFilters.viewScope !== 'own'">
@@ -1570,12 +1570,12 @@
                                     <input type="date" class="form-control" v-model="betFilters.date">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">期數</label>
-                                    <input type="text" class="form-control" placeholder="輸入期數" v-model="betFilters.period">
+                                    <label class="form-label">期数</label>
+                                    <input type="text" class="form-control" placeholder="输入期数" v-model="betFilters.period">
                                 </div>
                                 <div class="col-md-12 d-flex align-items-end">
                                     <button class="btn btn-primary me-2" @click="searchBets">
-                                        <i class="fas fa-search me-1"></i>搜尋
+                                        <i class="fas fa-search me-1"></i>搜索
                                     </button>
                                     <button class="btn btn-outline-secondary" @click="resetBetFilters">
                                         <i class="fas fa-undo me-1"></i>重置
@@ -1591,22 +1591,22 @@
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
-                                            <th>會員</th>
+                                            <th>会员</th>
                                             <th v-if="betFilters.viewScope !== 'own'">所屬代理</th>
-                                            <th>期數</th>
+                                            <th>期数</th>
                                             <th>投注類型</th>
                                             <th>位置</th>
                                             <th>投注選項</th>
-                                            <th>金額</th>
-                                            <th>賠率</th>
+                                            <th>金额</th>
+                                            <th>赔率</th>
                                             <th>輸贏</th>
-                                            <th>盈虧</th>
-                                            <th>時間</th>
+                                            <th>盈亏</th>
+                                            <th>时间</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-if="bets.length === 0">
-                                            <td :colspan="betFilters.viewScope === 'own' ? 10 : 11" class="text-center">暫無下注記錄</td>
+                                            <td :colspan="betFilters.viewScope === 'own' ? 10 : 11" class="text-center">暫無下注记录</td>
                                         </tr>
                                         <tr v-for="bet in bets" :key="bet.id">
                                             <td>
@@ -1662,7 +1662,7 @@
                     
                     <div class="card mt-4">
                         <div class="card-header">
-                            下注統計信息
+                            下注统计信息
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -1677,7 +1677,7 @@
                                 <div class="col-md-3 mb-3">
                                     <div class="card bg-info text-white">
                                         <div class="card-body">
-                                            <h5 class="card-title">總投注金額</h5>
+                                            <h5 class="card-title">總投注金额</h5>
                                             <h2 class="card-text">{{ formatMoney(betStats.totalAmount || 0) }}</h2>
                                         </div>
                                     </div>
@@ -1685,7 +1685,7 @@
                                 <div class="col-md-3 mb-3">
                                     <div class="card" :class="betStats.totalProfit >= 0 ? 'bg-success' : 'bg-danger'">
                                         <div class="card-body text-white">
-                                            <h5 class="card-title">會員總盈虧</h5>
+                                            <h5 class="card-title">会员總盈亏</h5>
                                             <h2 class="card-text">{{ formatMoney(betStats.totalProfit || 0) }}</h2>
                                         </div>
                                     </div>
@@ -1703,20 +1703,20 @@
                     </div>
                 </div>
 
-                <!-- 系統公告 -->
+                <!-- 系统公告 -->
                 <div v-if="activeTab === 'notices'">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2>系統公告</h2>
+                        <h2>系统公告</h2>
                         <button v-if="user.level === 0" class="btn btn-success" @click="showNoticeForm = !showNoticeForm">
                             <i class="fas fa-plus me-1"></i>{{ showNoticeForm ? '取消新增' : '新增公告' }}
                         </button>
                     </div>
                     
-                    <!-- 新增/編輯公告表單 -->
+                    <!-- 新增/编辑公告表單 -->
                     <div v-if="showNoticeForm && user.level === 0" class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0">
-                                <i class="fas fa-bullhorn me-2"></i>{{ editingNoticeId ? '編輯公告' : '新增公告' }}
+                                <i class="fas fa-bullhorn me-2"></i>{{ editingNoticeId ? '编辑公告' : '新增公告' }}
                             </h5>
                         </div>
                         <div class="card-body">
@@ -1726,7 +1726,7 @@
                                         <div class="mb-3">
                                             <label class="form-label">公告標題 <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" v-model="noticeForm.title" 
-                                                   placeholder="請輸入公告標題" maxlength="100" required>
+                                                   placeholder="请输入公告標題" maxlength="100" required>
                                             <div class="form-text">標題長度：{{ (noticeForm.title || '').length }}/100</div>
                                         </div>
                                     </div>
@@ -1745,7 +1745,7 @@
                                 <div class="mb-3">
                                     <label class="form-label">公告內容 <span class="text-danger">*</span></label>
                                     <textarea class="form-control" v-model="noticeForm.content" 
-                                              placeholder="請輸入公告內容" rows="5" required></textarea>
+                                              placeholder="请输入公告內容" rows="5" required></textarea>
                                     <div class="form-text">內容長度：{{ (noticeForm.content || '').length }} 字符</div>
                                 </div>
                                 
@@ -1839,10 +1839,10 @@
                                             </div>
                                             <div v-if="user.level === 0" class="btn-group">
                                                 <button class="btn btn-sm btn-outline-primary" @click="startEditNotice(notice)">
-                                                    <i class="fas fa-edit me-1"></i>編輯
+                                                    <i class="fas fa-edit me-1"></i>编辑
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-danger" @click="deleteNotice(notice)">
-                                                    <i class="fas fa-trash me-1"></i>刪除
+                                                    <i class="fas fa-trash me-1"></i>删除
                                                 </button>
                                             </div>
                                         </div>
@@ -1864,7 +1864,7 @@
                         </div>
                     </div>
                     
-                    <!-- 功能說明卡片 -->
+                    <!-- 功能说明卡片 -->
                     <div class="row mb-4">
                         <div class="col-md-4">
                             <div class="card bg-info text-white">
@@ -1875,7 +1875,7 @@
                                         </div>
                                         <div>
                                             <h5 class="card-title mb-1">客服權限</h5>
-                                            <p class="card-text mb-0">可以調整任何代理或會員的餘額</p>
+                                            <p class="card-text mb-0">可以调整任何代理或会员的余额</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1889,8 +1889,8 @@
                                             <i class="fas fa-history fa-2x"></i>
                                         </div>
                                         <div>
-                                            <h5 class="card-title mb-1">完整記錄</h5>
-                                            <p class="card-text mb-0">所有操作都會記錄在系統中</p>
+                                            <h5 class="card-title mb-1">完整记录</h5>
+                                            <p class="card-text mb-0">所有操作都會记录在系统中</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1905,7 +1905,7 @@
                                         </div>
                                         <div>
                                             <h5 class="card-title mb-1">公告管理</h5>
-                                            <p class="card-text mb-0">可以新增和管理系統公告</p>
+                                            <p class="card-text mb-0">可以新增和管理系统公告</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1913,17 +1913,17 @@
                         </div>
                     </div>
                     
-                    <!-- 操作記錄 -->
+                    <!-- 操作记录 -->
                     <div class="card">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">客服操作記錄</h5>
+                                <h5 class="mb-0">客服操作记录</h5>
                                 <div class="d-flex gap-2">
                                     <!-- 篩選選項 -->
                                     <select class="form-select form-select-sm" v-model="csTransactionFilters.userType" @change="loadCSTransactions(1)">
                                         <option value="all">全部用戶</option>
                                         <option value="agent">代理</option>
-                                        <option value="member">會員</option>
+                                        <option value="member">会员</option>
                                     </select>
                                     <select class="form-select form-select-sm" v-model="csTransactionFilters.transactionType" @change="loadCSTransactions(1)">
                                         <option value="all">全部操作</option>
@@ -1941,15 +1941,15 @@
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
-                                            <th>編號</th>
+                                            <th>編号</th>
                                             <th>用戶類型</th>
                                             <th>用戶名</th>
                                             <th>操作類型</th>
-                                            <th>變化金額</th>
-                                            <th>操作前餘額</th>
-                                            <th>操作後餘額</th>
-                                            <th>說明</th>
-                                            <th>操作時間</th>
+                                            <th>變化金额</th>
+                                            <th>操作前余额</th>
+                                            <th>操作後余额</th>
+                                            <th>说明</th>
+                                            <th>操作时间</th>
                                         </tr>
                                     </thead>
                                     <tbody v-if="csTransactions.length > 0">
@@ -1957,7 +1957,7 @@
                                             <td>{{ transaction.id }}</td>
                                             <td>
                                                 <span class="badge" :class="transaction.user_type === 'agent' ? 'bg-primary' : 'bg-info'">
-                                                    {{ transaction.user_type === 'agent' ? '代理' : '會員' }}
+                                                    {{ transaction.user_type === 'agent' ? '代理' : '会员' }}
                                                 </span>
                                             </td>
                                             <td>{{ transaction.username }}</td>
@@ -1981,7 +1981,7 @@
                                         <tr>
                                             <td colspan="9" class="text-center text-muted py-4">
                                                 <i class="fas fa-info-circle fa-2x mb-2"></i>
-                                                <div>暫無客服操作記錄</div>
+                                                <div>暫無客服操作记录</div>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -2008,102 +2008,102 @@
             </div>
         </div>
 
-        <!-- 代理額度修改模態框 -->
+        <!-- 代理额度修改模態框 -->
         <div class="modal fade" id="adjustAgentBalanceModal" tabindex="-1" aria-labelledby="adjustAgentBalanceModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="adjustAgentBalanceModalLabel">點數轉移</h5>
+                    <h5 class="modal-title" id="adjustAgentBalanceModalLabel">点数转移</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form @submit.prevent="submitAgentBalanceAdjustment">
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">您的餘額</label>
+                                <label class="form-label">您的余额</label>
                                 <input type="text" class="form-control" :value="formatMoney(user.balance)" disabled>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">下級代理餘額</label>
+                                <label class="form-label">下級代理余额</label>
                                 <input type="text" class="form-control" :value="formatMoney(agentBalanceData.currentBalance)" disabled>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">轉移類型</label>
+                            <label class="form-label">转移類型</label>
                             <div class="btn-group w-100">
                                 <input type="radio" class="btn-check" name="agentTransferType" id="agentDeposit" v-model="agentTransferType" value="deposit">
                                 <label class="btn btn-outline-success" for="agentDeposit">存入 (您→下級代理)</label>
                                 
                                 <input type="radio" class="btn-check" name="agentTransferType" id="agentWithdraw" v-model="agentTransferType" value="withdraw">
-                                <label class="btn btn-outline-danger" for="agentWithdraw">提領 (下級代理→您)</label>
+                                <label class="btn btn-outline-danger" for="agentWithdraw">提领 (下級代理→您)</label>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">點數轉移金額</label>
+                            <label class="form-label">点数转移金额</label>
                             <div class="input-group">
                                 <input type="number" step="0.01" class="form-control" v-model="agentTransferAmount" 
-                                       placeholder="請輸入要轉移的點數金額" min="0" required>
+                                       placeholder="请输入要转移的点数金额" min="0" required>
                                 <button type="button" class="btn btn-outline-primary" @click="setMaxAgentAmount()">
-                                    <i class="fas fa-coins me-1"></i>全部餘額
+                                    <i class="fas fa-coins me-1"></i>全部余额
                                 </button>
                                 <span class="input-group-text">元</span>
                             </div>
                             <small class="form-text text-muted">
-                                {{ agentTransferType === 'deposit' ? '點擊「全部餘額」將填入您的全部餘額' : '點擊「全部餘額」將填入下級代理的全部餘額' }}
+                                {{ agentTransferType === 'deposit' ? '点击「全部余额」將填入您的全部余额' : '点击「全部余额」將填入下級代理的全部余额' }}
                             </small>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">轉移後下級代理點數</label>
+                            <label class="form-label">转移後下級代理点数</label>
                             <input type="text" class="form-control" 
                                    :value="formatMoney(calculateFinalSubAgentBalance())" 
                                    disabled>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">轉移後您的點數</label>
+                            <label class="form-label">转移後您的点数</label>
                             <input type="text" class="form-control" 
                                    :value="formatMoney(calculateFinalParentAgentBalance())" 
                                    disabled>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">備註說明</label>
+                            <label class="form-label">備註说明</label>
                             <textarea class="form-control" v-model="agentBalanceData.description" 
-                                      placeholder="請輸入點數轉移原因"></textarea>
+                                      placeholder="请输入点数转移原因"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" @click="submitAgentBalanceAdjustment" :disabled="!isValidAgentTransfer">
-                        <i class="fas fa-check me-1"></i>確認轉移
+                        <i class="fas fa-check me-1"></i>确认转移
                     </button>
                 </div>
             </div>
         </div>
         </div>
 
-        <!-- 重設密碼 Modal -->
+        <!-- 重设密碼 Modal -->
         <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="resetPasswordModalLabel">重設密碼</h5>
+                        <h5 class="modal-title" id="resetPasswordModalLabel">重设密碼</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form @submit.prevent="submitPasswordReset">
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                為了安全起見，舊密碼不會顯示。請直接輸入新密碼。
+                                為了安全起見，舊密碼不會顯示。请直接输入新密碼。
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">用戶類型</label>
-                                <input type="text" class="form-control" :value="resetPasswordData.userType === 'agent' ? '代理' : '會員'" readonly>
+                                <input type="text" class="form-control" :value="resetPasswordData.userType === 'agent' ? '代理' : '会员'" readonly>
                             </div>
                             
                             <div class="mb-3">
@@ -2114,14 +2114,14 @@
                             <div class="mb-3">
                                 <label class="form-label">新密碼 <span class="text-danger">*</span></label>
                                 <input type="password" class="form-control" v-model="resetPasswordData.newPassword" required 
-                                       placeholder="請輸入新密碼" minlength="6">
+                                       placeholder="请输入新密碼" minlength="6">
                                 <small class="form-text text-muted">密碼長度至少6個字符</small>
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">確認新密碼 <span class="text-danger">*</span></label>
+                                <label class="form-label">确认新密碼 <span class="text-danger">*</span></label>
                                 <input type="password" class="form-control" v-model="resetPasswordData.confirmPassword" required 
-                                       placeholder="請再次輸入新密碼">
+                                       placeholder="请再次输入新密碼">
                             </div>
                             
                             <div class="mb-3" v-if="resetPasswordData.newPassword && resetPasswordData.confirmPassword">
@@ -2129,7 +2129,7 @@
                                     <i class="fas fa-check me-1"></i>密碼匹配
                                 </div>
                                 <div v-else class="text-danger">
-                                    <i class="fas fa-times me-1"></i>兩次輸入的密碼不一致
+                                    <i class="fas fa-times me-1"></i>兩次输入的密碼不一致
                                 </div>
                             </div>
                             
@@ -2138,7 +2138,7 @@
                                 <button type="submit" class="btn btn-warning" :disabled="!isPasswordResetValid || loading">
                                     <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
                                     <i class="fas fa-key me-1" v-if="!loading"></i>
-                                    重設密碼
+                                    重设密碼
                                 </button>
                             </div>
                         </form>
@@ -2147,13 +2147,13 @@
             </div>
         </div>
 
-        <!-- 個人資料 Modal -->
+        <!-- 个人资料 Modal -->
                     <div v-if="isProfileModalVisible && isLoggedIn && user && user.id && modalSystemReady" class="modal d-block" id="profileModal" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fas fa-user me-2"></i>個人資料
+                            <i class="fas fa-user me-2"></i>个人资料
                         </h5>
                         <button type="button" class="btn-close" @click="hideProfileModal"></button>
                     </div>
@@ -2173,27 +2173,27 @@
                                     </div>
                                     
                                     <div class="mb-3">
-                                        <label class="form-label">代理級別</label>
+                                        <label class="form-label">代理级别</label>
                                         <input type="text" class="form-control" :value="getLevelName(user.level)" readonly>
-                                        <small class="form-text text-muted">代理級別無法修改</small>
+                                        <small class="form-text text-muted">代理级别無法修改</small>
                                     </div>
                                     
                                     <div class="mb-3">
                                         <label class="form-label">真實姓名</label>
                                         <input type="text" class="form-control" v-model="profileData.realName" 
-                                               placeholder="請輸入真實姓名">
+                                               placeholder="请输入真實姓名">
                                     </div>
                                     
                                     <div class="mb-3">
-                                        <label class="form-label">聯絡電話</label>
+                                        <label class="form-label">联络電話</label>
                                         <input type="tel" class="form-control" v-model="profileData.phone" 
-                                               placeholder="請輸入聯絡電話">
+                                               placeholder="请输入联络電話">
                                     </div>
                                     
                                     <div class="mb-3">
                                         <label class="form-label">電子郵件</label>
                                         <input type="email" class="form-control" v-model="profileData.email" 
-                                               placeholder="請輸入電子郵件">
+                                               placeholder="请输入電子郵件">
                                     </div>
                                 </div>
                                 
@@ -2206,19 +2206,19 @@
                                     <div class="mb-3">
                                         <label class="form-label">Line ID</label>
                                         <input type="text" class="form-control" v-model="profileData.lineId" 
-                                               placeholder="請輸入Line ID">
+                                               placeholder="请输入Line ID">
                                     </div>
                                     
                                     <div class="mb-3">
                                         <label class="form-label">Telegram</label>
                                         <input type="text" class="form-control" v-model="profileData.telegram" 
-                                               placeholder="請輸入Telegram">
+                                               placeholder="请输入Telegram">
                                     </div>
                                     
                                     <div class="mb-3">
                                         <label class="form-label">地址</label>
                                         <textarea class="form-control" rows="3" v-model="profileData.address" 
-                                                  placeholder="請輸入地址"></textarea>
+                                                  placeholder="请输入地址"></textarea>
                                     </div>
                                     
                                     <div class="mb-3">
@@ -2234,7 +2234,7 @@
                                 <button type="submit" class="btn btn-primary" :disabled="profileLoading">
                                     <span v-if="profileLoading" class="spinner-border spinner-border-sm me-1" role="status"></span>
                                     <i class="fas fa-save me-1" v-if="!profileLoading"></i>
-                                    儲存資料
+                                    储存资料
                                 </button>
                             </div>
                         </form>
@@ -2262,30 +2262,30 @@
                                 <label class="btn btn-outline-primary" for="csTargetAgent">代理</label>
                                 
                                 <input type="radio" class="btn-check" name="csOperationTarget" id="csTargetMember" value="member">
-                                <label class="btn btn-outline-info" for="csTargetMember">會員</label>
+                                <label class="btn btn-outline-info" for="csTargetMember">会员</label>
                             </div>
                         </div>
                         
-                        <!-- 選擇代理 -->
+                        <!-- 选择代理 -->
                         <div class="mb-3" id="agentSelectDiv" style="display: none;">
-                            <label class="form-label">選擇代理</label>
+                            <label class="form-label">选择代理</label>
                             <select id="agentSelect" class="form-select" required>
-                                <option value="">請選擇代理</option>
+                                <option value="">请选择代理</option>
                             </select>
                         </div>
                         
-                        <!-- 選擇會員 -->
+                        <!-- 选择会员 -->
                         <div class="mb-3" id="memberSelectDiv" style="display: none;">
-                            <label class="form-label">選擇會員</label>
+                            <label class="form-label">选择会员</label>
                             <select id="memberSelect" class="form-select" required>
-                                <option value="">請選擇會員</option>
+                                <option value="">请选择会员</option>
                             </select>
                         </div>
                         
-                        <!-- 當前餘額顯示 -->
+                        <!-- 当前余额顯示 -->
                         <div class="row mb-3" id="currentBalanceDiv" style="display: none;">
                             <div class="col-md-12">
-                                <label class="form-label">當前餘額</label>
+                                <label class="form-label">当前余额</label>
                                 <input id="currentBalanceInput" type="text" class="form-control" disabled>
                             </div>
                         </div>
@@ -2302,34 +2302,34 @@
                             </div>
                         </div>
                         
-                        <!-- 操作金額 -->
+                        <!-- 操作金额 -->
                         <div class="mb-3" id="amountDiv" style="display: none;">
-                            <label class="form-label">操作金額</label>
+                            <label class="form-label">操作金额</label>
                             <div class="input-group">
                                 <input type="number" step="0.01" class="form-control" id="amountInput"
-                                       placeholder="請輸入操作金額" min="0" required>
+                                       placeholder="请输入操作金额" min="0" required>
                                 <span class="input-group-text">元</span>
                             </div>
                         </div>
                         
-                        <!-- 操作後餘額預覽 -->
+                        <!-- 操作後余额預覽 -->
                         <div class="mb-3" id="finalBalanceDiv" style="display: none;">
-                            <label class="form-label">操作後餘額</label>
+                            <label class="form-label">操作後余额</label>
                             <input id="finalBalanceInput" type="text" class="form-control" disabled>
                         </div>
                         
-                        <!-- 操作說明 -->
+                        <!-- 操作说明 -->
                         <div class="mb-3">
-                            <label class="form-label">操作說明</label>
+                            <label class="form-label">操作说明</label>
                             <textarea class="form-control" id="csOperationDescription"
-                                      placeholder="請輸入操作說明（可選）" rows="3"></textarea>
+                                      placeholder="请输入操作说明（可選）" rows="3"></textarea>
                         </div>
                         
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">取消</button>
                             <button type="button" class="btn btn-primary" id="csOperationSubmitBtn">
                                 <span id="csOperationSpinner" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
-                                確認操作
+                                确认操作
                             </button>
                         </div>
                     </form>
@@ -2343,37 +2343,37 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
-        // 延遲載入主腳本，確保 Vue 已完全載入
+        // 延遲载入主腳本，确保 Vue 已完全载入
         window.addEventListener('load', function() {
-            console.log('頁面完全載入，Vue可用性:', typeof Vue);
+            console.log('頁面完全载入，Vue可用性:', typeof Vue);
             if (typeof Vue !== 'undefined') {
                 const script = document.createElement('script');
                                  script.src = 'js/main.js?v=' + Date.now();
                 script.onload = function() {
-                    console.log('main.js 載入完成');
+                    console.log('main.js 载入完成');
                 };
                 script.onerror = function() {
-                    console.error('main.js 載入失敗');
+                    console.error('main.js 载入失败');
                 };
                 document.body.appendChild(script);
             } else {
-                console.error('Vue 未正確載入');
-                alert('系統載入失敗，請重新整理頁面');
+                console.error('Vue 未正确载入');
+                alert('系统载入失败，请重新整理頁面');
             }
         });
     </script>
     <script>
         async function updateProfile() {
-            console.log('開始更新個人資料...');
+            console.log('开始更新个人资料...');
             this.profileLoading = true;
             try {
-                console.log('準備送出 axios 請求');
+                console.log('准备送出 axios 请求');
                 const response = await axios.post(/* ... */);
                 console.log('收到API回應:', response.data);
                 if (response.data.success) {
-                    console.log('API成功，準備關閉modal');
+                    console.log('API成功，准备关闭modal');
                 } else {
-                    console.log('API失敗:', response.data.message);
+                    console.log('API失败:', response.data.message);
                 }
             } catch (error) {
                 console.error('catch error:', error);
