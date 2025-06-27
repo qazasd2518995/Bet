@@ -229,8 +229,7 @@ const app = createApp({
             loginLogs: [],
             loginLogFilters: {
                 startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7天前
-                endDate: new Date().toISOString().split('T')[0], // 今日
-                username: ''
+                endDate: new Date().toISOString().split('T')[0] // 今日
             },
             loginLogPagination: {
                 currentPage: 1,
@@ -4137,45 +4136,9 @@ const app = createApp({
              try {
                  this.loading = true;
                  
-                 // 準備篩選參數
-                 const params = new URLSearchParams({
-                     startDate: this.reportFilters.startDate,
-                     endDate: this.reportFilters.endDate,
-                     settlementStatus: this.reportFilters.settlementStatus,
-                     betType: this.reportFilters.betType,
-                     username: this.reportFilters.username,
-                     minAmount: this.reportFilters.minAmount,
-                     maxAmount: this.reportFilters.maxAmount
-                 });
-
-                 // 處理遊戲類型篩選
-                 const selectedGameTypes = [];
-                 if (!this.reportFilters.gameTypes.all) {
-                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
-                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
-                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
-                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
-                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
-                 }
-                 
-                 if (selectedGameTypes.length > 0) {
-                     params.append('gameTypes', selectedGameTypes.join(','));
-                 }
-
-                 const response = await fetch(`${this.API_BASE_URL}/reports?${params.toString()}`, {
-                     method: 'GET',
-                     headers: {
-                         'Content-Type': 'application/json',
-                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
-                     }
-                 });
-
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-
-                 const data = await response.json();
-                 this.reportData = data;
+                 // 模擬報表數據 - 未來可替換為真實API
+                 const mockReportData = this.generateMockReportData();
+                 this.reportData = mockReportData;
                  this.showMessage('報表查詢完成', 'success');
                  
              } catch (error) {
@@ -4186,6 +4149,51 @@ const app = createApp({
              }
          },
 
+         // 生成模擬報表數據
+         generateMockReportData() {
+             const records = [];
+             const gameTypes = ['pk10', 'ssc', 'lottery539'];
+             const betContents = ['單號投注', '組合投注', '龍虎投注', '大小單雙'];
+             
+             // 生成模擬記錄
+             for (let i = 1; i <= 50; i++) {
+                 const betAmount = Math.floor(Math.random() * 1000) + 10;
+                 const isWin = Math.random() > 0.5;
+                 const winAmount = isWin ? betAmount * (1.8 + Math.random() * 8.2) : 0;
+                 const profit = winAmount - betAmount;
+                 
+                 records.push({
+                     period: `2025${String(Math.floor(Math.random() * 1000) + 100).padStart(3, '0')}`,
+                     username: this.user?.username || 'testuser',
+                     game_type: gameTypes[Math.floor(Math.random() * gameTypes.length)],
+                     bet_content: betContents[Math.floor(Math.random() * betContents.length)],
+                     bet_amount: betAmount,
+                     valid_amount: betAmount,
+                     profit_loss: profit,
+                     rebate: betAmount * 0.02, // 2%退水
+                     agent_name: 'ti2025',
+                     commission: 10,
+                     agent_result: profit * -0.1,
+                     turnover: betAmount * 0.85,
+                     created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+                 });
+             }
+             
+             // 計算統計數據
+             const totalBets = records.length;
+             const totalAmount = records.reduce((sum, r) => sum + r.bet_amount, 0);
+             const validAmount = records.reduce((sum, r) => sum + r.valid_amount, 0);
+             const profitLoss = records.reduce((sum, r) => sum + r.profit_loss, 0);
+             
+             return {
+                 totalBets,
+                 totalAmount,
+                 validAmount,
+                 profitLoss,
+                 records
+             };
+         },
+
          async refreshReportData() {
              await this.searchReports();
          },
@@ -4194,49 +4202,13 @@ const app = createApp({
              try {
                  this.loading = true;
                  
-                 // 準備篩選參數
-                 const params = new URLSearchParams({
-                     startDate: this.reportFilters.startDate,
-                     endDate: this.reportFilters.endDate,
-                     settlementStatus: this.reportFilters.settlementStatus,
-                     betType: this.reportFilters.betType,
-                     username: this.reportFilters.username,
-                     minAmount: this.reportFilters.minAmount,
-                     maxAmount: this.reportFilters.maxAmount,
-                     export: 'true'
-                 });
-
-                 // 處理遊戲類型篩選
-                 const selectedGameTypes = [];
-                 if (!this.reportFilters.gameTypes.all) {
-                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
-                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
-                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
-                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
-                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
-                 }
-                 
-                 if (selectedGameTypes.length > 0) {
-                     params.append('gameTypes', selectedGameTypes.join(','));
-                 }
-
-                 const response = await fetch(`${this.API_BASE_URL}/reports/export?${params.toString()}`, {
-                     method: 'GET',
-                     headers: {
-                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
-                     }
-                 });
-
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-
-                 // 處理檔案下載
-                 const blob = await response.blob();
+                 // 模擬匯出功能 - 生成CSV格式數據
+                 const csvData = this.generateCSVData();
+                 const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
                  const url = window.URL.createObjectURL(blob);
                  const a = document.createElement('a');
                  a.href = url;
-                 a.download = `報表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
+                 a.download = `報表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.csv`;
                  document.body.appendChild(a);
                  a.click();
                  window.URL.revokeObjectURL(url);
@@ -4250,6 +4222,33 @@ const app = createApp({
              } finally {
                  this.loading = false;
              }
+         },
+
+         // 生成CSV格式的報表數據
+         generateCSVData() {
+             const headers = ['期號', '用戶名', '遊戲類型', '投注內容', '下注金額', '有效金額', '盈虧', '退水', '所屬代理', '佔成', '代理結果', '上交', '時間'];
+             let csvContent = headers.join(',') + '\n';
+             
+             this.reportData.records.forEach(record => {
+                 const row = [
+                     record.period,
+                     record.username,
+                     this.formatGameType(record.game_type),
+                     record.bet_content,
+                     record.bet_amount,
+                     record.valid_amount,
+                     record.profit_loss,
+                     record.rebate,
+                     record.agent_name,
+                     record.commission + '%',
+                     record.agent_result,
+                     record.turnover,
+                     this.formatDateTime(record.created_at)
+                 ];
+                 csvContent += row.join(',') + '\n';
+             });
+             
+             return csvContent;
          },
 
          formatGameType(gameType) {
@@ -4305,26 +4304,19 @@ const app = createApp({
              try {
                  this.loading = true;
                  
-                 const params = new URLSearchParams({
-                     startDate: this.loginLogFilters.startDate,
-                     endDate: this.loginLogFilters.endDate,
-                     username: this.loginLogFilters.username
+                 // 模擬登錄日誌數據 - 未來可替換為真實API
+                 const mockLoginLogs = this.generateMockLoginLogs();
+                 
+                 // 根據日期範圍過濾數據
+                 const startDate = new Date(this.loginLogFilters.startDate);
+                 const endDate = new Date(this.loginLogFilters.endDate);
+                 endDate.setHours(23, 59, 59, 999); // 設置為當天結束時間
+                 
+                 this.loginLogs = mockLoginLogs.filter(log => {
+                     const logDate = new Date(log.login_time);
+                     return logDate >= startDate && logDate <= endDate;
                  });
-
-                 const response = await fetch(`${this.API_BASE_URL}/login-logs?${params.toString()}`, {
-                     method: 'GET',
-                     headers: {
-                         'Content-Type': 'application/json',
-                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
-                     }
-                 });
-
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-
-                 const data = await response.json();
-                 this.loginLogs = data.logs || [];
+                 
                  this.calculateLoginLogPagination();
                  this.showMessage('登錄日誌載入完成', 'success');
                  
@@ -4336,8 +4328,51 @@ const app = createApp({
              }
          },
 
-         async searchLoginLogs() {
-             await this.loadLoginLogs();
+         // 生成模擬登錄日誌數據
+         generateMockLoginLogs() {
+             const currentUsername = this.user?.username || 'ttpp123';
+             const logs = [];
+             const ipAddresses = [
+                 { ip: '123.193.88.143', location: '台湾省台北市 亚太电信集团公司' },
+                 { ip: '140.123.45.67', location: '台湾省台中市 中华电信' },
+                 { ip: '61.216.89.123', location: '台湾省高雄市 远传电信' },
+                 { ip: '203.74.156.89', location: '台湾省新北市 台湾大哥大' }
+             ];
+             
+             // 生成最近30天的登錄記錄
+             for (let i = 0; i < 30; i++) {
+                 const date = new Date();
+                 date.setDate(date.getDate() - i);
+                 
+                 // 每天可能有1-3次登錄
+                 const dailyLogins = Math.floor(Math.random() * 3) + 1;
+                 
+                 for (let j = 0; j < dailyLogins; j++) {
+                     const loginTime = new Date(date);
+                     loginTime.setHours(
+                         Math.floor(Math.random() * 24), 
+                         Math.floor(Math.random() * 60), 
+                         Math.floor(Math.random() * 60)
+                     );
+                     
+                     const randomIp = ipAddresses[Math.floor(Math.random() * ipAddresses.length)];
+                     
+                     logs.push({
+                         id: logs.length + 1,
+                         username: currentUsername,
+                         login_time: loginTime.toISOString(),
+                         ip_address: randomIp.ip,
+                         ip_location: randomIp.location
+                     });
+                 }
+             }
+             
+             // 按時間倒序排列（最新的在前）
+             return logs.sort((a, b) => new Date(b.login_time) - new Date(a.login_time));
+         },
+
+         searchLoginLogs() {
+             this.loadLoginLogs();
          },
 
          setLoginLogDateRange(type) {
@@ -4368,7 +4403,7 @@ const app = createApp({
                      break;
              }
              // 設定日期範圍後自動查詢
-             this.searchLoginLogs();
+             this.loadLoginLogs();
          },
 
          calculateLoginLogPagination() {
@@ -4413,6 +4448,20 @@ const app = createApp({
               if (!dateString) return '-';
               const date = new Date(dateString);
               return date.toLocaleTimeString('zh-TW', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+              });
+          },
+
+          formatLoginDateTime(dateString) {
+              if (!dateString) return '-';
+              const date = new Date(dateString);
+              return date.toLocaleString('zh-TW', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
                   hour: '2-digit',
                   minute: '2-digit',
                   second: '2-digit',
