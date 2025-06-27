@@ -699,6 +699,51 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_draw_records_draw_time ON draw_records(draw_time);
     `);
     
+    // 創建登錄日誌表
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS user_login_logs (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        user_type VARCHAR(20) DEFAULT 'agent',
+        login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ip_address INET NOT NULL,
+        ip_location TEXT,
+        user_agent TEXT,
+        session_token VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 為登錄日誌表創建索引
+    await db.none(`
+      CREATE INDEX IF NOT EXISTS idx_user_login_logs_username ON user_login_logs(username);
+      CREATE INDEX IF NOT EXISTS idx_user_login_logs_login_time ON user_login_logs(login_time DESC);
+      CREATE INDEX IF NOT EXISTS idx_user_login_logs_ip ON user_login_logs(ip_address);
+    `);
+    
+    // 創建會話管理表
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id SERIAL PRIMARY KEY,
+        session_token VARCHAR(64) UNIQUE NOT NULL,
+        user_type VARCHAR(20) NOT NULL,
+        user_id INTEGER NOT NULL,
+        ip_address INET NOT NULL,
+        user_agent TEXT,
+        expires_at TIMESTAMP NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 為會話表創建索引
+    await db.none(`
+      CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
+      CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_type, user_id);
+      CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active, expires_at);
+    `);
+    
     console.log('初始化代理系統數據庫表結構完成');
     
     // 檢查是否已有總代理
@@ -5192,28 +5237,19 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
 // 登錄日誌API - 獲取當前用戶的登錄記錄
 app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
   try {
-    const agentToken = req.headers.authorization?.replace('Bearer ', '');
-    if (!agentToken) {
-      return res.status(401).json({
-        success: false,
-        message: '未提供授權令牌'
-      });
+    // 使用通用認證中間件
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
 
-    // 驗證代理會話
-    const session = SessionManager.getSession(agentToken);
-    if (!session) {
-      return res.status(401).json({
-        success: false,
-        message: '無效的授權令牌'
-      });
-    }
+    const { agent } = authResult;
 
     const { startDate, endDate } = req.query;
     
     // 構建查詢條件
     let whereClause = 'WHERE username = $1';
-    let queryParams = [session.username];
+    let queryParams = [agent.username];
     
     if (startDate && endDate) {
       whereClause += ' AND login_time >= $2 AND login_time <= $3';
@@ -5257,22 +5293,13 @@ app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
 // 報表查詢API - 獲取投注報表數據
 app.get(`${API_PREFIX}/reports`, async (req, res) => {
   try {
-    const agentToken = req.headers.authorization?.replace('Bearer ', '');
-    if (!agentToken) {
-      return res.status(401).json({
-        success: false,
-        message: '未提供授權令牌'
-      });
+    // 使用通用認證中間件
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
 
-    // 驗證代理會話
-    const session = SessionManager.getSession(agentToken);
-    if (!session) {
-      return res.status(401).json({
-        success: false,
-        message: '無效的授權令牌'
-      });
-    }
+    const { agent } = authResult;
 
     const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount } = req.query;
     
@@ -5382,35 +5409,17 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
 // 代理層級分析報表API - 新的報表格式
 app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
   try {
-    const agentToken = req.headers.authorization?.replace('Bearer ', '');
-    if (!agentToken) {
-      return res.status(401).json({
-        success: false,
-        message: '未提供授權令牌'
-      });
+    // 使用通用認證中間件
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
 
-    // 驗證代理會話
-    const session = SessionManager.getSession(agentToken);
-    if (!session) {
-      return res.status(401).json({
-        success: false,
-        message: '無效的授權令牌'
-      });
-    }
+    const { agent: currentAgent } = authResult;
 
     const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount } = req.query;
     
-    console.log('📊 代理層級分析API: 接收請求', { startDate, endDate, username, session: session.username });
-    
-    // 獲取當前代理信息
-    const currentAgent = await AgentModel.findByUsername(session.username);
-    if (!currentAgent) {
-      return res.status(401).json({
-        success: false,
-        message: '代理信息不存在'
-      });
-    }
+    console.log('📊 代理層級分析API: 接收請求', { startDate, endDate, username, agentId: currentAgent.id });
 
     // 構建時間查詢條件
     let timeWhereClause = '';
@@ -5633,22 +5642,13 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
 // 報表匯出API - 匯出Excel格式報表
 app.get(`${API_PREFIX}/reports/export`, async (req, res) => {
   try {
-    const agentToken = req.headers.authorization?.replace('Bearer ', '');
-    if (!agentToken) {
-      return res.status(401).json({
-        success: false,
-        message: '未提供授權令牌'
-      });
+    // 使用通用認證中間件
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
 
-    // 驗證代理會話
-    const session = SessionManager.getSession(agentToken);
-    if (!session) {
-      return res.status(401).json({
-        success: false,
-        message: '無效的授權令牌'
-      });
-    }
+    const { agent } = authResult;
 
     // 簡化版：返回CSV格式數據
     const { startDate, endDate } = req.query;
@@ -5658,7 +5658,7 @@ app.get(`${API_PREFIX}/reports/export`, async (req, res) => {
     let csvContent = headers.join(',') + '\n';
     
     // 由於需要Excel格式，這裡先返回CSV，實際應該使用xlsx庫
-    csvContent += `示例數據,${session.username},AR PK10,單號投注,100,100,-100,2,ti2025,10%,-10,85,${new Date().toISOString()}\n`;
+    csvContent += `示例數據,${agent.username},AR PK10,單號投注,100,100,-100,2,ti2025,10%,-10,85,${new Date().toISOString()}\n`;
     
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=report_${startDate}_${endDate}.csv`);
@@ -5673,4 +5673,39 @@ app.get(`${API_PREFIX}/reports/export`, async (req, res) => {
     });
   }
 });
+
+// 創建通用認證中間件
+async function authenticateAgent(req) {
+  const legacyToken = req.headers.authorization?.replace('Bearer ', '');
+  const sessionToken = req.headers['x-session-token'];
+  
+  // 優先使用新的session token
+  if (sessionToken) {
+    const session = await SessionManager.validateSession(sessionToken);
+    if (session && session.userType === 'agent') {
+      const agent = await AgentModel.findById(session.userId);
+      return { success: true, agent, session };
+    }
+  }
+  
+  // 向後兼容舊的legacy token
+  if (legacyToken) {
+    try {
+      // 解析legacy token格式: agentId:timestamp
+      const decoded = Buffer.from(legacyToken, 'base64').toString();
+      const [agentId, timestamp] = decoded.split(':');
+      
+      if (agentId && timestamp) {
+        const agent = await AgentModel.findById(parseInt(agentId));
+        if (agent) {
+          return { success: true, agent, session: { userId: agent.id, userType: 'agent' } };
+        }
+      }
+    } catch (error) {
+      console.error('Legacy token解析錯誤:', error);
+    }
+  }
+  
+  return { success: false, message: '無效的授權令牌' };
+}
 
