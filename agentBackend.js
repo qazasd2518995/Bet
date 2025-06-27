@@ -378,9 +378,10 @@ app.post(`${API_PREFIX}/toggle-agent-status`, async (req, res) => {
     
     await AgentModel.updateStatus(agentId, status);
     
+    const statusText = status === 1 ? '启用' : status === 0 ? '停用' : '凍結';
     res.json({
       success: true,
-      message: `代理狀態已更新為: ${status ? '啟用' : '停用'}`,
+      message: `代理状态已更新为: ${statusText}`,
       timestamp: new Date().toISOString()
     });
     
@@ -3687,7 +3688,7 @@ app.get('/api/dashboard/members', async (req, res) => {
   }
 });
 
-// 切換會員狀態
+// 切換會員狀態 - 支持三种状态：0=停用, 1=启用, 2=凍結
 app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
   const { memberId, status } = req.body;
   
@@ -3699,15 +3700,22 @@ app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
       });
     }
     
-    // 確保狀態值為0或1
-    const newStatus = status === 1 ? 1 : 0;
+    // 驗證狀態值：0=停用, 1=启用, 2=凍結
+    const newStatus = parseInt(status);
+    if (![0, 1, 2].includes(newStatus)) {
+      return res.json({
+        success: false,
+        message: '無效的狀態值，必須是0(停用)、1(启用)或2(凍結)'
+      });
+    }
     
     // 更新會員狀態
     await db.none('UPDATE members SET status = $1 WHERE id = $2', [newStatus, memberId]);
     
+    const statusText = newStatus === 1 ? '启用' : newStatus === 0 ? '停用' : '凍結';
     res.json({
       success: true,
-      message: '會員狀態更新成功'
+      message: `會員狀態已更新为: ${statusText}`
     });
   } catch (error) {
     console.error('更新會員狀態出錯:', error);
@@ -5043,6 +5051,50 @@ app.post(`${API_PREFIX}/sync-bet-transaction`, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 獲取會員信息API
+app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少用戶名參數'
+      });
+    }
+    
+    // 查找會員
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      member: {
+        id: member.id,
+        username: member.username,
+        balance: member.balance,
+        status: member.status,
+        agent_id: member.agent_id,
+        created_at: member.created_at
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取會員信息失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取會員信息失敗',
+      error: error.message
     });
   }
 });

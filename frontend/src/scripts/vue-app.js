@@ -727,13 +727,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.clearBets();
                         this.updateBetHistory();
                     } else {
-                        this.showNotification(`投注失败：${data.message}`);
+                        // 检查是否为账号凍結信息
+                        if (data.message && data.message.includes('凍結')) {
+                            this.showNotification(`${data.message}`, 'warning');
+                            // 禁用投注按钮或显示特殊提示
+                            this.showFrozenAccountWarning();
+                        } else {
+                            this.showNotification(`投注失败：${data.message}`);
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('投注失败:', error);
                     this.showNotification('投注失败，请稍後再試');
                 });
+            },
+            
+            // 显示凍結账号警告
+            showFrozenAccountWarning() {
+                // 可以在这里添加额外的UI处理
+                const warningEl = document.querySelector('.frozen-account-warning');
+                if (warningEl) {
+                    warningEl.style.display = 'block';
+                }
             },
             
             // 切換盈亏时间范围

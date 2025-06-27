@@ -535,6 +535,7 @@
                                         <option value="-1">全部</option>
                                         <option value="1">启用</option>
                                         <option value="0">停用</option>
+                                        <option value="2">凍結</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
@@ -584,8 +585,8 @@
                                             </td>
                                             <td>{{ formatDate(agent.created_at) }}</td>
                                             <td>
-                                                <span :class="agent.status === 1 ? 'badge bg-success' : 'badge bg-danger'">
-                                                    {{ agent.status === 1 ? '启用' : '停用' }}
+                                                <span :class="getStatusBadgeClass(agent.status)">
+                                                    {{ getStatusText(agent.status) }}
                                                 </span>
                                             </td>
                                             <td>
@@ -599,10 +600,10 @@
                                                     <button class="btn btn-outline-warning" @click="resetAgentPassword(agent)">
                                                         <i class="fas fa-key me-1"></i>重设密碼
                                                     </button>
-                                                    <button class="btn" :class="agent.status === 1 ? 'btn-outline-danger' : 'btn-outline-success'" 
+                                                    <button class="btn" :class="getStatusBadgeClass(agent.status)" 
                                                             @click="toggleAgentStatus(agent)">
-                                                        <i class="fas" :class="agent.status === 1 ? 'fa-ban' : 'fa-check'"></i>
-                                                        {{ agent.status === 1 ? '停用' : '启用' }}
+                                                        <i class="fas" :class="getStatusIconClass(agent.status)"></i>
+                                                        {{ getStatusText(agent.status) }}
                                                     </button>
                                                     <button class="btn btn-outline-danger" @click="deleteAgent(agent.id, agent.username)">
                                                         <i class="fas fa-trash-alt me-1"></i>删除
@@ -790,6 +791,7 @@
                                             <select class="form-select" v-model="editAgentData.status">
                                                 <option value="1">启用</option>
                                                 <option value="0">停用</option>
+                                                <option value="2">凍結</option>
                                             </select>
                                         </div>
                                         <div class="text-end">
@@ -840,6 +842,7 @@
                                         <option value="-1">全部</option>
                                         <option value="1">启用</option>
                                         <option value="0">停用</option>
+                                        <option value="2">凍結</option>
                                     </select>
                                 </div>
                                 <div class="col-md-5">
@@ -880,8 +883,8 @@
                                             </td>
                                             <td>{{ formatMoney(member.balance) }}</td>
                                             <td>
-                                                <span class="badge" :class="member.status === 1 ? 'bg-success' : 'bg-danger'">
-                                                    {{ member.status === 1 ? '启用' : '停用' }}
+                                                <span class="badge" :class="getStatusBadgeClass(member.status)">
+                                                    {{ getStatusText(member.status) }}
                                                 </span>
                                             </td>
                                             <td>{{ formatDate(member.created_at) }}</td>
@@ -893,10 +896,10 @@
                                                     <button class="btn btn-sm btn-outline-warning" @click="resetMemberPassword(member)">
                                                         <i class="fas fa-key me-1"></i>重设密碼
                                                     </button>
-                                                    <button class="btn btn-sm" :class="member.status === 1 ? 'btn-outline-danger' : 'btn-outline-success'" 
+                                                    <button class="btn btn-sm" :class="getStatusBadgeClass(member.status)" 
                                                             @click="toggleMemberStatus(member.id, member.status)">
-                                                        <i class="fas" :class="member.status === 1 ? 'fa-ban' : 'fa-check'"></i>
-                                                        {{ member.status === 1 ? '停用' : '启用' }}
+                                                        <i class="fas" :class="getStatusIconClass(member.status)"></i>
+                                                        {{ getStatusText(member.status) }}
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-danger" @click="deleteMember(member.id, member.username)">
                                                         <i class="fas fa-trash-alt me-1"></i>删除

@@ -2709,6 +2709,36 @@ app.post('/api/bet', async (req, res) => {
       
       console.log(`使用總代理 ID: ${adminAgent.id}, 用戶名: ${adminAgent.username}`);
       
+      // 首先检查会员状态
+      try {
+        console.log(`检查会员 ${username} 状态`);
+        
+        // 调用代理系统API检查会员状态
+        const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (memberResponse.ok) {
+          const memberData = await memberResponse.json();
+          
+          if (memberData.success && memberData.member) {
+            // 检查会员状态：0=停用, 1=启用, 2=凍結
+            if (memberData.member.status === 0) {
+              console.error(`会员 ${username} 已被停用`);
+              return res.status(400).json({ success: false, message: '帐号已被停用，请联系客服' });
+            } else if (memberData.member.status === 2) {
+              console.error(`会员 ${username} 已被凍結`);
+              return res.status(400).json({ success: false, message: '帐号已被凍結，只能观看游戏无法下注' });
+            }
+          }
+        }
+      } catch (statusError) {
+        console.warn('检查会员状态失败，继续使用原有逻辑:', statusError.message);
+      }
+
       // 使用代理系統檢查和扣除會員餘額
       let updatedBalance;
       try {
