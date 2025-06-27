@@ -5441,7 +5441,14 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
 
     const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount } = req.query;
     
-    console.log('📊 代理層級分析API: 接收請求', { startDate, endDate, username, agentId: currentAgent.id });
+    console.log('📊 代理層級分析API: 接收請求', { 
+      startDate, 
+      endDate, 
+      settlementStatus, 
+      username, 
+      agentId: currentAgent.id,
+      fullQuery: req.query 
+    });
 
     // 構建時間查詢條件
     let timeWhereClause = '';
