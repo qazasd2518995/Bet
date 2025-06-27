@@ -782,20 +782,37 @@ async function initDatabase() {
     } else {
       console.log(`已存在 ${adminAgents.length} 個總代理，檢查是否需要重命名為ti2025`);
       
-      // 檢查總代理是否為ti2025，如果不是則修改
-      if (adminAgents[0].username !== 'ti2025') {
-        console.log(`將總代理 "${adminAgents[0].username}" 重命名為 "ti2025"`);
-        
-        // 修改總代理的用戶名和密碼為ti2025，保留原餘額和其他數據
-        await db.none(`
-          UPDATE agents 
-          SET username = $1, password = $2 
-          WHERE id = $3
-        `, ['ti2025', 'ti2025', adminAgents[0].id]);
-        
-        console.log(`總代理已重命名為 "ti2025"，ID=${adminAgents[0].id}`);
+      // 檢查是否已有名為ti2025的總代理
+      const ti2025Agent = adminAgents.find(agent => agent.username === 'ti2025');
+      
+      if (ti2025Agent) {
+        console.log(`總代理ti2025已存在，ID=${ti2025Agent.id}，無需修改`);
       } else {
-        console.log(`總代理已是ti2025，無需修改`);
+        // 找到第一個不是ti2025的總代理
+        const agentToRename = adminAgents.find(agent => agent.username !== 'ti2025');
+        
+        if (agentToRename) {
+          console.log(`將總代理 "${agentToRename.username}" 重命名為 "ti2025"`);
+          
+          try {
+            // 修改總代理的用戶名和密碼為ti2025，保留原餘額和其他數據
+            await db.none(`
+              UPDATE agents 
+              SET username = $1, password = $2 
+              WHERE id = $3
+            `, ['ti2025', 'ti2025', agentToRename.id]);
+            
+            console.log(`總代理已重命名為 "ti2025"，ID=${agentToRename.id}`);
+          } catch (renameError) {
+            if (renameError.code === '23505') {
+              console.log(`重命名失敗：ti2025用戶名已存在，跳過重命名操作`);
+            } else {
+              throw renameError;
+            }
+          }
+        } else {
+          console.log(`所有總代理都是ti2025，無需修改`);
+        }
       }
     }
     
