@@ -2881,6 +2881,7 @@ const app = createApp({
 
         // 編輯會員備註
         editMemberNotes(member) {
+            console.log('編輯會員備註被調用:', member);
             this.editNotesData = {
                 id: member.id,
                 username: member.username,
@@ -2888,14 +2889,29 @@ const app = createApp({
                 type: 'member'
             };
             this.showEditMemberNotesModal = true;
+            console.log('showEditMemberNotesModal 設置為:', this.showEditMemberNotesModal);
             
             // 添加模態框背景
             this.$nextTick(() => {
+                console.log('在nextTick中添加模態框背景');
                 document.body.classList.add('modal-open');
                 if (!document.querySelector('.modal-backdrop')) {
                     const backdrop = document.createElement('div');
                     backdrop.className = 'modal-backdrop fade show';
                     document.body.appendChild(backdrop);
+                    console.log('已添加模態框背景');
+                } else {
+                    console.log('模態框背景已存在');
+                }
+                
+                // 檢查模態框是否正確顯示
+                const modal = document.getElementById('editMemberNotesModal');
+                if (modal) {
+                    console.log('找到會員備註模態框元素');
+                    console.log('模態框樣式:', modal.style.display);
+                    console.log('模態框類名:', modal.className);
+                } else {
+                    console.log('找不到會員備註模態框元素');
                 }
             });
         },
