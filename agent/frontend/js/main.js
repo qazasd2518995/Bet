@@ -2298,8 +2298,20 @@ const app = createApp({
 
         // 新增：切換会员狀態
         async toggleMemberStatus(memberId, currentStatus) {
-            const newStatus = currentStatus === 1 ? 0 : 1;
-            const actionText = newStatus === 1 ? '启用' : '停用';
+            // 支援三種狀態的切換：启用(1) -> 停用(0) -> 凍結(2) -> 启用(1)
+            let newStatus, actionText;
+            
+            if (currentStatus === 1) {
+                newStatus = 0;
+                actionText = '停用';
+            } else if (currentStatus === 0) {
+                newStatus = 2;
+                actionText = '凍結';
+            } else {
+                newStatus = 1;
+                actionText = '启用';
+            }
+            
             if (!confirm(`确定要${actionText}該会员嗎？`)) {
                 return;
             }
@@ -2322,6 +2334,48 @@ const app = createApp({
                 this.showMessage(error.response?.data?.message || `${actionText}会员失败，请稍後再試`, 'error');
             } finally {
                 this.loading = false;
+            }
+        },
+        
+        // 获取狀態文字
+        getStatusText(status) {
+            switch (parseInt(status)) {
+                case 1:
+                    return '启用';
+                case 0:
+                    return '停用';
+                case 2:
+                    return '凍結';
+                default:
+                    return '未知';
+            }
+        },
+        
+        // 获取狀態徽章樣式類別
+        getStatusBadgeClass(status) {
+            switch (parseInt(status)) {
+                case 1:
+                    return 'badge bg-success'; // 绿色 - 启用
+                case 0:
+                    return 'badge bg-secondary'; // 灰色 - 停用
+                case 2:
+                    return 'badge bg-warning text-dark'; // 黄色 - 凍結
+                default:
+                    return 'badge bg-dark'; // 黑色 - 未知狀態
+            }
+        },
+        
+        // 获取狀態圖標類別
+        getStatusIconClass(status) {
+            switch (parseInt(status)) {
+                case 1:
+                    return 'fa-check'; // 勾選 - 启用
+                case 0:
+                    return 'fa-ban'; // 禁止 - 停用
+                case 2:
+                    return 'fa-snowflake'; // 雪花 - 凍結
+                default:
+                    return 'fa-question'; // 問號 - 未知狀態
             }
         },
         
@@ -2523,8 +2577,20 @@ const app = createApp({
         
         // 切換代理狀態
         async toggleAgentStatus(agent) {
-            const newStatus = agent.status === 1 ? 0 : 1;
-            const actionText = newStatus === 1 ? '启用' : '停用';
+            // 支援三種狀態的切換：启用(1) -> 停用(0) -> 凍結(2) -> 启用(1)
+            let newStatus, actionText;
+            
+            if (agent.status === 1) {
+                newStatus = 0;
+                actionText = '停用';
+            } else if (agent.status === 0) {
+                newStatus = 2;
+                actionText = '凍結';
+            } else {
+                newStatus = 1;
+                actionText = '启用';
+            }
+            
             if (!confirm(`确定要${actionText}該代理嗎？`)) {
                 return;
             }
