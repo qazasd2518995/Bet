@@ -222,6 +222,23 @@
                                            required>
                                 </div>
                                 
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-sticky-note me-1 text-primary"></i>備註說明
+                                    </label>
+                                    <textarea class="form-control form-control-lg" 
+                                              v-model="newMember.notes" 
+                                              placeholder="請輸入會員備註說明（選填）" 
+                                              rows="3"
+                                              style="border-radius: 8px; border: 2px solid #e9ecef; transition: all 0.2s; resize: vertical;"
+                                              onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 0.2rem rgba(102, 126, 234, 0.25)'"
+                                              onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"></textarea>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        可用於記錄會員的特殊情況、聯繫方式、備忘事項等
+                                    </small>
+                                </div>
+                                
                                 <!-- 按鈕區域 -->
                                 <div class="d-flex justify-content-end gap-3 mt-4">
                                     <button type="button" class="btn btn-outline-secondary btn-lg px-4" 
@@ -560,6 +577,7 @@
                                             <th>级别</th>
                                             <th>余额</th>
                                             <th>退水设定</th>
+                                            <th>備註</th>
                                             <th>创建时间</th>
                                             <th>狀態</th>
                                             <th>操作</th>
@@ -582,6 +600,19 @@
                                                     {{ getRebateModeText(agent.rebate_mode) }}
                                                     {{ agent.rebate_mode === 'percentage' ? ` ${(agent.rebate_percentage * 100).toFixed(1)}%` : '' }}
                                                 </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span v-if="agent.notes" class="text-truncate" style="max-width: 150px;" :title="agent.notes">
+                                                        {{ agent.notes }}
+                                                    </span>
+                                                    <span v-else class="text-muted fst-italic">無備註</span>
+                                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                            @click="editAgentNotes(agent)" 
+                                                            :title="agent.notes ? '編輯備註' : '新增備註'">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                             <td>{{ formatDate(agent.created_at) }}</td>
                                             <td>
@@ -710,6 +741,12 @@
                                                         可设定范围：0% - {{ ((currentManagingAgent.rebate_percentage || currentManagingAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
                                                     </small>
                                                 </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">備註說明</label>
+                                                    <textarea class="form-control" v-model="newAgent.notes" 
+                                                              placeholder="請輸入代理備註說明（選填）" rows="3"></textarea>
+                                                    <small class="form-text text-muted">可用於記錄代理的特殊情況、聯繫方式等</small>
+                                                </div>
                                                 <div class="card bg-light">
                                                     <div class="card-header">
                                                         <h6 class="mb-0">退水说明</h6>
@@ -777,6 +814,104 @@
                                             <button type="submit" class="btn btn-primary" :disabled="loading">
                                                 <span v-if="loading" class="spinner-border spinner-border-sm" role="status"></span>
                                                 更新
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 編輯代理備註 Modal -->
+                    <div class="modal" id="editAgentNotesModal" tabindex="-1" v-if="showEditAgentNotesModal">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-sticky-note me-2 text-primary"></i>
+                                        編輯代理備註 - {{ editNotesData.username }}
+                                    </h5>
+                                    <button type="button" class="btn-close" @click="hideEditAgentNotesModal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form @submit.prevent="updateAgentNotes">
+                                        <div class="mb-3">
+                                            <label class="form-label">代理資訊</label>
+                                            <div class="p-3 bg-light rounded">
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <strong>代理ID:</strong> {{ editNotesData.id }}
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <strong>用戶名:</strong> {{ editNotesData.username }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">備註說明</label>
+                                            <textarea class="form-control" v-model="editNotesData.notes" 
+                                                      placeholder="請輸入代理備註說明" rows="5" 
+                                                      style="resize: vertical;"></textarea>
+                                            <small class="form-text text-muted">
+                                                可用於記錄代理的特殊情況、聯繫方式、重要提醒等
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <button type="button" class="btn btn-secondary me-2" @click="hideEditAgentNotesModal">取消</button>
+                                            <button type="submit" class="btn btn-primary" :disabled="loading">
+                                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                <i v-else class="fas fa-save me-1"></i>
+                                                {{ loading ? '儲存中...' : '儲存備註' }}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 編輯會員備註 Modal -->
+                    <div class="modal" id="editMemberNotesModal" tabindex="-1" v-if="showEditMemberNotesModal">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-sticky-note me-2 text-success"></i>
+                                        編輯會員備註 - {{ editNotesData.username }}
+                                    </h5>
+                                    <button type="button" class="btn-close" @click="hideEditMemberNotesModal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form @submit.prevent="updateMemberNotes">
+                                        <div class="mb-3">
+                                            <label class="form-label">會員資訊</label>
+                                            <div class="p-3 bg-light rounded">
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <strong>會員ID:</strong> {{ editNotesData.id }}
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <strong>用戶名:</strong> {{ editNotesData.username }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">備註說明</label>
+                                            <textarea class="form-control" v-model="editNotesData.notes" 
+                                                      placeholder="請輸入會員備註說明" rows="5" 
+                                                      style="resize: vertical;"></textarea>
+                                            <small class="form-text text-muted">
+                                                可用於記錄會員的特殊情況、聯繫方式、投注習慣、重要提醒等
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <button type="button" class="btn btn-secondary me-2" @click="hideEditMemberNotesModal">取消</button>
+                                            <button type="submit" class="btn btn-success" :disabled="loading">
+                                                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                <i v-else class="fas fa-save me-1"></i>
+                                                {{ loading ? '儲存中...' : '儲存備註' }}
                                             </button>
                                         </div>
                                     </form>
@@ -888,6 +1023,7 @@
                                             <th>用戶名</th>
                                             <th v-if="memberViewMode === 'downline'">所屬代理</th>
                                             <th>余额</th>
+                                            <th>備註</th>
                                             <th>狀態</th>
                                             <th>创建时间</th>
                                             <th>操作</th>
@@ -895,7 +1031,7 @@
                                     </thead>
                                     <tbody>
                                         <tr v-if="members.length === 0">
-                                            <td :colspan="memberViewMode === 'downline' ? 7 : 6" class="text-center">無会员數據</td>
+                                            <td :colspan="memberViewMode === 'downline' ? 8 : 7" class="text-center">無会员數據</td>
                                         </tr>
                                         <tr v-for="member in members" :key="member.id">
                                             <td>{{ member.id }}</td>
@@ -904,6 +1040,19 @@
                                                 <span class="badge bg-secondary">{{ member.agentUsername || '未知代理' }}</span>
                                             </td>
                                             <td>{{ formatMoney(member.balance) }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span v-if="member.notes" class="text-truncate" style="max-width: 150px;" :title="member.notes">
+                                                        {{ member.notes }}
+                                                    </span>
+                                                    <span v-else class="text-muted fst-italic">無備註</span>
+                                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
+                                                            @click="editMemberNotes(member)" 
+                                                            :title="member.notes ? '編輯備註' : '新增備註'">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
                                             <td>
                                                 <span class="badge" :class="getStatusBadgeClass(member.status)">
                                                     {{ getStatusText(member.status) }}

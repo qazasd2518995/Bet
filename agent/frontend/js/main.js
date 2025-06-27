@@ -113,7 +113,8 @@ const app = createApp({
                 level: '1',
                 parent: '',
                 rebate_mode: 'percentage',
-                rebate_percentage: 2.0
+                rebate_percentage: 2.0,
+                notes: ''
             },
             parentAgents: [],
             
@@ -150,6 +151,16 @@ const app = createApp({
             },
             editAgentModal: null,
             
+            // 編輯備註相关
+            showEditAgentNotesModal: false,
+            showEditMemberNotesModal: false,
+            editNotesData: {
+                id: null,
+                username: '',
+                notes: '',
+                type: '' // 'agent' 或 'member'
+            },
+            
             // 会员管理相关
             members: [],
             memberFilters: {
@@ -171,7 +182,8 @@ const app = createApp({
                 password: '',
                 confirmPassword: '',
                 balance: 0,
-                status: 1
+                status: 1,
+                notes: ''
             },
             
 
@@ -558,7 +570,8 @@ const app = createApp({
                 password: '', 
                 confirmPassword: '',
                 balance: 0,
-                status: 1
+                status: 1,
+                notes: ''
             };
             
             // 根據当前頁面和狀態确定管理代理
@@ -616,7 +629,8 @@ const app = createApp({
                 password: '', 
                 confirmPassword: '',
                 balance: 0,
-                status: 1
+                status: 1,
+                notes: ''
             };
             
             console.log('✅ 模態框已关闭，數據已重置');
@@ -1920,7 +1934,8 @@ const app = createApp({
                 const response = await axios.post(`${API_BASE_URL}/create-member`, {
                     username: this.newMember.username,
                     password: this.newMember.password,
-                    agentId: this.currentManagingAgent.id // 使用当前管理代理的ID而非登录代理
+                    agentId: this.currentManagingAgent.id, // 使用当前管理代理的ID而非登录代理
+                    notes: this.newMember.notes || ''
                 });
                 if (response.data.success) {
                     const agentName = this.currentManagingAgent.username;
@@ -1936,7 +1951,8 @@ const app = createApp({
                         password: '',
                         confirmPassword: '',
                         balance: 0,
-                        status: 1
+                        status: 1,
+                        notes: ''
                     };
                     await this.searchMembers(); // 刷新会员列表
                 } else {
@@ -2003,7 +2019,8 @@ const app = createApp({
                     password: this.newAgent.password,
                     level: parseInt(this.newAgent.level),
                     parent: this.newAgent.parent,
-                    rebate_mode: this.newAgent.rebate_mode
+                    rebate_mode: this.newAgent.rebate_mode,
+                    notes: this.newAgent.notes || ''
                 };
                 
                 // 只有在选择具體比例時才傳送退水比例
@@ -2025,7 +2042,8 @@ const app = createApp({
                         level: '1',
                         parent: '',
                         rebate_mode: 'percentage',
-                        rebate_percentage: 2.0
+                        rebate_percentage: 2.0,
+                        notes: ''
                     };
                     
                     this.searchAgents(); // 刷新代理列表
@@ -2683,6 +2701,120 @@ const app = createApp({
             } catch (error) {
                 console.error(`设置会员状态出錯:`, error);
                 this.showMessage(error.response?.data?.message || `设置会员状态失败，请稍後再試`, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 編輯代理備註
+        editAgentNotes(agent) {
+            this.editNotesData = {
+                id: agent.id,
+                username: agent.username,
+                notes: agent.notes || '',
+                type: 'agent'
+            };
+            this.showEditAgentNotesModal = true;
+        },
+
+        // 隱藏編輯代理備註模態框
+        hideEditAgentNotesModal() {
+            this.showEditAgentNotesModal = false;
+            this.editNotesData = {
+                id: null,
+                username: '',
+                notes: '',
+                type: ''
+            };
+        },
+
+        // 更新代理備註
+        async updateAgentNotes() {
+            if (!this.editNotesData.id) {
+                this.showMessage('無效的代理ID', 'error');
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/update-agent-notes`, {
+                    agentId: this.editNotesData.id,
+                    notes: this.editNotesData.notes || ''
+                });
+
+                if (response.data.success) {
+                    this.showMessage('代理備註更新成功', 'success');
+                    
+                    // 更新本地代理列表中的備註
+                    const agentInList = this.agents.find(a => a.id === this.editNotesData.id);
+                    if (agentInList) {
+                        agentInList.notes = this.editNotesData.notes;
+                    }
+                    
+                    this.hideEditAgentNotesModal();
+                } else {
+                    this.showMessage(response.data.message || '更新代理備註失敗', 'error');
+                }
+            } catch (error) {
+                console.error('更新代理備註錯誤:', error);
+                this.showMessage(error.response?.data?.message || '更新代理備註失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // 編輯會員備註
+        editMemberNotes(member) {
+            this.editNotesData = {
+                id: member.id,
+                username: member.username,
+                notes: member.notes || '',
+                type: 'member'
+            };
+            this.showEditMemberNotesModal = true;
+        },
+
+        // 隱藏編輯會員備註模態框
+        hideEditMemberNotesModal() {
+            this.showEditMemberNotesModal = false;
+            this.editNotesData = {
+                id: null,
+                username: '',
+                notes: '',
+                type: ''
+            };
+        },
+
+        // 更新會員備註
+        async updateMemberNotes() {
+            if (!this.editNotesData.id) {
+                this.showMessage('無效的會員ID', 'error');
+                return;
+            }
+
+            this.loading = true;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/update-member-notes`, {
+                    memberId: this.editNotesData.id,
+                    notes: this.editNotesData.notes || ''
+                });
+
+                if (response.data.success) {
+                    this.showMessage('會員備註更新成功', 'success');
+                    
+                    // 更新本地會員列表中的備註
+                    const memberInList = this.members.find(m => m.id === this.editNotesData.id);
+                    if (memberInList) {
+                        memberInList.notes = this.editNotesData.notes;
+                    }
+                    
+                    this.hideEditMemberNotesModal();
+                } else {
+                    this.showMessage(response.data.message || '更新會員備註失敗', 'error');
+                }
+            } catch (error) {
+                console.error('更新會員備註錯誤:', error);
+                this.showMessage(error.response?.data?.message || '更新會員備註失敗，請稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
