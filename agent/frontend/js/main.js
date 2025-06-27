@@ -198,6 +198,32 @@ const app = createApp({
                 amount: 0,
                 description: ''
             },
+
+            // 報表查詢相关
+            reportFilters: {
+                startDate: new Date().toISOString().split('T')[0], // 今日
+                endDate: new Date().toISOString().split('T')[0],   // 今日
+                gameTypes: {
+                    all: true,
+                    pk10: false,
+                    ssc: false,
+                    lottery539: false,
+                    lottery: false,
+                    other: false
+                },
+                settlementStatus: '', // 'settled', 'unsettled', ''(全部)
+                betType: '',          // 'single', 'multiple', ''(全部)
+                minAmount: '',
+                maxAmount: '',
+                username: ''
+            },
+            reportData: {
+                totalBets: 0,
+                totalAmount: 0,
+                validAmount: 0,
+                profitLoss: 0,
+                records: []
+            },
             transferType: 'deposit',
             transferAmount: 0,
             agentCurrentBalance: 0,
@@ -4045,6 +4071,220 @@ const app = createApp({
                      }
                  }, 1000);
              }
+         },
+
+         // 報表查詢相關方法
+         getCurrentDateText() {
+             const today = new Date();
+             return today.toLocaleDateString('zh-TW', {
+                 year: 'numeric',
+                 month: '2-digit',
+                 day: '2-digit'
+             });
+         },
+
+         setDateRange(type) {
+             const today = new Date();
+             const yesterday = new Date(today);
+             yesterday.setDate(today.getDate() - 1);
+             
+             switch(type) {
+                 case 'today':
+                     this.reportFilters.startDate = today.toISOString().split('T')[0];
+                     this.reportFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case 'yesterday':
+                     this.reportFilters.startDate = yesterday.toISOString().split('T')[0];
+                     this.reportFilters.endDate = yesterday.toISOString().split('T')[0];
+                     break;
+                 case 'week':
+                     const weekStart = new Date(today);
+                     weekStart.setDate(today.getDate() - today.getDay());
+                     this.reportFilters.startDate = weekStart.toISOString().split('T')[0];
+                     this.reportFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+                 case 'month':
+                     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                     this.reportFilters.startDate = monthStart.toISOString().split('T')[0];
+                     this.reportFilters.endDate = today.toISOString().split('T')[0];
+                     break;
+             }
+         },
+
+         toggleAllGames() {
+             const allChecked = this.reportFilters.gameTypes.all;
+             this.reportFilters.gameTypes.pk10 = allChecked;
+             this.reportFilters.gameTypes.ssc = allChecked;
+             this.reportFilters.gameTypes.lottery539 = allChecked;
+             this.reportFilters.gameTypes.lottery = allChecked;
+             this.reportFilters.gameTypes.other = allChecked;
+         },
+
+         async searchReports() {
+             try {
+                 this.loading = true;
+                 
+                 // 準備篩選參數
+                 const params = new URLSearchParams({
+                     startDate: this.reportFilters.startDate,
+                     endDate: this.reportFilters.endDate,
+                     settlementStatus: this.reportFilters.settlementStatus,
+                     betType: this.reportFilters.betType,
+                     username: this.reportFilters.username,
+                     minAmount: this.reportFilters.minAmount,
+                     maxAmount: this.reportFilters.maxAmount
+                 });
+
+                 // 處理遊戲類型篩選
+                 const selectedGameTypes = [];
+                 if (!this.reportFilters.gameTypes.all) {
+                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
+                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
+                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
+                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
+                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
+                 }
+                 
+                 if (selectedGameTypes.length > 0) {
+                     params.append('gameTypes', selectedGameTypes.join(','));
+                 }
+
+                 const response = await fetch(`${this.API_BASE_URL}/reports?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 const data = await response.json();
+                 this.reportData = data;
+                 this.showMessage('報表查詢完成', 'success');
+                 
+             } catch (error) {
+                 console.error('查詢報表失敗:', error);
+                 this.showMessage('查詢報表失敗: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
+
+         async refreshReportData() {
+             await this.searchReports();
+         },
+
+         async exportReport() {
+             try {
+                 this.loading = true;
+                 
+                 // 準備篩選參數
+                 const params = new URLSearchParams({
+                     startDate: this.reportFilters.startDate,
+                     endDate: this.reportFilters.endDate,
+                     settlementStatus: this.reportFilters.settlementStatus,
+                     betType: this.reportFilters.betType,
+                     username: this.reportFilters.username,
+                     minAmount: this.reportFilters.minAmount,
+                     maxAmount: this.reportFilters.maxAmount,
+                     export: 'true'
+                 });
+
+                 // 處理遊戲類型篩選
+                 const selectedGameTypes = [];
+                 if (!this.reportFilters.gameTypes.all) {
+                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
+                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
+                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
+                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
+                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
+                 }
+                 
+                 if (selectedGameTypes.length > 0) {
+                     params.append('gameTypes', selectedGameTypes.join(','));
+                 }
+
+                 const response = await fetch(`${this.API_BASE_URL}/reports/export?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Authorization': `Bearer ${localStorage.getItem('agentToken')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 // 處理檔案下載
+                 const blob = await response.blob();
+                 const url = window.URL.createObjectURL(blob);
+                 const a = document.createElement('a');
+                 a.href = url;
+                 a.download = `報表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
+                 document.body.appendChild(a);
+                 a.click();
+                 window.URL.revokeObjectURL(url);
+                 document.body.removeChild(a);
+                 
+                 this.showMessage('報表匯出完成', 'success');
+                 
+             } catch (error) {
+                 console.error('匯出報表失敗:', error);
+                 this.showMessage('匯出報表失敗: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
+
+         formatGameType(gameType) {
+             const gameTypeMap = {
+                 'pk10': 'AR PK10',
+                 'ssc': 'AR 時時彩',
+                 'lottery539': 'AR 539',
+                 'lottery': 'AR 六合彩',
+                 'racing': '極速賽車'
+             };
+             return gameTypeMap[gameType] || '其他遊戲';
+         },
+
+         formatBetContent(record) {
+             if (!record.bet_content) return '-';
+             
+             try {
+                 // 如果是JSON字符串，解析它
+                 const content = typeof record.bet_content === 'string' ? 
+                               JSON.parse(record.bet_content) : record.bet_content;
+                 
+                 if (content.position) {
+                     return `位置投注: ${content.position}`;
+                 } else if (content.numbers) {
+                     return `號碼投注: ${content.numbers.join(', ')}`;
+                 } else if (content.type) {
+                     return `${content.type}投注`;
+                 }
+                 return JSON.stringify(content);
+             } catch (e) {
+                 return record.bet_content;
+             }
+         },
+
+         getProfitClass(profit) {
+             if (!profit || profit === 0) return 'text-muted';
+             return profit > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+         },
+
+         formatProfit(amount) {
+             if (!amount || amount === 0) return '$0.00';
+             const formatted = this.formatMoney(Math.abs(amount));
+             return amount > 0 ? `+${formatted}` : `-${formatted}`;
+         },
+
+         formatPercentage(rate) {
+             if (!rate) return '0%';
+             return `${(rate * 100).toFixed(1)}%`;
          }
     },
         
@@ -4236,6 +4476,8 @@ const app = createApp({
             return (totalPercentage / this.filteredRebateRecords.length).toFixed(1);
         }
     },
+
+
     
     // 監聽屬性
     watch: {
@@ -4261,6 +4503,10 @@ const app = createApp({
             }
             if (newTab === 'transactions' && this.transactionTab === 'transfers') {
                 this.loadPointTransfers();
+            }
+            if (newTab === 'reports') {
+                // 載入報表查詢頁面時，自動執行一次查詢（今日報表）
+                this.searchReports();
             }
                                  if (newTab === 'customer-service' && this.user.level === 0) {
                          this.loadCSTransactions();
