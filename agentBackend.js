@@ -682,6 +682,25 @@ async function initDatabase() {
       console.log('退水記錄字段已存在或添加失敗:', error.message);
     }
     
+    // 檢查並添加備註字段
+    try {
+      await db.none(`
+        ALTER TABLE agents ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''
+      `);
+      await db.none(`
+        ALTER TABLE agents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      await db.none(`
+        ALTER TABLE members ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''
+      `);
+      await db.none(`
+        ALTER TABLE members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      console.log('備註字段添加成功');
+    } catch (error) {
+      console.log('備註字段已存在或添加失敗:', error.message);
+    }
+    
     // 創建開獎記錄表
     await db.none(`
       CREATE TABLE IF NOT EXISTS draw_records (
@@ -1020,14 +1039,14 @@ const AgentModel = {
   
   // 創建代理
   async create(agentData) {
-    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage } = agentData;
+    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes } = agentData;
     
     try {
       return await db.one(`
-        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
         RETURNING *
-      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041]);
+      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041, notes || '']);
     } catch (error) {
       console.error('創建代理出錯:', error);
       throw error;
@@ -1342,14 +1361,14 @@ const MemberModel = {
   
   // 創建會員
   async create(memberData) {
-    const { username, password, agent_id, balance = 0 } = memberData;
+    const { username, password, agent_id, balance = 0, notes } = memberData;
     
     try {
       return await db.one(`
-        INSERT INTO members (username, password, agent_id, balance) 
-        VALUES ($1, $2, $3, $4) 
+        INSERT INTO members (username, password, agent_id, balance, notes) 
+        VALUES ($1, $2, $3, $4, $5) 
         RETURNING *
-      `, [username, password, agent_id, balance]);
+      `, [username, password, agent_id, balance, notes || '']);
     } catch (error) {
       console.error('創建會員出錯:', error);
       throw error;
@@ -2282,9 +2301,26 @@ app.post(`${API_PREFIX}/logout`, async (req, res) => {
 
 // 創建代理 - 修改路由名稱
 app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
-  const { username, password, level, parent, commission_rate, rebate_mode, rebate_percentage } = req.body;
+  const { username, password, level, parent, commission_rate, rebate_mode, rebate_percentage, notes } = req.body;
   
   try {
+    // 驗證用戶名格式（只允許英文、數字）
+    const usernameRegex = /^[a-zA-Z0-9]+$/;
+    if (!username || !usernameRegex.test(username)) {
+      return res.json({
+        success: false,
+        message: '用戶名只能包含英文字母和數字'
+      });
+    }
+    
+    // 驗證密碼長度（至少6碼）
+    if (!password || password.length < 6) {
+      return res.json({
+        success: false,
+        message: '密碼至少需要6個字符'
+      });
+    }
+    
     // 檢查用戶名是否已存在
     const existingAgent = await AgentModel.findByUsername(username);
     if (existingAgent) {
@@ -2377,7 +2413,8 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       commission_rate: parseFloat(commission_rate),
       rebate_percentage: finalRebatePercentage,
       rebate_mode: finalRebateMode,
-      max_rebate_percentage: maxRebatePercentage
+      max_rebate_percentage: maxRebatePercentage,
+      notes: notes || ''
     });
     
     res.json({
@@ -2840,11 +2877,104 @@ app.put(`${API_PREFIX}/update-status`, async (req, res) => {
   }
 });
 
+// 更新代理備註
+app.post(`${API_PREFIX}/update-agent-notes`, async (req, res) => {
+  try {
+    const { agentId, notes } = req.body;
+    
+    if (!agentId) {
+      return res.json({
+        success: false,
+        message: '缺少代理ID'
+      });
+    }
+    
+    // 檢查代理是否存在
+    const agent = await AgentModel.findById(agentId);
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    // 更新備註
+    await db.none('UPDATE agents SET notes = $1, updated_at = NOW() WHERE id = $2', [notes || '', agentId]);
+    
+    res.json({
+      success: true,
+      message: '代理備註更新成功'
+    });
+    
+  } catch (error) {
+    console.error('更新代理備註失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新代理備註失敗'
+    });
+  }
+});
+
+// 更新會員備註
+app.post(`${API_PREFIX}/update-member-notes`, async (req, res) => {
+  try {
+    const { memberId, notes } = req.body;
+    
+    if (!memberId) {
+      return res.json({
+        success: false,
+        message: '缺少會員ID'
+      });
+    }
+    
+    // 檢查會員是否存在
+    const member = await MemberModel.findById(memberId);
+    if (!member) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 更新備註
+    await db.none('UPDATE members SET notes = $1, updated_at = NOW() WHERE id = $2', [notes || '', memberId]);
+    
+    res.json({
+      success: true,
+      message: '會員備註更新成功'
+    });
+    
+  } catch (error) {
+    console.error('更新會員備註失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新會員備註失敗'
+    });
+  }
+});
+
 // 創建會員
 app.post(`${API_PREFIX}/create-member`, async (req, res) => {
-  const { username, password, agentId } = req.body;
+  const { username, password, agentId, notes } = req.body;
   
   try {
+    // 驗證用戶名格式（只允許英文、數字）
+    const usernameRegex = /^[a-zA-Z0-9]+$/;
+    if (!username || !usernameRegex.test(username)) {
+      return res.json({
+        success: false,
+        message: '用戶名只能包含英文字母和數字'
+      });
+    }
+    
+    // 驗證密碼長度（至少6碼）
+    if (!password || password.length < 6) {
+      return res.json({
+        success: false,
+        message: '密碼至少需要6個字符'
+      });
+    }
+    
     // 檢查用戶名是否已存在
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
@@ -2868,7 +2998,8 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       username,
       password,
       agent_id: agentId,
-      balance: 0 // 初始餘額
+      balance: 0, // 初始餘額
+      notes: notes || ''
     });
     
     res.json({
@@ -5518,50 +5649,31 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       paramIndex++;
     }
 
-    // 查詢代理層級數據
+    // 查詢代理層級數據 - 修正為只顯示直接下級代理
     const agentLevelQuery = `
-      WITH RECURSIVE agent_hierarchy AS (
-        -- 基礎查詢：當前代理
-        SELECT 
-          id, username, level, balance, parent_id, rebate_percentage,
-          CAST(username AS TEXT) as path,
-          0 as depth
-        FROM agents 
-        WHERE id = $1
-        
-        UNION ALL
-        
-        -- 遞歸查詢：下級代理
-        SELECT 
-          a.id, a.username, a.level, a.balance, a.parent_id, a.rebate_percentage,
-          ah.path || ' -> ' || a.username,
-          ah.depth + 1
-        FROM agents a
-        INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
-        WHERE ah.depth < 10  -- 限制遞歸深度
-      )
       SELECT DISTINCT
-        ah.id,
-        ah.username,
-        ah.level,
-        ah.balance,
-        ah.rebate_percentage,
-        ah.depth,
+        a.id,
+        a.username,
+        a.level,
+        a.balance,
+        a.rebate_percentage,
+        0 as depth,
         CASE 
-          WHEN ah.level = 0 THEN '客服'
-          WHEN ah.level = 1 THEN '總代理'
-          WHEN ah.level = 2 THEN '二級代理'
-          WHEN ah.level = 3 THEN '三級代理'
-          WHEN ah.level = 4 THEN '四級代理'
-          WHEN ah.level = 5 THEN '五級代理'
-          WHEN ah.level = 6 THEN '六級代理'
-          WHEN ah.level = 7 THEN '七級代理'
-          WHEN ah.level = 8 THEN '八級代理'
-          WHEN ah.level = 9 THEN '九級代理'
+          WHEN a.level = 0 THEN '客服'
+          WHEN a.level = 1 THEN '總代理'
+          WHEN a.level = 2 THEN '二級代理'
+          WHEN a.level = 3 THEN '三級代理'
+          WHEN a.level = 4 THEN '四級代理'
+          WHEN a.level = 5 THEN '五級代理'
+          WHEN a.level = 6 THEN '六級代理'
+          WHEN a.level = 7 THEN '七級代理'
+          WHEN a.level = 8 THEN '八級代理'
+          WHEN a.level = 9 THEN '九級代理'
           ELSE '代理'
         END as level_name
-      FROM agent_hierarchy ah
-      ORDER BY ah.depth, ah.level, ah.username
+      FROM agents a
+      WHERE (a.id = $1 OR a.parent_id = $1)
+      ORDER BY a.level, a.username
     `;
     
     // agentLevelQuery不需要timeParams，只需要agent id

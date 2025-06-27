@@ -1986,6 +1986,20 @@ const app = createApp({
                 this.showMessage('请填寫所有必填欄位', 'error');
                 return;
             }
+            
+            // 驗證用戶名格式（只允許英文、數字）
+            const usernameRegex = /^[a-zA-Z0-9]+$/;
+            if (!usernameRegex.test(this.newMember.username)) {
+                this.showMessage('用戶名只能包含英文字母和數字', 'error');
+                return;
+            }
+            
+            // 驗證密碼長度（至少6碼）
+            if (this.newMember.password.length < 6) {
+                this.showMessage('密碼至少需要6個字符', 'error');
+                return;
+            }
+            
             if (this.newMember.password !== this.newMember.confirmPassword) {
                 this.showMessage('兩次输入的密碼不一致', 'error');
                 return;
@@ -2058,6 +2072,19 @@ const app = createApp({
             console.log('createAgent 方法被調用', this.newAgent);
             if (!this.newAgent.username || !this.newAgent.password) {
                 this.showMessage('请填寫所有必填欄位', 'error');
+                return;
+            }
+            
+            // 驗證用戶名格式（只允許英文、數字）
+            const usernameRegex = /^[a-zA-Z0-9]+$/;
+            if (!usernameRegex.test(this.newAgent.username)) {
+                this.showMessage('用戶名只能包含英文字母和數字', 'error');
+                return;
+            }
+            
+            // 驗證密碼長度（至少6碼）
+            if (this.newAgent.password.length < 6) {
+                this.showMessage('密碼至少需要6個字符', 'error');
                 return;
             }
             
