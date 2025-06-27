@@ -2881,7 +2881,6 @@ const app = createApp({
 
         // 編輯會員備註
         editMemberNotes(member) {
-            console.log('編輯會員備註被調用:', member);
             this.editNotesData = {
                 id: member.id,
                 username: member.username,
@@ -2889,29 +2888,14 @@ const app = createApp({
                 type: 'member'
             };
             this.showEditMemberNotesModal = true;
-            console.log('showEditMemberNotesModal 設置為:', this.showEditMemberNotesModal);
             
             // 添加模態框背景
             this.$nextTick(() => {
-                console.log('在nextTick中添加模態框背景');
                 document.body.classList.add('modal-open');
                 if (!document.querySelector('.modal-backdrop')) {
                     const backdrop = document.createElement('div');
                     backdrop.className = 'modal-backdrop fade show';
                     document.body.appendChild(backdrop);
-                    console.log('已添加模態框背景');
-                } else {
-                    console.log('模態框背景已存在');
-                }
-                
-                // 檢查模態框是否正確顯示
-                const modal = document.getElementById('editMemberNotesModal');
-                if (modal) {
-                    console.log('找到會員備註模態框元素');
-                    console.log('模態框樣式:', modal.style.display);
-                    console.log('模態框類名:', modal.className);
-                } else {
-                    console.log('找不到會員備註模態框元素');
                 }
             });
         },
@@ -4431,11 +4415,12 @@ const app = createApp({
                      message: data.message
                  };
                  
-                 if (data.hasData) {
+                 // 只在載入成功時顯示提示，不要為沒有數據顯示警告
+                 // 因為會在HTML模板中自動顯示「沒有資料」
+                 if (data.hasData && data.reportData && data.reportData.length > 0) {
                      this.showMessage(`查看 ${agent.username} 的下級報表完成`, 'success');
-                 } else {
-                     this.showMessage(`${agent.username} 暫無下級資料`, 'info');
                  }
+                 // 移除「暫無下級資料」的警告提示，讓HTML模板來處理空數據顯示
                  
              } catch (error) {
                  console.error('查看代理報表失敗:', error);
