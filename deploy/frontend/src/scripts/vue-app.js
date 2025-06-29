@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data() {
             return {
                 API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                    ? 'http://localhost:3002' 
+                    ? 'http://localhost:3000' 
                     : '', // 在production環境中使用相同域名
                 // 用戶相关
                 isLoggedIn: false,
