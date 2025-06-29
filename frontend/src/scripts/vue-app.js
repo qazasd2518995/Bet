@@ -411,19 +411,30 @@ document.addEventListener('DOMContentLoaded', function() {
             getUserMarketType() {
                 if (!this.isLoggedIn || !this.username) return;
                 
+                console.log(`🔍 正在獲取用戶 ${this.username} 的盤口類型...`);
+                
                 // 調用代理系統API獲取會員盤口信息
                 const agentApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:3003' 
                     : '';  // 生產環境使用相對路徑
                 
-                fetch(`${agentApiUrl}/api/agent/member/info/${this.username}`)
+                // 添加時間戳防止緩存
+                const timestamp = new Date().getTime();
+                fetch(`${agentApiUrl}/api/agent/member/info/${this.username}?t=${timestamp}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.member) {
                             this.userMarketType = data.member.market_type || 'D';
-                            console.log(`用戶 ${this.username} 盤口類型: ${this.userMarketType}`);
+                            console.log(`✅ 用戶 ${this.username} 盤口類型: ${this.userMarketType}`);
                             // 更新賠率顯示
                             this.updateOddsDisplay();
+                            
+                            // 顯示成功通知
+                            if (this.userMarketType === 'A') {
+                                this.showNotification(`✅ 已載入A盤賠率 (單號: 9.89, 兩面: 1.9)`);
+                            } else {
+                                this.showNotification(`✅ 已載入D盤賠率 (單號: 9.59, 兩面: 1.88)`);
+                            }
                         } else {
                             console.warn('獲取用戶盤口信息失敗，使用預設D盤');
                             this.userMarketType = 'D';
@@ -435,6 +446,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.userMarketType = 'D';
                         this.updateOddsDisplay();
                     });
+            },
+            
+            // 強制重新載入賠率
+            forceRefreshOdds() {
+                console.log('🔄 強制重新載入賠率...');
+                this.getUserMarketType();
             },
             
             // 更新賠率顯示
