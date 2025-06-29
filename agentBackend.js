@@ -2290,7 +2290,8 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
         commission_balance: agent.commission_balance,
         rebate_percentage: agent.rebate_percentage,
         max_rebate_percentage: agent.max_rebate_percentage,
-        rebate_mode: agent.rebate_mode
+        rebate_mode: agent.rebate_mode,
+        market_type: agent.market_type || 'D' // 添加盤口類型
       },
       token: legacyToken,
       sessionToken: sessionToken // 新的會話token

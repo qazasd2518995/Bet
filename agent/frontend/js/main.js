@@ -448,10 +448,21 @@ const app = createApp({
             });
         });
         
+        // 先檢查會話有效性，如果會話無效則清除本地存儲
+        const sessionValid = await this.checkSession();
+        
+        if (!sessionValid) {
+            // 會話無效，清除本地存儲
+            localStorage.removeItem('agent_token');
+            localStorage.removeItem('agent_user');
+            localStorage.removeItem('agent_session_token');
+            console.log('會話無效，已清除本地存儲');
+        }
+        
         // 检查是否已登录
         const isAuthenticated = await this.checkAuth();
         
-        if (isAuthenticated) {
+        if (isAuthenticated && sessionValid) {
             console.log('用戶已認證，开始加載初始數據');
             // 检查是否為客服
             this.isCustomerService = this.user.level === 0;
@@ -823,8 +834,8 @@ const app = createApp({
                         username: this.user.username,
                         level: this.user.level,
                         market_type: this.user.market_type,
-                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
-                        max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
+                        max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
                     // 设置 axios 身份驗證頭
@@ -881,8 +892,8 @@ const app = createApp({
                         username: agent.username,
                         level: agent.level,
                         market_type: agent.market_type,
-                        rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || 0.041,
-                        max_rebate_percentage: agent.max_rebate_percentage || 0.041
+                        rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041),
+                        max_rebate_percentage: agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
                     console.log('✅ 登錄成功，設置當前管理代理:', this.currentManagingAgent);
