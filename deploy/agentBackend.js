@@ -4726,14 +4726,22 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
   try {
     console.log(`獲取客服交易記錄: 操作員=${operatorId}, 頁碼=${page}, 數量=${limit}`);
     
-    // 檢查操作員是否為客服
-    const isCS = await AgentModel.isCustomerService(operatorId);
-    if (!isCS) {
+    // 檢查操作員是否為客服（總代理）
+    const operator = await AgentModel.findById(operatorId);
+    if (!operator || operator.level !== 0) {
       return res.json({
         success: false,
-        message: '權限不足，只有客服可以查看此記錄'
+        message: '權限不足，只有總代理可以查看此記錄'
       });
     }
+    
+    // 獲取該總代理下的所有下級代理ID（包括自己）
+    const allDownlineAgents = await getAllDownlineAgents(operatorId);
+    const allAgentIds = [...allDownlineAgents, parseInt(operatorId)]; // 包含自己
+    
+    // 獲取這些代理下的所有會員ID
+    const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1)', [allAgentIds]);
+    const memberIds = members.map(m => m.id);
     
     let query = `
       SELECT t.*, 
@@ -4749,9 +4757,10 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
       LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
       LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
       WHERE (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'cs_withdraw')
+      AND ((t.user_type = 'agent' AND t.user_id = ANY($1)) OR (t.user_type = 'member' AND t.user_id = ANY($2)))
     `;
     
-    const params = [];
+    const params = [allAgentIds, memberIds];
     
     // 篩選用戶類型
     if (userType !== 'all') {
@@ -4838,11 +4847,26 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     
     const params = [];
     
-    // 如果是總代理，可以查看所有交易；否則只能查看自己和下級的交易
+    // 數據隔離：每個代理只能查看自己線下的交易記錄
     if (agent.level === 0) {
-      // 總代理可以查看所有交易，不加限制
+      // 總代理只能查看自己盤口線下的交易記錄，不能查看其他盤口
+      // 獲取該總代理下的所有下級代理ID（包括自己）
+      const allDownlineAgents = await getAllDownlineAgents(agentId);
+      const allAgentIds = [...allDownlineAgents, agentId]; // 包含自己
+      
+      // 獲取這些代理下的所有會員ID
+      const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1)', [allAgentIds]);
+      const memberIds = members.map(m => m.id);
+      
+      if (memberIds.length > 0) {
+        query += ` AND ((t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1})) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2})))`;
+        params.push(allAgentIds, memberIds);
+      } else {
+        query += ` AND t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1})`;
+        params.push(allAgentIds);
+      }
     } else {
-      // 獲取代理下的所有會員ID
+      // 非總代理只能查看自己和直接下級的交易
       const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [agentId]);
       const memberIds = members.map(m => m.id);
       

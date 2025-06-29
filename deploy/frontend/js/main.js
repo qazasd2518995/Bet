@@ -114,7 +114,7 @@ const app = createApp({
                 parent: '',
                 market_type: 'D', // 默認D盤
                 rebate_mode: 'percentage',
-                rebate_percentage: 2.0,
+                rebate_percentage: 2.0, // 將在showAgentModal中根據盤口動態設定
                 notes: ''
             },
             parentAgents: [],
@@ -125,7 +125,7 @@ const app = createApp({
                 id: null,
                 username: '',
                 level: 0,
-                max_rebate_percentage: 0.041
+                max_rebate_percentage: 0.041 // 將在登入後根據盤口類型動態設定
             },
             
             // 退水设定相关
@@ -332,7 +332,7 @@ const app = createApp({
             agentTransferAmount: 0,
 
             // 客服專用數據
-            isCustomerService: true, // 是否為客服 - 临时設為 true 用於测试
+            isCustomerService: false, // 是否為客服 - 根據用戶權限動態設定
             showCSOperationModal: false, // 客服操作模態框
             csOperation: {
                 targetAgentId: '',
@@ -593,6 +593,9 @@ const app = createApp({
             }
             
             // 根據当前管理代理级别，设置默認的下級代理级别
+            // 根據盤口類型設定合適的默認退水比例
+            const defaultRebatePercentage = marketType === 'A' ? 0.5 : 2.0; // A盤用0.5%，D盤用2.0%
+            
             this.newAgent = {
                 username: '',
                 password: '',
@@ -600,7 +603,7 @@ const app = createApp({
                 parent: this.currentManagingAgent.id,
                 market_type: marketType,  // 設置盤口繼承
                 rebate_mode: 'percentage',
-                rebate_percentage: 2.0,
+                rebate_percentage: defaultRebatePercentage,
                 notes: ''
             };
             
@@ -674,20 +677,22 @@ const app = createApp({
                 console.log('📋 下級代理管理模式：為代理', targetAgent?.username, '新增会员');
             } else if (this.activeTab === 'members') {
                 // 在会员管理頁面，為自己新增会员
+                const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                 targetAgent = {
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
-                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
                 console.log('👤 会员管理模式：為自己新增会员');
             } else {
                 // 預設情況：為自己新增会员
+                const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                 targetAgent = {
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
-                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
                 console.log('🔄 預設模式：為自己新增会员');
             }
@@ -737,13 +742,14 @@ const app = createApp({
             if (tab !== 'agents') {
                 if (this.currentManagingAgent.id !== this.user.id) {
                     console.log('📍 重置管理視角：從', this.currentManagingAgent.username, '回到', this.user.username);
+                    const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                     this.currentManagingAgent = {
                         id: this.user.id,
                         username: this.user.username,
                         level: this.user.level,
                         market_type: this.user.market_type,
-                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
-                        max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
+                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                     };
                     
                     // 清空代理導航面包屑
@@ -838,6 +844,10 @@ const app = createApp({
                         max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
+                    // 检查是否為客服（總代理）
+                    this.isCustomerService = this.user.level === 0;
+                    console.log('checkAuth設定客服權限:', this.isCustomerService, '用戶级别:', this.user.level);
+                    
                     // 设置 axios 身份驗證頭
                     axios.defaults.headers.common['Authorization'] = token;
                     
@@ -898,7 +908,7 @@ const app = createApp({
                     
                     console.log('✅ 登錄成功，設置當前管理代理:', this.currentManagingAgent);
                     
-                    // 检查是否為客服
+                    // 检查是否為客服（總代理）
                     this.isCustomerService = this.user.level === 0;
                     console.log('登录後是否為客服:', this.isCustomerService, '用戶级别:', this.user.level);
                     
@@ -2324,13 +2334,14 @@ const app = createApp({
             });
             
             // 更新当前管理代理 - 包含完整的退水比例和盤口类型资讯
+            const defaultMaxRebate = agent.market_type === 'A' ? 0.011 : 0.041;
             this.currentManagingAgent = {
                 id: agent.id,
                 username: agent.username,
                 level: agent.level,
                 market_type: agent.market_type,
-                rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || 0.041,
-                max_rebate_percentage: agent.max_rebate_percentage || 0.041
+                rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || defaultMaxRebate,
+                max_rebate_percentage: agent.max_rebate_percentage || defaultMaxRebate
             };
             
             console.log('🔄 进入代理管理，更新currentManagingAgent:', this.currentManagingAgent);
@@ -2353,8 +2364,8 @@ const app = createApp({
                     username: this.user.username,
                     level: this.user.level,
                     market_type: this.user.market_type,
-                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
-                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
+                    max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                 };
             } else if (targetIndex >= 0) {
                 // 移除該位置之後的所有面包屑
@@ -2365,8 +2376,8 @@ const app = createApp({
                     username: targetBreadcrumb.username,
                     level: targetBreadcrumb.level,
                     market_type: targetBreadcrumb.market_type,
-                    rebate_percentage: targetBreadcrumb.rebate_percentage || targetBreadcrumb.max_rebate_percentage || 0.041,
-                    max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || 0.041
+                    rebate_percentage: targetBreadcrumb.rebate_percentage || targetBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
+                    max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                 };
             }
             
@@ -2386,8 +2397,8 @@ const app = createApp({
                     username: parentBreadcrumb.username,
                     level: parentBreadcrumb.level,
                     market_type: parentBreadcrumb.market_type,
-                    rebate_percentage: parentBreadcrumb.rebate_percentage || parentBreadcrumb.max_rebate_percentage || 0.041,
-                    max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || 0.041
+                    rebate_percentage: parentBreadcrumb.rebate_percentage || parentBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
+                    max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                 };
             } else {
                 // 返回到自己
@@ -2396,8 +2407,8 @@ const app = createApp({
                     username: this.user.username,
                     level: this.user.level,
                     market_type: this.user.market_type,
-                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || 0.041,
-                    max_rebate_percentage: this.user.max_rebate_percentage || 0.041
+                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
+                    max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                 };
             }
             
