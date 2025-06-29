@@ -1834,9 +1834,33 @@ app.get('/api/daily-profit', async (req, res) => {
       });
     }
 
-    // 獲取用戶信息
-    const user = await UserModel.findByUsername(username);
-    if (!user) {
+    // 先檢查代理系統中的會員信息
+    try {
+      const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!memberResponse.ok) {
+        return res.json({ 
+          success: false,
+          message: '用戶不存在', 
+          profit: 0 
+        });
+      }
+      
+      const memberData = await memberResponse.json();
+      if (!memberData.success) {
+        return res.json({ 
+          success: false,
+          message: '用戶不存在', 
+          profit: 0 
+        });
+      }
+    } catch (error) {
+      console.error('檢查會員信息失敗:', error);
       return res.json({ 
         success: false,
         message: '用戶不存在', 
@@ -1898,9 +1922,37 @@ app.get('/api/profit-records', async (req, res) => {
       });
     }
 
-    // 獲取用戶信息
-    const user = await UserModel.findByUsername(username);
-    if (!user) {
+    // 先檢查代理系統中的會員信息
+    try {
+      const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!memberResponse.ok) {
+        return res.json({ 
+          success: false,
+          message: '用戶不存在',
+          records: [],
+          totalBetCount: 0,
+          totalProfit: 0
+        });
+      }
+      
+      const memberData = await memberResponse.json();
+      if (!memberData.success) {
+        return res.json({ 
+          success: false,
+          message: '用戶不存在',
+          records: [],
+          totalBetCount: 0,
+          totalProfit: 0
+        });
+      }
+    } catch (error) {
+      console.error('檢查會員信息失敗:', error);
       return res.json({ 
         success: false,
         message: '用戶不存在',
@@ -1985,9 +2037,37 @@ app.get('/api/weekly-profit-records', async (req, res) => {
       });
     }
 
-    // 獲取用戶信息
-    const user = await UserModel.findByUsername(username);
-    if (!user) {
+    // 先檢查代理系統中的會員信息
+    try {
+      const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!memberResponse.ok) {
+        return res.json({ 
+          success: false,
+          message: '用戶不存在',
+          records: [],
+          totalBetCount: 0,
+          totalProfit: 0
+        });
+      }
+      
+      const memberData = await memberResponse.json();
+      if (!memberData.success) {
+        return res.json({ 
+          success: false,
+          message: '用戶不存在',
+          records: [],
+          totalBetCount: 0,
+          totalProfit: 0
+        });
+      }
+    } catch (error) {
+      console.error('檢查會員信息失敗:', error);
       return res.json({ 
         success: false,
         message: '用戶不存在',

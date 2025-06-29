@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 調用代理系統API獲取會員盤口信息
                 const agentApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:3003' 
-                    : '';
+                    : '/agent';  // 修復：生產環境使用相對路徑
                 
                 fetch(`${agentApiUrl}/api/member/info/${this.username}`)
                     .then(response => response.json())
@@ -632,7 +632,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         sessionStorage.setItem('balance', data.user.balance);
                         this.username = data.user.username;
                         this.balance = data.user.balance;
-                        this.checkLoginStatus();
+                        this.isLoggedIn = true;  // 確保設定登錄狀態
+                        this.checkLoginStatus();  // 這會調用getUserMarketType()
                         this.showNotification('登录成功！');
                     } else {
                         this.showNotification('登录失败，请检查用戶名和密码。');
