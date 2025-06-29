@@ -414,9 +414,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 調用代理系統API獲取會員盤口信息
                 const agentApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:3003' 
-                    : '/agent';  // 修復：生產環境使用相對路徑
+                    : '';  // 生產環境使用相對路徑
                 
-                fetch(`${agentApiUrl}/api/member/info/${this.username}`)
+                fetch(`${agentApiUrl}/api/agent/member/info/${this.username}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.member) {
@@ -427,11 +427,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             console.warn('獲取用戶盤口信息失敗，使用預設D盤');
                             this.userMarketType = 'D';
+                            this.updateOddsDisplay();
                         }
                     })
                     .catch(error => {
                         console.error('獲取用戶盤口信息失敗:', error);
                         this.userMarketType = 'D';
+                        this.updateOddsDisplay();
                     });
             },
             
