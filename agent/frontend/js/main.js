@@ -2164,11 +2164,12 @@ const app = createApp({
                 return;
             }
             
-            // 驗證退水设定
+                            // 驗證退水设定
             if (this.newAgent.rebate_mode === 'percentage') {
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
-                // 修復：使用当前管理代理的實際退水比例作為最大限制
-                const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || 0.041) * 100;
+                // 修復：使用当前管理代理的實際退水比例作為最大限制，根據盤口類型設定默認值
+                const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
+                const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate) * 100;
                 
                 if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
                     this.showMessage(`退水比例必須在 0% - ${maxRebate.toFixed(1)}% 之間`, 'error');
@@ -2409,15 +2410,16 @@ const app = createApp({
         
         // 顯示退水设定模態框
         showRebateSettingsModal(agent) {
-            // 修復：需要從上級代理获取退水限制
-            const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || 0.041;
+            // 修復：需要從上級代理获取退水限制，根據盤口類型設定默認值
+            const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
+            const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate;
             
             this.rebateAgent = {
                 id: agent.id,
                 username: agent.username,
                 rebate_mode: agent.rebate_mode || 'percentage',
                 rebate_percentage: maxRebate, // 使用上級代理的退水限制
-                max_rebate_percentage: agent.max_rebate_percentage || 0.041
+                max_rebate_percentage: agent.max_rebate_percentage || defaultMaxRebate
             };
             
             this.rebateSettings = {
