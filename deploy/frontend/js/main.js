@@ -4053,7 +4053,6 @@ const app = createApp({
                     }, 0);
                     
                     console.log('退水记录载入成功:', this.rebateRecords.length, '筆，總金额:', this.totalRebateAmount);
-                    this.showMessage(`载入 ${this.rebateRecords.length} 筆退水记录`, 'success');
                 } else {
                     console.error('载入退水记录失败:', data.message);
                     this.showMessage(`载入退水记录失败: ${data.message}`, 'error');
@@ -4072,14 +4071,12 @@ const app = createApp({
         filterRebateRecords() {
             // 觸發computed屬性重新计算
             console.log('篩選退水记录，條件:', this.rebateFilters);
-            this.showMessage('篩選條件已更新', 'info');
         },
         
         // 清除退水记录篩選條件
         clearRebateFilters() {
             this.rebateFilters.member = '';
             this.rebateFilters.date = '';
-            this.showMessage('篩選條件已清除', 'info');
         },
         
         // 重设代理密碼
@@ -4691,7 +4688,6 @@ const app = createApp({
                  const data = await response.json();
                  this.loginLogs = data.logs || [];
                  this.calculateLoginLogPagination();
-                 this.showMessage('登錄日誌載入完成', 'success');
                  
              } catch (error) {
                  console.error('載入登錄日誌失敗:', error);

@@ -813,49 +813,68 @@ async function initDatabase() {
     const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0');
     
     if (adminAgents.length === 0) {
-      // 只有在沒有總代理的情況下才創建新的總代理
-      console.log('未找到總代理，開始創建新的總代理...');
+      // 創建兩個獨立的總代理：A盤和D盤
+      console.log('未找到總代理，開始創建A盤和D盤總代理...');
       
-      // 創建新的總代理
-      console.log('創建新的總代理 ti2025...');
+      // 創建A盤總代理
+      console.log('創建A盤總代理 ti2025A...');
       await db.none(`
-        INSERT INTO agents (username, password, level, balance, commission_rate) 
-        VALUES ($1, $2, $3, $4, $5)
-      `, ['ti2025', 'ti2025', 0, 200000, 0.3]);
-      console.log('總代理 ti2025 創建成功，初始餘額 200,000');
+        INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, ['ti2025A', 'ti2025A', 0, 200000, 0.3, 'A', 0.011, 0.011]);
+      console.log('A盤總代理 ti2025A 創建成功，初始餘額 200,000，退水1.1%');
+      
+      // 創建D盤總代理
+      console.log('創建D盤總代理 ti2025D...');
+      await db.none(`
+        INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, ['ti2025D', 'ti2025D', 0, 200000, 0.3, 'D', 0.041, 0.041]);
+      console.log('D盤總代理 ti2025D 創建成功，初始餘額 200,000，退水4.1%');
     } else {
-      console.log(`已存在 ${adminAgents.length} 個總代理，檢查是否需要重命名為ti2025`);
+      console.log(`已存在 ${adminAgents.length} 個總代理，檢查是否需要創建A盤和D盤總代理`);
       
-      // 檢查是否已有名為ti2025的總代理
-      const ti2025Agent = adminAgents.find(agent => agent.username === 'ti2025');
+      // 檢查是否已有A盤和D盤總代理
+      const ti2025AAgent = adminAgents.find(agent => agent.username === 'ti2025A');
+      const ti2025DAgent = adminAgents.find(agent => agent.username === 'ti2025D');
       
-      if (ti2025Agent) {
-        console.log(`總代理ti2025已存在，ID=${ti2025Agent.id}，無需修改`);
+      // 如果沒有A盤總代理，創建一個
+      if (!ti2025AAgent) {
+        console.log('創建A盤總代理 ti2025A...');
+        await db.none(`
+          INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, ['ti2025A', 'ti2025A', 0, 200000, 0.3, 'A', 0.011, 0.011]);
+        console.log('A盤總代理 ti2025A 創建成功');
       } else {
-        // 找到第一個不是ti2025的總代理
-        const agentToRename = adminAgents.find(agent => agent.username !== 'ti2025');
-        
-        if (agentToRename) {
-          console.log(`將總代理 "${agentToRename.username}" 重命名為 "ti2025"`);
-          
-          try {
-            // 修改總代理的用戶名和密碼為ti2025，保留原餘額和其他數據
-            await db.none(`
-              UPDATE agents 
-              SET username = $1, password = $2 
-              WHERE id = $3
-            `, ['ti2025', 'ti2025', agentToRename.id]);
-            
-            console.log(`總代理已重命名為 "ti2025"，ID=${agentToRename.id}`);
-          } catch (renameError) {
-            if (renameError.code === '23505') {
-              console.log(`重命名失敗：ti2025用戶名已存在，跳過重命名操作`);
-            } else {
-              throw renameError;
-            }
-          }
-        } else {
-          console.log(`所有總代理都是ti2025，無需修改`);
+        console.log(`A盤總代理ti2025A已存在，ID=${ti2025AAgent.id}`);
+      }
+      
+      // 如果沒有D盤總代理，創建一個
+      if (!ti2025DAgent) {
+        console.log('創建D盤總代理 ti2025D...');
+        await db.none(`
+          INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, ['ti2025D', 'ti2025D', 0, 200000, 0.3, 'D', 0.041, 0.041]);
+        console.log('D盤總代理 ti2025D 創建成功');
+      } else {
+        console.log(`D盤總代理ti2025D已存在，ID=${ti2025DAgent.id}`);
+      }
+      
+      // 處理舊的ti2025總代理（如果存在）
+      const oldTi2025Agent = adminAgents.find(agent => agent.username === 'ti2025');
+      if (oldTi2025Agent) {
+        console.log(`發現舊的ti2025總代理，將其轉換為D盤總代理`);
+        try {
+          await db.none(`
+            UPDATE agents 
+            SET username = $1, market_type = $2, max_rebate_percentage = $3, rebate_percentage = $4 
+            WHERE id = $5
+          `, ['ti2025D_backup', 'D', 0.041, 0.041, oldTi2025Agent.id]);
+          console.log(`舊ti2025總代理已重命名為ti2025D_backup`);
+        } catch (renameError) {
+          console.log('重命名舊總代理失敗:', renameError.message);
         }
       }
     }
@@ -2473,23 +2492,19 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       finalRebatePercentage = parsedRebatePercentage;
     }
     
-    // 處理盤口類型繼承邏輯
+    // 處理盤口類型繼承邏輯 - 自動繼承，無需選擇
     let finalMarketType = 'D'; // 預設D盤
     
     if (parentAgent) {
-      if (parentAgent.level === 0) {
-        // 總代理創建一級代理：可以選擇盤口類型
-        finalMarketType = market_type || 'D';
-        console.log(`👑 總代理 ${parentAgent.username} 為一級代理 ${username} 選擇盤口類型: ${finalMarketType}`);
-      } else {
-        // 非總代理創建下級：必須繼承上級的盤口類型
-        finalMarketType = parentAgent.market_type || 'D';
-        console.log(`📋 代理 ${username} 繼承上級 ${parentAgent.username} 的盤口類型: ${finalMarketType}`);
-      }
+      // 所有代理都必須繼承上級的盤口類型
+      finalMarketType = parentAgent.market_type || 'D';
+      console.log(`📋 代理 ${username} 自動繼承上級 ${parentAgent.username} 的盤口類型: ${finalMarketType}`);
     } else if (parsedLevel === 0) {
-      // 創建總代理：可以選擇盤口類型
-      finalMarketType = market_type || 'D';
-      console.log(`👑 創建總代理 ${username}，選擇盤口類型: ${finalMarketType}`);
+      // 不應該通過API創建總代理，總代理在系統初始化時創建
+      return res.json({
+        success: false,
+        message: '無法通過此API創建總代理，請聯繫系統管理員'
+      });
     }
     
     // 創建代理
@@ -5739,7 +5754,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       paramIndex++;
     }
 
-    // 查詢代理層級數據 - 修正為只顯示直接下級代理
+    // 查詢代理層級數據 - 只顯示直接下級代理，不包含自己
     const agentLevelQuery = `
       SELECT DISTINCT
         a.id,
@@ -5762,7 +5777,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
           ELSE '代理'
         END as level_name
       FROM agents a
-      WHERE (a.id = $1 OR a.parent_id = $1)
+      WHERE a.parent_id = $1
       ORDER BY a.level, a.username
     `;
     
@@ -5869,7 +5884,15 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       const rebateProfit = rebateAmount;
       const finalProfitLoss = ninthAgentWinLoss + rebateProfit; // 最終盈虧結果
       
+      // 檢查該代理是否有下級代理
+      const hasDownlineQuery = `
+        SELECT COUNT(*) as count FROM agents WHERE parent_id = $1
+      `;
+      const hasDownlineResult = await db.one(hasDownlineQuery, [agent.id]);
+      const hasDownline = parseInt(hasDownlineResult.count) > 0;
+
       const agentData = {
+        id: agent.id, // 添加代理ID
         level: agent.level_name,
         username: agent.username,
         balance: parseFloat(agent.balance) || 0.0,
@@ -5888,7 +5911,8 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         commissionResult: commissionResult,
         actualRebate: actualRebatePercentage, // 實佔退水百分比
         rebateProfit: rebateProfit,
-        finalProfitLoss: finalProfitLoss
+        finalProfitLoss: finalProfitLoss,
+        hasDownline: hasDownline // 添加是否有下級的標記
       };
       
       reportData.push(agentData);

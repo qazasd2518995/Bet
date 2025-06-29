@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 username: '',
                 balance: 0,
                 balanceChanged: false,
+                userMarketType: 'D', // 用戶盤口類型，預設D盤
                 
                 // 游戏状态
                 gameStatus: 'betting', // betting or drawing
@@ -272,11 +273,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.isLoggedIn = true;
                     this.username = username;
                     this.balance = parseFloat(balance) || 0;
+                    // 獲取用戶盤口類型
+                    this.getUserMarketType();
                 } else {
                     console.log('❌ 登录状态无效，显示登录表单');
                     this.isLoggedIn = false;
                     this.username = '';
                     this.balance = 0;
+                    this.userMarketType = 'D';
                 }
             },
             
@@ -401,6 +405,115 @@ document.addEventListener('DOMContentLoaded', function() {
                     .catch(error => {
                         console.error('获取热门投注失败:', error);
                     });
+            },
+            
+            // 獲取用戶盤口類型
+            getUserMarketType() {
+                if (!this.isLoggedIn || !this.username) return;
+                
+                // 調用代理系統API獲取會員盤口信息
+                const agentApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                    ? 'http://localhost:3003' 
+                    : '';
+                
+                fetch(`${agentApiUrl}/api/member/info/${this.username}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.member) {
+                            this.userMarketType = data.member.market_type || 'D';
+                            console.log(`用戶 ${this.username} 盤口類型: ${this.userMarketType}`);
+                            // 更新賠率顯示
+                            this.updateOddsDisplay();
+                        } else {
+                            console.warn('獲取用戶盤口信息失敗，使用預設D盤');
+                            this.userMarketType = 'D';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('獲取用戶盤口信息失敗:', error);
+                        this.userMarketType = 'D';
+                    });
+            },
+            
+            // 更新賠率顯示
+            updateOddsDisplay() {
+                if (this.userMarketType === 'A') {
+                    // A盤賠率：1.1%退水
+                    this.odds = {
+                        sumValue: {
+                            '3': 40.559, '4': 20.769, '5': 15.824, '6': 12.857, '7': 10.879,
+                            '8': 8.901, '9': 7.922, '10': 6.943, '11': 6.943, '12': 7.922,
+                            '13': 8.901, '14': 10.879, '15': 12.857, '16': 15.824, '17': 20.769,
+                            '18': 40.559, '19': 80.119,
+                            big: 1.9, small: 1.9, odd: 1.9, even: 1.9
+                        },
+                        champion: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        runnerup: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        third: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        fourth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        fifth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        sixth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        seventh: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        eighth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        ninth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        tenth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        dragonTiger: { 
+                            dragon: 1.9, 
+                            tiger: 1.9 
+                        },
+                        number: {
+                            first: 9.89,  // 10.0 - 0.11 = 9.89
+                            second: 9.89,
+                            third: 9.89,
+                            fourth: 9.89,
+                            fifth: 9.89,
+                            sixth: 9.89,
+                            seventh: 9.89,
+                            eighth: 9.89,
+                            ninth: 9.89,
+                            tenth: 9.89
+                        }
+                    };
+                    console.log('✅ 已切換至A盤賠率 (1.1%退水)');
+                } else {
+                    // D盤賠率：4.1%退水 (預設)
+                    this.odds = {
+                        sumValue: {
+                            '3': 39.319, '4': 20.139, '5': 15.344, '6': 12.467, '7': 10.549,
+                            '8': 8.631, '9': 7.672, '10': 6.713, '11': 6.713, '12': 7.672,
+                            '13': 8.631, '14': 10.549, '15': 12.467, '16': 15.344, '17': 20.139,
+                            '18': 39.319, '19': 77.679,
+                            big: 1.88, small: 1.88, odd: 1.88, even: 1.88
+                        },
+                        champion: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        runnerup: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        third: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        fourth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        fifth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        sixth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        seventh: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        eighth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        ninth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        tenth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        dragonTiger: { 
+                            dragon: 1.88, 
+                            tiger: 1.88 
+                        },
+                        number: {
+                            first: 9.59,  // 10.0 - 0.41 = 9.59
+                            second: 9.59,
+                            third: 9.59,
+                            fourth: 9.59,
+                            fifth: 9.59,
+                            sixth: 9.59,
+                            seventh: 9.59,
+                            eighth: 9.59,
+                            ninth: 9.59,
+                            tenth: 9.59
+                        }
+                    };
+                    console.log('✅ 已切換至D盤賠率 (4.1%退水)');
+                }
             },
             
             // 选择热门投注

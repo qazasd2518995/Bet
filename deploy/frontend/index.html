@@ -849,17 +849,14 @@
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label class="form-label">盤口類型</label>
-                                                    <select class="form-select" v-model="newAgent.market_type" required :disabled="!(user.level === 0 && currentManagingAgent.id === user.id)">
-                                                        <option value="A" :disabled="!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'A'" :style="(!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'A') ? 'color: #999; font-style: italic;' : ''">
-                                                            {{ (!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'A') ? '🚫 ' : '' }}A盤 (1.1%退水 - 高賠率)
-                                                        </option>
-                                                        <option value="D" :disabled="!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'D'" :style="(!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'D') ? 'color: #999; font-style: italic;' : ''">
-                                                            {{ (!(user.level === 0 && currentManagingAgent.id === user.id) && currentManagingAgent.market_type !== 'D') ? '🚫 ' : '' }}D盤 (4.1%退水 - 標準)
-                                                        </option>
-                                                    </select>
-                                                    <small class="form-text text-muted" v-if="user.level === 0 && currentManagingAgent.id === user.id">總代理可自由選擇盤口類型</small>
-                                                    <small class="form-text text-muted" v-else>
-                                                        盤口類型必須繼承自 {{ currentManagingAgent.username }} ({{ getMarketInfo(currentManagingAgent.market_type || 'D').name }})，灰色選項不可選
+                                                    <div class="form-control-plaintext bg-light border rounded p-2">
+                                                        <i class="fas fa-info-circle text-info me-2"></i>
+                                                        <strong>{{ getMarketInfo(currentManagingAgent.market_type || 'D').name }}</strong>
+                                                        <small class="text-muted ms-2">({{ getMarketInfo(currentManagingAgent.market_type || 'D').description }})</small>
+                                                    </div>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-arrow-down me-1"></i>
+                                                        盤口類型自動繼承自 {{ currentManagingAgent.username }}，無需選擇
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
@@ -1579,12 +1576,19 @@
                                         <tr v-for="agent in reportData.reportData" :key="agent.username">
                                             <td class="text-center">{{ agent.level }}</td>
                                             <td class="text-center">
-                                                <button class="btn btn-link p-0 text-decoration-none fw-bold" 
+                                                <!-- 有下級的代理顯示為可點擊按鈕 -->
+                                                <button v-if="agent.hasDownline" 
+                                                        class="btn btn-link p-0 text-decoration-none fw-bold" 
                                                         @click="enterAgentReport(agent)"
                                                         :class="agent.betCount > 0 ? 'text-primary' : 'text-muted'">
                                                     {{ agent.username }}
                                                     <i class="fas fa-chevron-right ms-1 small"></i>
                                                 </button>
+                                                <!-- 沒有下級的代理顯示為純文字 -->
+                                                <span v-else class="fw-bold text-muted">
+                                                    {{ agent.username }}
+                                                    <i class="fas fa-user ms-1 small" title="沒有下級代理"></i>
+                                                </span>
                                             </td>
                                             <td class="text-end">{{ formatMoney(agent.balance) }}</td>
                                             <td class="text-center">{{ agent.betCount }}</td>

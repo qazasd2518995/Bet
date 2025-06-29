@@ -3081,22 +3081,35 @@ function validateBetLimits(betType, value, amount, userBets = []) {
   let limits;
   
   // 根據投注類型確定限紅配置
-  if (betType === 'number' || (
+  if (betType === 'dragonTiger') {
+    // 龍虎投注 - 5000/5000
+    limits = BET_LIMITS.dragonTiger;
+  } else if (betType === 'sumValue') {
+    // 冠亞軍和值投注
+    if (['big', 'small'].includes(value)) {
+      // 冠亞軍和大小 - 5000/5000
+      limits = BET_LIMITS.sumValueSize;
+    } else if (['odd', 'even'].includes(value)) {
+      // 冠亞軍和單雙 - 5000/5000
+      limits = BET_LIMITS.sumValueOddEven;
+    } else {
+      // 冠亞軍和值 - 1000/2000
+      limits = BET_LIMITS.sumValue;
+    }
+  } else if (betType === 'number' || (
     ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
     !['big', 'small', 'odd', 'even'].includes(value)
   )) {
+    // 1-10車號投注 - 2500/5000
     limits = BET_LIMITS.number;
-  } else if (betType === 'dragonTiger') {
-    limits = BET_LIMITS.dragonTiger;
-  } else if (betType === 'sumValue') {
-    if (['big', 'small'].includes(value)) {
-      limits = BET_LIMITS.sumValueSize;
-    } else if (['odd', 'even'].includes(value)) {
-      limits = BET_LIMITS.sumValueOddEven;
-    } else {
-      limits = BET_LIMITS.sumValue;
-    }
+  } else if (
+    ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'position'].includes(betType) && 
+    ['big', 'small', 'odd', 'even'].includes(value)
+  ) {
+    // 兩面投注（大小單雙）- 5000/5000
+    limits = BET_LIMITS.twoSide;
   } else {
+    // 其他情況使用兩面限額
     limits = BET_LIMITS.twoSide;
   }
   
