@@ -6673,28 +6673,11 @@
                     }
                 },
                 
-                // 获取用户盘口类型 - Render環境優化版本
+                // 获取用户盘口类型 - 已整合到updateGameData中，不再需要單獨調用
                 getUserMarketType() {
-                    const username = sessionStorage.getItem('username');
-                    if (!username) {
-                        console.log('用户未登录，无法获取盘口类型');
-                        return;
-                    }
-                    
-                    console.log(`開始獲取用戶 ${username} 的盤口信息...`);
-                    
-                    // 在Render環境中，直接調用updateGameData來獲取盤口類型
-                    // 這會同時更新遊戲數據和盤口類型
-                    this.updateGameData()
-                        .then(() => {
-                            console.log(`用戶盤口類型已通過遊戲API確認: ${this.userMarketType}`);
-                        })
-                        .catch(error => {
-                            console.error('通過遊戲API獲取盤口類型失敗:', error);
-                            // 使用默認D盤類型，確保系統繼續運行
-                            this.userMarketType = 'D';
-                            this.updateOddsDisplay();
-                        });
+                    console.log('盤口類型獲取已整合到updateGameData()中，跳過單獨調用');
+                    // 不再執行任何操作，盤口類型由updateGameData()統一處理
+                    return Promise.resolve();
                 },
                 
                 // 强制刷新赔率
