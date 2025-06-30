@@ -4396,7 +4396,7 @@ async function getAllDownlineAgents(rootAgentId) {
   const directSubAgents = await AgentModel.findByParentId(rootAgentId, null, null, 1, 1000);
   
   for (const agent of directSubAgents) {
-    allAgents.push(agent);
+    allAgents.push(parseInt(agent.id)); // 只返回ID，確保是整數
     
     // 遞歸獲取該代理的下級代理
     const subAgents = await getAllDownlineAgents(agent.id);
@@ -4868,14 +4868,16 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     } else {
       // 非總代理只能查看自己和直接下級的交易
       const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [agentId]);
-      const memberIds = members.map(m => m.id);
+      const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
+      
+      console.log(`非總代理${agentId}的會員IDs:`, memberIds);
       
       if (memberIds.length > 0) {
         query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
-        params.push(agentId, memberIds);
+        params.push(parseInt(agentId), memberIds);
       } else {
         query += ` AND t.user_type = 'agent' AND t.user_id = $${params.length + 1}`;
-        params.push(agentId);
+        params.push(parseInt(agentId));
       }
     }
     

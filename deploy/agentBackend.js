@@ -4396,7 +4396,7 @@ async function getAllDownlineAgents(rootAgentId) {
   const directSubAgents = await AgentModel.findByParentId(rootAgentId, null, null, 1, 1000);
   
   for (const agent of directSubAgents) {
-    allAgents.push(agent);
+    allAgents.push(parseInt(agent.id)); // 只返回ID，確保是整數
     
     // 遞歸獲取該代理的下級代理
     const subAgents = await getAllDownlineAgents(agent.id);
@@ -4737,11 +4737,28 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
     
     // 獲取該總代理下的所有下級代理ID（包括自己）
     const allDownlineAgents = await getAllDownlineAgents(operatorId);
-    const allAgentIds = [...allDownlineAgents, parseInt(operatorId)]; // 包含自己
+    const allAgentIds = [...allDownlineAgents, parseInt(operatorId)]; // 包含自己，確保是整數
+    
+    console.log(`操作員${operatorId}的下級代理IDs:`, allAgentIds);
+    
+    // 檢查是否有代理ID
+    if (allAgentIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          list: [],
+          total: 0,
+          page: parseInt(page),
+          limit: parseInt(limit)
+        }
+      });
+    }
     
     // 獲取這些代理下的所有會員ID
     const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
-    const memberIds = members.map(m => m.id);
+    const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
+    
+    console.log(`找到會員IDs:`, memberIds);
     
     let query = `
       SELECT t.*, 
@@ -4850,32 +4867,51 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     // 數據隔離：每個代理只能查看自己線下的交易記錄
     if (agent.level === 0) {
       // 總代理只能查看自己盤口線下的交易記錄，不能查看其他盤口
-      // 獲取該總代理下的所有下級代理ID（包括自己）
-      const allDownlineAgents = await getAllDownlineAgents(agentId);
-      const allAgentIds = [...allDownlineAgents, agentId]; // 包含自己
-      
-      // 獲取這些代理下的所有會員ID
-      const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
-      const memberIds = members.map(m => m.id);
-      
-      if (memberIds.length > 0) {
-        query += ` AND ((t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
-        params.push(allAgentIds, memberIds);
-      } else {
-        query += ` AND t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])`;
-        params.push(allAgentIds);
-      }
+          // 獲取該總代理下的所有下級代理ID（包括自己）
+    const allDownlineAgents = await getAllDownlineAgents(agentId);
+    const allAgentIds = [...allDownlineAgents, parseInt(agentId)]; // 包含自己，確保是整數
+    
+    console.log(`代理${agentId}的下級代理IDs:`, allAgentIds);
+    
+    // 檢查是否有代理ID
+    if (allAgentIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          list: [],
+          total: 0,
+          page: parseInt(page),
+          limit: parseInt(limit)
+        }
+      });
+    }
+    
+    // 獲取這些代理下的所有會員ID
+    const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
+    const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
+    
+    console.log(`找到會員IDs:`, memberIds);
+    
+    if (memberIds.length > 0) {
+      query += ` AND ((t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
+      params.push(allAgentIds, memberIds);
+    } else {
+      query += ` AND t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])`;
+      params.push(allAgentIds);
+    }
     } else {
       // 非總代理只能查看自己和直接下級的交易
       const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [agentId]);
-      const memberIds = members.map(m => m.id);
+      const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
+      
+      console.log(`非總代理${agentId}的會員IDs:`, memberIds);
       
       if (memberIds.length > 0) {
         query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
-        params.push(agentId, memberIds);
+        params.push(parseInt(agentId), memberIds);
       } else {
         query += ` AND t.user_type = 'agent' AND t.user_id = $${params.length + 1}`;
-        params.push(agentId);
+        params.push(parseInt(agentId));
       }
     }
     
