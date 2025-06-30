@@ -4754,8 +4754,11 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
       });
     }
     
-    // 獲取這些代理下的所有會員ID
-    const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
+    // 獲取這些代理下的所有會員ID - 使用IN語法替代ANY
+    let memberQuery = 'SELECT id FROM members WHERE agent_id IN (';
+    memberQuery += allAgentIds.map((_, i) => `$${i + 1}`).join(',');
+    memberQuery += ')';
+    const members = await db.any(memberQuery, allAgentIds);
     const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
     
     console.log(`找到會員IDs:`, memberIds);
@@ -4774,10 +4777,23 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
       LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
       LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
       WHERE (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'cs_withdraw')
-      AND ((t.user_type = 'agent' AND t.user_id = ANY($1::int[])) OR (t.user_type = 'member' AND t.user_id = ANY($2::int[])))
     `;
     
-    const params = [allAgentIds, memberIds];
+    // 使用IN語法替代ANY語法
+    const params = [];
+    if (allAgentIds.length > 0 && memberIds.length > 0) {
+      const agentPlaceholders = allAgentIds.map((_, i) => `$${i + 1}`).join(',');
+      const memberPlaceholders = memberIds.map((_, i) => `$${i + 1 + allAgentIds.length}`).join(',');
+      query += ` AND ((t.user_type = 'agent' AND t.user_id IN (${agentPlaceholders})) OR (t.user_type = 'member' AND t.user_id IN (${memberPlaceholders})))`;
+      params.push(...allAgentIds, ...memberIds);
+    } else if (allAgentIds.length > 0) {
+      const agentPlaceholders = allAgentIds.map((_, i) => `$${i + 1}`).join(',');
+      query += ` AND t.user_type = 'agent' AND t.user_id IN (${agentPlaceholders})`;
+      params.push(...allAgentIds);
+    } else {
+      // 沒有代理ID，返回空結果
+      query += ` AND 1=0`;
+    }
     
     // 篩選用戶類型
     if (userType !== 'all') {
@@ -4886,18 +4902,28 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
       });
     }
     
-    // 獲取這些代理下的所有會員ID
-    const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
+    // 獲取這些代理下的所有會員ID - 使用IN語法替代ANY
+    let memberQuery = 'SELECT id FROM members WHERE agent_id IN (';
+    memberQuery += allAgentIds.map((_, i) => `$${i + 1}`).join(',');
+    memberQuery += ')';
+    const members = await db.any(memberQuery, allAgentIds);
     const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
     
     console.log(`找到會員IDs:`, memberIds);
     
-    if (memberIds.length > 0) {
-      query += ` AND ((t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
-      params.push(allAgentIds, memberIds);
+    // 使用IN語法替代ANY語法
+    if (allAgentIds.length > 0 && memberIds.length > 0) {
+      const agentPlaceholders = allAgentIds.map((_, i) => `$${params.length + i + 1}`).join(',');
+      const memberPlaceholders = memberIds.map((_, i) => `$${params.length + allAgentIds.length + i + 1}`).join(',');
+      query += ` AND ((t.user_type = 'agent' AND t.user_id IN (${agentPlaceholders})) OR (t.user_type = 'member' AND t.user_id IN (${memberPlaceholders})))`;
+      params.push(...allAgentIds, ...memberIds);
+    } else if (allAgentIds.length > 0) {
+      const agentPlaceholders = allAgentIds.map((_, i) => `$${params.length + i + 1}`).join(',');
+      query += ` AND t.user_type = 'agent' AND t.user_id IN (${agentPlaceholders})`;
+      params.push(...allAgentIds);
     } else {
-      query += ` AND t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])`;
-      params.push(allAgentIds);
+      // 沒有代理ID，返回空結果
+      query += ` AND 1=0`;
     }
     } else {
       // 非總代理只能查看自己和直接下級的交易
@@ -4907,8 +4933,9 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
       console.log(`非總代理${agentId}的會員IDs:`, memberIds);
       
       if (memberIds.length > 0) {
-        query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
-        params.push(parseInt(agentId), memberIds);
+        const memberPlaceholders = memberIds.map((_, i) => `$${params.length + 2 + i}`).join(',');
+        query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id IN (${memberPlaceholders})))`;
+        params.push(parseInt(agentId), ...memberIds);
       } else {
         query += ` AND t.user_type = 'agent' AND t.user_id = $${params.length + 1}`;
         params.push(parseInt(agentId));
