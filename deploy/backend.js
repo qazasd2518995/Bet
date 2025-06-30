@@ -2361,25 +2361,12 @@ app.get('/api/game-data', async (req, res) => {
             // 如果會員不存在，嘗試作為代理查詢
             console.log(`會員 ${username} 不存在，嘗試作為代理查詢...`);
             
-            const agentResponse = await fetch(`${AGENT_API_URL}/agents/${username}`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (agentResponse.ok) {
-              const agentData = await agentResponse.json();
-              if (agentData.success && agentData.agent) {
-                userMarketType = agentData.agent.market_type || 'D';
-                console.log(`代理 ${username} 盤口類型: ${userMarketType}`);
-              } else {
-                // 如果是已知的測試代理，使用硬編碼配置
-                if (username === 'ti2025A') {
-                  userMarketType = 'A';
-                  console.log(`使用硬編碼配置: ${username} 盤口類型: ${userMarketType}`);
-                }
-              }
+            // 代理系統暫時沒有代理查詢API，直接使用硬編碼配置
+            if (username === 'ti2025A') {
+              userMarketType = 'A';
+              console.log(`使用硬編碼配置: ${username} 盤口類型: ${userMarketType}`);
+            } else {
+              console.log(`未知代理 ${username}，使用默認D盤`);
             }
           }
         }
