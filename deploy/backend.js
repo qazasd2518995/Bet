@@ -1622,15 +1622,18 @@ async function distributeRebate(username, betAmount, period) {
   try {
     console.log(`開始為會員 ${username} 分配退水，下注金額: ${betAmount}`);
     
-    // 計算總退水金額（4.1% 的下注金額）
-    const totalRebateAmount = parseFloat(betAmount) * 0.041;
-    
-    // 獲取會員的代理鏈
+    // 獲取會員的代理鏈來確定最大退水比例
     const agentChain = await getAgentChain(username);
     if (!agentChain || agentChain.length === 0) {
       console.log(`會員 ${username} 沒有代理鏈，退水歸平台所有`);
       return;
     }
+    
+    // 計算總退水金額：使用會員直屬代理的退水比例
+    const directAgent = agentChain[0]; // 第一個是直屬代理
+    const totalRebateAmount = parseFloat(betAmount) * parseFloat(directAgent.rebate_percentage);
+    
+
     
     console.log(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(L${a.level}-${a.rebate_mode}:${(a.rebate_percentage*100).toFixed(1)}%)`));
     
