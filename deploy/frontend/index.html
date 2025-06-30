@@ -6592,14 +6592,31 @@
                 // 根據後端數據更新賠率顯示
                 updateOddsFromServer(oddsData) {
                     try {
-                        // 更新單號賠率顯示
+                        // 根據後端賠率數據確定盤口類型
                         const numberOdds = oddsData.number.first;
+                        const twoSideOdds = oddsData.champion.big;
+                        
+                        // 判斷盤口類型：A盤(9.89/1.9) 或 D盤(9.59/1.88)
+                        let detectedMarketType = 'D'; // 默認D盤
+                        if (numberOdds >= 9.85 && twoSideOdds >= 1.89) {
+                            detectedMarketType = 'A';
+                        }
+                        
+                        // 如果檢測到的盤口類型與當前不一致，進行更新
+                        if (this.userMarketType !== detectedMarketType) {
+                            console.log(`🔄 檢測到盤口類型變更: ${this.userMarketType} → ${detectedMarketType}`);
+                            this.userMarketType = detectedMarketType;
+                        }
+                        
+                        // 同步更新Vue實例中的odds對象
+                        this.odds = { ...oddsData };
+                        
+                        // 更新DOM顯示
                         document.querySelectorAll('.odds[data-bet-type="number"]').forEach(elem => {
                             elem.textContent = numberOdds;
                         });
                         
                         // 更新兩面賠率顯示
-                        const twoSideOdds = oddsData.champion.big;
                         document.querySelectorAll('.odds[data-bet-type="champion"][data-bet-value*="big"], .odds[data-bet-type="champion"][data-bet-value*="small"], .odds[data-bet-type="champion"][data-bet-value*="odd"], .odds[data-bet-type="champion"][data-bet-value*="even"]').forEach(elem => {
                             elem.textContent = twoSideOdds;
                         });
@@ -6642,10 +6659,14 @@
                         }
                         
                         console.log('前端賠率顯示已更新:', {
+                            盤口類型: detectedMarketType,
                             單號: numberOdds,
                             兩面: twoSideOdds,
                             龍虎: dragonTigerOdds
                         });
+                        
+                        // 強制Vue重新渲染以確保數據同步
+                        this.$forceUpdate();
                         
                     } catch (error) {
                         console.error('更新賠率顯示失敗:', error);
@@ -6660,14 +6681,20 @@
                         return;
                     }
                     
-                    console.log(`Render環境：依賴遊戲API動態賠率，用戶: ${username}`);
+                    console.log(`開始獲取用戶 ${username} 的盤口信息...`);
                     
-                    // 在Render環境中，不直接調用代理系統API
-                    // 而是依賴updateGameData()中的動態賠率機制
-                    // 如果後端沒有返回盤口類型，則使用默認D盤
-                    if (!this.userMarketType || this.userMarketType === 'D') {
-                        console.log('使用遊戲API獲取動態賠率，無需單獨調用代理系統');
-                    }
+                    // 在Render環境中，直接調用updateGameData來獲取盤口類型
+                    // 這會同時更新遊戲數據和盤口類型
+                    this.updateGameData()
+                        .then(() => {
+                            console.log(`用戶盤口類型已通過遊戲API確認: ${this.userMarketType}`);
+                        })
+                        .catch(error => {
+                            console.error('通過遊戲API獲取盤口類型失敗:', error);
+                            // 使用默認D盤類型，確保系統繼續運行
+                            this.userMarketType = 'D';
+                            this.updateOddsDisplay();
+                        });
                 },
                 
                 // 强制刷新赔率
@@ -6848,16 +6875,16 @@
                             console.log(`服務器游戏數據: 期数=${serverPeriod}, 倒计时=${serverCountdown}, 狀態=${serverStatus}`);
                             console.log(`本地游戏數據: 期数=${this.currentPeriod}, 倒计时=${this.countdownSeconds}, 狀態=${this.gameStatus}`);
                             
+                            // 先更新盤口類型，再更新賠率顯示
+                            if (data.marketType) {
+                                this.userMarketType = data.marketType;
+                                console.log(`確認用戶盤口類型: ${data.marketType}`);
+                            }
+                            
                             // 如果返回了賠率數據，更新前端賠率顯示
                             if (data.odds) {
                                 this.updateOddsFromServer(data.odds);
                                 console.log('賠率已根據後端數據更新');
-                            }
-                            
-                            // 如果返回了盤口類型，更新用戶盤口信息
-                            if (data.marketType) {
-                                this.userMarketType = data.marketType;
-                                console.log(`確認用戶盤口類型: ${data.marketType}`);
                             }
                             
                             // 如果期数變了，完全同步服務器狀態
