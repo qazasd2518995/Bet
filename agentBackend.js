@@ -5816,6 +5816,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         a.level,
         a.balance,
         a.rebate_percentage,
+        a.market_type,
         0 as depth,
         CASE 
           WHEN a.level = 0 THEN '客服'
@@ -5901,9 +5902,13 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
           COALESCE(SUM(bh.amount), 0) as bet_amount,
           COALESCE(SUM(bh.amount), 0) as valid_amount,
           COALESCE(SUM(CASE WHEN bh.win THEN bh.win_amount - bh.amount ELSE -bh.amount END), 0) as member_win_loss,
-          COALESCE(SUM(bh.amount * 0.02), 0) as rebate_amount
+          COALESCE(SUM(bh.amount * CASE 
+            WHEN a.market_type = 'A' THEN 0.011 
+            ELSE 0.041 
+          END), 0) as rebate_amount
         FROM bet_history bh
         INNER JOIN members m ON bh.username = m.username
+        INNER JOIN agents a ON m.agent_id = a.id
         WHERE m.agent_id = $1
         ${memberTimeWhereClause}
       `;
@@ -5932,7 +5937,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       const commissionRate = 0; // 佔成比例：固定顯示0，還沒設置占成機制
       const commissionAmount = 0; // 佔成金額：固定顯示0
       const commissionResult = 0; // 佔成結果：固定顯示0
-      const actualRebatePercentage = (agent.rebate_percentage || 0.02) * 100; // 實佔退水百分比
+      // 根據市場類型計算正確的退水基準，然後乘以代理的退水比例
+      const marketBaseRebate = agent.market_type === 'A' ? 0.011 : 0.041; // A盤1.1%，D盤4.1%
+      const agentRebateRate = parseFloat(agent.rebate_percentage) || 0;
+      const actualRebatePercentage = marketBaseRebate * 100; // 實佔退水百分比（顯示市場基準）
       const actualRebate = rebateAmount; // 實佔退水金額
       // 賺水：佣金機制未啟用時單純為退水
       const rebateProfit = rebateAmount;
