@@ -4740,7 +4740,7 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
     const allAgentIds = [...allDownlineAgents, parseInt(operatorId)]; // 包含自己
     
     // 獲取這些代理下的所有會員ID
-    const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1)', [allAgentIds]);
+    const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
     const memberIds = members.map(m => m.id);
     
     let query = `
@@ -4757,7 +4757,7 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
       LEFT JOIN agents a ON t.user_type = 'agent' AND t.user_id = a.id
       LEFT JOIN members m ON t.user_type = 'member' AND t.user_id = m.id
       WHERE (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'cs_withdraw')
-      AND ((t.user_type = 'agent' AND t.user_id = ANY($1)) OR (t.user_type = 'member' AND t.user_id = ANY($2)))
+      AND ((t.user_type = 'agent' AND t.user_id = ANY($1::int[])) OR (t.user_type = 'member' AND t.user_id = ANY($2::int[])))
     `;
     
     const params = [allAgentIds, memberIds];
@@ -4855,14 +4855,14 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
       const allAgentIds = [...allDownlineAgents, agentId]; // 包含自己
       
       // 獲取這些代理下的所有會員ID
-      const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1)', [allAgentIds]);
+      const members = await db.any('SELECT id FROM members WHERE agent_id = ANY($1::int[])', [allAgentIds]);
       const memberIds = members.map(m => m.id);
       
       if (memberIds.length > 0) {
-        query += ` AND ((t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1})) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2})))`;
+        query += ` AND ((t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
         params.push(allAgentIds, memberIds);
       } else {
-        query += ` AND t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1})`;
+        query += ` AND t.user_type = 'agent' AND t.user_id = ANY($${params.length + 1}::int[])`;
         params.push(allAgentIds);
       }
     } else {
@@ -4871,7 +4871,7 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
       const memberIds = members.map(m => m.id);
       
       if (memberIds.length > 0) {
-        query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id IN ($${params.length + 2}:csv)))`;
+        query += ` AND ((t.user_type = 'agent' AND t.user_id = $${params.length + 1}) OR (t.user_type = 'member' AND t.user_id = ANY($${params.length + 2}::int[])))`;
         params.push(agentId, memberIds);
       } else {
         query += ` AND t.user_type = 'agent' AND t.user_id = $${params.length + 1}`;
