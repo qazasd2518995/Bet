@@ -2357,8 +2357,8 @@ app.get('/api/game-data', async (req, res) => {
           if (memberData.success && memberData.member) {
             userMarketType = memberData.member.market_type || 'D';
             console.log(`會員 ${username} 盤口類型: ${userMarketType}`);
-          } else {
-            // 如果會員不存在，嘗試作為代理查詢
+          } else if (!memberData.success) {
+            // 如果會員不存在(success=false)，嘗試作為代理查詢
             console.log(`會員 ${username} 不存在，嘗試作為代理查詢...`);
             
             // 代理系統暫時沒有代理查詢API，直接使用硬編碼配置
