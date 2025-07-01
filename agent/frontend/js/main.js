@@ -1432,7 +1432,7 @@ const app = createApp({
                 const agentId = this.currentMemberManagingAgent.id || this.currentManagingAgent.id;
                 console.log('🔄 載入層級會員管理數據...', { agentId });
                 
-                const response = await axios.get(`${API_BASE_URL}/api/agent/hierarchical-members`, {
+                const response = await axios.get(`${API_BASE_URL}/hierarchical-members`, {
                     params: {
                         agentId: agentId,
                         status: this.memberFilters.status !== '-1' ? this.memberFilters.status : undefined,
@@ -1844,15 +1844,15 @@ const app = createApp({
                 const url = `${API_BASE_URL}/bets?${params.toString()}`;
                 console.log('📡 请求URL:', url);
                 
-                const response = await fetch(url);
+                const response = await axios.get(url);
                 
-                if (!response.ok) {
-                    console.error('❌ 搜索下注记录失败:', response.status);
+                if (!response.data.success) {
+                    console.error('❌ 搜索下注记录失败:', response.data.message);
                     this.bets = [];
                     return;
                 }
                 
-                const data = await response.json();
+                const data = response.data;
                 if (data.success) {
                     this.bets = data.bets || [];
                     console.log('✅ 获取下注记录成功:', this.bets.length, '筆');
@@ -4163,15 +4163,15 @@ const app = createApp({
             this.loading = true;
             try {
                 console.log('加載存款记录...');
-                const response = await fetch(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=deposit&page=${page}&limit=${this.depositPagination.limit}`);
+                const response = await axios.get(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=deposit&page=${page}&limit=${this.depositPagination.limit}`);
                 
-                if (!response.ok) {
-                    console.error('加載存款记录失败:', response.status);
+                if (!response.data.success) {
+                    console.error('加載存款记录失败:', response.data.message);
                     this.depositRecords = [];
                     return;
                 }
                 
-                const data = await response.json();
+                const data = response.data;
                 if (data.success) {
                     this.depositRecords = data.data.list || [];
                     this.depositPagination = {
@@ -4197,15 +4197,15 @@ const app = createApp({
             this.loading = true;
             try {
                 console.log('加載提款记录...');
-                const response = await fetch(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=withdraw&page=${page}&limit=${this.withdrawPagination.limit}`);
+                const response = await axios.get(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=withdraw&page=${page}&limit=${this.withdrawPagination.limit}`);
                 
-                if (!response.ok) {
-                    console.error('加載提款记录失败:', response.status);
+                if (!response.data.success) {
+                    console.error('加載提款记录失败:', response.data.message);
                     this.withdrawRecords = [];
                     return;
                 }
                 
-                const data = await response.json();
+                const data = response.data;
                 if (data.success) {
                     this.withdrawRecords = data.data.list || [];
                     this.withdrawPagination = {
@@ -4233,15 +4233,15 @@ const app = createApp({
             this.loading = true;
             try {
                 console.log('载入退水记录...');
-                const response = await fetch(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=rebate`);
+                const response = await axios.get(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=rebate`);
                 
-                if (!response.ok) {
-                    console.error('载入退水记录失败:', response.status);
+                if (!response.data.success) {
+                    console.error('载入退水记录失败:', response.data.message);
                     this.rebateRecords = [];
                     return;
                 }
                 
-                const data = await response.json();
+                const data = response.data;
                 console.log('退水记录API回應:', data);
                 
                 if (data.success) {
@@ -4544,19 +4544,8 @@ const app = createApp({
 
                  console.log('📊 前端: 調用代理層級分析API');
                  
-                 const response = await fetch(`${this.API_BASE_URL}/reports/agent-analysis?${params.toString()}`, {
-                     method: 'GET',
-                     headers: {
-                         'Content-Type': 'application/json',
-                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
-                     }
-                 });
-
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-
-                 const data = await response.json();
+                 const response = await axios.get(`${API_BASE_URL}/reports/agent-analysis?${params.toString()}`);
+                 const data = response.data;
                  
                  console.log('📊 前端: 接收到報表數據', data);
                  
@@ -4945,19 +4934,8 @@ const app = createApp({
                      endDate: this.loginLogFilters.endDate
                  });
 
-                 const response = await fetch(`${this.API_BASE_URL}/login-logs?${params.toString()}`, {
-                     method: 'GET',
-                     headers: {
-                         'Content-Type': 'application/json',
-                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
-                     }
-                 });
-
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-
-                 const data = await response.json();
+                 const response = await axios.get(`${API_BASE_URL}/login-logs?${params.toString()}`);
+                 const data = response.data;
                  this.loginLogs = data.logs || [];
                  this.calculateLoginLogPagination();
                  
