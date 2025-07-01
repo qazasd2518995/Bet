@@ -1125,7 +1125,10 @@
                                             <td>{{ member.id }}</td>
                                             <td>{{ member.username }}</td>
                                             <td v-if="memberViewMode === 'downline'">
-                                                <span class="badge bg-secondary">{{ member.agentUsername || '未知代理' }}</span>
+                                                <div class="d-flex flex-column">
+                                                    <span class="badge bg-secondary">{{ member.agentUsername || '未知代理' }}</span>
+                                                    <small class="text-muted">{{ member.agentLevelName || '未知級別' }}</small>
+                                                </div>
                                             </td>
                                             <td>{{ formatMoney(member.balance) }}</td>
                                             <td>

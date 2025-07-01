@@ -268,7 +268,8 @@ app.post('/api/member/login', async (req, res) => {
               username: memberData.member.username,
               balance: memberData.member.balance,
               agent_id: memberData.member.agent_id,
-              status: memberData.member.status
+              status: memberData.member.status,
+              market_type: memberData.member.market_type || 'D'
             },
             sessionToken: sessionToken // 新的會話token
           });
@@ -1671,8 +1672,9 @@ async function distributeRebate(username, betAmount, period) {
           remainingRebate -= agentRebateAmount;
         }
       } else if (agent.rebate_mode === 'none') {
-        // 全退模式：該代理不拿退水，留給上級
+        // 全退模式：該代理不拿退水，跳過此代理，繼續分配給上級
         agentRebateAmount = 0;
+        console.log(`代理 ${agent.username} 設置為全退模式，跳過，退水繼續分配給上級`);
       }
       
       if (agentRebateAmount > 0) {

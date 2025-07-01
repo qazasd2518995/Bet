@@ -4321,12 +4321,48 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
     // 獲取所有這些代理的會員
     let allMembers = [];
     
-    // 創建代理ID到代理資訊的映射
+    // 創建代理ID到代理資訊的映射，包含完整的代理信息
     const agentMap = {};
-    agentMap[rootAgentId] = { username: '本代理' }; // 根代理
+    
+    // 獲取根代理信息
+    const rootAgent = await AgentModel.findById(rootAgentId);
+    agentMap[rootAgentId] = { 
+      username: rootAgent ? rootAgent.username : '未知代理',
+      level: rootAgent ? rootAgent.level : 0,
+      level_name: rootAgent ? getLevelName(rootAgent.level) : '未知級別'
+    };
+    
+    // 添加下級代理信息
     downlineAgents.forEach(agent => {
-      agentMap[agent.id] = { username: agent.username };
+      agentMap[agent.id] = { 
+        username: agent.username,
+        level: agent.level,
+        level_name: getLevelName(agent.level)
+      };
     });
+    
+    // 輔助函數：獲取級別名稱
+    function getLevelName(level) {
+      const levels = {
+        0: '客服',
+        1: '一級代理', 
+        2: '二級代理',
+        3: '三級代理',
+        4: '四級代理',
+        5: '五級代理',
+        6: '六級代理',
+        7: '七級代理',
+        8: '八級代理',
+        9: '九級代理',
+        10: '十級代理',
+        11: '十一級代理',
+        12: '十二級代理',
+        13: '十三級代理',
+        14: '十四級代理',
+        15: '十五級代理'
+      };
+      return levels[level] || `${level}級代理`;
+    }
     
     for (const agentId of allAgentIds) {
       const { status, keyword } = req.query;
@@ -4344,7 +4380,9 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
       allMembers = allMembers.concat(filteredMembers.map(member => ({
         ...member,
         agentId: agentId,
-        agentUsername: agentMap[agentId]?.username || '未知代理'
+        agentUsername: agentMap[agentId]?.username || '未知代理',
+        agentLevel: agentMap[agentId]?.level || 0,
+        agentLevelName: agentMap[agentId]?.level_name || '未知級別'
       })));
     }
     
@@ -6043,7 +6081,13 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             WHEN a.level = 7 THEN '七級代理'
             WHEN a.level = 8 THEN '八級代理'
             WHEN a.level = 9 THEN '九級代理'
-            ELSE '代理'
+            WHEN a.level = 10 THEN '十級代理'
+            WHEN a.level = 11 THEN '十一級代理'
+            WHEN a.level = 12 THEN '十二級代理'
+            WHEN a.level = 13 THEN '十三級代理'
+            WHEN a.level = 14 THEN '十四級代理'
+            WHEN a.level = 15 THEN '十五級代理'
+            ELSE CONCAT(a.level, '級代理')
           END as level_name
         FROM agents a
         WHERE a.parent_id = $1

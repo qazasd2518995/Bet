@@ -273,8 +273,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.isLoggedIn = true;
                     this.username = username;
                     this.balance = parseFloat(balance) || 0;
-                    // 獲取用戶盤口類型
-                    this.getUserMarketType();
+                    
+                    // 首先從sessionStorage讀取市場類型
+                    const savedMarketType = sessionStorage.getItem('userMarketType');
+                    if (savedMarketType) {
+                        this.userMarketType = savedMarketType;
+                        console.log(`✅ 從sessionStorage讀取盤口類型: ${this.userMarketType}`);
+                        this.updateOddsDisplay(); // 立即更新賠率顯示
+                    } else {
+                        // 如果沒有保存的市場類型，獲取用戶盤口類型
+                        this.getUserMarketType();
+                    }
                 } else {
                     console.log('❌ 登录状态无效，显示登录表单');
                     this.isLoggedIn = false;
@@ -647,10 +656,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     if (data.success) {
                         sessionStorage.setItem('isLoggedIn', 'true');
-                        sessionStorage.setItem('username', data.user.username);
-                        sessionStorage.setItem('balance', data.user.balance);
-                        this.username = data.user.username;
-                        this.balance = data.user.balance;
+                        sessionStorage.setItem('username', data.member.username);
+                        sessionStorage.setItem('balance', data.member.balance);
+                        // 儲存市場類型到sessionStorage
+                        if (data.member.market_type) {
+                            sessionStorage.setItem('userMarketType', data.member.market_type);
+                            this.userMarketType = data.member.market_type;
+                        }
+                        this.username = data.member.username;
+                        this.balance = data.member.balance;
                         this.isLoggedIn = true;  // 確保設定登錄狀態
                         this.checkLoginStatus();  // 這會調用getUserMarketType()
                         this.showNotification('登录成功！');
