@@ -5195,9 +5195,35 @@ const app = createApp({
                     return;
                 }
                 
-                // 直接顯示自定義Modal
-                modalElement.style.display = 'block';
-                console.log('✅ Modal已顯示！');
+                // 強制顯示自定義Modal，確保覆蓋所有可能的CSS
+                modalElement.style.setProperty('display', 'block', 'important');
+                modalElement.style.setProperty('visibility', 'visible', 'important');
+                modalElement.style.setProperty('opacity', '1', 'important');
+                modalElement.style.setProperty('pointer-events', 'auto', 'important');
+                
+                // 確保內容區域也正確顯示
+                const modalContent = modalElement.children[0];
+                if (modalContent) {
+                    modalContent.style.setProperty('visibility', 'visible', 'important');
+                    modalContent.style.setProperty('opacity', '1', 'important');
+                }
+                
+                console.log('✅ Modal強制顯示！');
+                
+                // 添加測試
+                setTimeout(() => {
+                    const rect = modalElement.getBoundingClientRect();
+                    console.log('Modal位置和尺寸:', {
+                        display: window.getComputedStyle(modalElement).display,
+                        visibility: window.getComputedStyle(modalElement).visibility,
+                        opacity: window.getComputedStyle(modalElement).opacity,
+                        zIndex: window.getComputedStyle(modalElement).zIndex,
+                        width: rect.width,
+                        height: rect.height,
+                        top: rect.top,
+                        left: rect.left
+                    });
+                }, 100);
                 
                 // 並行載入數據
                 const [memberResponse, configsResponse] = await Promise.all([
