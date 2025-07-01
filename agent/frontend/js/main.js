@@ -5060,6 +5060,33 @@ const app = createApp({
               if (!ipAddress) return '-';
               // 移除IPv6映射的前綴 ::ffff:
               return ipAddress.replace(/^::ffff:/i, '');
+          },
+
+          // 查看會員下注記錄
+          async viewMemberBets(memberUsername) {
+              try {
+                  console.log('🎯 查看會員下注記錄:', memberUsername);
+                  
+                  // 切換到下注記錄頁面
+                  this.activeTab = 'stats';
+                  
+                  // 等待頁面切換完成
+                  await this.$nextTick();
+                  
+                  // 設置篩選條件為該會員
+                  this.betFilters.member = memberUsername;
+                  this.betFilters.viewScope = 'direct'; // 設置為直屬會員模式
+                  
+                  // 載入直屬會員數據並搜索
+                  await this.loadDirectMembersForBets();
+                  await this.searchBets();
+                  
+                  this.showMessage(`正在查看 ${memberUsername} 的下注記錄`, 'info');
+                  
+              } catch (error) {
+                  console.error('查看會員下注記錄失敗:', error);
+                  this.showMessage('查看會員下注記錄失敗: ' + error.message, 'error');
+              }
           }
     },
 
@@ -5269,7 +5296,7 @@ const app = createApp({
                 this.fetchDashboardData();
             }
             if (newTab === 'members') {
-                this.searchMembers();
+                this.loadHierarchicalMembers();
             }
             if (newTab === 'agents') {
                 this.searchAgents();
