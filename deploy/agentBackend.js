@@ -4677,15 +4677,14 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
       });
     }
     
-    // 獲取總代理 (level = 0) - 只取第一個
-    const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0 ORDER BY id LIMIT 1');
-    if (adminAgents.length === 0) {
+    // 獲取客服代理（操作員）
+    const csAgent = await AgentModel.findById(operatorId);
+    if (!csAgent) {
       return res.json({
         success: false,
-        message: '系統錯誤：未找到總代理'
+        message: '客服用戶不存在'
       });
     }
-    const adminAgent = adminAgents[0];
     
     // 獲取目標代理
     const targetAgent = await AgentModel.findById(targetAgentId);
@@ -4700,20 +4699,38 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
     let result;
     
     if (transferType === 'deposit') {
-      // 存款：總代理 -> 目標代理
-      console.log(`執行存款操作: 總代理(${adminAgent.username}) -> 目標代理(${targetAgent.username}), 金額=${transferAmount}`);
+      // 存款：客服 -> 目標代理
+      console.log(`執行存款操作: 客服(${csAgent.username}) -> 目標代理(${targetAgent.username}), 金額=${transferAmount}`);
+      
+      // 檢查客服餘額是否足夠
+      if (parseFloat(csAgent.balance) < transferAmount) {
+        return res.json({
+          success: false,
+          message: '客服餘額不足'
+        });
+      }
+      
       result = await PointTransferModel.transferFromAgentToAgent(
-        adminAgent.id, 
+        operatorId, 
         targetAgentId, 
         transferAmount, 
         description || '客服存款操作'
       );
     } else if (transferType === 'withdraw') {
-      // 提款：目標代理 -> 總代理
-      console.log(`執行提款操作: 目標代理(${targetAgent.username}) -> 總代理(${adminAgent.username}), 金額=${transferAmount}`);
+      // 提款：目標代理 -> 客服
+      console.log(`執行提款操作: 目標代理(${targetAgent.username}) -> 客服(${csAgent.username}), 金額=${transferAmount}`);
+      
+      // 檢查目標代理餘額是否足夠
+      if (parseFloat(targetAgent.balance) < transferAmount) {
+        return res.json({
+          success: false,
+          message: '目標代理餘額不足'
+        });
+      }
+      
       result = await PointTransferModel.transferFromAgentToAgent(
         targetAgentId, 
-        adminAgent.id, 
+        operatorId, 
         transferAmount, 
         description || '客服提款操作'
       );
@@ -4726,6 +4743,9 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
     
     console.log(`客服代理點數轉移成功`);
     
+    // 獲取更新後的客服餘額
+    const updatedCSAgent = await AgentModel.findById(operatorId);
+    
     res.json({
       success: true,
       message: '代理點數轉移成功',
@@ -4733,7 +4753,8 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
         id: result.toAgent.id,
         username: result.toAgent.username,
         balance: result.toAgent.balance
-      }
+      },
+      csBalance: updatedCSAgent.balance // 返回客服最新餘額
     });
     
   } catch (error) {
@@ -4758,6 +4779,15 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
       return res.json({
         success: false,
         message: '權限不足，只有客服可以執行此操作'
+      });
+    }
+    
+    // 獲取客服代理（操作員）
+    const csAgent = await AgentModel.findById(operatorId);
+    if (!csAgent) {
+      return res.json({
+        success: false,
+        message: '客服用戶不存在'
       });
     }
     
@@ -4791,23 +4821,70 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
     let result;
     
     if (transferType === 'deposit') {
-      // 存款：代理 -> 會員
-      console.log(`執行存款操作: 代理(${agent.username}) -> 會員(${member.username}), 金額=${transferAmount}`);
-      result = await PointTransferModel.transferFromAgentToMember(
-        agentId, 
-        member.id, 
-        transferAmount, 
-        description || '客服存款操作'
-      );
+      // 存款：客服 -> 會員（先從客服轉給代理，再從代理轉給會員）
+      console.log(`執行存款操作: 客服(${csAgent.username}) -> 會員(${member.username}), 金額=${transferAmount}`);
+      
+      // 檢查客服餘額是否足夠
+      if (parseFloat(csAgent.balance) < transferAmount) {
+        return res.json({
+          success: false,
+          message: '客服餘額不足'
+        });
+      }
+      
+      // 開始數據庫事務
+      result = await db.tx(async t => {
+        // 1. 客服轉給代理
+        await PointTransferModel.transferFromAgentToAgent(
+          operatorId, 
+          agentId, 
+          transferAmount, 
+          `客服給${member.username}存款-轉給代理`
+        );
+        
+        // 2. 代理轉給會員
+        const memberResult = await PointTransferModel.transferFromAgentToMember(
+          agentId, 
+          member.id, 
+          transferAmount, 
+          description || '客服存款操作'
+        );
+        
+        return memberResult;
+      });
     } else if (transferType === 'withdraw') {
-      // 提款：會員 -> 代理
-      console.log(`執行提款操作: 會員(${member.username}) -> 代理(${agent.username}), 金額=${transferAmount}`);
-      result = await PointTransferModel.transferFromMemberToAgent(
-        member.id, 
-        agentId, 
-        transferAmount, 
-        description || '客服提款操作'
-      );
+      // 提款：會員 -> 客服（先從會員轉給代理，再從代理轉給客服）
+      console.log(`執行提款操作: 會員(${member.username}) -> 客服(${csAgent.username}), 金額=${transferAmount}`);
+      
+      // 檢查會員餘額是否足夠
+      if (parseFloat(member.balance) < transferAmount) {
+        return res.json({
+          success: false,
+          message: '會員餘額不足'
+        });
+      }
+      
+      // 開始數據庫事務
+      result = await db.tx(async t => {
+        // 1. 會員轉給代理
+        await PointTransferModel.transferFromMemberToAgent(
+          member.id, 
+          agentId, 
+          transferAmount, 
+          `客服從${member.username}提款-先給代理`
+        );
+        
+        // 2. 代理轉給客服
+        await PointTransferModel.transferFromAgentToAgent(
+          agentId, 
+          operatorId, 
+          transferAmount, 
+          description || '客服提款操作'
+        );
+        
+        // 返回更新後的會員資料
+        return await MemberModel.findById(member.id);
+      });
     } else {
       return res.json({
         success: false,
@@ -4817,8 +4894,9 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
     
     console.log(`客服會員點數轉移成功`);
     
-    // 重新獲取最新的會員資料
+    // 重新獲取最新的會員和客服資料
     const updatedMember = await MemberModel.findById(member.id);
+    const updatedCSAgent = await AgentModel.findById(operatorId);
     
     res.json({
       success: true,
@@ -4827,7 +4905,8 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
         id: updatedMember.id,
         username: updatedMember.username,
         balance: updatedMember.balance
-      }
+      },
+      csBalance: updatedCSAgent.balance // 返回客服最新餘額
     });
     
   } catch (error) {

@@ -4091,6 +4091,13 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('余额调整成功!', 'success');
                     
+                    // 更新客服餘額（如果後端返回了csBalance）
+                    if (response.data.csBalance !== undefined) {
+                        this.user.balance = response.data.csBalance;
+                        localStorage.setItem('agent_user', JSON.stringify(this.user));
+                        console.log('✅ 客服餘額已即時更新:', this.formatMoney(this.user.balance));
+                    }
+                    
                     // 保存操作類型和代理ID，用於後續刷新
                     const wasMembeOperation = this.csOperation.operationTarget === 'member';
                     const targetAgentId = this.csOperation.targetAgentId;
@@ -4130,9 +4137,6 @@ const app = createApp({
                     
                     // 执行所有刷新操作
                     await Promise.all(refreshPromises);
-                    
-                    // 刷新当前用戶余额（右上角顯示）
-                    await this.refreshUserBalance();
                     
                     console.log('✅ 客服操作完成，所有數據已刷新');
                 } else {
