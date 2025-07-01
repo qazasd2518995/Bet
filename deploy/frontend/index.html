@@ -7210,12 +7210,22 @@
                         .catch(err => {
                             console.error('下注失败', err);
                             
+                            // 發生錯誤時清除所有投注項目的金額，讓用戶能重新設定
+                            this.selectedBets.forEach(bet => {
+                                bet.amount = 0;
+                            });
+                            
                             // 顯示清潔的错误信息
                             let errorMessage = '下注失败，请稍後再試';
                             if (err.message) {
                                 // 提取純淨的错误訊息，去除HTTP狀態碼和JSON格式
                                 if (err.message.includes('投注金额不能少於')) {
                                     errorMessage = '投注金额不能少於1元';
+                                } else if (err.message.includes('單注金額不能超過')) {
+                                    // 提取限制金額信息
+                                    errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
+                                    // 清除投注項目的金額，強制用戶重新設定
+                                    errorMessage += '，請重新輸入金額後再下注';
                                 } else if (err.message.includes('HTTP')) {
                                     // 嘗試提取错误訊息的核心部分
                                     const match = err.message.match(/:"([^"]+)"/);
@@ -7483,11 +7493,9 @@
                 
                 // 新的下注确认流程方法
                 showBetConfirmation() {
-                    // 為每個選定的投注设置金额
+                    // 為每個選定的投注设置金额（總是使用最新的betAmount）
                     this.selectedBets.forEach(bet => {
-                        if (!bet.amount || bet.amount <= 0) {
-                            bet.amount = this.betAmount;
-                        }
+                        bet.amount = this.betAmount;
                     });
                     this.showBetModal = true;
                 },
