@@ -2970,109 +2970,102 @@
                 </div>
             </div>
             <!-- 強化版自定義限紅Modal -->
-            <div id="adjustBettingLimitModal" style="display: none !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background-color: rgba(0,0,0,0.5) !important; z-index: 999999 !important; pointer-events: auto !important;">
-                <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; background: white !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important; width: 90% !important; max-width: 800px !important; max-height: 90vh !important; overflow-y: auto !important; pointer-events: auto !important;">
-                    <!-- Modal Header -->
-                    <div style="padding: 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; background-color: #f8f9fa; border-radius: 8px 8px 0 0;">
-                        <h5 style="margin: 0; font-weight: 600; color: #495057;">
-                            <i class="fas fa-sliders-h me-2"></i>調整會員限紅
-                        </h5>
-                        <button type="button" onclick="closeBettingLimitModal()" style="background: none; border: none; font-size: 24px; color: #6c757d; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
-                    </div>
-                    
-                    <!-- Modal Body -->
-                    <div style="padding: 20px;">
-                        <!-- 載入狀態 -->
-                        <div v-if="bettingLimitData.loading" style="text-align: center; padding: 40px;">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">載入中...</span>
-                            </div>
-                            <p style="margin-top: 15px; margin-bottom: 0;">載入限紅配置中...</p>
+            <div class="modal fade" id="adjustBettingLimitModal" tabindex="-1" aria-labelledby="adjustBettingLimitModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="adjustBettingLimitModalLabel">
+                                <i class="fas fa-sliders-h me-2"></i>調整會員限紅
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        
-                        <!-- 主要內容 -->
-                        <div v-else>
-                            <!-- 會員信息 -->
-                            <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
-                                <h6 style="margin: 0 0 10px 0; color: #0c5460;">
-                                    <i class="fas fa-user me-2"></i>會員信息
-                                </h6>
-                                <p style="margin: 5px 0;"><strong>用戶名:</strong> {{ bettingLimitData.member.username }}</p>
-                                <p style="margin: 5px 0;"><strong>當前限紅等級:</strong> 
-                                    <span style="background-color: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">{{ bettingLimitData.member.levelDisplayName }}</span>
-                                </p>
-                                <p style="margin: 5px 0 0 0;"><strong>說明:</strong> {{ bettingLimitData.member.description }}</p>
-                            </div>
-
-                            <!-- 限紅等級選擇 -->
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">選擇新的限紅等級</label>
-                                <select v-model="bettingLimitData.newLimitLevel" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
-                                    <option value="">請選擇限紅等級</option>
-                                    <option v-for="config in bettingLimitData.configs" 
-                                            :key="config.level_name" 
-                                            :value="config.level_name">
-                                        {{ config.level_display_name }} - {{ config.description }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <!-- 限紅配置預覽 -->
-                            <div v-if="bettingLimitData.newLimitLevel" style="margin-bottom: 20px;">
-                                <h6 style="margin-bottom: 15px;">
-                                    <i class="fas fa-eye me-2"></i>限紅配置預覽
-                                </h6>
-                                <div style="overflow-x: auto;">
-                                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #dee2e6;">
-                                        <thead>
-                                            <tr style="background-color: #f8f9fa;">
-                                                <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">玩法</th>
-                                                <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">單注最高</th>
-                                                <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left;">單期限額</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="(config, key) in selectedLimitConfig" :key="key">
-                                                <td style="padding: 10px; border: 1px solid #dee2e6;">{{ formatBetTypeName(key) }}</td>
-                                                <td style="padding: 10px; border: 1px solid #dee2e6; color: #198754; font-weight: 600;">{{ formatMoney(config.maxBet) }}</td>
-                                                <td style="padding: 10px; border: 1px solid #dee2e6; color: #0d6efd; font-weight: 600;">{{ formatMoney(config.periodLimit) }}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                        <div class="modal-body">
+                            <!-- 載入狀態 -->
+                            <div v-if="bettingLimitData.loading" class="text-center p-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">載入中...</span>
                                 </div>
-                                <div style="background-color: #fff3cd; border: 1px solid #ffecb5; border-radius: 6px; padding: 15px; margin-top: 15px;">
-                                    <small>
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        <strong>注意事項：</strong><br>
-                                        • 單注最高：每筆投注的最高金額限制<br>
-                                        • 單期限額：每個開獎期同類型投注的累計限額<br>
-                                        • 最低投注金額統一為1元<br>
-                                        • 超過限額的投注將被系統拒絕
-                                    </small>
-                                </div>
+                                <p class="mt-2">載入限紅配置中...</p>
                             </div>
+                            
+                            <!-- 主要內容 -->
+                            <div v-else>
+                                <!-- 會員信息 -->
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-user me-2"></i>會員信息</h6>
+                                    <p class="mb-1"><strong>用戶名:</strong> {{ bettingLimitData.member.username }}</p>
+                                    <p class="mb-1"><strong>當前限紅等級:</strong> 
+                                        <span class="badge bg-secondary">{{ bettingLimitData.member.levelDisplayName }}</span>
+                                    </p>
+                                    <p class="mb-0"><strong>說明:</strong> {{ bettingLimitData.member.description }}</p>
+                                </div>
 
-                            <!-- 調整原因 -->
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">調整原因</label>
-                                <textarea v-model="bettingLimitData.reason" 
-                                          style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; resize: vertical;" 
-                                          rows="3" 
-                                          placeholder="請輸入調整限紅的原因（可選）"></textarea>
+                                <!-- 限紅等級選擇 -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">選擇新的限紅等級</label>
+                                    <select class="form-select" v-model="bettingLimitData.newLimitLevel">
+                                        <option value="">請選擇限紅等級</option>
+                                        <option v-for="config in bettingLimitData.configs" 
+                                                :key="config.level_name" 
+                                                :value="config.level_name">
+                                            {{ config.level_display_name }} - {{ config.description }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- 限紅配置預覽 -->
+                                <div v-if="bettingLimitData.newLimitLevel" class="mb-3">
+                                    <h6><i class="fas fa-eye me-2"></i>限紅配置預覽</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>玩法</th>
+                                                    <th>單注最高</th>
+                                                    <th>單期限額</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(config, key) in selectedLimitConfig" :key="key">
+                                                    <td>{{ formatBetTypeName(key) }}</td>
+                                                    <td class="text-success fw-bold">{{ formatMoney(config.maxBet) }}</td>
+                                                    <td class="text-primary fw-bold">{{ formatMoney(config.periodLimit) }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="alert alert-warning">
+                                        <small>
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            <strong>注意事項：</strong><br>
+                                            • 單注最高：每筆投注的最高金額限制<br>
+                                            • 單期限額：每個開獎期同類型投注的累計限額<br>
+                                            • 最低投注金額統一為1元<br>
+                                            • 超過限額的投注將被系統拒絕
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <!-- 調整原因 -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">調整原因</label>
+                                    <textarea class="form-control" 
+                                              v-model="bettingLimitData.reason" 
+                                              rows="3" 
+                                              placeholder="請輸入調整限紅的原因（可選）"></textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Modal Footer -->
-                    <div style="padding: 15px 20px; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 10px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
-                        <button type="button" onclick="closeBettingLimitModal()" style="padding: 8px 16px; border: 1px solid #6c757d; background-color: #6c757d; color: white; border-radius: 4px; cursor: pointer;">取消</button>
-                        <button type="button" 
-                                @click="submitBettingLimitAdjustment()"
-                                :disabled="!bettingLimitData.newLimitLevel || bettingLimitData.submitting"
-                                style="padding: 8px 16px; border: 1px solid #0d6efd; background-color: #0d6efd; color: white; border-radius: 4px; cursor: pointer;">
-                            <span v-if="bettingLimitData.submitting" class="spinner-border spinner-border-sm me-2"></span>
-                            確認調整
-                        </button>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" 
+                                    class="btn btn-primary" 
+                                    @click="submitBettingLimitAdjustment()"
+                                    :disabled="!bettingLimitData.newLimitLevel || bettingLimitData.submitting">
+                                <span v-if="bettingLimitData.submitting" class="spinner-border spinner-border-sm me-2"></span>
+                                確認調整
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

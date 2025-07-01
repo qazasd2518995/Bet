@@ -5164,7 +5164,7 @@ const app = createApp({
               console.log('📅 設置下注記錄期間查詢:', type, startDate, '至', endDate);
           },
 
-        // 調整會員限紅
+        // 調整會員限紅 - 使用標準Bootstrap Modal方式
         async adjustMemberBettingLimit(member) {
             try {
                 console.log('開始調整會員限紅:', member);
@@ -5185,45 +5185,10 @@ const app = createApp({
                     reason: ''
                 };
                 
-                // 顯示自定義Modal
-                const modalElement = document.getElementById('adjustBettingLimitModal');
-                console.log('Modal元素:', modalElement);
-                
-                if (!modalElement) {
-                    console.error('找不到限紅調整Modal元素');
-                    this.showMessage('系統錯誤：找不到Modal元素', 'error');
-                    return;
-                }
-                
-                // 強制顯示自定義Modal，確保覆蓋所有可能的CSS
-                modalElement.style.setProperty('display', 'block', 'important');
-                modalElement.style.setProperty('visibility', 'visible', 'important');
-                modalElement.style.setProperty('opacity', '1', 'important');
-                modalElement.style.setProperty('pointer-events', 'auto', 'important');
-                
-                // 確保內容區域也正確顯示
-                const modalContent = modalElement.children[0];
-                if (modalContent) {
-                    modalContent.style.setProperty('visibility', 'visible', 'important');
-                    modalContent.style.setProperty('opacity', '1', 'important');
-                }
-                
-                console.log('✅ Modal強制顯示！');
-                
-                // 添加測試
-                setTimeout(() => {
-                    const rect = modalElement.getBoundingClientRect();
-                    console.log('Modal位置和尺寸:', {
-                        display: window.getComputedStyle(modalElement).display,
-                        visibility: window.getComputedStyle(modalElement).visibility,
-                        opacity: window.getComputedStyle(modalElement).opacity,
-                        zIndex: window.getComputedStyle(modalElement).zIndex,
-                        width: rect.width,
-                        height: rect.height,
-                        top: rect.top,
-                        left: rect.left
-                    });
-                }, 100);
+                // 使用標準Bootstrap Modal方式顯示
+                const modal = new bootstrap.Modal(document.getElementById('adjustBettingLimitModal'));
+                modal.show();
+                console.log('✅ Bootstrap Modal已顯示！');
                 
                 // 並行載入數據
                 const [memberResponse, configsResponse] = await Promise.all([
@@ -5645,8 +5610,3 @@ setTimeout(function() {
         setTimeout(arguments.callee, 500);
     }
 }, 100);
-
-// 全域關閉Modal函數
-function closeBettingLimitModal() {
-    document.getElementById('adjustBettingLimitModal').style.display = 'none';
-}
