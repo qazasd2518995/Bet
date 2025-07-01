@@ -175,6 +175,19 @@ const app = createApp({
             },
             memberViewMode: 'direct', // 'direct' 或 'downline'
             
+            // 層級會員管理相關
+            hierarchicalMembers: [], // 統一的代理+會員列表
+            memberBreadcrumb: [], // 會員管理導航麵包屑
+            memberHierarchyStats: {
+                agentCount: 0,
+                memberCount: 0
+            },
+            currentMemberManagingAgent: {
+                id: null,
+                username: '',
+                level: 0
+            },
+            
             // 新增会员相关
             showCreateMemberModal: false,
             modalSystemReady: false, // 模態框系统是否准备就緒
@@ -757,7 +770,14 @@ const app = createApp({
                     
                     // 如果切換到会员管理或下注记录，重新载入相关數據
                     if (tab === 'members') {
-                        this.searchMembers();
+                        // 初始化層級會員管理
+                        this.currentMemberManagingAgent = {
+                            id: this.currentManagingAgent.id,
+                            username: this.currentManagingAgent.username,
+                            level: this.currentManagingAgent.level
+                        };
+                        this.memberBreadcrumb = [];
+                        this.loadHierarchicalMembers();
                     } else if (tab === 'bets') {
                         this.searchBets();
                     }
@@ -1391,6 +1411,108 @@ const app = createApp({
             } finally {
                 this.loading = false;
             }
+        },
+
+        // 層級會員管理相關函數
+        async loadHierarchicalMembers() {
+            this.loading = true;
+            try {
+                const agentId = this.currentMemberManagingAgent.id || this.currentManagingAgent.id;
+                console.log('🔄 載入層級會員管理數據...', { agentId });
+                
+                const response = await axios.get(`${API_BASE_URL}/api/agent/hierarchical-members`, {
+                    params: {
+                        agentId: agentId,
+                        status: this.memberFilters.status !== '-1' ? this.memberFilters.status : undefined,
+                        keyword: this.memberFilters.keyword || undefined
+                    }
+                });
+                
+                if (response.data.success) {
+                    this.hierarchicalMembers = response.data.data || [];
+                    this.memberHierarchyStats = response.data.stats || { agentCount: 0, memberCount: 0 };
+                    console.log('✅ 層級會員管理數據載入成功:', this.hierarchicalMembers.length, '項');
+                } else {
+                    console.error('❌ 載入層級會員管理數據失败:', response.data.message);
+                    this.hierarchicalMembers = [];
+                    this.memberHierarchyStats = { agentCount: 0, memberCount: 0 };
+                }
+            } catch (error) {
+                console.error('❌ 載入層級會員管理數據错误:', error);
+                this.hierarchicalMembers = [];
+                this.memberHierarchyStats = { agentCount: 0, memberCount: 0 };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async refreshHierarchicalMembers() {
+            await this.loadHierarchicalMembers();
+        },
+
+        async enterAgentMemberManagement(agent) {
+            console.log('🔽 進入代理的會員管理:', agent);
+            
+            // 添加到麵包屑
+            this.memberBreadcrumb.push({
+                id: this.currentMemberManagingAgent.id || this.currentManagingAgent.id,
+                username: this.currentMemberManagingAgent.username || this.currentManagingAgent.username,
+                level: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
+            });
+            
+            // 設定新的管理代理
+            this.currentMemberManagingAgent = {
+                id: agent.id,
+                username: agent.username,
+                level: agent.level
+            };
+            
+            // 載入新代理的會員
+            await this.loadHierarchicalMembers();
+        },
+
+        async goBackToParentMember() {
+            if (this.memberBreadcrumb.length > 0) {
+                const parent = this.memberBreadcrumb.pop();
+                this.currentMemberManagingAgent = {
+                    id: parent.id,
+                    username: parent.username,
+                    level: this.getLevelFromName(parent.level)
+                };
+                await this.loadHierarchicalMembers();
+            }
+        },
+
+        async goBackToMemberLevel(targetItem) {
+            this.currentMemberManagingAgent = {
+                id: targetItem.id,
+                username: targetItem.username,
+                level: this.getLevelFromName(targetItem.level)
+            };
+            await this.loadHierarchicalMembers();
+        },
+
+        getLevelFromName(levelName) {
+            // 將級別名稱轉換回級別數字
+            const levelMap = {
+                '總代理': 0,
+                '一級代理': 1,
+                '二級代理': 2,
+                '三級代理': 3,
+                '四級代理': 4,
+                '五級代理': 5,
+                '六級代理': 6,
+                '七級代理': 7,
+                '八級代理': 8,
+                '九級代理': 9,
+                '十級代理': 10,
+                '十一級代理': 11,
+                '十二級代理': 12,
+                '十三級代理': 13,
+                '十四級代理': 14,
+                '十五級代理': 15
+            };
+            return levelMap[levelName] || 0;
         },
         
         // 载入直屬会员

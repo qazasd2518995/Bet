@@ -5819,6 +5819,137 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
   }
 });
 
+// 層級會員管理 API
+app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
+    try {
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+            return res.status(401).json(authResult);
+        }
+
+        const { agent: currentAgent } = authResult;
+        const queryAgentId = parseInt(req.query.agentId) || currentAgent.id;
+        const { status, keyword } = req.query;
+        
+        console.log('📊 層級會員管理API調用:', { queryAgentId, status, keyword });
+        
+        // 輔助函數：獲取級別名稱
+        function getLevelName(level) {
+            const levels = {
+                0: '總代理',
+                1: '一級代理', 
+                2: '二級代理',
+                3: '三級代理',
+                4: '四級代理',
+                5: '五級代理',
+                6: '六級代理',
+                7: '七級代理',
+                8: '八級代理',
+                9: '九級代理',
+                10: '十級代理',
+                11: '十一級代理',
+                12: '十二級代理',
+                13: '十三級代理',
+                14: '十四級代理',
+                15: '十五級代理'
+            };
+            return levels[level] || `${level}級代理`;
+        }
+        
+        // 獲取直接創建的代理
+        const directAgents = await db.any(`
+            SELECT id, username, level, balance, status, created_at, notes
+            FROM agents WHERE parent_id = $1 ORDER BY level, username
+        `, [queryAgentId]);
+        
+        // 獲取直接創建的會員
+        let memberQuery = `
+            SELECT id, username, balance, status, created_at, notes, market_type
+            FROM members WHERE agent_id = $1
+        `;
+        const memberParams = [queryAgentId];
+        
+        if (status && status !== '-1') {
+            memberQuery += ` AND status = $${memberParams.length + 1}`;
+            memberParams.push(parseInt(status));
+        }
+        
+        if (keyword) {
+            memberQuery += ` AND (username ILIKE $${memberParams.length + 1} OR id::text ILIKE $${memberParams.length + 1})`;
+            memberParams.push(`%${keyword}%`);
+        }
+        
+        memberQuery += ` ORDER BY username`;
+        
+        const directMembers = await db.any(memberQuery, memberParams);
+        
+        // 檢查每個代理是否有下級
+        const agentsWithDownline = await Promise.all(
+            directAgents.map(async (agent) => {
+                const subAgentCount = await db.one(`
+                    SELECT COUNT(*) as count FROM agents WHERE parent_id = $1
+                `, [agent.id]);
+                
+                const subMemberCount = await db.one(`
+                    SELECT COUNT(*) as count FROM members WHERE agent_id = $1
+                `, [agent.id]);
+                
+                return {
+                    ...agent,
+                    userType: 'agent',
+                    hasDownline: parseInt(subAgentCount.count) + parseInt(subMemberCount.count) > 0,
+                    level: getLevelName(agent.level)
+                };
+            })
+        );
+        
+        // 處理會員數據
+        const membersWithType = directMembers.map(member => ({
+            ...member,
+            userType: 'member',
+            hasDownline: false,
+            level: '會員'
+        }));
+        
+        // 合併代理和會員數據
+        const combinedData = [...agentsWithDownline, ...membersWithType];
+        
+        // 過濾關鍵字（如果有的話）
+        let filteredData = combinedData;
+        if (keyword) {
+            filteredData = combinedData.filter(item => 
+                item.username.toLowerCase().includes(keyword.toLowerCase()) ||
+                item.id.toString().includes(keyword)
+            );
+        }
+        
+        // 過濾狀態（如果有的話）
+        if (status && status !== '-1') {
+            filteredData = filteredData.filter(item => item.status === parseInt(status));
+        }
+        
+        const stats = {
+            agentCount: agentsWithDownline.length,
+            memberCount: membersWithType.length
+        };
+        
+        res.json({
+            success: true,
+            data: filteredData,
+            stats: stats,
+            message: '層級會員管理數據獲取成功'
+        });
+        
+    } catch (error) {
+        console.error('❌ 層級會員管理API錯誤:', error);
+        res.status(500).json({
+            success: false,
+            message: '獲取層級會員管理數據失敗',
+            error: error.message
+        });
+    }
+});
+
 // 代理層級分析報表API - 簡化版：統一顯示本級創建的代理和會員
 // 代理層級分析報表API - 完全簡化版本
 app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
