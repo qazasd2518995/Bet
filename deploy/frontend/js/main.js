@@ -125,7 +125,7 @@ const app = createApp({
                 id: null,
                 username: '',
                 level: 0,
-                max_rebate_percentage: 0.041 // 將在登入後根據盤口類型動態設定
+                max_rebate_percentage: 0.041
             },
             
             // 退水设定相关
@@ -908,7 +908,7 @@ const app = createApp({
                     
                     console.log('✅ 登錄成功，設置當前管理代理:', this.currentManagingAgent);
                     
-                    // 检查是否為客服（總代理）
+                    // 检查是否為客服
                     this.isCustomerService = this.user.level === 0;
                     console.log('登录後是否為客服:', this.isCustomerService, '用戶级别:', this.user.level);
                     
@@ -2245,7 +2245,7 @@ const app = createApp({
                         parent: '',
                         market_type: 'D',
                         rebate_mode: 'percentage',
-                        rebate_percentage: 2.0,
+                        rebate_percentage: 2.0, // 重置時使用D盤默認值
                         notes: ''
                     };
                     
@@ -2385,25 +2385,27 @@ const app = createApp({
             if (agentId === this.user.id) {
                 // 返回到自己
                 this.agentBreadcrumbs = [];
+                const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                 this.currentManagingAgent = {
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
                     market_type: this.user.market_type,
-                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                    max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
+                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
+                    max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
             } else if (targetIndex >= 0) {
                 // 移除該位置之後的所有面包屑
                 const targetBreadcrumb = this.agentBreadcrumbs[targetIndex];
                 this.agentBreadcrumbs = this.agentBreadcrumbs.slice(0, targetIndex);
+                const defaultMaxRebate = targetBreadcrumb.market_type === 'A' ? 0.011 : 0.041;
                 this.currentManagingAgent = {
                     id: targetBreadcrumb.id,
                     username: targetBreadcrumb.username,
                     level: targetBreadcrumb.level,
                     market_type: targetBreadcrumb.market_type,
-                    rebate_percentage: targetBreadcrumb.rebate_percentage || targetBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                    max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
+                    rebate_percentage: targetBreadcrumb.rebate_percentage || targetBreadcrumb.max_rebate_percentage || defaultMaxRebate,
+                    max_rebate_percentage: targetBreadcrumb.max_rebate_percentage || defaultMaxRebate
                 };
             }
             
@@ -2418,23 +2420,25 @@ const app = createApp({
         async goBackToParentLevel() {
             if (this.agentBreadcrumbs.length > 0) {
                 const parentBreadcrumb = this.agentBreadcrumbs.pop();
+                const defaultMaxRebate = parentBreadcrumb.market_type === 'A' ? 0.011 : 0.041;
                 this.currentManagingAgent = {
                     id: parentBreadcrumb.id,
                     username: parentBreadcrumb.username,
                     level: parentBreadcrumb.level,
                     market_type: parentBreadcrumb.market_type,
-                    rebate_percentage: parentBreadcrumb.rebate_percentage || parentBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                    max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
+                    rebate_percentage: parentBreadcrumb.rebate_percentage || parentBreadcrumb.max_rebate_percentage || defaultMaxRebate,
+                    max_rebate_percentage: parentBreadcrumb.max_rebate_percentage || defaultMaxRebate
                 };
             } else {
                 // 返回到自己
+                const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                 this.currentManagingAgent = {
                     id: this.user.id,
                     username: this.user.username,
                     level: this.user.level,
                     market_type: this.user.market_type,
-                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                    max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
+                    rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
+                    max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
             }
             
@@ -4415,6 +4419,26 @@ const app = createApp({
                  this.reportData = {
                      success: data.success,
                      reportData: data.reportData || [],
+                     selfData: data.selfData || null,                    // 自己的統計
+                     downlineData: data.downlineData || [],              // 下級代理數據
+                     downlineTotalSummary: data.downlineTotalSummary || { // 下級代理小計
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
                      totalSummary: data.totalSummary || {
                          betCount: 0,
                          betAmount: 0.0,
@@ -4434,6 +4458,7 @@ const app = createApp({
                          finalProfitLoss: 0.0
                      },
                      hasData: data.hasData || false,
+                     levelStructure: data.levelStructure || {},          // 層級結構信息
                      message: data.message
                  };
                  
@@ -4492,7 +4517,8 @@ const app = createApp({
                  this.reportBreadcrumb.push({
                      username: agent.username,
                      level: agent.level,
-                     agentId: agent.id || agent.username
+                     agentId: agent.id || agent.username,
+                     viewType: 'agents'
                  });
                  
                  console.log('🔍 進入代理報表:', agent.username, '層級:', agent.level);
@@ -4538,6 +4564,121 @@ const app = createApp({
                  this.reportData = {
                      success: data.success,
                      reportData: data.reportData || [],
+                     selfData: data.selfData || null,                    // 自己的統計
+                     downlineData: data.downlineData || [],              // 下級代理數據
+                     downlineTotalSummary: data.downlineTotalSummary || { // 下級代理小計
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
+                     totalSummary: data.totalSummary || {
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
+                     hasData: data.hasData || false,
+                     levelStructure: data.levelStructure || {},          // 層級結構信息
+                     message: data.message
+                 };
+                 
+                 // 只在載入成功時顯示提示，不要為沒有數據顯示警告
+                 // 因為會在HTML模板中自動顯示「沒有資料」
+                 if (data.hasData && data.reportData && data.reportData.length > 0) {
+                     this.showMessage(`查看 ${agent.username} 的下級報表完成`, 'success');
+                 }
+                 // 移除「暫無下級資料」的警告提示，讓HTML模板來處理空數據顯示
+                 
+             } catch (error) {
+                 console.error('查看代理報表失敗:', error);
+                 this.showMessage('查看代理報表失敗: ' + error.message, 'error');
+             } finally {
+                 // 取消載入狀態
+                 this.loading = false;
+             }
+         },
+
+         async viewAgentMembers(agent) {
+             try {
+                 this.loading = true;
+                 
+                 // 添加到面包屑導航
+                 this.reportBreadcrumb.push({
+                     username: agent.username,
+                     level: `${agent.level} - 會員列表`,
+                     agentId: agent.id || agent.username,
+                     viewType: 'members'
+                 });
+                 
+                 console.log('👥 查看代理會員:', agent.username);
+                 
+                 // 準備參數
+                 const params = new URLSearchParams();
+                 
+                 // 保持當前篩選條件
+                 if (this.reportFilters.startDate) {
+                     params.append('startDate', this.reportFilters.startDate);
+                 }
+                 if (this.reportFilters.endDate) {
+                     params.append('endDate', this.reportFilters.endDate);
+                 }
+                 if (this.reportFilters.settlementStatus) {
+                     params.append('settlementStatus', this.reportFilters.settlementStatus);
+                 }
+                 if (this.reportFilters.username && this.reportFilters.username.trim()) {
+                     params.append('username', this.reportFilters.username.trim());
+                 }
+                 
+                 // 指定查看該代理的會員
+                 params.append('targetAgent', agent.username);
+                 params.append('viewType', 'members');
+                 params.append('gameTypes', 'pk10');
+                 
+                 const response = await fetch(`${this.API_BASE_URL}/reports/agent-analysis?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 const data = await response.json();
+                 
+                 console.log('👥 會員報表數據:', data);
+                 
+                 // 更新報表數據
+                 this.reportData = {
+                     success: data.success,
+                     reportData: data.reportData || [],
                      totalSummary: data.totalSummary || {
                          betCount: 0,
                          betAmount: 0.0,
@@ -4560,18 +4701,14 @@ const app = createApp({
                      message: data.message
                  };
                  
-                 // 只在載入成功時顯示提示，不要為沒有數據顯示警告
-                 // 因為會在HTML模板中自動顯示「沒有資料」
                  if (data.hasData && data.reportData && data.reportData.length > 0) {
-                     this.showMessage(`查看 ${agent.username} 的下級報表完成`, 'success');
+                     this.showMessage(`查看 ${agent.username} 的會員報表完成`, 'success');
                  }
-                 // 移除「暫無下級資料」的警告提示，讓HTML模板來處理空數據顯示
                  
              } catch (error) {
-                 console.error('查看代理報表失敗:', error);
-                 this.showMessage('查看代理報表失敗: ' + error.message, 'error');
+                 console.error('查看會員報表失敗:', error);
+                 this.showMessage('查看會員報表失敗: ' + error.message, 'error');
              } finally {
-                 // 取消載入狀態
                  this.loading = false;
              }
          },
@@ -4815,7 +4952,7 @@ const app = createApp({
          formatLoginDate(dateString) {
              if (!dateString) return '-';
              const date = new Date(dateString);
-             return date.toLocaleDateString('zh-TW', {
+             return date.toLocaleDateString('zh-CN', {
                  year: 'numeric',
                  month: '2-digit',
                  day: '2-digit'
@@ -4825,7 +4962,7 @@ const app = createApp({
                    formatLoginTime(dateString) {
               if (!dateString) return '-';
               const date = new Date(dateString);
-              return date.toLocaleTimeString('zh-TW', {
+              return date.toLocaleTimeString('zh-CN', {
                   hour: '2-digit',
                   minute: '2-digit',
                   second: '2-digit',
