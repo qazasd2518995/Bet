@@ -1507,12 +1507,12 @@ const MemberModel = {
         RETURNING *
       `, [afterBalance, username]);
       
-      // 記錄交易
+      // 記錄交易 - 修復交易類型分類
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['member', member.id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '會員點數調整']);
+      `, ['member', member.id, amount, amount > 0 ? 'game_win' : 'game_bet', beforeBalance, afterBalance, '會員點數調整']);
       
       return updatedMember;
     } catch (error) {

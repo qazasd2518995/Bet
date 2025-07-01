@@ -1507,12 +1507,12 @@ const MemberModel = {
         RETURNING *
       `, [afterBalance, username]);
       
-      // 記錄交易
+      // 記錄交易 - 修復交易類型分類
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['member', member.id, amount, amount > 0 ? 'deposit' : 'withdraw', beforeBalance, afterBalance, '會員點數調整']);
+      `, ['member', member.id, amount, amount > 0 ? 'game_win' : 'game_bet', beforeBalance, afterBalance, '會員點數調整']);
       
       return updatedMember;
     } catch (error) {
@@ -5006,16 +5006,19 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
       }
     }
     
-    // 按類型篩選
+    // 按類型篩選 - 修復交易類型分類
     if (type === 'deposit') {
-      // 存款記錄：包含 cs_deposit 和 deposit
-      query += ` AND (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'deposit')`;
+      // 存款記錄：只有客服存款操作
+      query += ` AND t.transaction_type = 'cs_deposit'`;
     } else if (type === 'withdraw') {
-      // 提款記錄：包含 cs_withdraw 和 withdraw
-      query += ` AND (t.transaction_type = 'cs_withdraw' OR t.transaction_type = 'withdraw')`;
+      // 提款記錄：只有客服提款操作
+      query += ` AND t.transaction_type = 'cs_withdraw'`;
     } else if (type === 'rebate') {
       // 退水記錄
       query += ` AND t.transaction_type = 'rebate'`;
+    } else if (type === 'bet') {
+      // 下注記錄：包含遊戲下注和中獎
+      query += ` AND (t.transaction_type = 'game_bet' OR t.transaction_type = 'game_win')`;
     }
     
     // 獲取總數
