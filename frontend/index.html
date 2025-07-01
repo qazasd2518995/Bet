@@ -6726,16 +6726,11 @@
                         }
                     });
                     
-                    // 更新龙虎赔率
-                    if (this.odds.dragonTiger) {
-                        if (typeof this.odds.dragonTiger === 'object') {
-                            Object.keys(this.odds.dragonTiger).forEach(type => {
-                                this.odds.dragonTiger[type] = config.dualOdds;
-                            });
-                        } else {
-                            this.odds.dragonTiger = config.dualOdds;
-                        }
-                    }
+                    // 更新龙虎赔率 - 確保始終保持對象結構
+                    this.odds.dragonTiger = {
+                        dragon: config.dualOdds,
+                        tiger: config.dualOdds
+                    };
                     
                     // 更新冠亚和大小单双赔率
                     if (this.odds.sumValue) {
