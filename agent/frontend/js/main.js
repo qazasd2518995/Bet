@@ -5173,6 +5173,8 @@ const app = createApp({
                 this.loadDrawHistory();
             }
             if (newTab === 'stats') {
+                // 載入下注記錄頁面時，先載入直屬會員列表（預設模式）
+                this.loadDirectMembersForBets();
                 this.searchBets();
             }
             if (newTab === 'notices') {
