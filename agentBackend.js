@@ -72,22 +72,22 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
-// 新增數據庫檢查端點 - 用於檢查agent_profiles表是否存在
+// 新增數據庫檢查端點 - 用於檢查agents表是否存在
 app.get('/api/check-profile-table', async (req, res) => {
   try {
-    console.log('檢查 agent_profiles 表...');
+    console.log('檢查 agents 表...');
     
     // 檢查表是否存在
     const tableExists = await db.oneOrNone(`
       SELECT table_name 
       FROM information_schema.tables 
-      WHERE table_schema = 'public' AND table_name = 'agent_profiles'
+      WHERE table_schema = 'public' AND table_name = 'agents'
     `);
     
     if (!tableExists) {
       return res.json({
         success: false,
-        message: 'agent_profiles 表不存在',
+        message: 'agents 表不存在',
         tableExists: false
       });
     }
@@ -96,23 +96,23 @@ app.get('/api/check-profile-table', async (req, res) => {
     const columns = await db.any(`
       SELECT column_name, data_type, is_nullable 
       FROM information_schema.columns 
-      WHERE table_name = 'agent_profiles' 
+      WHERE table_name = 'agents' 
       ORDER BY ordinal_position
     `);
     
     // 檢查記錄數量
-    const recordCount = await db.one('SELECT COUNT(*) as count FROM agent_profiles');
+    const recordCount = await db.one('SELECT COUNT(*) as count FROM agents');
     
     res.json({
       success: true,
-      message: 'agent_profiles 表檢查完成',
+      message: 'agents 表檢查完成',
       tableExists: true,
       columns: columns,
       recordCount: parseInt(recordCount.count)
     });
     
   } catch (error) {
-    console.error('檢查 agent_profiles 表失敗:', error);
+    console.error('檢查 agents 表失敗:', error);
     res.status(500).json({
       success: false,
       message: '檢查失敗',
@@ -940,7 +940,7 @@ async function initDatabase() {
 
     // 創建代理個人資料表
     await db.none(`
-      CREATE TABLE IF NOT EXISTS agent_profiles (
+      CREATE TABLE IF NOT EXISTS agents (
         id SERIAL PRIMARY KEY,
         agent_id INTEGER NOT NULL UNIQUE REFERENCES agents(id) ON DELETE CASCADE,
         real_name VARCHAR(100),
@@ -961,7 +961,7 @@ async function initDatabase() {
     try {
       const hasOldFields = await db.oneOrNone(`
         SELECT column_name FROM information_schema.columns 
-        WHERE table_name = 'agent_profiles' AND column_name IN ('qq', 'wechat')
+        WHERE table_name = 'agents' AND column_name IN ('qq', 'wechat')
       `);
       
       if (hasOldFields) {
@@ -969,20 +969,20 @@ async function initDatabase() {
         
         // 添加新字段
         await db.none(`
-          ALTER TABLE agent_profiles 
+          ALTER TABLE agents 
           ADD COLUMN IF NOT EXISTS line_id VARCHAR(50)
         `);
         
         // 如果需要，可以將微信號遷移到Line ID
         await db.none(`
-          UPDATE agent_profiles 
+          UPDATE agents 
           SET line_id = wechat 
           WHERE line_id IS NULL AND wechat IS NOT NULL AND wechat != ''
         `);
         
         // 刪除舊字段
-        await db.none(`ALTER TABLE agent_profiles DROP COLUMN IF EXISTS qq`);
-        await db.none(`ALTER TABLE agent_profiles DROP COLUMN IF EXISTS wechat`);
+        await db.none(`ALTER TABLE agents DROP COLUMN IF EXISTS qq`);
+        await db.none(`ALTER TABLE agents DROP COLUMN IF EXISTS wechat`);
         
         console.log('數據庫遷移完成');
       }
@@ -5262,7 +5262,7 @@ app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
     
     // 查詢個人資料
     const profile = await db.oneOrNone(`
-      SELECT * FROM agent_profiles WHERE agent_id = $1
+      SELECT * FROM agents WHERE agent_id = $1
     `, [parsedAgentId]);
     
     console.log('查詢到的個人資料:', profile);
@@ -5350,14 +5350,14 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
     
     // 檢查是否已有個人資料記錄
     const existingProfile = await db.oneOrNone(`
-      SELECT * FROM agent_profiles WHERE agent_id = $1
+      SELECT * FROM agents WHERE agent_id = $1
     `, [parsedAgentId]);
     
     if (existingProfile) {
       console.log(`找到現有個人資料記錄，ID=${existingProfile.id}，執行更新`);
       // 更新現有記錄
       await db.none(`
-        UPDATE agent_profiles 
+        UPDATE agents 
         SET real_name = $1, phone = $2, email = $3, line_id = $4, 
             telegram = $5, address = $6, remark = $7,
             updated_at = CURRENT_TIMESTAMP
@@ -5368,7 +5368,7 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
       console.log('未找到現有記錄，創建新的個人資料記錄');
       // 創建新記錄
       await db.none(`
-        INSERT INTO agent_profiles 
+        INSERT INTO agents 
         (agent_id, real_name, phone, email, line_id, telegram, address, remark)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [parsedAgentId, safeRealName, safePhone, safeEmail, safeLineId, safeTelegram, safeAddress, safeRemark]);
@@ -5830,12 +5830,11 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
 
     const { agent: currentAgent } = authResult;
 
-    const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount, targetAgent } = req.query;
+    const { startDate, endDate, username, targetAgent } = req.query;
     
     console.log('📊 代理層級分析API: 接收請求', { 
       startDate, 
       endDate, 
-      settlementStatus, 
       username, 
       targetAgent,
       agentId: currentAgent.id,
@@ -5900,23 +5899,34 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     // 1. 獲取本代理直接創建的所有代理
     const directAgentsQuery = `
       SELECT 
-        ap.id,
-        ap.username,
+        a.id,
+        a.username,
         'agent' as user_type,
-        ap.balance,
-        ap.level_id,
-        al.level_name,
-        ap.rebate_a_dragon_tiger as rebate_setting,
-        ap.created_at
-      FROM agent_profiles ap
-      LEFT JOIN agent_levels al ON ap.level_id = al.id
-      WHERE ap.parent_agent_id = $1 
-        AND ap.user_type = 'agent'
-      ORDER BY ap.username ASC
+        a.balance,
+        a.level,
+        a.rebate_percentage,
+        a.market_type,
+        a.created_at,
+        CASE 
+          WHEN a.level = 0 THEN '客服'
+          WHEN a.level = 1 THEN '一級代理'
+          WHEN a.level = 2 THEN '二級代理'
+          WHEN a.level = 3 THEN '三級代理'
+          WHEN a.level = 4 THEN '四級代理'
+          WHEN a.level = 5 THEN '五級代理'
+          WHEN a.level = 6 THEN '六級代理'
+          WHEN a.level = 7 THEN '七級代理'
+          WHEN a.level = 8 THEN '八級代理'
+          WHEN a.level = 9 THEN '九級代理'
+          WHEN a.level = 10 THEN '十級代理'
+          ELSE CONCAT(a.level, '級代理')
+        END as level_name
+      FROM agents a
+      WHERE a.parent_id = $1 
+      ORDER BY a.level, a.username
     `;
     
-    const directAgentsResult = await db.query(directAgentsQuery, [queryAgentId]);
-    const directAgents = directAgentsResult.rows;
+    const directAgents = await db.any(directAgentsQuery, [queryAgentId]);
     
     // 2. 獲取本代理直接創建的所有會員
     const directMembersQuery = `
@@ -5925,16 +5935,17 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         m.username,
         'member' as user_type,
         m.balance,
-        '會員' as level_name,
-        0 as rebate_setting,
-        m.created_at
+        0 as level,
+        0 as rebate_percentage,
+        m.market_type,
+        m.created_at,
+        '會員' as level_name
       FROM members m
       WHERE m.agent_id = $1
       ORDER BY m.username ASC
     `;
     
-    const directMembersResult = await db.query(directMembersQuery, [queryAgentId]);
-    const directMembers = directMembersResult.rows;
+    const directMembers = await db.any(directMembersQuery, [queryAgentId]);
     
     // 3. 合併所有直接下級
     const allDirectSubordinates = [
@@ -6004,7 +6015,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         stats.profitLoss = -stats.memberWinLoss; // 代理盈虧 = -(會員輸贏)
         
         // 會員的退水比例
-        const rebateSetting = parseFloat(subordinate.rebate_setting || 0);
+        const rebateSetting = parseFloat(subordinate.rebate_percentage || 0);
         stats.actualRebate = rebateSetting * 100;
         stats.rebateProfit = stats.rebate;
         stats.finalProfitLoss = stats.profitLoss + stats.rebateProfit;
@@ -6014,17 +6025,17 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         const agentBetQuery = `
           WITH RECURSIVE agent_tree AS (
             -- 基礎：該代理直接下級
-            SELECT id, username, parent_agent_id, user_type, 1 as level
-            FROM agent_profiles 
-            WHERE parent_agent_id = ${subordinate.id}
+            SELECT id, username, parent_id, 1 as depth
+            FROM agents 
+            WHERE parent_id = ${subordinate.id}
             
             UNION ALL
             
             -- 遞歸：下級的下級
-            SELECT ap.id, ap.username, ap.parent_agent_id, ap.user_type, at.level + 1
-            FROM agent_profiles ap
-            INNER JOIN agent_tree at ON ap.parent_agent_id = at.id
-            WHERE at.level < 10
+            SELECT ap.id, ap.username, ap.parent_id, at.depth + 1
+            FROM agents ap
+            INNER JOIN agent_tree at ON ap.parent_id = at.id
+            WHERE at.depth < 10
           ),
           all_members AS (
             -- 該代理的直接會員
@@ -6034,7 +6045,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             SELECT m.username 
             FROM members m 
             INNER JOIN agent_tree at ON m.agent_id = at.id
-            WHERE at.user_type = 'agent'
+            -- Removed user_type condition as agents table does not have this field
           )
           SELECT 
             COUNT(*) as bet_count,
@@ -6057,7 +6068,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         stats.profitLoss = -stats.memberWinLoss;
         
         // 代理的退水設定
-        const rebateSetting = parseFloat(subordinate.rebate_setting || 0);
+        const rebateSetting = parseFloat(subordinate.rebate_percentage || 0);
         stats.actualRebate = rebateSetting * 100;
         stats.rebateProfit = stats.rebate;
         stats.finalProfitLoss = stats.profitLoss + stats.rebateProfit;
@@ -6065,7 +6076,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         // 檢查是否有下級
         const hasDownlineQuery = `
           SELECT COUNT(*) as count FROM (
-            SELECT 1 FROM agent_profiles WHERE parent_agent_id = ${subordinate.id}
+            SELECT 1 FROM agents WHERE parent_id = ${subordinate.id}
             UNION ALL
             SELECT 1 FROM members WHERE agent_id = ${subordinate.id}
           ) t
