@@ -5185,9 +5185,39 @@ const app = createApp({
                     reason: ''
                 };
                 
-                // 顯示Modal
-                const modal = new bootstrap.Modal(document.getElementById('adjustBettingLimitModal'));
-                modal.show();
+                // 顯示Modal - 添加錯誤處理和調試
+                const modalElement = document.getElementById('adjustBettingLimitModal');
+                console.log('Modal元素:', modalElement);
+                
+                if (!modalElement) {
+                    console.error('找不到限紅調整Modal元素');
+                    this.showMessage('系統錯誤：找不到Modal元素', 'error');
+                    return;
+                }
+                
+                try {
+                    const modal = new bootstrap.Modal(modalElement, {
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    console.log('Bootstrap Modal創建成功:', modal);
+                    modal.show();
+                    console.log('Modal顯示命令已執行');
+                    
+                    // 檢查Modal是否實際顯示
+                    setTimeout(() => {
+                        const isVisible = modalElement.classList.contains('show');
+                        console.log('Modal是否可見:', isVisible);
+                        if (!isVisible) {
+                            console.error('Modal未正確顯示');
+                            this.showMessage('Modal顯示異常，請重新嘗試', 'warning');
+                        }
+                    }, 500);
+                } catch (modalError) {
+                    console.error('Bootstrap Modal創建失敗:', modalError);
+                    this.showMessage('Modal顯示失敗，請檢查頁面是否正確載入', 'error');
+                    return;
+                }
                 
                 // 並行載入數據
                 const [memberResponse, configsResponse] = await Promise.all([
