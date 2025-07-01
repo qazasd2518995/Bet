@@ -1399,12 +1399,12 @@
                                 <h5 class="mb-0">
                                     <i class="fas fa-sitemap me-2"></i>代理層級分析報表
                                 </h5>
-                                <div class="d-flex gap-2">
-                                    <span v-if="reportData.agentInfo" class="badge bg-info">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span v-if="reportData.agentInfo" class="badge bg-info d-flex align-items-center" style="height: 32px;">
                                         共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個下級
                                         ({{ reportData.agentInfo.agentCount || 0 }}代理 + {{ reportData.agentInfo.memberCount || 0 }}會員)
                                     </span>
-                                    <span v-else class="badge bg-secondary">共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個下級</span>
+                                    <span v-else class="badge bg-secondary d-flex align-items-center" style="height: 32px;">共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個下級</span>
                                     <button class="btn btn-sm btn-outline-primary" @click="refreshReportData()">
                                         <i class="fas fa-sync me-1"></i>刷新
                                     </button>
