@@ -3399,6 +3399,17 @@ const app = createApp({
         formatBetValue(value) {
             if (!value) return '-';
             
+            // 處理龍虎投注格式：dragon_1_10 -> 龍(冠軍vs第10名)
+            if (value && value.includes('_')) {
+                const parts = value.split('_');
+                if (parts.length === 3 && (parts[0] === 'dragon' || parts[0] === 'tiger')) {
+                    const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
+                    const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+                    const pos2 = parts[2] === '10' ? '第十名' : `第${parts[2]}名`;
+                    return `${dragonTiger}(${pos1}vs${pos2})`;
+                }
+            }
+            
             const valueMap = {
                 // 大小
                 'big': '大',
