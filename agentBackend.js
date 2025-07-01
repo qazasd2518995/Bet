@@ -5955,7 +5955,35 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       
       // 為每個會員查詢投注數據
       for (const member of members) {
-        // 查詢會員投注數據
+        // 查詢會員投注數據 - 修復參數索引
+        let memberParamIndex = 2; // 從$2開始，$1是member.username
+        let memberTimeWhereClause = '';
+        let memberTimeParams = [];
+        
+        // 檢查日期參數是否有效
+        const validStartDate = startDate && startDate.trim() !== '';
+        const validEndDate = endDate && endDate.trim() !== '';
+        
+        if (validStartDate && validEndDate) {
+          memberTimeWhereClause = ` AND bh.created_at >= $${memberParamIndex} AND bh.created_at <= $${memberParamIndex + 1}`;
+          memberTimeParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
+          memberParamIndex += 2;
+        } else if (validStartDate) {
+          memberTimeWhereClause = ` AND bh.created_at >= $${memberParamIndex}`;
+          memberTimeParams.push(startDate + ' 00:00:00');
+          memberParamIndex++;
+        } else if (validEndDate) {
+          memberTimeWhereClause = ` AND bh.created_at <= $${memberParamIndex}`;
+          memberTimeParams.push(endDate + ' 23:59:59');
+          memberParamIndex++;
+        }
+        
+        if (username) {
+          memberTimeWhereClause += ` AND bh.username ILIKE $${memberParamIndex}`;
+          memberTimeParams.push(`%${username}%`);
+          memberParamIndex++;
+        }
+        
         const memberBetQuery = `
           SELECT 
             COUNT(*) as bet_count,
@@ -5963,10 +5991,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             COALESCE(SUM(bh.amount), 0) as valid_amount,
             COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
           FROM bet_history bh
-          WHERE bh.username = $1 ${timeWhereClause}
+          WHERE bh.username = $1 ${memberTimeWhereClause}
         `;
         
-        const memberBetParams = [member.username, ...timeParams];
+        const memberBetParams = [member.username, ...memberTimeParams];
         const memberBetResult = await db.one(memberBetQuery, memberBetParams);
         
         const betCount = parseInt(memberBetResult.bet_count) || 0;
