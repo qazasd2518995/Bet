@@ -1555,14 +1555,39 @@ const app = createApp({
             this.betFilters.specificAgent = '';
             
             if (this.betFilters.viewScope === 'own') {
-                // 僅本代理下級会员
-                this.availableMembers = this.members;
+                // 僅本代理下級会员 - 總是載入直屬會員
+                await this.loadDirectMembersForBets();
             } else if (this.betFilters.viewScope === 'downline') {
                 // 整條代理線
                 await this.loadDownlineAgentsAndMembers();
             } else if (this.betFilters.viewScope === 'specific') {
                 // 指定代理/会员
                 await this.loadAllDownlineAgents();
+                this.availableMembers = [];
+            }
+        },
+        
+        // 載入直屬會員用於下注記錄
+        async loadDirectMembersForBets() {
+            try {
+                console.log('📡 载入直屬会员用於下注记录...');
+                const response = await axios.get(`${API_BASE_URL}/members`, {
+                    params: { 
+                        agentId: this.currentManagingAgent.id,
+                        page: 1,
+                        limit: 1000  // 載入所有直屬會員
+                    }
+                });
+                
+                if (response.data.success && response.data.data) {
+                    this.availableMembers = response.data.data.list || [];
+                    console.log('✅ 载入直屬会员成功:', this.availableMembers.length, '個');
+                } else {
+                    console.error('❌ 载入直屬会员失败:', response.data.message);
+                    this.availableMembers = [];
+                }
+            } catch (error) {
+                console.error('❌ 载入直屬会员错误:', error);
                 this.availableMembers = [];
             }
         },
@@ -1648,7 +1673,8 @@ const app = createApp({
                 viewScope: 'own',
                 specificAgent: ''
             };
-            this.availableMembers = this.members;
+            // 重新載入直屬會員列表
+            this.loadDirectMembersForBets();
             this.searchBets();
         },
         

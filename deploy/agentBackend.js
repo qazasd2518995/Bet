@@ -4137,7 +4137,7 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
       if (includeDownline === 'true') {
         // 獲取所有下級代理的會員
         const downlineAgents = await getAllDownlineAgents(currentAgentId);
-        const allAgentIds = [currentAgentId, ...downlineAgents.map(agent => agent.id)];
+        const allAgentIds = [parseInt(currentAgentId), ...downlineAgents]; // 修復：downlineAgents已經是整數數組
         
         for (const agentId of allAgentIds) {
           const agentMembers = await MemberModel.findByAgentId(agentId);
@@ -4196,10 +4196,10 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
       paramIndex++;
     }
     
-    // 添加期數過濾
+    // 添加期數過濾  
     if (period) {
-      whereClause += ` AND period = $${paramIndex}`;
-      params.push(period);
+      whereClause += ` AND period::text LIKE $${paramIndex}`;
+      params.push(`%${period}%`);
       paramIndex++;
     }
     
@@ -4281,13 +4281,57 @@ app.get(`${API_PREFIX}/downline-agents`, async (req, res) => {
       });
     }
     
-    // 遞歸獲取所有下級代理
-    const agents = await getAllDownlineAgents(rootAgentId);
+    // 輔助函數：獲取級別名稱
+    function getLevelName(level) {
+      const levels = {
+        0: '客服',
+        1: '一級代理', 
+        2: '二級代理',
+        3: '三級代理',
+        4: '四級代理',
+        5: '五級代理',
+        6: '六級代理',
+        7: '七級代理',
+        8: '八級代理',
+        9: '九級代理',
+        10: '十級代理',
+        11: '十一級代理',
+        12: '十二級代理',
+        13: '十三級代理',
+        14: '十四級代理',
+        15: '十五級代理'
+      };
+      return levels[level] || `${level}級代理`;
+    }
+    
+    // 獲取所有下級代理ID
+    const downlineAgentIds = await getAllDownlineAgents(rootAgentId);
+    
+    if (downlineAgentIds.length === 0) {
+      return res.json({
+        success: true,
+        agents: [],
+        total: 0
+      });
+    }
+    
+    // 查詢代理詳細信息
+    let agentQuery = 'SELECT id, username, level, balance, status FROM agents WHERE id IN (';
+    agentQuery += downlineAgentIds.map((_, i) => `$${i + 1}`).join(',');
+    agentQuery += ') ORDER BY level, username';
+    
+    const agents = await db.any(agentQuery, downlineAgentIds);
+    
+    // 添加級別名稱
+    const agentsWithLevelName = agents.map(agent => ({
+      ...agent,
+      level_name: getLevelName(agent.level)
+    }));
     
     res.json({
       success: true,
-      agents: agents,
-      total: agents.length
+      agents: agentsWithLevelName,
+      total: agentsWithLevelName.length
     });
     
   } catch (error) {
