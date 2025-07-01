@@ -1059,8 +1059,8 @@
                         <h2>
                             <i class="fas fa-users me-2"></i>層級會員管理
                         </h2>
-                        <div class="d-flex gap-2">
-                            <span class="badge bg-info">
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-info d-flex align-items-center justify-content-center" style="height: 32px; padding: 8px 12px;">
                                 共 {{ hierarchicalMembers ? hierarchicalMembers.length : 0 }} 個下級
                                 ({{ memberHierarchyStats.agentCount || 0 }}代理 + {{ memberHierarchyStats.memberCount || 0 }}會員)
                             </span>
@@ -1400,11 +1400,11 @@
                                     <i class="fas fa-sitemap me-2"></i>代理層級分析報表
                                 </h5>
                                 <div class="d-flex gap-2 align-items-center">
-                                    <span v-if="reportData.agentInfo" class="badge bg-info d-flex align-items-center" style="height: 32px;">
+                                    <span v-if="reportData.agentInfo" class="badge bg-info d-flex align-items-center justify-content-center" style="height: 32px; padding: 8px 12px;">
                                         共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個下級
                                         ({{ reportData.agentInfo.agentCount || 0 }}代理 + {{ reportData.agentInfo.memberCount || 0 }}會員)
                                     </span>
-                                    <span v-else class="badge bg-secondary d-flex align-items-center" style="height: 32px;">共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個下級</span>
+                                    <span v-else class="badge bg-secondary d-flex align-items-center justify-content-center" style="height: 32px; padding: 8px 12px;">共 {{ reportData.reportData ? reportData.reportData.length : 0 }} 個下級</span>
                                     <button class="btn btn-sm btn-outline-primary" @click="refreshReportData()">
                                         <i class="fas fa-sync me-1"></i>刷新
                                     </button>
@@ -1444,8 +1444,11 @@
                                     <thead>
                                         <!-- 第一行：分組標題 -->
                                         <tr style="background-color: #2c3e50;">
+                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">級別</th>
                                             <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 120px;">用戶名</th>
-                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">下級金額</th>
+                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">餘額</th>
+                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 60px;">筆數</th>
+                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">下注金額</th>
                                             <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">有效金額</th>
                                             <th colspan="3" style="color: white; font-weight: bold; background-color: #34495e; text-align: center; border-bottom: 2px solid #95a5a6;">會員輸贏</th>
                                             <th colspan="6" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; border-bottom: 2px solid #95a5a6;">{{ reportBreadcrumb.length > 0 ? reportBreadcrumb[reportBreadcrumb.length - 1].level : getLevelName(user?.level) || '總代理' }}</th>
@@ -1468,6 +1471,12 @@
                                     <tbody>
                                         <!-- 統一的代理+會員列表 -->
                                         <tr v-for="item in reportData.reportData" :key="item.username">
+                                            <!-- 級別 -->
+                                            <td class="text-center">
+                                                <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
+                                                    {{ item.level || '會員' }}
+                                                </span>
+                                            </td>
                                             <!-- 用戶名 -->
                                             <td class="text-center">
                                                 <!-- 如果是代理且有下級，顯示為可點擊 -->
@@ -1494,19 +1503,27 @@
                                                     </span>
                                                 </div>
                                             </td>
+                                            <!-- 餘額 -->
+                                            <td class="text-end">{{ formatMoney(item.balance || 0) }}</td>
+                                            <!-- 筆數 -->
+                                            <td class="text-center">{{ item.betCount || 0 }}</td>
                                             <!-- 下注金額 -->
                                             <td class="text-end">{{ formatMoney(item.betAmount) }}</td>
                                             <!-- 有效金額 -->
                                             <td class="text-end">{{ formatMoney(item.validAmount) }}</td>
-                                            <!-- 會員輸贏：輸贏 -->
-                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss)">
-                                                {{ formatProfit(-item.memberWinLoss) }}
+                                            <!-- 會員輸贏：輸贏 (實際會員輸贏，不取反) -->
+                                            <td class="text-end" :class="getProfitClass(item.memberWinLoss)">
+                                                {{ formatProfit(item.memberWinLoss) }}
                                             </td>
                                             <!-- 會員輸贏：退水 -->
                                             <td class="text-end">{{ formatMoney(item.rebate) }}</td>
-                                            <!-- 會員輸贏：盈虧結果 -->
-                                            <td class="text-end" :class="getProfitClass(item.profitLoss)">
-                                                {{ formatProfit(item.profitLoss) }}
+                                            <!-- 會員輸贏：盈虧結果 (應收下線，等於會員輸贏的反向) -->
+                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss)">
+                                                {{ formatProfit(-item.memberWinLoss) }}
+                                            </td>
+                                            <!-- 代理：應收下線 (與盈虧結果一樣) -->
+                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss)">
+                                                {{ formatProfit(-item.memberWinLoss) }}
                                             </td>
                                             <!-- 代理：佔成 -->
                                             <td class="text-center">0%</td>
@@ -1514,68 +1531,62 @@
                                             <td class="text-end">0.00</td>
                                             <!-- 代理：佔成結果 -->
                                             <td class="text-end">0.00</td>
-                                            <!-- 代理：實佔退水 -->
-                                            <td class="text-center">
-                                                <span class="badge bg-warning">{{ item.actualRebate ? item.actualRebate.toFixed(1) : '0.0' }}%</span>
-                                            </td>
                                             <!-- 代理：賺水 -->
                                             <td class="text-end" :class="getProfitClass(item.rebateProfit)">
                                                 {{ formatProfit(item.rebateProfit) }}
                                             </td>
-                                            <!-- 代理：盈虧結果 -->
+                                            <!-- 代理：盈虧結果 (與賺水一樣) -->
                                             <td class="text-end" :class="getProfitClass(item.rebateProfit)">
                                                 {{ formatProfit(item.rebateProfit) }}
                                             </td>
-                                            <!-- 代理：上交貨量 -->
-                                            <td class="text-end">{{ formatMoney(item.betAmount) }}</td>
-                                            <!-- 代理：上級交收 = 應收下線 + 盈虧結果 -->
-                                            <td class="text-end" :class="getProfitClass(-item.profitLoss - item.rebateProfit)">
-                                                {{ formatProfit(-item.profitLoss - item.rebateProfit) }}
+                                            <!-- 上交貨量 (等於有效金額) -->
+                                            <td class="text-end">{{ formatMoney(item.validAmount) }}</td>
+                                            <!-- 上級交收 = 應收下線 + 賺水 -->
+                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss + item.rebateProfit)">
+                                                {{ formatProfit(-item.memberWinLoss + item.rebateProfit) }}
                                             </td>
                                         </tr>
                                         
                                         <!-- 總計行 -->
                                         <tr v-if="reportData.reportData && reportData.reportData.length > 0" class="fw-bold" style="background-color: #e8f5e9; border-top: 2px solid #4caf50;">
-                                            <td class="text-center">總計</td>
+                                            <td class="text-center" colspan="2">總計</td>
                                             <td class="text-center">-</td>
-                                            <td class="text-end">-</td>
-                                            <td class="text-center">{{ reportData.totalSummary.betCount }}</td>
+                                            <td class="text-center">{{ reportData.totalSummary.betCount || 0 }}</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.betAmount) }}</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.validAmount) }}</td>
                                             <td class="text-end" :class="getProfitClass(reportData.totalSummary.memberWinLoss)">
                                                 {{ formatProfit(reportData.totalSummary.memberWinLoss) }}
                                             </td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.rebate) }}</td>
-                                            <td class="text-end" :class="getProfitClass(reportData.totalSummary.profitLoss)">
-                                                {{ formatProfit(reportData.totalSummary.profitLoss) }}
+                                            <td class="text-end" :class="getProfitClass(-reportData.totalSummary.memberWinLoss)">
+                                                {{ formatProfit(-reportData.totalSummary.memberWinLoss) }}
                                             </td>
+                                            <td class="text-end" :class="getProfitClass(-reportData.totalSummary.memberWinLoss)">
+                                                {{ formatProfit(-reportData.totalSummary.memberWinLoss) }}
+                                            </td>
+                                            <td class="text-center">0%</td>
                                             <td class="text-end">0.00</td>
-                                            <td class="text-center">
-                                                <span class="badge bg-info">0.0%</span>
-                                            </td>
-                                            <td class="text-end">$0.00</td>
-                                            <td class="text-end">$0.00</td>
-                                            <td class="text-center">
-                                                <span class="badge bg-success">{{ reportData.totalSummary.actualRebate.toFixed(1) }}%</span>
-                                            </td>
+                                            <td class="text-end">0.00</td>
                                             <td class="text-end" :class="getProfitClass(reportData.totalSummary.rebateProfit)">
                                                 {{ formatProfit(reportData.totalSummary.rebateProfit) }}
                                             </td>
-                                            <td class="text-end fw-bold text-success" :class="getProfitClass(reportData.totalSummary.finalProfitLoss)">
-                                                {{ formatProfit(reportData.totalSummary.finalProfitLoss) }}
+                                            <td class="text-end fw-bold" :class="getProfitClass(reportData.totalSummary.rebateProfit)">
+                                                {{ formatProfit(reportData.totalSummary.rebateProfit) }}
                                             </td>
-                                            <td class="text-end">0.00</td>
-                                            <td class="text-end">$0.00</td>
+                                            <td class="text-end">{{ formatMoney(reportData.totalSummary.validAmount) }}</td>
+                                            <td class="text-end fw-bold" :class="getProfitClass(-reportData.totalSummary.memberWinLoss + reportData.totalSummary.rebateProfit)">
+                                                {{ formatProfit(-reportData.totalSummary.memberWinLoss + reportData.totalSummary.rebateProfit) }}
+                                            </td>
                                         </tr>
                                         
                                         <tr v-if="loading">
-                                            <td colspan="18" class="text-center text-muted py-4">
+                                            <td colspan="17" class="text-center text-muted py-4">
                                                 <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>
                                                 載入中...
                                             </td>
                                         </tr>
                                         <tr v-else-if="!reportData.reportData || reportData.reportData.length === 0">
-                                            <td colspan="18" class="text-center text-muted py-4">
+                                            <td colspan="17" class="text-center text-muted py-4">
                                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                                 沒有資料
                                             </td>

@@ -4104,6 +4104,13 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
 // 獲取下注記錄 - 修復400錯誤，支持更多查詢參數
 app.get(`${API_PREFIX}/bets`, async (req, res) => {
   try {
+    // 使用通用認證中間件
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
+    }
+
+    const { agent } = authResult;
     const { agentId, rootAgentId, includeDownline, username, date, startDate, endDate, period, page = 1, limit = 20 } = req.query;
     
     // 基本參數驗證 - 支持agentId或rootAgentId
