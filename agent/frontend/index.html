@@ -1515,15 +1515,15 @@
                                             <td class="text-end" :class="getProfitClass(item.memberWinLoss)">
                                                 {{ formatProfit(item.memberWinLoss) }}
                                             </td>
-                                            <!-- 會員輸贏：退水 -->
-                                            <td class="text-end">{{ formatMoney(item.rebate) }}</td>
-                                            <!-- 會員輸贏：盈虧結果 (應收下線，等於會員輸贏的反向) -->
-                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss)">
-                                                {{ formatProfit(-item.memberWinLoss) }}
+                                            <!-- 會員輸贏：退水 (會員沒有直接退水，應該是0) -->
+                                            <td class="text-end">0.00</td>
+                                            <!-- 會員輸贏：盈虧結果 (與輸贏一樣，會員角度) -->
+                                            <td class="text-end" :class="getProfitClass(item.memberWinLoss)">
+                                                {{ formatProfit(item.memberWinLoss) }}
                                             </td>
-                                            <!-- 代理：應收下線 (與盈虧結果一樣) -->
-                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss)">
-                                                {{ formatProfit(-item.memberWinLoss) }}
+                                            <!-- 代理：應收下線 (與會員盈虧結果一樣，會員角度) -->
+                                            <td class="text-end" :class="getProfitClass(item.memberWinLoss)">
+                                                {{ formatProfit(item.memberWinLoss) }}
                                             </td>
                                             <!-- 代理：佔成 -->
                                             <td class="text-center">0%</td>
@@ -1542,8 +1542,8 @@
                                             <!-- 上交貨量 (等於有效金額) -->
                                             <td class="text-end">{{ formatMoney(item.validAmount) }}</td>
                                             <!-- 上級交收 = 應收下線 + 賺水 -->
-                                            <td class="text-end" :class="getProfitClass(-item.memberWinLoss + item.rebateProfit)">
-                                                {{ formatProfit(-item.memberWinLoss + item.rebateProfit) }}
+                                            <td class="text-end" :class="getProfitClass(item.memberWinLoss + item.rebateProfit)">
+                                                {{ formatProfit(item.memberWinLoss + item.rebateProfit) }}
                                             </td>
                                         </tr>
                                         
@@ -1557,12 +1557,12 @@
                                             <td class="text-end" :class="getProfitClass(reportData.totalSummary.memberWinLoss)">
                                                 {{ formatProfit(reportData.totalSummary.memberWinLoss) }}
                                             </td>
-                                            <td class="text-end">{{ formatMoney(reportData.totalSummary.rebate) }}</td>
-                                            <td class="text-end" :class="getProfitClass(-reportData.totalSummary.memberWinLoss)">
-                                                {{ formatProfit(-reportData.totalSummary.memberWinLoss) }}
+                                            <td class="text-end">0.00</td>
+                                            <td class="text-end" :class="getProfitClass(reportData.totalSummary.memberWinLoss)">
+                                                {{ formatProfit(reportData.totalSummary.memberWinLoss) }}
                                             </td>
-                                            <td class="text-end" :class="getProfitClass(-reportData.totalSummary.memberWinLoss)">
-                                                {{ formatProfit(-reportData.totalSummary.memberWinLoss) }}
+                                            <td class="text-end" :class="getProfitClass(reportData.totalSummary.memberWinLoss)">
+                                                {{ formatProfit(reportData.totalSummary.memberWinLoss) }}
                                             </td>
                                             <td class="text-center">0%</td>
                                             <td class="text-end">0.00</td>
@@ -1574,8 +1574,8 @@
                                                 {{ formatProfit(reportData.totalSummary.rebateProfit) }}
                                             </td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.validAmount) }}</td>
-                                            <td class="text-end fw-bold" :class="getProfitClass(-reportData.totalSummary.memberWinLoss + reportData.totalSummary.rebateProfit)">
-                                                {{ formatProfit(-reportData.totalSummary.memberWinLoss + reportData.totalSummary.rebateProfit) }}
+                                            <td class="text-end fw-bold" :class="getProfitClass(reportData.totalSummary.memberWinLoss + reportData.totalSummary.rebateProfit)">
+                                                {{ formatProfit(reportData.totalSummary.memberWinLoss + reportData.totalSummary.rebateProfit) }}
                                             </td>
                                         </tr>
                                         
