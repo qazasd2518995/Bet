@@ -5186,7 +5186,11 @@ const app = createApp({
                 };
                 
                 // 使用標準Bootstrap Modal方式顯示
-                const modal = new bootstrap.Modal(document.getElementById('adjustBettingLimitModal'));
+                const modalElement = document.getElementById('adjustBettingLimitModal');
+                if (modalElement && modalElement.parentElement !== document.body) {
+                    document.body.appendChild(modalElement);
+                }
+                const modal = new bootstrap.Modal(modalElement);
                 modal.show();
                 console.log('✅ Bootstrap Modal已顯示！');
                 
@@ -5234,7 +5238,8 @@ const app = createApp({
                     this.showMessage('限紅設定調整成功', 'success');
                     
                     // 關閉自定義Modal
-                    document.getElementById('adjustBettingLimitModal').style.display = 'none';
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('adjustBettingLimitModal'));
+                    if (modal) modal.hide();
                     
                     // 刷新會員列表
                     if (this.activeTab === 'members') {
