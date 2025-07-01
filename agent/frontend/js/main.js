@@ -4569,9 +4569,7 @@ const app = createApp({
                      message: data.message
                  };
                  
-                 if (data.hasData) {
-                     this.showMessage('報表查詢完成', 'success');
-                 } else {
+                 if (!data.hasData) {
                      this.showMessage(data.message || '查詢期間內沒有數據', 'info');
                  }
                  
@@ -4681,12 +4679,7 @@ const app = createApp({
                      message: data.message
                  };
                  
-                 // 只在載入成功時顯示提示，不要為沒有數據顯示警告
-                 // 因為會在HTML模板中自動顯示「沒有資料」
-                 if (data.hasData && data.reportData && data.reportData.length > 0) {
-                     this.showMessage(`查看 ${agent.username} 的下級報表完成`, 'success');
-                 }
-                 // 移除「暫無下級資料」的警告提示，讓HTML模板來處理空數據顯示
+                 // 移除成功提示訊息，讓HTML模板來處理空數據顯示
                  
              } catch (error) {
                  console.error('查看代理報表失敗:', error);
