@@ -1479,7 +1479,7 @@
                                                 <!-- 如果是會員且有下注記錄，顯示為可點擊查看下注記錄 -->
                                                 <div v-else-if="item.userType === 'member' && item.betCount > 0" class="d-flex align-items-center justify-content-center">
                                                     <button class="btn btn-link p-0 text-decoration-none fw-bold text-success" 
-                                                            @click="viewMemberBets(item.username)" 
+                                                            @click="viewMemberBets(item.username, {startDate: reportFilters.startDate, endDate: reportFilters.endDate})" 
                                                             title="點擊查看下注記錄">
                                                         {{ item.username }}
                                                         <i class="fas fa-list ms-1 small"></i>
@@ -2101,13 +2101,38 @@
                                         </option>
                                     </select>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label class="form-label">日期</label>
                                     <input type="date" class="form-control" v-model="betFilters.date">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
+                                    <label class="form-label">開始日期</label>
+                                    <input type="date" class="form-control" v-model="betFilters.startDate">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">結束日期</label>
+                                    <input type="date" class="form-control" v-model="betFilters.endDate">
+                                </div>
+                                <div class="col-md-2">
                                     <label class="form-label">期数</label>
                                     <input type="text" class="form-control" placeholder="输入期数" v-model="betFilters.period">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">快捷選項</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                            期間
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('today')">今天</a></li>
+                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('yesterday')">昨天</a></li>
+                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('thisWeek')">本週</a></li>
+                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('thisMonth')">本月</a></li>
+                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('lastMonth')">上月</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('clear')">清除</a></li>
+                                        </ul>
+                                    </div>
                                 </div>
                                 <div class="col-md-12 d-flex align-items-end">
                                     <button class="btn btn-primary me-2" @click="searchBets">

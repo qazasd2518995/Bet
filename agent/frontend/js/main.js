@@ -296,6 +296,8 @@ const app = createApp({
             betFilters: {
                 member: '',
                 date: '',
+                startDate: '',
+                endDate: '',
                 period: '',
                 viewScope: 'own', // 'own', 'downline', 'specific'
                 specificAgent: ''
@@ -1803,6 +1805,8 @@ const app = createApp({
             this.betFilters = {
                 member: '',
                 date: '',
+                startDate: '',
+                endDate: '',
                 period: '',
                 viewScope: 'own',
                 specificAgent: ''
@@ -1822,6 +1826,8 @@ const app = createApp({
                 const params = new URLSearchParams();
                 if (this.betFilters.member) params.append('username', this.betFilters.member);
                 if (this.betFilters.date) params.append('date', this.betFilters.date);
+                if (this.betFilters.startDate) params.append('startDate', this.betFilters.startDate);
+                if (this.betFilters.endDate) params.append('endDate', this.betFilters.endDate);
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
                 
                 // 根據查看范围设置不同的查询參數
@@ -5056,9 +5062,9 @@ const app = createApp({
           },
 
           // 查看會員下注記錄
-          async viewMemberBets(memberUsername) {
+          async viewMemberBets(memberUsername, dateRange = null) {
               try {
-                  console.log('🎯 查看會員下注記錄:', memberUsername);
+                  console.log('🎯 查看會員下注記錄:', memberUsername, '期間:', dateRange);
                   
                   // 切換到下注記錄頁面
                   this.activeTab = 'stats';
@@ -5068,18 +5074,74 @@ const app = createApp({
                   
                   // 設置篩選條件為該會員
                   this.betFilters.member = memberUsername;
-                  this.betFilters.viewScope = 'direct'; // 設置為直屬會員模式
+                  this.betFilters.viewScope = 'downline'; // 使用整條代理線模式確保能查到
+                  
+                  // 如果有傳入期間範圍，設置期間篩選
+                  if (dateRange && dateRange.startDate && dateRange.endDate) {
+                      this.betFilters.startDate = dateRange.startDate;
+                      this.betFilters.endDate = dateRange.endDate;
+                      // 清空單日查詢，使用期間查詢
+                      this.betFilters.date = '';
+                      console.log('📅 設置期間查詢:', dateRange.startDate, '至', dateRange.endDate);
+                  }
                   
                   // 載入直屬會員數據並搜索
                   await this.loadDirectMembersForBets();
                   await this.searchBets();
                   
-                  this.showMessage(`正在查看 ${memberUsername} 的下注記錄`, 'info');
+                  const dateMsg = dateRange ? ` (${dateRange.startDate} 至 ${dateRange.endDate})` : '';
+                  this.showMessage(`正在查看 ${memberUsername} 的下注記錄${dateMsg}`, 'info');
                   
               } catch (error) {
                   console.error('查看會員下注記錄失敗:', error);
                   this.showMessage('查看會員下注記錄失敗: ' + error.message, 'error');
               }
+          },
+
+          // 設置下注記錄期間查詢
+          setBetDateRange(type) {
+              const today = new Date();
+              let startDate, endDate;
+              
+              switch(type) {
+                  case 'today':
+                      startDate = endDate = today.toISOString().split('T')[0];
+                      break;
+                  case 'yesterday':
+                      const yesterday = new Date(today);
+                      yesterday.setDate(today.getDate() - 1);
+                      startDate = endDate = yesterday.toISOString().split('T')[0];
+                      break;
+                  case 'thisWeek':
+                      const firstDay = new Date(today);
+                      firstDay.setDate(today.getDate() - today.getDay());
+                      startDate = firstDay.toISOString().split('T')[0];
+                      endDate = today.toISOString().split('T')[0];
+                      break;
+                  case 'thisMonth':
+                      startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                      endDate = today.toISOString().split('T')[0];
+                      break;
+                  case 'lastMonth':
+                      const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                      startDate = lastMonthStart.toISOString().split('T')[0];
+                      endDate = lastMonthEnd.toISOString().split('T')[0];
+                      break;
+                  case 'clear':
+                      this.betFilters.startDate = '';
+                      this.betFilters.endDate = '';
+                      this.betFilters.date = '';
+                      return;
+                  default:
+                      return;
+              }
+              
+              this.betFilters.startDate = startDate;
+              this.betFilters.endDate = endDate;
+              this.betFilters.date = ''; // 清空單日查詢
+              
+              console.log('📅 設置下注記錄期間查詢:', type, startDate, '至', endDate);
           }
     },
 

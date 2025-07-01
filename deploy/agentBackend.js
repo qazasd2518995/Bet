@@ -4104,7 +4104,7 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
 // 獲取下注記錄 - 修復400錯誤，支持更多查詢參數
 app.get(`${API_PREFIX}/bets`, async (req, res) => {
   try {
-    const { agentId, rootAgentId, includeDownline, username, date, period, page = 1, limit = 20 } = req.query;
+    const { agentId, rootAgentId, includeDownline, username, date, startDate, endDate, period, page = 1, limit = 20 } = req.query;
     
     // 基本參數驗證 - 支持agentId或rootAgentId
     const currentAgentId = agentId || rootAgentId;
@@ -4193,6 +4193,21 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     if (date) {
       whereClause += ` AND DATE(created_at) = $${paramIndex}`;
       params.push(date);
+      paramIndex++;
+    } else if (startDate && endDate) {
+      // 期間查詢
+      whereClause += ` AND DATE(created_at) BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
+      params.push(startDate, endDate);
+      paramIndex += 2;
+    } else if (startDate) {
+      // 只有開始日期
+      whereClause += ` AND DATE(created_at) >= $${paramIndex}`;
+      params.push(startDate);
+      paramIndex++;
+    } else if (endDate) {
+      // 只有結束日期
+      whereClause += ` AND DATE(created_at) <= $${paramIndex}`;
+      params.push(endDate);
       paramIndex++;
     }
     
