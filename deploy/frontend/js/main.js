@@ -5196,6 +5196,16 @@ const app = createApp({
                 }
                 
                 try {
+                    // 強制設置Modal樣式
+                    modalElement.style.display = 'block';
+                    modalElement.style.zIndex = '99999';
+                    modalElement.style.position = 'fixed';
+                    modalElement.style.top = '0';
+                    modalElement.style.left = '0';
+                    modalElement.style.width = '100%';
+                    modalElement.style.height = '100%';
+                    modalElement.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                    
                     const modal = new bootstrap.Modal(modalElement, {
                         backdrop: 'static',
                         keyboard: false
@@ -5204,15 +5214,24 @@ const app = createApp({
                     modal.show();
                     console.log('Modal顯示命令已執行');
                     
-                    // 檢查Modal是否實際顯示
+                    // 強制顯示Modal
                     setTimeout(() => {
+                        modalElement.classList.add('show');
+                        modalElement.style.display = 'block';
+                        modalElement.setAttribute('aria-modal', 'true');
+                        modalElement.removeAttribute('aria-hidden');
+                        
                         const isVisible = modalElement.classList.contains('show');
                         console.log('Modal是否可見:', isVisible);
+                        console.log('Modal樣式:', modalElement.style.cssText);
+                        
                         if (!isVisible) {
                             console.error('Modal未正確顯示');
                             this.showMessage('Modal顯示異常，請重新嘗試', 'warning');
+                        } else {
+                            console.log('✅ Modal強制顯示成功！');
                         }
-                    }, 500);
+                    }, 300);
                 } catch (modalError) {
                     console.error('Bootstrap Modal創建失敗:', modalError);
                     this.showMessage('Modal顯示失敗，請檢查頁面是否正確載入', 'error');
