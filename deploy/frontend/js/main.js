@@ -871,6 +871,12 @@ const app = createApp({
                     // 设置 axios 身份驗證頭
                     axios.defaults.headers.common['Authorization'] = token;
                     
+                    // 設置session token header（優先使用）
+                    const sessionToken = localStorage.getItem('agent_session_token');
+                    if (sessionToken) {
+                        axios.defaults.headers.common['x-session-token'] = sessionToken;
+                    }
+                    
                     // 強制Vue更新
                     this.$forceUpdate();
                     return true;
@@ -911,6 +917,11 @@ const app = createApp({
                     
                     // 设置 axios 身份驗證頭
                     axios.defaults.headers.common['Authorization'] = token;
+                    
+                    // 設置session token header（優先使用）
+                    if (sessionToken) {
+                        axios.defaults.headers.common['x-session-token'] = sessionToken;
+                    }
                     
                     // 更新用戶资讯
                     this.user = agent;
@@ -991,6 +1002,7 @@ const app = createApp({
             
             // 重置 axios 身份驗證頭
             delete axios.defaults.headers.common['Authorization'];
+            delete axios.defaults.headers.common['x-session-token'];
             
             this.showMessage('已成功登出', 'success');
             
