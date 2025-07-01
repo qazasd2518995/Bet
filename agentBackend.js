@@ -6070,7 +6070,35 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       // 總是添加自己的統計
       console.log('📊 添加自己的統計數據');
       
-      // 查詢自己直屬會員的投注數據
+      // 查詢自己直屬會員的投注數據 - 修復參數索引
+      let selfTimeWhereClause = '';
+      let selfTimeParams = [];
+      let selfParamIndex = 2; // 從$2開始，$1是queryAgentId
+      
+      // 檢查日期參數是否有效
+      const validStartDate = startDate && startDate.trim() !== '';
+      const validEndDate = endDate && endDate.trim() !== '';
+      
+      if (validStartDate && validEndDate) {
+        selfTimeWhereClause = ` AND bh.created_at >= $${selfParamIndex} AND bh.created_at <= $${selfParamIndex + 1}`;
+        selfTimeParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
+        selfParamIndex += 2;
+      } else if (validStartDate) {
+        selfTimeWhereClause = ` AND bh.created_at >= $${selfParamIndex}`;
+        selfTimeParams.push(startDate + ' 00:00:00');
+        selfParamIndex++;
+      } else if (validEndDate) {
+        selfTimeWhereClause = ` AND bh.created_at <= $${selfParamIndex}`;
+        selfTimeParams.push(endDate + ' 23:59:59');
+        selfParamIndex++;
+      }
+      
+      if (username) {
+        selfTimeWhereClause += ` AND bh.username ILIKE $${selfParamIndex}`;
+        selfTimeParams.push(`%${username}%`);
+        selfParamIndex++;
+      }
+      
       const selfMemberBetQuery = `
         SELECT 
           COUNT(*) as bet_count,
@@ -6079,10 +6107,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
           COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
         FROM bet_history bh
         INNER JOIN members m ON bh.username = m.username
-        WHERE m.agent_id = $1 ${timeWhereClause}
+        WHERE m.agent_id = $1 ${selfTimeWhereClause}
       `;
       
-      const selfMemberBetParams = [queryAgentId, ...timeParams];
+      const selfMemberBetParams = [queryAgentId, ...selfTimeParams];
       const selfMemberBetResult = await db.one(selfMemberBetQuery, selfMemberBetParams);
       
       const selfBetCount = parseInt(selfMemberBetResult.bet_count) || 0;
@@ -6203,10 +6231,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
           FROM bet_history bh
           INNER JOIN all_members am ON bh.username = am.username
-          WHERE 1=1 ${timeWhereClause}
+          WHERE 1=1 ${selfTimeWhereClause}
         `;
         
-        const betParams = [agent.id, ...timeParams];
+        const betParams = [agent.id, ...selfTimeParams];
         const betResult = await db.one(betQuery, betParams);
         
         const betCount = parseInt(betResult.bet_count) || 0;
