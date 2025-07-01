@@ -6641,22 +6641,4 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
   }
 });
 
-// 啟動服務器
-startServer();
-
-// 啟動服務器函數
-async function startServer() {
-  try {
-    // 啟動時初始化數據庫
-    await initDatabase();
-    
-    app.listen(port, () => {
-      console.log(`代理管理系統運行於端口 ${port}`);
-      console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`時間: ${new Date().toLocaleString()}`);
-    });
-  } catch (error) {
-    console.error('啟動服務器失敗:', error);
-    process.exit(1);
-  }
-}
+// 啟動服務器 - 文件末尾已有startServer調用，這裡僅為API結束標記
