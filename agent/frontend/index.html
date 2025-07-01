@@ -1631,10 +1631,51 @@
                                             </td>
                                         </tr>
                                         
+                                        <!-- 本級統計總計 (僅本級數據) -->
+                                        <tr v-if="reportData.selfData" class="fw-bold" style="background-color: #e8f5e9; border-top: 2px solid #4caf50;">
+                                            <td class="text-center">本級總計</td>
+                                            <td class="text-center">-</td>
+                                            <td class="text-end">-</td>
+                                            <td class="text-center">{{ reportData.selfData.betCount }}</td>
+                                            <td class="text-end">{{ formatMoney(reportData.selfData.betAmount) }}</td>
+                                            <td class="text-end">{{ formatMoney(reportData.selfData.validAmount) }}</td>
+                                            <td class="text-end" :class="getProfitClass(reportData.selfData.memberWinLoss)">
+                                                {{ formatProfit(reportData.selfData.memberWinLoss) }}
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(reportData.selfData.rebate) }}</td>
+                                            <td class="text-end" :class="getProfitClass(reportData.selfData.profitLoss)">
+                                                {{ formatProfit(reportData.selfData.profitLoss) }}
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(reportData.selfData.downlineReceivable) }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info">0.0%</span>
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(reportData.selfData.commissionAmount) }}</td>
+                                            <td class="text-end" :class="getProfitClass(reportData.selfData.commissionResult)">
+                                                {{ formatProfit(reportData.selfData.commissionResult) }}
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success">{{ reportData.selfData.actualRebate.toFixed(1) }}%</span>
+                                            </td>
+                                            <td class="text-end" :class="getProfitClass(reportData.selfData.rebateProfit)">
+                                                {{ formatProfit(reportData.selfData.rebateProfit) }}
+                                            </td>
+                                            <td class="text-end fw-bold text-success" :class="getProfitClass(reportData.selfData.finalProfitLoss)">
+                                                {{ formatProfit(reportData.selfData.finalProfitLoss) }}
+                                            </td>
+                                            <td class="text-end">{{ formatMoney(reportData.selfData.upperDelivery) }}</td>
+                                            <td class="text-end" :class="getProfitClass(reportData.selfData.upperSettlement)">
+                                                {{ formatProfit(reportData.selfData.upperSettlement) }}
+                                            </td>
+                                        </tr>
+                                        
                                         <!-- 下級代理區分標題 -->
                                         <tr v-if="reportData.downlineData && reportData.downlineData.length > 0" class="table-secondary">
-                                            <td colspan="18" class="fw-bold text-center bg-secondary text-white">
-                                                <i class="fas fa-users me-2"></i>下級代理 ({{ reportData.downlineData.length }}個)
+                                            <td colspan="18" class="fw-bold text-center bg-secondary text-white" style="border-top: 3px solid #6c757d;">
+                                                <i class="fas fa-users me-2"></i>下級代理參考信息 ({{ reportData.downlineData.length }}個)
+                                                <small class="d-block mt-1" style="font-size: 0.8em; opacity: 0.8;">
+                                                    ⚠️ 以下數據僅供參考，不計入本代理總計
+                                                </small>
                                             </td>
                                         </tr>
                                         
@@ -1795,28 +1836,37 @@
                                 <div class="row small text-muted">
                                     <div class="col-md-4">
                                         <ul class="mb-0">
+                                            <li><strong>本級統計:</strong> 代理自己直屬會員的數據</li>
+                                            <li><strong>本級總計:</strong> 代理的實際業績總計</li>
                                             <li><strong>會員輸贏:</strong> 會員的盈虧狀況</li>
                                             <li><strong>退水:</strong> 會員退水金額</li>
-                                            <li><strong>盈虧結果:</strong> 總體盈虧結果</li>
-                                            <li><strong>應收下級:</strong> 從下級收取的金額（全部）</li>
+                                            <li><strong>盈虧結果:</strong> 代理的最終盈虧</li>
                                         </ul>
                                     </div>
                                     <div class="col-md-4">
                                         <ul class="mb-0">
+                                            <li><strong>下級代理:</strong> 僅供參考，不計入總計</li>
                                             <li><strong>佔成:</strong> 代理的佣金比例</li>
                                             <li><strong>佔成金額:</strong> 代理佣金收入</li>
-                                            <li><strong>佔成結果:</strong> 佣金最終結果</li>
                                             <li><strong>實佔退水:</strong> 退水分配百分比</li>
+                                            <li><strong>賺水:</strong> 沒有佣金單純退水</li>
                                         </ul>
                                     </div>
                                     <div class="col-md-4">
                                         <ul class="mb-0">
-                                            <li><strong>賺水:</strong> 沒有佣金單純退水</li>
-                                            <li><strong>盈虧結果:</strong> 最終總盈虧</li>
-                                            <li><strong>上交貨量:</strong> 向上級交收的金額（全部）</li>
-                                            <li><strong>上級交收:</strong> 向上級交收的盈虧（全部）</li>
+                                            <li><strong>層級邏輯:</strong> 本級統計 = 實際業績</li>
+                                            <li><strong>下級信息:</strong> 參考用，不累加計算</li>
+                                            <li><strong>應收下級:</strong> 從下級收取的金額</li>
+                                            <li><strong>上交貨量:</strong> 向上級交收的金額</li>
+                                            <li><strong>上級交收:</strong> 向上級交收的盈虧</li>
                                         </ul>
                                     </div>
+                                </div>
+                                <div class="mt-2 p-2 bg-warning bg-opacity-10 rounded">
+                                    <small class="text-warning">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        <strong>重要說明：</strong> 「本級總計」才是該代理的真實業績，下級代理數據僅供管理參考，不會重複計算。
+                                    </small>
                                 </div>
                             </div>
                         </div>
