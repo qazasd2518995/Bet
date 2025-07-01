@@ -5868,11 +5868,11 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       FROM agents a WHERE a.parent_id = $1 ORDER BY a.username
     `, [queryAgentId]);
 
-    // 獲取直接創建的會員
-    const directMembers = await db.any(`
-      SELECT m.id, m.username, m.balance, m.rebate_percentage, m.market_type
-      FROM members m WHERE m.agent_id = $1 ORDER BY m.username
-    `, [queryAgentId]);
+         // 獲取直接創建的會員
+     const directMembers = await db.any(`
+       SELECT m.id, m.username, m.balance, m.market_type
+       FROM members m WHERE m.agent_id = $1 ORDER BY m.username
+     `, [queryAgentId]);
 
     // 處理代理數據
     for (const agent of directAgents) {
@@ -5927,7 +5927,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       totalSummary.finalProfitLoss += finalProfitLoss;
     }
 
-    // 處理會員數據
+    // 處理會員數據 - 會員的退水比例使用其代理的設定
     for (const member of directMembers) {
       const memberBetResult = await db.one(`
         SELECT 
@@ -5943,7 +5943,8 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       const validAmount = parseFloat(memberBetResult.valid_amount) || 0.0;
       const memberWinLoss = parseFloat(memberBetResult.member_win_loss) || 0.0;
       const profitLoss = -memberWinLoss;
-      const rebatePercentage = parseFloat(member.rebate_percentage || 0);
+      // 會員使用創建者（當前代理）的退水比例
+      const rebatePercentage = parseFloat(queryAgent.rebate_percentage || 0);
       const rebate = validAmount * rebatePercentage;
       const finalProfitLoss = profitLoss + rebate;
 
