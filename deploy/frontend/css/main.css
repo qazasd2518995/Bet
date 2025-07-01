@@ -377,3 +377,12 @@ select:disabled {
     border-color: #dee2e6;
     color: #6c757d;
 }
+
+/* 確保限紅Modal顯示在最上層 */
+#adjustBettingLimitModal {
+    z-index: 2000 !important;
+}
+
+#adjustBettingLimitModal .modal-backdrop {
+    z-index: 1999 !important;
+}

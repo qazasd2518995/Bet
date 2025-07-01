@@ -5185,12 +5185,8 @@ const app = createApp({
                     reason: ''
                 };
                 
-                // 使用標準Bootstrap Modal方式顯示
-                const modalElement = document.getElementById('adjustBettingLimitModal');
-                if (modalElement && modalElement.parentElement !== document.body) {
-                    document.body.appendChild(modalElement);
-                }
-                const modal = new bootstrap.Modal(modalElement);
+                // 使用標準Bootstrap Modal方式顯示 - 不移動元素，保持在Vue範圍內
+                const modal = new bootstrap.Modal(document.getElementById('adjustBettingLimitModal'));
                 modal.show();
                 console.log('✅ Bootstrap Modal已顯示！');
                 
