@@ -5832,11 +5832,15 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
 
     const { startDate, endDate, username, targetAgent } = req.query;
     
+    // 設定預設的視圖類型
+    const viewType = req.query.viewType || 'agents';
+    
     console.log('📊 代理層級分析API: 接收請求', { 
       startDate, 
       endDate, 
       username, 
       targetAgent,
+      viewType,
       agentId: currentAgent.id,
       fullQuery: req.query 
     });
@@ -6000,7 +6004,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             COALESCE(SUM(bh.amount), 0) as bet_amount,
             COALESCE(SUM(bh.amount), 0) as valid_amount,
             COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss,
-            COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.rebate_amount ELSE 0 END), 0) as rebate
+            0 as rebate
           FROM bet_history bh
           WHERE bh.username = '${subordinate.username}' ${timeWhereClause}
         `;
@@ -6052,7 +6056,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             COALESCE(SUM(bh.amount), 0) as bet_amount,
             COALESCE(SUM(bh.amount), 0) as valid_amount,
             COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss,
-            COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.rebate_amount ELSE 0 END), 0) as rebate
+            0 as rebate
           FROM bet_history bh
           INNER JOIN all_members am ON bh.username = am.username
           WHERE 1=1 ${timeWhereClause}
