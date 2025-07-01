@@ -991,6 +991,137 @@ async function initDatabase() {
     }
     
     console.log('代理個人資料表已創建');
+    
+    // 創建限紅配置表
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS betting_limit_configs (
+        id SERIAL PRIMARY KEY,
+        level_name VARCHAR(20) UNIQUE NOT NULL,
+        level_display_name VARCHAR(50) NOT NULL,
+        config JSONB NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // 創建索引
+    await db.none(`
+      CREATE INDEX IF NOT EXISTS idx_betting_limit_configs_level_name ON betting_limit_configs(level_name)
+    `);
+    
+    // 檢查並添加會員限紅等級欄位
+    try {
+      await db.none(`
+        ALTER TABLE members ADD COLUMN IF NOT EXISTS betting_limit_level VARCHAR(20) DEFAULT 'level1'
+      `);
+      await db.none(`
+        CREATE INDEX IF NOT EXISTS idx_members_betting_limit_level ON members(betting_limit_level)
+      `);
+      console.log('會員限紅等級欄位添加成功');
+    } catch (error) {
+      console.log('會員限紅等級欄位已存在或添加失敗:', error.message);
+    }
+    
+    // 插入預設限紅配置（只在表為空時插入）
+    const existingConfigs = await db.one('SELECT COUNT(*) as count FROM betting_limit_configs');
+    if (parseInt(existingConfigs.count) === 0) {
+      console.log('插入預設限紅配置...');
+      
+      const limitConfigs = [
+        {
+          level_name: 'level1',
+          level_display_name: '新手限紅',
+          config: {
+            "number": {"minBet": 1, "maxBet": 500, "periodLimit": 1000},
+            "twoSide": {"minBet": 1, "maxBet": 1000, "periodLimit": 1000},
+            "sumValueSize": {"minBet": 1, "maxBet": 1000, "periodLimit": 1000},
+            "sumValueOddEven": {"minBet": 1, "maxBet": 1000, "periodLimit": 1000},
+            "sumValue": {"minBet": 1, "maxBet": 200, "periodLimit": 400},
+            "dragonTiger": {"minBet": 1, "maxBet": 1000, "periodLimit": 1000}
+          },
+          description: '適合新手會員的基礎限紅'
+        },
+        {
+          level_name: 'level2',
+          level_display_name: '一般限紅',
+          config: {
+            "number": {"minBet": 1, "maxBet": 1000, "periodLimit": 2000},
+            "twoSide": {"minBet": 1, "maxBet": 2000, "periodLimit": 2000},
+            "sumValueSize": {"minBet": 1, "maxBet": 2000, "periodLimit": 2000},
+            "sumValueOddEven": {"minBet": 1, "maxBet": 2000, "periodLimit": 2000},
+            "sumValue": {"minBet": 1, "maxBet": 400, "periodLimit": 800},
+            "dragonTiger": {"minBet": 1, "maxBet": 2000, "periodLimit": 2000}
+          },
+          description: '適合一般會員的標準限紅'
+        },
+        {
+          level_name: 'level3',
+          level_display_name: '標準限紅',
+          config: {
+            "number": {"minBet": 1, "maxBet": 2500, "periodLimit": 5000},
+            "twoSide": {"minBet": 1, "maxBet": 5000, "periodLimit": 5000},
+            "sumValueSize": {"minBet": 1, "maxBet": 5000, "periodLimit": 5000},
+            "sumValueOddEven": {"minBet": 1, "maxBet": 5000, "periodLimit": 5000},
+            "sumValue": {"minBet": 1, "maxBet": 1000, "periodLimit": 2000},
+            "dragonTiger": {"minBet": 1, "maxBet": 5000, "periodLimit": 5000}
+          },
+          description: '標準會員的限紅配置，與原系統相同'
+        },
+        {
+          level_name: 'level4',
+          level_display_name: '進階限紅',
+          config: {
+            "number": {"minBet": 1, "maxBet": 5000, "periodLimit": 10000},
+            "twoSide": {"minBet": 1, "maxBet": 10000, "periodLimit": 10000},
+            "sumValueSize": {"minBet": 1, "maxBet": 10000, "periodLimit": 10000},
+            "sumValueOddEven": {"minBet": 1, "maxBet": 10000, "periodLimit": 10000},
+            "sumValue": {"minBet": 1, "maxBet": 2000, "periodLimit": 4000},
+            "dragonTiger": {"minBet": 1, "maxBet": 10000, "periodLimit": 10000}
+          },
+          description: '進階會員的限紅配置'
+        },
+        {
+          level_name: 'level5',
+          level_display_name: '高級限紅',
+          config: {
+            "number": {"minBet": 1, "maxBet": 10000, "periodLimit": 20000},
+            "twoSide": {"minBet": 1, "maxBet": 20000, "periodLimit": 20000},
+            "sumValueSize": {"minBet": 1, "maxBet": 20000, "periodLimit": 20000},
+            "sumValueOddEven": {"minBet": 1, "maxBet": 20000, "periodLimit": 20000},
+            "sumValue": {"minBet": 1, "maxBet": 4000, "periodLimit": 8000},
+            "dragonTiger": {"minBet": 1, "maxBet": 20000, "periodLimit": 20000}
+          },
+          description: '高級會員的限紅配置'
+        },
+        {
+          level_name: 'level6',
+          level_display_name: 'VIP限紅',
+          config: {
+            "number": {"minBet": 1, "maxBet": 20000, "periodLimit": 40000},
+            "twoSide": {"minBet": 1, "maxBet": 40000, "periodLimit": 40000},
+            "sumValueSize": {"minBet": 1, "maxBet": 40000, "periodLimit": 40000},
+            "sumValueOddEven": {"minBet": 1, "maxBet": 40000, "periodLimit": 40000},
+            "sumValue": {"minBet": 1, "maxBet": 8000, "periodLimit": 16000},
+            "dragonTiger": {"minBet": 1, "maxBet": 40000, "periodLimit": 40000}
+          },
+          description: 'VIP會員的最高限紅配置'
+        }
+      ];
+      
+      for (const config of limitConfigs) {
+        await db.none(`
+          INSERT INTO betting_limit_configs (level_name, level_display_name, config, description) 
+          VALUES ($1, $2, $3, $4)
+        `, [config.level_name, config.level_display_name, JSON.stringify(config.config), config.description]);
+      }
+      
+      console.log('預設限紅配置插入完成');
+    } else {
+      console.log('限紅配置表已存在數據，跳過初始化');
+    }
+    
+    console.log('限紅管理功能初始化完成');
   } catch (error) {
     console.error('初始化數據庫時出錯:', error);
     // 出錯時不結束進程，讓系統仍能啟動，方便調試
@@ -1449,7 +1580,7 @@ const MemberModel = {
   
   // 創建會員
   async create(memberData) {
-    const { username, password, agent_id, balance = 0, notes, market_type } = memberData;
+    const { username, password, agent_id, balance = 0, notes, market_type, betting_limit_level } = memberData;
     
     try {
       // 如果沒有指定盤口類型，從代理繼承
@@ -1464,7 +1595,7 @@ const MemberModel = {
         INSERT INTO members (username, password, agent_id, balance, notes, market_type, betting_limit_level) 
         VALUES ($1, $2, $3, $4, $5, $6, $7) 
         RETURNING *
-      `, [username, password, agent_id, balance, notes || '', finalMarketType, 'level1']);
+      `, [username, password, agent_id, balance, notes || '', finalMarketType, betting_limit_level || 'level1']);
     } catch (error) {
       console.error('創建會員出錯:', error);
       throw error;
@@ -3113,7 +3244,8 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       agent_id: agentId,
       balance: 0, // 初始餘額
       notes: notes || '',
-      market_type: agent.market_type || 'D' // 繼承代理的盤口類型
+      market_type: agent.market_type || 'D', // 繼承代理的盤口類型
+      betting_limit_level: 'level1' // 默認限紅等級
     });
     
     res.json({
