@@ -396,6 +396,22 @@ const app = createApp({
                 confirmPassword: ''
             },
             
+            // 調整限紅數據
+            bettingLimitData: {
+                loading: false,
+                submitting: false,
+                member: {
+                    id: null,
+                    username: '',
+                    bettingLimitLevel: '',
+                    levelDisplayName: '',
+                    description: ''
+                },
+                configs: [],
+                newLimitLevel: '',
+                reason: ''
+            },
+            
             // 个人资料數據
             profileData: {
                 realName: '',
@@ -5146,7 +5162,110 @@ const app = createApp({
               this.betFilters.date = ''; // 清空單日查詢
               
               console.log('📅 設置下注記錄期間查詢:', type, startDate, '至', endDate);
-          }
+          },
+
+        // 調整會員限紅
+        async adjustMemberBettingLimit(member) {
+            try {
+                console.log('開始調整會員限紅:', member);
+                
+                // 重置數據
+                this.bettingLimitData = {
+                    loading: true,
+                    submitting: false,
+                    member: {
+                        id: member.id,
+                        username: member.username,
+                        bettingLimitLevel: '',
+                        levelDisplayName: '',
+                        description: ''
+                    },
+                    configs: [],
+                    newLimitLevel: '',
+                    reason: ''
+                };
+                
+                // 顯示Modal
+                const modal = new bootstrap.Modal(document.getElementById('adjustBettingLimitModal'));
+                modal.show();
+                
+                // 並行載入數據
+                const [memberResponse, configsResponse] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/member-betting-limit/${member.id}`),
+                    axios.get(`${API_BASE_URL}/betting-limit-configs`)
+                ]);
+                
+                if (memberResponse.data.success) {
+                    this.bettingLimitData.member = {
+                        ...this.bettingLimitData.member,
+                        bettingLimitLevel: memberResponse.data.member.bettingLimitLevel,
+                        levelDisplayName: memberResponse.data.member.levelDisplayName,
+                        description: memberResponse.data.member.description
+                    };
+                }
+                
+                if (configsResponse.data.success) {
+                    this.bettingLimitData.configs = configsResponse.data.configs;
+                }
+                
+                this.bettingLimitData.loading = false;
+                
+            } catch (error) {
+                console.error('載入限紅設定失敗:', error);
+                this.showMessage('載入限紅設定失敗，請稍後再試', 'error');
+                this.bettingLimitData.loading = false;
+            }
+        },
+
+        // 提交限紅調整
+        async submitBettingLimitAdjustment() {
+            try {
+                this.bettingLimitData.submitting = true;
+                
+                const response = await axios.post(`${API_BASE_URL}/update-member-betting-limit`, {
+                    operatorId: this.user.id,
+                    memberId: this.bettingLimitData.member.id,
+                    newLimitLevel: this.bettingLimitData.newLimitLevel,
+                    reason: this.bettingLimitData.reason
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('限紅設定調整成功', 'success');
+                    
+                    // 關閉Modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('adjustBettingLimitModal'));
+                    modal.hide();
+                    
+                    // 刷新會員列表
+                    if (this.activeTab === 'members') {
+                        await this.searchMembers();
+                    } else if (this.activeTab === 'hierarchical') {
+                        await this.refreshHierarchicalMembers();
+                    }
+                } else {
+                    this.showMessage(response.data.message || '調整限紅失敗', 'error');
+                }
+                
+            } catch (error) {
+                console.error('調整限紅失敗:', error);
+                this.showMessage('調整限紅失敗，請稍後再試', 'error');
+            } finally {
+                this.bettingLimitData.submitting = false;
+            }
+        },
+
+        // 格式化投注類型名稱
+        formatBetTypeName(key) {
+            const names = {
+                'number': '1-10車號',
+                'twoSide': '兩面',
+                'sumValueSize': '冠亞軍和大小',
+                'sumValueOddEven': '冠亞軍和單雙',
+                'sumValue': '冠亞軍和',
+                'dragonTiger': '龍虎'
+            };
+            return names[key] || key;
+        }
     },
 
     // 计算屬性
@@ -5342,6 +5461,19 @@ const app = createApp({
             }, 0);
             
             return (totalPercentage / this.filteredRebateRecords.length).toFixed(1);
+        },
+        
+        // 计算選中的限紅配置
+        selectedLimitConfig() {
+            if (!this.bettingLimitData.newLimitLevel || !this.bettingLimitData.configs.length) {
+                return {};
+            }
+            
+            const selectedConfig = this.bettingLimitData.configs.find(
+                config => config.level_name === this.bettingLimitData.newLimitLevel
+            );
+            
+            return selectedConfig ? selectedConfig.config : {};
         }
     },
 

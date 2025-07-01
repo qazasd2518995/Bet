@@ -2995,7 +2995,7 @@ app.post('/api/bet', async (req, res) => {
       }
       
              // 限紅驗證
-       const limitCheck = validateBetLimits(betType, value, amountNum, userCurrentBets);
+       const limitCheck = await validateBetLimits(betType, value, amountNum, userCurrentBets, username);
        if (!limitCheck.valid) {
          console.error(`限紅驗證失敗: ${limitCheck.message}`);
          return res.status(400).json({ success: false, message: limitCheck.message });
@@ -3257,11 +3257,59 @@ async function startServer() {
 // 啟動服務器
 startServer();
 
-// 限紅驗證函數
-function validateBetLimits(betType, value, amount, userBets = []) {
+// 限紅驗證函數 - 支援動態限紅配置
+async function validateBetLimits(betType, value, amount, userBets = [], username = null) {
   let limits;
   
-  // 根據投注類型確定限紅配置
+  // 如果提供了用戶名，嘗試從代理系統獲取會員的限紅設定
+  if (username) {
+    try {
+      const response = await fetch(`${AGENT_API_URL}/member-betting-limit-by-username?username=${username}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.config) {
+          const userConfig = data.config;
+          
+          // 根據投注類型確定限紅配置
+          if (betType === 'dragonTiger') {
+            limits = userConfig.dragonTiger;
+          } else if (betType === 'sumValue') {
+            if (['big', 'small'].includes(value)) {
+              limits = userConfig.sumValueSize;
+            } else if (['odd', 'even'].includes(value)) {
+              limits = userConfig.sumValueOddEven;
+            } else {
+              limits = userConfig.sumValue;
+            }
+          } else if (betType === 'number' || (
+            ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
+            !['big', 'small', 'odd', 'even'].includes(value)
+          )) {
+            limits = userConfig.number;
+          } else if (
+            ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'position'].includes(betType) && 
+            ['big', 'small', 'odd', 'even'].includes(value)
+          ) {
+            limits = userConfig.twoSide;
+          } else {
+            limits = userConfig.twoSide;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('獲取會員限紅設定失敗，使用預設限紅:', error);
+    }
+  }
+  
+  // 如果沒有獲取到用戶限紅設定，使用預設配置
+  if (!limits) {
+    // 根據投注類型確定預設限紅配置
   if (betType === 'dragonTiger') {
     // 龍虎投注 - 5000/5000
     limits = BET_LIMITS.dragonTiger;

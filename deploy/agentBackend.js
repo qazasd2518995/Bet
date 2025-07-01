@@ -1461,10 +1461,10 @@ const MemberModel = {
       finalMarketType = finalMarketType || 'D';
       
       return await db.one(`
-        INSERT INTO members (username, password, agent_id, balance, notes, market_type) 
-        VALUES ($1, $2, $3, $4, $5, $6) 
+        INSERT INTO members (username, password, agent_id, balance, notes, market_type, betting_limit_level) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
         RETURNING *
-      `, [username, password, agent_id, balance, notes || '', finalMarketType]);
+      `, [username, password, agent_id, balance, notes || '', finalMarketType, 'level1']);
     } catch (error) {
       console.error('創建會員出錯:', error);
       throw error;
@@ -6288,3 +6288,162 @@ async function authenticateAgent(req) {
   return { success: false, message: '無效的授權令牌' };
 }
 
+// 獲取所有限紅配置
+app.get(`${API_PREFIX}/betting-limit-configs`, async (req, res) => {
+  try {
+    console.log('獲取限紅配置列表');
+    
+    const configs = await db.any(`
+      SELECT level_name, level_display_name, config, description 
+      FROM betting_limit_configs 
+      ORDER BY 
+        CASE level_name 
+          WHEN 'level1' THEN 1
+          WHEN 'level2' THEN 2
+          WHEN 'level3' THEN 3
+          WHEN 'level4' THEN 4
+          WHEN 'level5' THEN 5
+          WHEN 'level6' THEN 6
+          ELSE 999
+        END
+    `);
+    
+    console.log(`找到 ${configs.length} 個限紅配置`);
+    
+    res.json({
+      success: true,
+      configs: configs
+    });
+    
+  } catch (error) {
+    console.error('獲取限紅配置失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 獲取會員的限紅設定
+app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
+  const { memberId } = req.params;
+  
+  try {
+    console.log(`獲取會員 ${memberId} 的限紅設定`);
+    
+    // 獲取會員資料和限紅配置
+    const memberData = await db.oneOrNone(`
+      SELECT m.id, m.username, m.betting_limit_level,
+             blc.level_display_name, blc.config, blc.description
+      FROM members m
+      LEFT JOIN betting_limit_configs blc ON m.betting_limit_level = blc.level_name
+      WHERE m.id = $1
+    `, [memberId]);
+    
+    if (!memberData) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    console.log(`會員 ${memberData.username} 當前限紅等級: ${memberData.betting_limit_level}`);
+    
+    res.json({
+      success: true,
+      member: {
+        id: memberData.id,
+        username: memberData.username,
+        bettingLimitLevel: memberData.betting_limit_level,
+        levelDisplayName: memberData.level_display_name,
+        config: memberData.config,
+        description: memberData.description
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取會員限紅設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 根據用戶名獲取會員限紅設定
+app.get(`${API_PREFIX}/member-betting-limit-by-username`, async (req, res) => {
+  const { username } = req.query;
+  
+  try {
+    console.log(`根據用戶名 ${username} 獲取限紅設定`);
+    
+    if (!username) {
+      return res.json({
+        success: false,
+        message: '請提供用戶名'
+      });
+    }
+    
+    // 獲取會員資料和限紅配置
+    const memberData = await db.oneOrNone(`
+      SELECT m.id, m.username, m.betting_limit_level,
+             blc.level_display_name, blc.config, blc.description
+      FROM members m
+      LEFT JOIN betting_limit_configs blc ON m.betting_limit_level = blc.level_name
+      WHERE m.username = $1
+    `, [username]);
+    
+    if (!memberData) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    console.log(`會員 ${memberData.username} 當前限紅等級: ${memberData.betting_limit_level}`);
+    
+    res.json({
+      success: true,
+      member: {
+        id: memberData.id,
+        username: memberData.username,
+        bettingLimitLevel: memberData.betting_limit_level,
+        levelDisplayName: memberData.level_display_name,
+        description: memberData.description
+      },
+      config: memberData.config
+    });
+    
+  } catch (error) {
+    console.error('根據用戶名獲取會員限紅設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 更新會員的限紅設定
+app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
+  const { operatorId, memberId, newLimitLevel, reason } = req.body;
+  
+  try {
+    console.log(`更新會員 ${memberId} 的限紅設定: ${newLimitLevel}`);
+    
+    // 檢查操作權限 - 只有總代理可以修改限紅
+    const operator = await AgentModel.findById(operatorId);
+    if (!operator || operator.level !== 0) {
+      return res.json({
+        success: false,
+        message: '權限不足，只有總代理可以調整會員限紅'
+      });
+    }
+    
+    // 驗證限紅等級是否存在
+    const limitConfig = await db.oneOrNone(`
+      SELECT level_name, level_display_name 
+      FROM betting_limit_configs 
+      WHERE level_name = $1
+    `, [newLimitLevel]);
+    
+    if (!limitConfig) {
