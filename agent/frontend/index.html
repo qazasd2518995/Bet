@@ -1448,21 +1448,21 @@
                                             <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">下級金額</th>
                                             <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">有效金額</th>
                                             <th colspan="3" style="color: white; font-weight: bold; background-color: #34495e; text-align: center; border-bottom: 2px solid #95a5a6;">會員輸贏</th>
-                                            <th colspan="7" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; border-bottom: 2px solid #95a5a6;">{{ reportBreadcrumb.length > 0 ? reportBreadcrumb[reportBreadcrumb.length - 1].level : getLevelName(user?.level) || '總代理' }}</th>
+                                            <th colspan="6" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; border-bottom: 2px solid #95a5a6;">{{ reportBreadcrumb.length > 0 ? reportBreadcrumb[reportBreadcrumb.length - 1].level : getLevelName(user?.level) || '總代理' }}</th>
+                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">上交貨量</th>
+                                            <th rowspan="2" style="color: white; font-weight: bold; background-color: #2c3e50; text-align: center; vertical-align: middle; min-width: 80px;">上級交收</th>
                                         </tr>
                                         <!-- 第二行：細項標題 -->
                                         <tr style="background-color: #34495e;">
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">輸贏</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 60px;">退水</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">盈虧結果</th>
+                                            <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">應收下線</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 50px;">佔成</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">佔成金額</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">佔成結果</th>
-                                            <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 70px;">實佔退水</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 60px;">賺水</th>
                                             <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">盈虧結果</th>
-                                            <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">上交貨量</th>
-                                            <th style="color: white; font-weight: bold; background-color: #34495e; text-align: center; min-width: 80px;">上級交收</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1508,16 +1508,16 @@
                                             <td class="text-end" :class="getProfitClass(item.profitLoss)">
                                                 {{ formatProfit(item.profitLoss) }}
                                             </td>
+                                            <!-- 代理：應收下線 -->
+                                            <td class="text-end" :class="getProfitClass(-item.profitLoss)">
+                                                {{ formatProfit(-item.profitLoss) }}
+                                            </td>
                                             <!-- 代理：佔成 -->
                                             <td class="text-center">0%</td>
                                             <!-- 代理：佔成金額 -->
                                             <td class="text-end">0.00</td>
                                             <!-- 代理：佔成結果 -->
                                             <td class="text-end">0.00</td>
-                                            <!-- 代理：實佔退水 -->
-                                            <td class="text-center">
-                                                <span class="badge bg-warning">{{ item.actualRebate ? item.actualRebate.toFixed(1) : '0.0' }}%</span>
-                                            </td>
                                             <!-- 代理：賺水 -->
                                             <td class="text-end" :class="getProfitClass(item.rebateProfit)">
                                                 {{ formatProfit(item.rebateProfit) }}
@@ -1526,9 +1526,9 @@
                                             <td class="text-end" :class="getProfitClass(item.rebateProfit)">
                                                 {{ formatProfit(item.rebateProfit) }}
                                             </td>
-                                            <!-- 代理：上交貨量 -->
+                                            <!-- 上交貨量 -->
                                             <td class="text-end">{{ formatMoney(item.betAmount) }}</td>
-                                            <!-- 代理：上級交收 = 應收下線 + 盈虧結果 -->
+                                            <!-- 上級交收 = 應收下線 + 盈虧結果 -->
                                             <td class="text-end" :class="getProfitClass(-item.profitLoss - item.rebateProfit)">
                                                 {{ formatProfit(-item.profitLoss - item.rebateProfit) }}
                                             </td>
@@ -1546,12 +1546,12 @@
                                             <td class="text-end" :class="getProfitClass(reportData.totalSummary.profitLoss)">
                                                 {{ formatProfit(reportData.totalSummary.profitLoss) }}
                                             </td>
+                                            <td class="text-end" :class="getProfitClass(-reportData.totalSummary.profitLoss)">
+                                                {{ formatProfit(-reportData.totalSummary.profitLoss) }}
+                                            </td>
                                             <td class="text-center">0%</td>
                                             <td class="text-end">0.00</td>
                                             <td class="text-end">0.00</td>
-                                            <td class="text-center">
-                                                <span class="badge bg-success">{{ reportData.totalSummary.actualRebate ? reportData.totalSummary.actualRebate.toFixed(1) : '0.0' }}%</span>
-                                            </td>
                                             <td class="text-end" :class="getProfitClass(reportData.totalSummary.rebateProfit)">
                                                 {{ formatProfit(reportData.totalSummary.rebateProfit) }}
                                             </td>
