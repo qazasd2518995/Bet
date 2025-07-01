@@ -4316,7 +4316,7 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
     
     // 首先獲取所有下級代理ID
     const downlineAgents = await getAllDownlineAgents(rootAgentId);
-    const allAgentIds = [rootAgentId, ...downlineAgents.map(agent => agent.id)];
+    const allAgentIds = [parseInt(rootAgentId), ...downlineAgents];
     
     // 獲取所有這些代理的會員
     let allMembers = [];
@@ -4332,14 +4332,22 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
       level_name: rootAgent ? getLevelName(rootAgent.level) : '未知級別'
     };
     
-    // 添加下級代理信息
-    downlineAgents.forEach(agent => {
-      agentMap[agent.id] = { 
-        username: agent.username,
-        level: agent.level,
-        level_name: getLevelName(agent.level)
-      };
-    });
+    // 獲取所有下級代理的完整信息並添加到映射中
+    if (downlineAgents.length > 0) {
+      let agentQuery = 'SELECT id, username, level FROM agents WHERE id IN (';
+      agentQuery += downlineAgents.map((_, i) => `$${i + 1}`).join(',');
+      agentQuery += ')';
+      
+      const downlineAgentObjects = await db.any(agentQuery, downlineAgents);
+      
+      downlineAgentObjects.forEach(agent => {
+        agentMap[agent.id] = { 
+          username: agent.username,
+          level: agent.level,
+          level_name: getLevelName(agent.level)
+        };
+      });
+    }
     
     // 輔助函數：獲取級別名稱
     function getLevelName(level) {

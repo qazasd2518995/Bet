@@ -4316,7 +4316,7 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
     
     // 首先獲取所有下級代理ID
     const downlineAgents = await getAllDownlineAgents(rootAgentId);
-    const allAgentIds = [rootAgentId, ...downlineAgents.map(agent => agent.id)];
+    const allAgentIds = [parseInt(rootAgentId), ...downlineAgents];
     
     // 獲取所有這些代理的會員
     let allMembers = [];
@@ -4332,36 +4332,21 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
       level_name: rootAgent ? getLevelName(rootAgent.level) : '未知級別'
     };
     
-    // 添加下級代理信息
-    downlineAgents.forEach(agent => {
-      agentMap[agent.id] = { 
-        username: agent.username,
-        level: agent.level,
-        level_name: getLevelName(agent.level)
-      };
-    });
-    
-    // 輔助函數：獲取級別名稱
-    function getLevelName(level) {
-      const levels = {
-        0: '客服',
-        1: '一級代理', 
-        2: '二級代理',
-        3: '三級代理',
-        4: '四級代理',
-        5: '五級代理',
-        6: '六級代理',
-        7: '七級代理',
-        8: '八級代理',
-        9: '九級代理',
-        10: '十級代理',
-        11: '十一級代理',
-        12: '十二級代理',
-        13: '十三級代理',
-        14: '十四級代理',
-        15: '十五級代理'
-      };
-      return levels[level] || `${level}級代理`;
+    // 獲取所有下級代理的完整信息並添加到映射中
+    if (downlineAgents.length > 0) {
+      let agentQuery = 'SELECT id, username, level FROM agents WHERE id IN (';
+      agentQuery += downlineAgents.map((_, i) => `$${i + 1}`).join(',');
+      agentQuery += ')';
+      
+      const downlineAgentObjects = await db.any(agentQuery, downlineAgents);
+      
+      downlineAgentObjects.forEach(agent => {
+        agentMap[agent.id] = { 
+          username: agent.username,
+          level: agent.level,
+          level_name: getLevelName(agent.level)
+        };
+      });
     }
     
     for (const agentId of allAgentIds) {
@@ -6310,5 +6295,28 @@ async function authenticateAgent(req) {
   }
   
   return { success: false, message: '無效的授權令牌' };
+}
+
+// 輔助函數：獲取級別名稱
+function getLevelName(level) {
+  const levels = {
+    0: '客服',
+    1: '一級代理', 
+    2: '二級代理',
+    3: '三級代理',
+    4: '四級代理',
+    5: '五級代理',
+    6: '六級代理',
+    7: '七級代理',
+    8: '八級代理',
+    9: '九級代理',
+    10: '十級代理',
+    11: '十一級代理',
+    12: '十二級代理',
+    13: '十三級代理',
+    14: '十四級代理',
+    15: '十五級代理'
+  };
+  return levels[level] || `${level}級代理`;
 }
 
