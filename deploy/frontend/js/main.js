@@ -5554,6 +5554,7 @@ setTimeout(function() {
             
             const mountedApp = app.mount('#app');
             console.log('Vue 应用掛載成功:', mountedApp);
+            window.vueApp = mountedApp;
             
             // 添加全域調試函數
             window.debugVue = function() {
