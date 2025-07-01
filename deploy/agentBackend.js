@@ -161,17 +161,25 @@ app.post(`${API_PREFIX}/member/verify-login`, async (req, res) => {
     }
     
     console.log(`會員登入驗證成功: ${username}, ID: ${member.id}`);
+    console.log(`會員完整數據:`, JSON.stringify(member, null, 2));
+    console.log(`會員market_type值:`, member.market_type);
+    console.log(`會員market_type類型:`, typeof member.market_type);
+    
+    const responseData = {
+      id: member.id,
+      username: member.username,
+      balance: member.balance,
+      agent_id: member.agent_id,
+      status: member.status,
+      market_type: member.market_type || 'D'
+    };
+    
+    console.log(`回應數據:`, JSON.stringify(responseData, null, 2));
     
     res.json({
       success: true,
       message: '驗證成功',
-      member: {
-        id: member.id,
-        username: member.username,
-        balance: member.balance,
-        agent_id: member.agent_id,
-        status: member.status
-      }
+      member: responseData
     });
     
   } catch (error) {
@@ -5893,6 +5901,125 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       rebateProfit: 0.0,
       finalProfitLoss: 0.0
     };
+
+    // 首先添加自己的統計
+    console.log('📊 添加自己的統計數據');
+    
+    // 查詢自己直屬會員的投注數據
+    let selfTimeWhereClause = '';
+    let selfTimeParams = [];
+    let selfParamIndex = 2; // 從$2開始，$1是queryAgentId
+    
+    if (validStartDate && validEndDate) {
+      selfTimeWhereClause = ` AND bh.created_at >= $${selfParamIndex} AND bh.created_at <= $${selfParamIndex + 1}`;
+      selfTimeParams.push(startDate + ' 00:00:00', endDate + ' 23:59:59');
+      selfParamIndex += 2;
+    } else if (validStartDate) {
+      selfTimeWhereClause = ` AND bh.created_at >= $${selfParamIndex}`;
+      selfTimeParams.push(startDate + ' 00:00:00');
+      selfParamIndex++;
+    } else if (validEndDate) {
+      selfTimeWhereClause = ` AND bh.created_at <= $${selfParamIndex}`;
+      selfTimeParams.push(endDate + ' 23:59:59');
+      selfParamIndex++;
+    }
+    
+    if (username) {
+      selfTimeWhereClause += ` AND bh.username ILIKE $${selfParamIndex}`;
+      selfTimeParams.push(`%${username}%`);
+      selfParamIndex++;
+    }
+    
+    if (settlementStatus) {
+      if (settlementStatus === 'settled') {
+        selfTimeWhereClause += ` AND bh.win IS NOT NULL`;
+      } else if (settlementStatus === 'unsettled') {
+        selfTimeWhereClause += ` AND bh.win IS NULL`;
+      }
+    }
+
+    const selfMemberBetQuery = `
+      SELECT 
+        COUNT(bh.*) as bet_count,
+        COALESCE(SUM(bh.amount), 0) as bet_amount,
+        COALESCE(SUM(bh.amount), 0) as valid_amount,
+        COALESCE(SUM(CASE WHEN bh.win THEN bh.win_amount - bh.amount ELSE -bh.amount END), 0) as member_win_loss,
+        COALESCE(SUM(bh.amount * a.rebate_percentage), 0) as rebate_amount
+      FROM bet_history bh
+      INNER JOIN members m ON bh.username = m.username
+      INNER JOIN agents a ON m.agent_id = a.id
+      WHERE m.agent_id = $1
+      ${selfTimeWhereClause}
+    `;
+    
+    const selfBetParams = [queryAgentId, ...selfTimeParams];
+    const selfBetStats = await db.oneOrNone(selfMemberBetQuery, selfBetParams) || {
+      bet_count: 0,
+      bet_amount: 0,
+      valid_amount: 0,
+      member_win_loss: 0,
+      rebate_amount: 0
+    };
+    
+    // 查詢直屬會員數量
+    const memberCountResult = await db.one('SELECT COUNT(*) as count FROM members WHERE agent_id = $1', [queryAgentId]);
+    const memberCount = parseInt(memberCountResult.count) || 0;
+    
+    // 計算自己的數據
+    const selfBetCount = parseInt(selfBetStats.bet_count) || 0;
+    const selfBetAmount = parseFloat(selfBetStats.bet_amount) || 0.0;
+    const selfValidAmount = parseFloat(selfBetStats.valid_amount) || 0.0;
+    const selfMemberWinLoss = parseFloat(selfBetStats.member_win_loss) || 0.0;
+    const selfRebateAmount = parseFloat(selfBetStats.rebate_amount) || 0.0;
+    
+    const selfNinthAgentWinLoss = -selfMemberWinLoss;
+    const selfActualRebatePercentage = parseFloat(queryAgent.rebate_percentage) * 100 || 0;
+    const selfRebateProfit = selfRebateAmount;
+    const selfFinalProfitLoss = selfNinthAgentWinLoss + selfRebateProfit;
+    
+    // 總是顯示自己，即使沒有數據
+    const selfData = {
+      id: queryAgent.id,
+      level: `${queryAgent.username} (本級統計)`,
+      username: `📊 ${queryAgent.username}`,
+      balance: parseFloat(queryAgent.balance) || 0.0,
+      betCount: selfBetCount,
+      betAmount: selfBetAmount,
+      validAmount: selfValidAmount,
+      memberWinLoss: selfMemberWinLoss,
+      ninthAgentWinLoss: selfNinthAgentWinLoss,
+      upperDelivery: selfBetAmount,
+      upperSettlement: selfNinthAgentWinLoss,
+      rebate: selfRebateAmount,
+      profitLoss: selfMemberWinLoss,
+      downlineReceivable: selfBetAmount,
+      commission: 0,
+      commissionAmount: 0,
+      commissionResult: 0,
+      actualRebate: selfActualRebatePercentage,
+      rebateProfit: selfRebateProfit,
+      finalProfitLoss: selfFinalProfitLoss,
+      hasDownline: memberCount > 0,
+      isSelf: true,
+      memberCount: memberCount
+    };
+    
+    reportData.push(selfData);
+    
+    // 累計自己的數據到總計
+    totalSummary.betCount += selfBetCount;
+    totalSummary.betAmount += selfBetAmount;
+    totalSummary.validAmount += selfValidAmount;
+    totalSummary.memberWinLoss += selfMemberWinLoss;
+    totalSummary.ninthAgentWinLoss += selfNinthAgentWinLoss;
+    totalSummary.upperDelivery += selfBetAmount;
+    totalSummary.upperSettlement += selfNinthAgentWinLoss;
+    totalSummary.rebate += selfRebateAmount;
+    totalSummary.profitLoss += selfMemberWinLoss;
+    totalSummary.downlineReceivable += selfBetAmount;
+    totalSummary.actualRebate += selfActualRebatePercentage;
+    totalSummary.rebateProfit += selfRebateProfit;
+    totalSummary.finalProfitLoss += selfFinalProfitLoss;
     
     for (const agent of agentLevels) {
       // 查詢該代理下的所有會員投注記錄

@@ -4470,7 +4470,8 @@ const app = createApp({
                  this.reportBreadcrumb.push({
                      username: agent.username,
                      level: agent.level,
-                     agentId: agent.id || agent.username
+                     agentId: agent.id || agent.username,
+                     viewType: 'agents'
                  });
                  
                  console.log('🔍 進入代理報表:', agent.username, '層級:', agent.level);
@@ -4550,6 +4551,96 @@ const app = createApp({
                  this.showMessage('查看代理報表失敗: ' + error.message, 'error');
              } finally {
                  // 取消載入狀態
+                 this.loading = false;
+             }
+         },
+
+         async viewAgentMembers(agent) {
+             try {
+                 this.loading = true;
+                 
+                 // 添加到面包屑導航
+                 this.reportBreadcrumb.push({
+                     username: agent.username,
+                     level: `${agent.level} - 會員列表`,
+                     agentId: agent.id || agent.username,
+                     viewType: 'members'
+                 });
+                 
+                 console.log('👥 查看代理會員:', agent.username);
+                 
+                 // 準備參數
+                 const params = new URLSearchParams();
+                 
+                 // 保持當前篩選條件
+                 if (this.reportFilters.startDate) {
+                     params.append('startDate', this.reportFilters.startDate);
+                 }
+                 if (this.reportFilters.endDate) {
+                     params.append('endDate', this.reportFilters.endDate);
+                 }
+                 if (this.reportFilters.settlementStatus) {
+                     params.append('settlementStatus', this.reportFilters.settlementStatus);
+                 }
+                 if (this.reportFilters.username && this.reportFilters.username.trim()) {
+                     params.append('username', this.reportFilters.username.trim());
+                 }
+                 
+                 // 指定查看該代理的會員
+                 params.append('targetAgent', agent.username);
+                 params.append('viewType', 'members');
+                 params.append('gameTypes', 'pk10');
+                 
+                 const response = await fetch(`${this.API_BASE_URL}/reports/agent-analysis?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 const data = await response.json();
+                 
+                 console.log('👥 會員報表數據:', data);
+                 
+                 // 更新報表數據
+                 this.reportData = {
+                     success: data.success,
+                     reportData: data.reportData || [],
+                     totalSummary: data.totalSummary || {
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
+                     hasData: data.hasData || false,
+                     message: data.message
+                 };
+                 
+                 if (data.hasData && data.reportData && data.reportData.length > 0) {
+                     this.showMessage(`查看 ${agent.username} 的會員報表完成`, 'success');
+                 }
+                 
+             } catch (error) {
+                 console.error('查看會員報表失敗:', error);
+                 this.showMessage('查看會員報表失敗: ' + error.message, 'error');
+             } finally {
                  this.loading = false;
              }
          },
