@@ -6326,13 +6326,44 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       totalBets: totalSummary.betCount 
     });
 
+    // 分離自己的統計和下級代理數據
+    const selfData = reportData.find(item => item.isSelf);
+    const downlineData = reportData.filter(item => !item.isSelf);
+    
+    // 重新計算總計，避免包含自己的統計造成重複
+    const downlineTotalSummary = {
+      betCount: downlineData.reduce((sum, item) => sum + (item.betCount || 0), 0),
+      betAmount: downlineData.reduce((sum, item) => sum + (item.betAmount || 0), 0),
+      validAmount: downlineData.reduce((sum, item) => sum + (item.validAmount || 0), 0),
+      memberWinLoss: downlineData.reduce((sum, item) => sum + (item.memberWinLoss || 0), 0),
+      ninthAgentWinLoss: downlineData.reduce((sum, item) => sum + (item.ninthAgentWinLoss || 0), 0),
+      upperDelivery: downlineData.reduce((sum, item) => sum + (item.upperDelivery || 0), 0),
+      upperSettlement: downlineData.reduce((sum, item) => sum + (item.upperSettlement || 0), 0),
+      rebate: downlineData.reduce((sum, item) => sum + (item.rebate || 0), 0),
+      profitLoss: downlineData.reduce((sum, item) => sum + (item.profitLoss || 0), 0),
+      downlineReceivable: downlineData.reduce((sum, item) => sum + (item.downlineReceivable || 0), 0),
+      commissionAmount: downlineData.reduce((sum, item) => sum + (item.commissionAmount || 0), 0),
+      commissionResult: downlineData.reduce((sum, item) => sum + (item.commissionResult || 0), 0),
+      actualRebate: downlineData.length > 0 ? downlineData.reduce((sum, item) => sum + (item.actualRebate || 0), 0) / downlineData.length : 0,
+      rebateProfit: downlineData.reduce((sum, item) => sum + (item.rebateProfit || 0), 0),
+      finalProfitLoss: downlineData.reduce((sum, item) => sum + (item.finalProfitLoss || 0), 0)
+    };
+
     res.json({
       success: true,
-      reportData: reportData,
-      totalSummary: totalSummary,
+      selfData: selfData,           // 自己的統計
+      downlineData: downlineData,   // 下級代理數據
+      reportData: reportData,       // 保持兼容性
+      totalSummary: totalSummary,   // 包含自己和下級的完整總計
+      downlineTotalSummary: downlineTotalSummary, // 僅下級代理的總計
       hasData: reportData.length > 0,
       currentAgent: queryAgent,
-      viewType: viewType
+      viewType: viewType,
+      levelStructure: {
+        hasData: reportData.length > 0,
+        selfLevel: selfData ? 1 : 0,
+        downlineLevels: downlineData.length
+      }
     });
 
   } catch (error) {

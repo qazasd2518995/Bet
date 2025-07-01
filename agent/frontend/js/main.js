@@ -4419,6 +4419,26 @@ const app = createApp({
                  this.reportData = {
                      success: data.success,
                      reportData: data.reportData || [],
+                     selfData: data.selfData || null,                    // 自己的統計
+                     downlineData: data.downlineData || [],              // 下級代理數據
+                     downlineTotalSummary: data.downlineTotalSummary || { // 下級代理小計
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
                      totalSummary: data.totalSummary || {
                          betCount: 0,
                          betAmount: 0.0,
@@ -4438,6 +4458,7 @@ const app = createApp({
                          finalProfitLoss: 0.0
                      },
                      hasData: data.hasData || false,
+                     levelStructure: data.levelStructure || {},          // 層級結構信息
                      message: data.message
                  };
                  
@@ -4543,6 +4564,26 @@ const app = createApp({
                  this.reportData = {
                      success: data.success,
                      reportData: data.reportData || [],
+                     selfData: data.selfData || null,                    // 自己的統計
+                     downlineData: data.downlineData || [],              // 下級代理數據
+                     downlineTotalSummary: data.downlineTotalSummary || { // 下級代理小計
+                         betCount: 0,
+                         betAmount: 0.0,
+                         validAmount: 0.0,
+                         memberWinLoss: 0.0,
+                         ninthAgentWinLoss: 0.0,
+                         upperDelivery: 0.0,
+                         upperSettlement: 0.0,
+                         rebate: 0.0,
+                         profitLoss: 0.0,
+                         downlineReceivable: 0.0,
+                         commission: 0.0,
+                         commissionAmount: 0.0,
+                         commissionResult: 0.0,
+                         actualRebate: 0.0,
+                         rebateProfit: 0.0,
+                         finalProfitLoss: 0.0
+                     },
                      totalSummary: data.totalSummary || {
                          betCount: 0,
                          betAmount: 0.0,
@@ -4562,6 +4603,7 @@ const app = createApp({
                          finalProfitLoss: 0.0
                      },
                      hasData: data.hasData || false,
+                     levelStructure: data.levelStructure || {},          // 層級結構信息
                      message: data.message
                  };
                  
