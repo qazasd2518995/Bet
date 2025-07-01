@@ -6579,3 +6579,84 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
     `, [newLimitLevel]);
     
     if (!limitConfig) {
+      return res.json({
+        success: false,
+        message: '無效的限紅等級'
+      });
+    }
+    
+    // 獲取會員資料
+    const member = await MemberModel.findById(memberId);
+    if (!member) {
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    const oldLimitLevel = member.betting_limit_level;
+    
+    // 更新會員限紅等級
+    await db.none(`
+      UPDATE members 
+      SET betting_limit_level = $1, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = $2
+    `, [newLimitLevel, memberId]);
+    
+    // 記錄操作日誌到交易記錄
+    await db.none(`
+      INSERT INTO transaction_records 
+      (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [
+      'member', 
+      memberId, 
+      'limit_change', 
+      0, 
+      0, 
+      0, 
+      `限紅等級調整: ${oldLimitLevel || 'level1'} → ${newLimitLevel} (${reason || '管理員調整'})`
+    ]);
+    
+    console.log(`✅ 會員 ${member.username} 限紅等級已更新: ${oldLimitLevel} → ${newLimitLevel}`);
+    
+    res.json({
+      success: true,
+      message: '限紅設定更新成功',
+      member: {
+        id: member.id,
+        username: member.username,
+        oldLimitLevel: oldLimitLevel,
+        newLimitLevel: newLimitLevel,
+        levelDisplayName: limitConfig.level_display_name
+      }
+    });
+    
+  } catch (error) {
+    console.error('更新會員限紅設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 啟動服務器
+startServer();
+
+// 啟動服務器函數
+async function startServer() {
+  try {
+    // 啟動時初始化數據庫
+    await initDatabase();
+    
+    app.listen(port, () => {
+      console.log(`代理管理系統運行於端口 ${port}`);
+      console.log(`環境: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`時間: ${new Date().toLocaleString()}`);
+    });
+  } catch (error) {
+    console.error('啟動服務器失敗:', error);
+    process.exit(1);
+  }
+}
