@@ -155,6 +155,9 @@ const app = createApp({
             // 編輯備註相关
             showEditAgentNotesModal: false,
             showEditMemberNotesModal: false,
+            
+            // 顯示限紅調整模態框
+            showBettingLimitModal: false,
             editNotesData: {
                 id: null,
                 username: '',
@@ -5164,7 +5167,7 @@ const app = createApp({
               console.log('📅 設置下注記錄期間查詢:', type, startDate, '至', endDate);
           },
 
-        // 調整會員限紅 - 使用標準Bootstrap Modal方式
+        // 調整會員限紅 - 使用v-if控制顯示
         async adjustMemberBettingLimit(member) {
             try {
                 console.log('開始調整會員限紅:', member);
@@ -5185,10 +5188,9 @@ const app = createApp({
                     reason: ''
                 };
                 
-                // 使用標準Bootstrap Modal方式顯示 - 不移動元素，保持在Vue範圍內
-                const modal = new bootstrap.Modal(document.getElementById('adjustBettingLimitModal'));
-                modal.show();
-                console.log('✅ Bootstrap Modal已顯示！');
+                // 顯示Modal
+                this.showBettingLimitModal = true;
+                console.log('✅ 限紅調整Modal已顯示！');
                 
                 // 並行載入數據
                 const [memberResponse, configsResponse] = await Promise.all([
@@ -5215,7 +5217,13 @@ const app = createApp({
                 console.error('載入限紅設定失敗:', error);
                 this.showMessage('載入限紅設定失敗，請稍後再試', 'error');
                 this.bettingLimitData.loading = false;
+                this.showBettingLimitModal = false;
             }
+        },
+        
+        // 隱藏限紅調整Modal
+        hideBettingLimitModal() {
+            this.showBettingLimitModal = false;
         },
 
         // 提交限紅調整
@@ -5233,9 +5241,8 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('限紅設定調整成功', 'success');
                     
-                    // 關閉自定義Modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('adjustBettingLimitModal'));
-                    if (modal) modal.hide();
+                    // 關閉Modal
+                    this.showBettingLimitModal = false;
                     
                     // 刷新會員列表
                     if (this.activeTab === 'members') {
