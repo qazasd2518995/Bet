@@ -2465,7 +2465,10 @@ app.get('/api/game-data', async (req, res) => {
       ninth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
       tenth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
       // 龍虎賠率
-      dragonTiger: config.dragonTigerOdds
+      dragonTiger: {
+        dragon: config.dragonTigerOdds,
+        tiger: config.dragonTigerOdds
+      }
     };
     
     console.log(`API返回遊戲數據: 期數=${gameData.currentPeriod}, 倒計時=${gameData.countdownSeconds}, 狀態=${gameData.status}, 盤口=${userMarketType}`);

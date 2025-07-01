@@ -747,6 +747,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 获取投注赔率
             getOddsForBet(betType, value) {
+                if (betType === 'dragonTiger') {
+                    // 龍虎投注值格式：dragon_1_10, tiger_1_10 等
+                    const dragonTigerType = value.startsWith('dragon') ? 'dragon' : 'tiger';
+                    return this.odds.dragonTiger[dragonTigerType] || 1.88;
+                }
+                
                 if (this.odds[betType] && this.odds[betType][value]) {
                     return this.odds[betType][value];
                 }
