@@ -381,22 +381,13 @@ const app = createApp({
                 is_active: false
             },
             newWinLossControl: {
-                                        control_mode: 'normal',
-                        target_type: '',
-                        target_username: '',
-                        control_percentage: 50,
-                        win_control: false,
-                        loss_control: false,
-                        start_period: this.currentPeriodInfo.suggested_start
-            },
-            
-            // 輸贏控制用戶清單
-            availableAgents: [],
-            availableMembers: [],
-            currentPeriodInfo: {
-                current_period: 0,
-                next_period: 0,
-                suggested_start: 0
+                control_mode: 'normal',
+                target_type: '',
+                target_username: '',
+                control_percentage: 50,
+                win_control: false,
+                loss_control: false,
+                start_period: null
             },
             agentMembers: [], // 選中代理的会员列表
             csOperationModal: null, // 客服操作模態框
@@ -471,6 +462,15 @@ const app = createApp({
             memberTransferType: 'deposit',
             memberTransferAmount: 0,
             adjustMemberBalanceModal: null,
+            
+            // 輸贏控制用戶清單
+            availableAgents: [],
+            availableMembers: [],
+            currentPeriodInfo: {
+                current_period: 0,
+                next_period: 0,
+                suggested_start: 0
+            },
         };
     },
     
@@ -2531,7 +2531,7 @@ const app = createApp({
                 this.loading = false;
             }
         },
-        // 處理會員餘額調整模態框的顯示 - 改為與代理點數轉移相同的介面
+        // 新增：处理会员余额调整模態框的顯示
         adjustMemberBalance(member) {
             // 設置要修改的會員資料
             this.memberBalanceData = {
@@ -3853,7 +3853,20 @@ const app = createApp({
         // 載入可用代理清單
         async loadAvailableAgents() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control/agents`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/agents`, { headers });
                 if (response.data.success) {
                     this.availableAgents = response.data.data || [];
                     console.log('載入代理清單成功:', this.availableAgents.length, '個代理');
@@ -3866,7 +3879,20 @@ const app = createApp({
         // 載入可用會員清單
         async loadAvailableMembers() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control/members`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/members`, { headers });
                 if (response.data.success) {
                     this.availableMembers = response.data.data || [];
                     console.log('載入會員清單成功:', this.availableMembers.length, '個會員');
@@ -3894,7 +3920,20 @@ const app = createApp({
         // 載入當前活躍的輸贏控制
         async loadActiveWinLossControl() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control/active`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/active`, { headers });
                 
                 if (response.data.success) {
                     this.activeWinLossControl = response.data.data || { control_mode: 'normal', is_active: false };
@@ -3928,7 +3967,8 @@ const app = createApp({
                         target_username: '',
                         control_percentage: 50,
                         win_control: false,
-                        loss_control: false
+                        loss_control: false,
+                        start_period: this.currentPeriodInfo.suggested_start
                     };
                 } else {
                     this.showMessage('設定失敗: ' + response.data.message, 'error');
@@ -6036,6 +6076,41 @@ const app = createApp({
                     this.loadWithdrawRecords();
                 }
             }
+        },
+        
+        // 監聽輸贏控制模式變更
+        'newWinLossControl.control_mode'(newMode, oldMode) {
+            console.log('控制模式變更:', oldMode, '->', newMode);
+            
+            // 當切換到自動偵測模式時，重置相關設定
+            if (newMode === 'auto_detect') {
+                // 自動偵測模式不需要手動設定比例和控制類型
+                this.newWinLossControl.control_percentage = 50; // 保留預設值但不顯示
+                this.newWinLossControl.win_control = false;
+                this.newWinLossControl.loss_control = false;
+                this.newWinLossControl.target_type = '';
+                this.newWinLossControl.target_username = '';
+                console.log('✅ 自動偵測模式：已清空手動設定');
+            }
+            
+            // 當切換到正常模式時，清空所有控制設定
+            if (newMode === 'normal') {
+                this.newWinLossControl.control_percentage = 50;
+                this.newWinLossControl.win_control = false;
+                this.newWinLossControl.loss_control = false;
+                this.newWinLossControl.target_type = '';
+                this.newWinLossControl.target_username = '';
+                this.newWinLossControl.start_period = null;
+                console.log('✅ 正常模式：已清空所有控制設定');
+            }
+            
+            // 當切換到其他模式時，確保有合理的預設值
+            if (newMode === 'agent_line' || newMode === 'single_member') {
+                if (!this.newWinLossControl.control_percentage) {
+                    this.newWinLossControl.control_percentage = 50;
+                }
+                console.log('✅', newMode, '模式：已設定預設比例');
+            }
         }
     }
 });
@@ -6059,6 +6134,7 @@ setTimeout(function() {
             
             const mountedApp = app.mount('#app');
             console.log('Vue 应用掛載成功:', mountedApp);
+            // 暴露到全域方便除錯
             window.vueApp = mountedApp;
             
             // 添加全域調試函數
@@ -6117,3 +6193,4 @@ setTimeout(function() {
         setTimeout(arguments.callee, 500);
     }
 }, 100);
+

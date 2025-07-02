@@ -2615,7 +2615,13 @@
                             <div class="col-12">
                                 <div class="alert alert-info">
                                     <h5><i class="fas fa-dice me-2"></i>輸贏控制系統</h5>
-                                    <p class="mb-0">您可以設定遊戲的輸贏控制模式，目前支援四種模式：正常機率、代理線控制、單會員控制、自動偵測控制</p>
+                                    <p class="mb-0">您可以設定遊戲的輸贏控制模式，目前支援四種模式：</p>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>正常機率：</strong>按正常機率開獎，無特殊控制</li>
+                            <li><strong>代理線控制：</strong>針對指定代理線進行輸贏控制</li>
+                            <li><strong>單會員控制：</strong>針對指定會員進行輸贏控制</li>
+                            <li><strong>自動偵測控制：</strong>系統智能偵測全體輸贏比例，讓平台小贏，下線小輸</li>
+                        </ul>
                                 </div>
                             </div>
                         </div>
@@ -2712,13 +2718,25 @@
                                                 </select>
                                             </div>
                                             
-                                            <div v-if="newWinLossControl.control_mode !== 'normal'" class="mb-3">
+                                            <!-- 控制比例設定 - 自動偵測模式不需要 -->
+                                            <div v-if="newWinLossControl.control_mode !== 'normal' && newWinLossControl.control_mode !== 'auto_detect'" class="mb-3">
                                                 <label class="form-label">控制比例 (%)</label>
                                                 <input type="number" class="form-control" v-model="newWinLossControl.control_percentage" 
                                                        min="0" max="100" step="0.01" placeholder="50.00" required>
                                             </div>
                                             
-                                            <div v-if="newWinLossControl.control_mode !== 'normal'" class="mb-3">
+                                            <!-- 自動偵測模式說明 -->
+                                            <div v-if="newWinLossControl.control_mode === 'auto_detect'" class="mb-3">
+                                                <div class="alert alert-info">
+                                                    <h6 class="alert-heading"><i class="fas fa-robot me-2"></i>自動偵測控制</h6>
+                                                    <p class="mb-2">系統將自動偵測全體下線與平台的輸贏比例，智能調整開獎結果。</p>
+                                                    <p class="mb-2"><strong>目標：</strong>讓平台小贏，全體下線小輸</p>
+                                                    <p class="mb-0"><small class="text-muted">此模式無需設定控制比例或控制類型，系統會自動優化。</small></p>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 控制類型設定 - 自動偵測模式不需要 -->
+                                            <div v-if="newWinLossControl.control_mode !== 'normal' && newWinLossControl.control_mode !== 'auto_detect'" class="mb-3">
                                                 <label class="form-label">控制類型</label>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" v-model="newWinLossControl.win_control" id="winControl">
@@ -2734,6 +2752,7 @@
                                                 </div>
                                             </div>
                                             
+                                            <!-- 開始期數設定 - 所有非正常模式都需要 -->
                                             <div v-if="newWinLossControl.control_mode !== 'normal'" class="mb-3">
                                                 <label class="form-label">開始期數</label>
                                                 <div class="input-group">
@@ -2743,6 +2762,9 @@
                                                 </div>
                                                 <small class="form-text text-muted">
                                                     當前期數：{{ currentPeriodInfo.current_period }} | 建議下一期：{{ currentPeriodInfo.next_period }}
+                                                    <span v-if="newWinLossControl.control_mode === 'auto_detect'">
+                                                        <br><i class="fas fa-info-circle me-1"></i>自動偵測將從此期數開始分析和調整
+                                                    </span>
                                                 </small>
                                             </div>
                                             
@@ -2806,11 +2828,17 @@
                                                     <span v-else>-</span>
                                                 </td>
                                                 <td>{{ control.target_display_name || '-' }}</td>
-                                                <td>{{ control.control_percentage ? control.control_percentage + '%' : '-' }}</td>
                                                 <td>
-                                                    <span v-if="control.win_control" class="badge bg-success me-1">贏</span>
-                                                    <span v-if="control.loss_control" class="badge bg-danger me-1">輸</span>
-                                                    <span v-if="!control.win_control && !control.loss_control">-</span>
+                                                    <span v-if="control.control_mode === 'auto_detect'" class="badge bg-secondary">自動</span>
+                                                    <span v-else>{{ control.control_percentage ? control.control_percentage + '%' : '-' }}</span>
+                                                </td>
+                                                <td>
+                                                    <span v-if="control.control_mode === 'auto_detect'" class="badge bg-info">智能調整</span>
+                                                    <template v-else>
+                                                        <span v-if="control.win_control" class="badge bg-success me-1">贏</span>
+                                                        <span v-if="control.loss_control" class="badge bg-danger me-1">輸</span>
+                                                        <span v-if="!control.win_control && !control.loss_control">-</span>
+                                                    </template>
                                                 </td>
                                                 <td>
                                                     <span class="badge" :class="control.is_active ? 'bg-success' : 'bg-secondary'">

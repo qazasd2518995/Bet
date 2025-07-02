@@ -6076,6 +6076,41 @@ const app = createApp({
                     this.loadWithdrawRecords();
                 }
             }
+        },
+        
+        // 監聽輸贏控制模式變更
+        'newWinLossControl.control_mode'(newMode, oldMode) {
+            console.log('控制模式變更:', oldMode, '->', newMode);
+            
+            // 當切換到自動偵測模式時，重置相關設定
+            if (newMode === 'auto_detect') {
+                // 自動偵測模式不需要手動設定比例和控制類型
+                this.newWinLossControl.control_percentage = 50; // 保留預設值但不顯示
+                this.newWinLossControl.win_control = false;
+                this.newWinLossControl.loss_control = false;
+                this.newWinLossControl.target_type = '';
+                this.newWinLossControl.target_username = '';
+                console.log('✅ 自動偵測模式：已清空手動設定');
+            }
+            
+            // 當切換到正常模式時，清空所有控制設定
+            if (newMode === 'normal') {
+                this.newWinLossControl.control_percentage = 50;
+                this.newWinLossControl.win_control = false;
+                this.newWinLossControl.loss_control = false;
+                this.newWinLossControl.target_type = '';
+                this.newWinLossControl.target_username = '';
+                this.newWinLossControl.start_period = null;
+                console.log('✅ 正常模式：已清空所有控制設定');
+            }
+            
+            // 當切換到其他模式時，確保有合理的預設值
+            if (newMode === 'agent_line' || newMode === 'single_member') {
+                if (!this.newWinLossControl.control_percentage) {
+                    this.newWinLossControl.control_percentage = 50;
+                }
+                console.log('✅', newMode, '模式：已設定預設比例');
+            }
         }
     }
 });
