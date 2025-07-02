@@ -2534,12 +2534,20 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       });
     }
     
-    // 檢查用戶名是否已存在
+    // 檢查用戶名是否已存在（檢查代理表和會員表）
     const existingAgent = await AgentModel.findByUsername(username);
     if (existingAgent) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用'
+        message: '該用戶名已被使用（代理）'
+      });
+    }
+    
+    const existingMember = await MemberModel.findByUsername(username);
+    if (existingMember) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用（會員）'
       });
     }
     
@@ -2600,11 +2608,11 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     let finalRebateMode = rebate_mode || 'percentage';
     
     if (rebate_mode === 'all') {
-      // 全拿所有退水
+      // 全拿所有退水：退水能力設為最大值
       finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'none') {
-      // 全退給下級
-      finalRebatePercentage = 0;
+      // 全退給下級：退水能力保持最大值，但分配方式不同
+      finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
       // 設定具體百分比
       const parsedRebatePercentage = parseFloat(rebate_percentage);
@@ -2693,11 +2701,11 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
     const maxRebatePercentage = agent.max_rebate_percentage || 0.041;
     
     if (rebate_mode === 'all') {
-      // 全拿所有退水
+      // 全拿所有退水：退水能力設為最大值
       finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'none') {
-      // 全退給下級
-      finalRebatePercentage = 0;
+      // 全退給下級：退水能力保持最大值，但分配方式不同
+      finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
       // 設定具體百分比
       const parsedRebatePercentage = parseFloat(rebate_percentage);
@@ -4102,12 +4110,20 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       });
     }
     
-    // 檢查用戶名是否已存在
+    // 檢查用戶名是否已存在（檢查會員表和代理表）
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用'
+        message: '該用戶名已被使用（會員）'
+      });
+    }
+    
+    const existingAgent = await AgentModel.findByUsername(username);
+    if (existingAgent) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用（代理）'
       });
     }
     
@@ -4153,12 +4169,20 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
   try {
     console.log(`代為創建會員請求: 用戶名=${username}, 代理ID=${agentId}, 初始餘額=${initialBalance}, 創建者=${createdBy}`);
     
-    // 檢查用戶名是否已存在
+    // 檢查用戶名是否已存在（檢查會員表和代理表）
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用'
+        message: '該用戶名已被使用（會員）'
+      });
+    }
+    
+    const existingAgent = await AgentModel.findByUsername(username);
+    if (existingAgent) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用（代理）'
       });
     }
     

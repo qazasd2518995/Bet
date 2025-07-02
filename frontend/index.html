@@ -2994,6 +2994,7 @@
             border-bottom: 1px solid #eee;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            align-items: center;
         }
 
         .table-row:hover {
@@ -3045,6 +3046,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .row-cell:last-child {
@@ -3090,51 +3093,94 @@
         /* 週報表響應式設計 */
         @media (max-width: 768px) {
             .weekly-table-header, .table-row {
-                grid-template-columns: 1.2fr 0.8fr 1fr 1.2fr;
+                grid-template-columns: 1.4fr 0.8fr 1.1fr 1.3fr;
                 font-size: 13px;
+                min-width: 0;
             }
 
             .header-cell, .row-cell {
-                padding: 8px 3px;
+                padding: 8px 4px;
                 font-size: 12px;
+                min-width: 0;
+                overflow: hidden;
             }
 
             .date-number {
-                font-size: 13px;
-                padding: 2px 4px;
-                min-width: 28px;
+                font-size: 12px;
+                padding: 2px 6px;
+                min-width: 32px;
+                white-space: nowrap;
             }
 
             .weekday-label {
                 font-size: 10px;
+                white-space: nowrap;
             }
             
             /* 手機端修復：防止輸贏金额擠壓表格 */
             .profit-cell {
-                word-break: break-all;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                word-break: keep-all;
+                overflow: visible;
+                text-overflow: clip;
                 white-space: nowrap;
-                font-size: 11px !important;
+                font-size: 12px !important;
                 font-weight: 600;
                 min-width: 0;
+                text-align: right;
+                padding-right: 6px !important;
             }
             
             /* 确保各欄位都有足夠空間不被擠壓 */
             .row-cell:nth-child(1) {
-                min-width: 60px;
+                min-width: 70px;
+                max-width: none;
             }
             
             .row-cell:nth-child(2) {
-                min-width: 40px;
+                min-width: 45px;
+                text-align: center;
+                font-size: 11px;
             }
             
             .row-cell:nth-child(3) {
-                min-width: 50px;
+                min-width: 55px;
+                text-align: right;
+                padding-right: 6px;
+                font-size: 11px;
             }
             
             .row-cell:nth-child(4) {
-                min-width: 60px;
+                min-width: 70px;
+                max-width: none;
+                flex: 1;
+            }
+        }
+        
+        /* 更小螢幕的優化 */
+        @media (max-width: 480px) {
+            .weekly-table-header, .table-row {
+                grid-template-columns: 1.3fr 0.7fr 1fr 1.4fr;
+                font-size: 12px;
+            }
+            
+            .header-cell, .row-cell {
+                padding: 6px 2px;
+                font-size: 11px;
+            }
+            
+            .date-number {
+                font-size: 11px;
+                padding: 1px 4px;
+                min-width: 28px;
+            }
+            
+            .weekday-label {
+                font-size: 9px;
+            }
+            
+            .profit-cell {
+                font-size: 11px !important;
+                padding-right: 4px !important;
             }
         }
 
