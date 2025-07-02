@@ -2050,7 +2050,7 @@ async function distributeRebate(username, betAmount, period) {
 async function getAgentChain(username) {
   try {
     // 從代理系統獲取會員所屬的代理
-    const response = await fetch(`${AGENT_API_URL}/member-agent-chain?username=${username}`);
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member-agent-chain?username=${username}`);
     const data = await response.json();
     
     if (data.success && data.agentChain) {
@@ -2069,7 +2069,7 @@ async function getAgentChain(username) {
 async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, memberUsername, betAmount, period) {
   try {
     // 調用代理系統的退水分配API
-    const response = await fetch(`${AGENT_API_URL}/allocate-rebate`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/allocate-rebate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
