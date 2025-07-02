@@ -2481,29 +2481,8 @@ const app = createApp({
         },
         // 新增：处理会员余额调整模態框的顯示
         adjustMemberBalance(member) {
-            this.balanceAdjustData.memberId = member.id;
-            this.balanceAdjustData.memberUsername = member.username;
-            this.balanceAdjustData.currentBalance = member.balance;
-            this.balanceAdjustData.agentId = this.user.id; // 设置代理ID
-            this.balanceAdjustData.description = ''; // 重置描述
-            this.agentCurrentBalance = parseFloat(this.user.balance) || 0; // 设置代理当前余额，确保是數字格式
-            this.transferAmount = 0; // 重置转移金额
-            this.transferType = 'deposit'; // 預設為存入
-
-            // 強制更新Vue實例以确保響應式數據同步
-            this.$forceUpdate();
-
-            this.showAdjustBalanceModal = true;
-            this.$nextTick(() => {
-                const modalEl = document.getElementById('adjustBalanceModal');
-                if (modalEl) {
-                    this.adjustBalanceModal = new bootstrap.Modal(modalEl);
-                    this.adjustBalanceModal.show();
-                } else {
-                    console.error('找不到余额调整模態框元素');
-                    this.showMessage('系统错误，请稍後再試', 'error');
-                }
-            });
+            // 直接使用修改會員余额的功能
+            this.modifyMemberBalance(member);
         },
 
         // 进入代理管理（導航到下級代理）
@@ -2718,6 +2697,8 @@ const app = createApp({
                     if (member) {
                         member.status = newStatus;
                     }
+                    // 重新載入會員列表以確保狀態同步
+                    await this.searchMembers();
                 } else {
                     this.showMessage(response.data.message || `${actionText}会员失败`, 'error');
                 }
