@@ -3222,7 +3222,11 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       start_period = null
     } = req.body;
 
-    console.log('創建輸贏控制:', { control_mode, target_type, target_username, control_percentage, win_control, loss_control });
+    // 🔧 修復CHECK約束錯誤：將空字串轉換為NULL
+    const dbTargetType = (target_type === '' || target_type === undefined) ? null : target_type;
+    const dbTargetUsername = (target_username === '' || target_username === undefined) ? null : target_username;
+
+    console.log('創建輸贏控制:', { control_mode, target_type: dbTargetType, target_username: dbTargetUsername, control_percentage, win_control, loss_control });
 
     // 驗證必要參數
     if (!control_mode || !['normal', 'agent_line', 'single_member', 'auto_detect'].includes(control_mode)) {
@@ -3230,24 +3234,24 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
     }
 
     let target_id = null;
-    let validated_username = target_username;
+    let validated_username = dbTargetUsername;
 
     // 如果不是正常模式或自動偵測，需要驗證目標
     if (control_mode === 'agent_line' || control_mode === 'single_member') {
-      if (!target_type || !target_username) {
+      if (!dbTargetType || !dbTargetUsername) {
         return res.status(400).json({ success: false, message: '必須指定目標類型和用戶名' });
       }
 
       // 驗證目標是否存在
-      if (target_type === 'agent') {
-        const targetAgent = await db.oneOrNone('SELECT id, username FROM agents WHERE username = $1', [target_username]);
+      if (dbTargetType === 'agent') {
+        const targetAgent = await db.oneOrNone('SELECT id, username FROM agents WHERE username = $1', [dbTargetUsername]);
         if (!targetAgent) {
           return res.status(400).json({ success: false, message: '找不到指定的代理' });
         }
         target_id = targetAgent.id;
         validated_username = targetAgent.username;
-      } else if (target_type === 'member') {
-        const targetMember = await db.oneOrNone('SELECT id, username FROM members WHERE username = $1', [target_username]);
+      } else if (dbTargetType === 'member') {
+        const targetMember = await db.oneOrNone('SELECT id, username FROM members WHERE username = $1', [dbTargetUsername]);
         if (!targetMember) {
           return res.status(400).json({ success: false, message: '找不到指定的會員' });
         }
@@ -3267,7 +3271,7 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       RETURNING *
     `, [
       control_mode, 
-      target_type, 
+      dbTargetType,  // 🔧 使用轉換後的值，避免空字串
       target_id, 
       validated_username, 
       control_percentage,
