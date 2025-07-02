@@ -82,6 +82,17 @@ BEGIN
         RAISE NOTICE '✅ win_loss_control_logs.control_id 欄位已添加';
     END IF;
     
+    -- 確保 control_id 欄位允許 NULL（用於刪除操作日誌）
+    BEGIN
+        ALTER TABLE win_loss_control_logs 
+        ALTER COLUMN control_id DROP NOT NULL;
+        
+        RAISE NOTICE '✅ win_loss_control_logs.control_id 欄位設置為允許 NULL';
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE NOTICE 'ℹ️ win_loss_control_logs.control_id 欄位已允許 NULL';
+    END;
+    
     -- 檢查並添加 operator_id 欄位
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 

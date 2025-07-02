@@ -3078,11 +3078,14 @@ async function safeLogWinLossControl(controlId, action, oldValues = null, newVal
       }
     }
     
+    // 刪除操作時使用 NULL 避免外鍵約束
+    const logControlId = action === 'delete' ? null : controlId;
+    
     await db.none(`
       INSERT INTO win_loss_control_logs (control_id, action, old_values, new_values, operator_id, operator_username)
       VALUES ($1, $2, $3, $4, $5, $6)
     `, [
-      controlId,
+      logControlId,
       action,
       oldValuesStr,
       newValuesStr,
@@ -3438,7 +3441,7 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
           INSERT INTO win_loss_control_logs 
           (control_id, action, old_values, new_values, operator_id, operator_username, created_at)
           VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        `, [-Math.abs(id), 'delete', JSON.stringify(controlToDelete), null, agent.id, agent.username]);
+        `, [null, 'delete', JSON.stringify(controlToDelete), null, agent.id, agent.username]);
         console.log(`[刪除] 操作日誌記錄成功`);
       });
     } catch (deleteError) {
