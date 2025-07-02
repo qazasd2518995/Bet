@@ -46,6 +46,54 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* 驗證碼樣式 */
+        .captcha-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .captcha-input {
+            flex: 1;
+        }
+
+        .captcha-display {
+            width: 120px;
+            height: 38px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .captcha-display:hover {
+            background: linear-gradient(45deg, #e9ecef, #dee2e6);
+            border-color: #adb5bd;
+            transform: translateY(-1px);
+        }
+
+        .refresh-btn {
+            padding: 6px 12px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-1px);
+        }
+        
         /* 基本樣式 */
         body {
             font-family: 'Microsoft JhengHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -112,6 +160,27 @@
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
                                         <input type="password" id="password" v-model="loginForm.password" class="form-control" placeholder="请输入密碼" required>
+                                    </div>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="captcha">驗證碼</label>
+                                    <div class="captcha-group">
+                                        <input 
+                                            type="text" 
+                                            id="captcha" 
+                                            v-model="loginForm.captcha"
+                                            class="form-control captcha-input" 
+                                            placeholder="请输入驗證碼"
+                                            required
+                                            maxlength="4"
+                                            style="text-transform: uppercase;"
+                                        >
+                                        <div class="captcha-display" id="captchaDisplay" @click="refreshCaptcha">
+                                            {{ currentCaptcha }}
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary refresh-btn" @click="refreshCaptcha" title="重新整理驗證碼">
+                                            🔄
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">

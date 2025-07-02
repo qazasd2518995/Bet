@@ -49,8 +49,12 @@ const app = createApp({
             // 登录表單
             loginForm: {
                 username: '',
-                password: ''
+                password: '',
+                captcha: ''
             },
+            
+            // 驗證碼
+            currentCaptcha: '',
             
             // 用戶资讯
             user: {
@@ -520,6 +524,9 @@ const app = createApp({
             });
         });
         
+        // 生成初始驗證碼
+        this.refreshCaptcha();
+        
         // 先檢查會話有效性，如果會話無效則清除本地存儲
         const sessionValid = await this.checkSession();
         
@@ -827,7 +834,21 @@ const app = createApp({
             console.log('✅ 模態框已关闭，數據已重置');
         },
         
-
+        // 生成驗證碼
+        generateCaptcha() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 4; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        },
+        
+        // 刷新驗證碼
+        refreshCaptcha() {
+            this.currentCaptcha = this.generateCaptcha();
+            this.loginForm.captcha = '';
+        },
         
         // 设置活動標籤並关闭漢堡選單
         setActiveTab(tab) {
@@ -976,8 +997,15 @@ const app = createApp({
         
         // 登录方法
         async login() {
-            if (!this.loginForm.username || !this.loginForm.password) {
-                return this.showMessage('请输入用戶名和密碼', 'error');
+            if (!this.loginForm.username || !this.loginForm.password || !this.loginForm.captcha) {
+                return this.showMessage('请填寫完整的登录资讯', 'error');
+            }
+            
+            // 驗證驗證碼
+            if (this.loginForm.captcha.toUpperCase() !== this.currentCaptcha) {
+                this.showMessage('驗證碼输入错误，请重新输入', 'error');
+                this.refreshCaptcha();
+                return;
             }
             
             this.loading = true;
@@ -1044,10 +1072,12 @@ const app = createApp({
                     this.showMessage('登录成功', 'success');
                 } else {
                     this.showMessage(response.data.message || '登录失败', 'error');
+                    this.refreshCaptcha();
                 }
             } catch (error) {
                 console.error('登录错误:', error);
                 this.showMessage(error.response?.data?.message || '登录失败，请稍後再試', 'error');
+                this.refreshCaptcha();
             } finally {
                 this.loading = false;
             }
