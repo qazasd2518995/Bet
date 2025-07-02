@@ -1084,13 +1084,55 @@ const CONTROL_PARAMS = {
   // 單場損益控制 (平台單場最大可接受的虧損率)
   maxLossRate: 0.3,
   
-  // 是否啟用殺大賠小機制
-  enabled: true
+  // 是否啟用殺大賠小機制 - 改為預設關閉
+  enabled: false
 };
+
+// 檢查輸贏控制設定
+async function checkWinLossControl(period) {
+  try {
+    // 連接代理系統資料庫獲取活躍的輸贏控制設定
+    const activeControl = await db.oneOrNone(`
+      SELECT * FROM win_loss_control 
+      WHERE is_active = true 
+      AND (start_period IS NULL OR start_period <= $1)
+      ORDER BY updated_at DESC 
+      LIMIT 1
+    `, [period]);
+
+    if (!activeControl) {
+      return { mode: 'normal', enabled: false };
+    }
+
+    console.log(`期數 ${period} 使用輸贏控制模式: ${activeControl.control_mode}`);
+    
+    return {
+      mode: activeControl.control_mode,
+      enabled: true,
+      target_type: activeControl.target_type,
+      target_username: activeControl.target_username,
+      control_percentage: activeControl.control_percentage,
+      win_control: activeControl.win_control,
+      loss_control: activeControl.loss_control
+    };
+  } catch (error) {
+    console.error('檢查輸贏控制設定錯誤:', error);
+    return { mode: 'normal', enabled: false };
+  }
+}
 
 // 根據下注情況生成智能結果
 async function generateSmartRaceResult(period) {
   try {
+    // 首先檢查輸贏控制設定
+    const winLossControl = await checkWinLossControl(period);
+    
+    // 如果是正常模式，使用純隨機
+    if (winLossControl.mode === 'normal' || !winLossControl.enabled) {
+      console.log(`期數 ${period} 使用正常機率模式`);
+      return generateRaceResult();
+    }
+    
     // 分析該期下注情況
     const betStats = await analyzeBetsForPeriod(period);
     
@@ -1098,75 +1140,154 @@ async function generateSmartRaceResult(period) {
     console.log(`期數 ${period} 的下注統計:`, 
       { 
         totalAmount: betStats.totalAmount, 
-        typeCounts: {
-          sumValue: Object.keys(betStats.sumValue).length,
-          number: Object.keys(betStats.number).length,
-          champion: Object.keys(betStats.champion).length,
-          runnerup: Object.keys(betStats.runnerup).length,
-          dragonTiger: Object.keys(betStats.dragonTiger).length
-        }
+        controlMode: winLossControl.mode,
+        target: winLossControl.target_username
       }
     );
     
-    // 識別大額下注組合
-    const highBets = findHighBetCombinations(betStats);
+    // 根據控制模式決定策略
+    let shouldApplyControl = false;
     
-    if (highBets.length > 0) {
-      console.log('檢測到大額下注，套用殺大賠小策略');
-      console.log('大額下注統計:', JSON.stringify(highBets));
+    if (winLossControl.mode === 'auto_detect') {
+      // 自動偵測模式：檢測大額下注
+      const highBets = findHighBetCombinations(betStats);
+      shouldApplyControl = highBets.length > 0;
       
-      // 建立一個權重系統，避免大額下注獲勝
-      const weights = calculateResultWeights(highBets, betStats);
+      if (shouldApplyControl) {
+        console.log('自動偵測到大額下注，套用控制策略');
+        const weights = calculateResultWeights(highBets, betStats);
+        return generateWeightedResult(weights);
+      }
+    } else if (winLossControl.mode === 'agent_line' || winLossControl.mode === 'single_member') {
+      // 代理線控制或單會員控制
+      shouldApplyControl = await checkTargetBets(period, winLossControl);
       
-      // 基於權重生成結果
-      return generateWeightedResult(weights);
+      if (shouldApplyControl) {
+        console.log(`對目標 ${winLossControl.target_username} 套用控制策略`);
+        const weights = await calculateTargetControlWeights(period, winLossControl, betStats);
+        return generateWeightedResult(weights);
+      }
     }
     
-    // 即使沒有大額下注，也使用輕微權重，防止完全隨機
-    console.log('無大額下注，使用標準權重開獎');
-    const standardWeights = {
-      positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
-      sumValue: Array(17).fill(1)
-    };
+    // 沒有觸發控制條件，使用正常機率
+    console.log(`期數 ${period} 未觸發控制條件，使用正常機率`);
+    return generateRaceResult();
     
-    // 根據所有下注建立輕微權重
-    Object.entries(betStats).forEach(([betType, bets]) => {
-      if (betType !== 'totalAmount') {
-        Object.entries(bets).forEach(([value, amount]) => {
-          if (betType === 'number') {
-            // 號碼下注需特殊處理
-            const [position, num] = value.split('_');
-            if (position && num) {
-              const posIndex = parseInt(position) - 1;
-              const numIndex = parseInt(num) - 1;
-              if (posIndex >= 0 && posIndex < 10 && numIndex >= 0 && numIndex < 10) {
-                // 輕微減少該號碼的權重
-                standardWeights.positions[posIndex][numIndex] *= 0.9;
-              }
-            }
-          } else if (betType === 'sumValue') {
-            // 處理冠亞和值
-            if (!isNaN(parseInt(value))) {
-              const sumIndex = parseInt(value) - 3;
-              if (sumIndex >= 0 && sumIndex < 17) {
-                standardWeights.sumValue[sumIndex] *= 0.9;
-              }
-            }
-          }
-        });
-      }
-    });
-    
-    return generateWeightedResult(standardWeights);
   } catch (error) {
     console.error('智能開獎過程出錯:', error);
-    // 出錯時使用權重為1的均等開獎，確保公平性
-    const defaultWeights = {
-      positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
-      sumValue: Array(17).fill(1)
-    };
-    return generateWeightedResult(defaultWeights);
+    // 出錯時使用正常機率
+    return generateRaceResult();
   }
+}
+
+// 檢查目標用戶是否有下注
+async function checkTargetBets(period, control) {
+  try {
+    if (control.mode === 'single_member') {
+      // 單會員控制：檢查該會員是否有下注
+      const memberBets = await db.oneOrNone(`
+        SELECT SUM(amount) as total_amount 
+        FROM bets 
+        WHERE period = $1 AND username = $2 AND settled = false
+      `, [period, control.target_username]);
+      
+      return memberBets && parseFloat(memberBets.total_amount) > 0;
+    } else if (control.mode === 'agent_line') {
+      // 代理線控制：檢查該代理線下的所有會員是否有下注
+      const agentLineBets = await db.oneOrNone(`
+        SELECT SUM(b.amount) as total_amount
+        FROM bets b
+        JOIN members m ON b.username = m.username
+        JOIN agents a ON m.agent_id = a.id
+        WHERE b.period = $1 AND b.settled = false
+        AND (a.username = $2 OR a.id IN (
+          SELECT id FROM agents WHERE parent_id = (
+            SELECT id FROM agents WHERE username = $2
+          )
+        ))
+      `, [period, control.target_username]);
+      
+      return agentLineBets && parseFloat(agentLineBets.total_amount) > 0;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('檢查目標下注錯誤:', error);
+    return false;
+  }
+}
+
+// 計算目標控制權重
+async function calculateTargetControlWeights(period, control, betStats) {
+  const weights = {
+    positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+    sumValue: Array(17).fill(1)
+  };
+  
+  try {
+    let targetBets = [];
+    
+    if (control.mode === 'single_member') {
+      // 獲取該會員的下注
+      targetBets = await db.any(`
+        SELECT bet_type, bet_value, position, amount
+        FROM bets 
+        WHERE period = $1 AND username = $2 AND settled = false
+      `, [period, control.target_username]);
+    } else if (control.mode === 'agent_line') {
+      // 獲取該代理線下所有會員的下注
+      targetBets = await db.any(`
+        SELECT b.bet_type, b.bet_value, b.position, b.amount
+        FROM bets b
+        JOIN members m ON b.username = m.username
+        JOIN agents a ON m.agent_id = a.id
+        WHERE b.period = $1 AND b.settled = false
+        AND (a.username = $2 OR a.id IN (
+          SELECT id FROM agents WHERE parent_id = (
+            SELECT id FROM agents WHERE username = $2
+          )
+        ))
+      `, [period, control.target_username]);
+    }
+    
+    // 根據控制設定調整權重
+    const controlFactor = (control.control_percentage / 100);
+    
+    targetBets.forEach(bet => {
+      if (bet.bet_type === 'number') {
+        const position = parseInt(bet.position) - 1;
+        const value = parseInt(bet.bet_value) - 1;
+        if (position >= 0 && position < 10 && value >= 0 && value < 10) {
+          if (control.win_control) {
+            // 贏控制：增加該號碼的權重
+            weights.positions[position][value] *= (1 + controlFactor);
+          } else if (control.loss_control) {
+            // 輸控制：減少該號碼的權重
+            weights.positions[position][value] *= (1 - controlFactor);
+          }
+        }
+      } else if (bet.bet_type === 'sumValue') {
+        if (!isNaN(parseInt(bet.bet_value))) {
+          const sumIndex = parseInt(bet.bet_value) - 3;
+          if (sumIndex >= 0 && sumIndex < 17) {
+            if (control.win_control) {
+              weights.sumValue[sumIndex] *= (1 + controlFactor);
+            } else if (control.loss_control) {
+              weights.sumValue[sumIndex] *= (1 - controlFactor);
+            }
+          }
+        }
+      }
+      // 可以擴展其他下注類型的控制邏輯
+    });
+    
+    console.log(`目標控制權重調整完成: ${control.target_username}, 控制比例: ${control.control_percentage}%`);
+    
+  } catch (error) {
+    console.error('計算目標控制權重錯誤:', error);
+  }
+  
+  return weights;
 }
 
 // 在開獎前分析此期所有注單

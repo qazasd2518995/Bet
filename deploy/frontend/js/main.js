@@ -77,6 +77,7 @@ const app = createApp({
             // 当前活動分頁
             activeTab: 'dashboard',
             transactionTab: 'transfers',
+            customerServiceTab: 'transactions', // 客服功能標籤頁：'transactions' 或 'win-loss-control'
             
             // 儀表板數據
             dashboardData: {
@@ -151,6 +152,7 @@ const app = createApp({
                 status: 1
             },
             editAgentModal: null,
+            editAgentNotesModal: null,
             
             // 編輯備註相关
             showEditAgentNotesModal: false,
@@ -371,6 +373,31 @@ const app = createApp({
                 total: 0
             },
             allAgents: [], // 所有代理列表（供客服选择）
+            
+            // 輸贏控制相關
+            winLossControls: [],
+            activeWinLossControl: {
+                control_mode: 'normal',
+                is_active: false
+            },
+            newWinLossControl: {
+                                        control_mode: 'normal',
+                        target_type: '',
+                        target_username: '',
+                        control_percentage: 50,
+                        win_control: false,
+                        loss_control: false,
+                        start_period: this.currentPeriodInfo.suggested_start
+            },
+            
+            // 輸贏控制用戶清單
+            availableAgents: [],
+            availableMembers: [],
+            currentPeriodInfo: {
+                current_period: 0,
+                next_period: 0,
+                suggested_start: 0
+            },
             agentMembers: [], // 選中代理的会员列表
             csOperationModal: null, // 客服操作模態框
             
@@ -433,6 +460,17 @@ const app = createApp({
             profileLoading: false,
             // 控制个人资料 modal 顯示
             isProfileModalVisible: false,
+
+            // 會員餘額調整相關
+            memberBalanceData: {
+                memberId: null,
+                memberUsername: '',
+                currentBalance: 0,
+                description: ''
+            },
+            memberTransferType: 'deposit',
+            memberTransferAmount: 0,
+            adjustMemberBalanceModal: null,
         };
     },
     
@@ -592,6 +630,13 @@ const app = createApp({
                 this.modifyMemberBalanceModal = new bootstrap.Modal(modifyMemberBalanceModalEl);
             }
             
+            // 初始化會員點數轉移模態框
+            const adjustMemberBalanceModalEl = document.getElementById('adjustMemberBalanceModal');
+            if (adjustMemberBalanceModalEl) {
+                console.log('初始化會員點數轉移模態框');
+                this.adjustMemberBalanceModal = new bootstrap.Modal(adjustMemberBalanceModalEl);
+            }
+            
             // 初始化客服操作模態框
             const csOperationModalEl = document.getElementById('csOperationModal');
             if (csOperationModalEl) {
@@ -602,6 +647,13 @@ const app = createApp({
                 csOperationModalEl.addEventListener('hidden.bs.modal', () => {
                     this.hideCSOperationModal();
                 });
+            }
+            
+            // 初始化代理備註編輯模態框
+            const editAgentNotesModalEl = document.getElementById('editAgentNotesModal');
+            if (editAgentNotesModalEl) {
+                console.log('初始化代理備註編輯模態框');
+                this.editAgentNotesModal = new bootstrap.Modal(editAgentNotesModalEl);
             }
         },
         
@@ -2479,10 +2531,137 @@ const app = createApp({
                 this.loading = false;
             }
         },
-        // 新增：处理会员余额调整模態框的顯示
+        // 處理會員餘額調整模態框的顯示 - 改為與代理點數轉移相同的介面
         adjustMemberBalance(member) {
-            // 直接使用修改會員余额的功能
-            this.modifyMemberBalance(member);
+            // 設置要修改的會員資料
+            this.memberBalanceData = {
+                memberId: member.id,
+                memberUsername: member.username,
+                currentBalance: member.balance,
+                description: ''
+            };
+            
+            // 設置默認值
+            this.memberTransferType = 'deposit';
+            this.memberTransferAmount = 0;
+            
+            console.log('會員點數轉移數據準備完成:', {
+                member: member,
+                user: this.user,
+                memberBalanceData: this.memberBalanceData
+            });
+            
+            // 使用Bootstrap 5標準方式顯示模態框
+            const modalElement = document.getElementById('adjustMemberBalanceModal');
+            if (!modalElement) {
+                console.error('找不到會員點數轉移模態框元素');
+                return this.showMessage('系統錯誤：找不到模態框元素', 'error');
+            }
+            
+            // 直接使用Bootstrap 5的Modal方法
+            const modal = new bootstrap.Modal(modalElement);
+            this.adjustMemberBalanceModal = modal;
+            modal.show();
+        },
+
+        // 計算最終會員餘額（會員點數轉移）
+        calculateFinalMemberBalanceTransfer() {
+            // 確保使用有效數值
+            const currentBalance = parseFloat(this.memberBalanceData?.currentBalance) || 0;
+            const transferAmount = parseFloat(this.memberTransferAmount) || 0;
+            
+            if (this.memberTransferType === 'deposit') {
+                return currentBalance + transferAmount;
+            } else {
+                return currentBalance - transferAmount;
+            }
+        },
+        
+        // 計算最終代理餘額（會員點數轉移）
+        calculateFinalAgentBalanceFromMember() {
+            // 確保使用有效數值
+            const currentBalance = parseFloat(this.user.balance) || 0;
+            const transferAmount = parseFloat(this.memberTransferAmount) || 0;
+            
+            if (this.memberTransferType === 'deposit') {
+                return currentBalance - transferAmount;
+            } else {
+                return currentBalance + transferAmount;
+            }
+        },
+
+        // 設置最大轉移金額（會員點數轉移）
+        setMaxMemberAmount() {
+            if (this.memberTransferType === 'deposit') {
+                // 存入：使用代理（自己）的全部餘額
+                this.memberTransferAmount = parseFloat(this.user.balance) || 0;
+            } else if (this.memberTransferType === 'withdraw') {
+                // 提領：使用會員的全部餘額
+                this.memberTransferAmount = parseFloat(this.memberBalanceData.currentBalance) || 0;
+            }
+        },
+
+        // 隱藏會員點數轉移模態框
+        hideAdjustMemberBalanceModal() {
+            if (this.adjustMemberBalanceModal) {
+                this.adjustMemberBalanceModal.hide();
+            }
+        },
+
+        // 提交會員點數轉移
+        async submitMemberBalanceTransfer() {
+            console.log('嘗試提交會員點數轉移');
+            if (!this.memberBalanceData.memberId || !this.memberTransferAmount) {
+                console.log('資料不完整:', {
+                    memberId: this.memberBalanceData.memberId,
+                    transferAmount: this.memberTransferAmount,
+                    description: this.memberBalanceData.description
+                });
+                return this.showMessage('請填寫轉移金額', 'error');
+            }
+            
+            this.loading = true;
+            console.log('開始提交會員點數轉移數據');
+            
+            try {
+                // 準備要傳送的數據
+                const payload = {
+                    agentId: this.user.id,  // 當前代理ID（來源或目標）
+                    memberId: this.memberBalanceData.memberId,  // 會員ID
+                    amount: this.memberTransferType === 'deposit' ? this.memberTransferAmount : -this.memberTransferAmount, // 根據類型調整金額正負
+                    type: this.memberTransferType, // 轉移類型 'deposit' 或 'withdraw'
+                    description: this.memberBalanceData.description
+                };
+
+                console.log('準備發送的數據:', payload);
+                const response = await axios.post(`${API_BASE_URL}/transfer-member-balance`, payload);
+                console.log('伺服器返回結果:', response.data);
+                
+                if (response.data.success) {
+                    this.showMessage('會員點數轉移成功', 'success');
+                    // 更新前端顯示的代理餘額
+                    this.user.balance = response.data.parentBalance;
+                    // 同時更新localStorage中的用戶資訊
+                    localStorage.setItem('agent_user', JSON.stringify(this.user));
+                    // 需要重新獲取會員列表或更新特定會員的餘額
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新會員列表
+                        this.searchMembers();
+                    }
+                    this.hideAdjustMemberBalanceModal(); // 關閉模態框
+                    await this.fetchDashboardData(); // 更新儀表板數據
+                } else {
+                    this.showMessage(response.data.message || '會員點數轉移失敗', 'error');
+                }
+            } catch (error) {
+                console.error('提交會員點數轉移錯誤:', error);
+                this.showMessage(error.response?.data?.message || '會員點數轉移失敗，請稍後再試', 'error');
+            } finally {
+                this.loading = false;
+            }
         },
 
         // 进入代理管理（導航到下級代理）
@@ -2698,7 +2877,13 @@ const app = createApp({
                         member.status = newStatus;
                     }
                     // 重新載入會員列表以確保狀態同步
-                    await this.searchMembers();
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新會員列表
+                        await this.searchMembers();
+                    }
                 } else {
                     this.showMessage(response.data.message || `${actionText}会员失败`, 'error');
                 }
@@ -2834,7 +3019,14 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('会员额度修改成功', 'success');
                     this.hideModifyMemberBalanceModal();
-                    this.searchMembers(); // 重新载入会员列表
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新會員列表
+                        this.searchMembers();
+                    }
                 } else {
                     this.showMessage(response.data.message || '会员额度修改失败', 'error');
                 }
@@ -2859,7 +3051,14 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage('会员删除成功', 'success');
-                    this.searchMembers(); // 重新载入会员列表
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新會員列表
+                        this.searchMembers();
+                    }
                 } else {
                     this.showMessage(response.data.message || '会员删除失败', 'error');
                 }
@@ -2982,6 +3181,14 @@ const app = createApp({
                     if (agentInList) {
                         agentInList.status = newStatus;
                     }
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新代理列表
+                        this.searchAgents();
+                    }
                 } else {
                     this.showMessage(response.data.message || `${actionText}代理失败`, 'error');
                 }
@@ -3015,6 +3222,14 @@ const app = createApp({
                     const agentInList = this.agents.find(a => a.id === agent.id);
                     if (agentInList) {
                         agentInList.status = newStatus;
+                    }
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新代理列表
+                        this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || `设置代理状态失败`, 'error');
@@ -3050,6 +3265,14 @@ const app = createApp({
                     if (memberInList) {
                         memberInList.status = newStatus;
                     }
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新會員列表
+                        await this.searchMembers();
+                    }
                 } else {
                     this.showMessage(response.data.message || `设置会员状态失败`, 'error');
                 }
@@ -3064,10 +3287,6 @@ const app = createApp({
         // 編輯代理備註
         editAgentNotes(agent) {
             console.log('editAgentNotes 方法被調用，agent:', agent);
-            console.log('當前Vue實例狀態:', {
-                showEditAgentNotesModal: this.showEditAgentNotesModal,
-                editNotesData: this.editNotesData
-            });
             
             this.editNotesData = {
                 id: agent.id,
@@ -3075,40 +3294,47 @@ const app = createApp({
                 notes: agent.notes || '',
                 type: 'agent'
             };
-            this.showEditAgentNotesModal = true;
             
-            // 添加模態框背景
+            // 確保在下一個tick執行，讓Vue完成渲染
             this.$nextTick(() => {
-                document.body.classList.add('modal-open');
-                if (!document.querySelector('.modal-backdrop')) {
-                    const backdrop = document.createElement('div');
-                    backdrop.className = 'modal-backdrop fade show';
-                    document.body.appendChild(backdrop);
+                // 使用已初始化的Modal實例，如果沒有則重新創建
+                if (!this.editAgentNotesModal) {
+                    const modalEl = document.getElementById('editAgentNotesModal');
+                    if (modalEl) {
+                        // 檢查Bootstrap是否可用
+                        if (typeof bootstrap === 'undefined') {
+                            console.error('Bootstrap未加載');
+                            this.showMessage('系統組件未完全加載，請重新整理頁面', 'error');
+                            return;
+                        }
+                        this.editAgentNotesModal = new bootstrap.Modal(modalEl);
+                    } else {
+                        console.error('找不到editAgentNotesModal元素');
+                        this.showMessage('系統錯誤，請重新整理頁面', 'error');
+                        return;
+                    }
                 }
-            });
-            
-            console.log('設置後的狀態:', {
-                showEditAgentNotesModal: this.showEditAgentNotesModal,
-                editNotesData: this.editNotesData
+                
+                try {
+                    this.editAgentNotesModal.show();
+                } catch (error) {
+                    console.error('顯示Modal時出錯:', error);
+                    this.showMessage('無法打開備註編輯視窗，請重新整理頁面', 'error');
+                }
             });
         },
 
         // 隱藏編輯代理備註模態框
         hideEditAgentNotesModal() {
-            this.showEditAgentNotesModal = false;
+            if (this.editAgentNotesModal) {
+                this.editAgentNotesModal.hide();
+            }
             this.editNotesData = {
                 id: null,
                 username: '',
                 notes: '',
                 type: ''
             };
-            
-            // 移除模態框背景
-            document.body.classList.remove('modal-open');
-            const backdrop = document.querySelector('.modal-backdrop');
-            if (backdrop) {
-                backdrop.remove();
-            }
         },
 
         // 更新代理備註
@@ -3135,6 +3361,14 @@ const app = createApp({
                     }
                     
                     this.hideEditAgentNotesModal();
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新代理列表
+                        this.searchAgents();
+                    }
                 } else {
                     this.showMessage(response.data.message || '更新代理備註失敗', 'error');
                 }
@@ -3234,6 +3468,15 @@ const app = createApp({
                     }
                     
                     this.hideEditMemberNotesModal();
+                    
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新會員列表
+                        await this.searchMembers();
+                    }
                 } else {
                     this.showMessage(response.data.message || '更新會員備註失敗', 'error');
                 }
@@ -3321,8 +3564,14 @@ const app = createApp({
                     this.user.balance = response.data.parentBalance;
                     // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
-                    // 需要重新获取代理列表或更新特定代理的余额
-                    this.searchAgents(); // 重新载入代理列表
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新代理列表
+                        this.searchAgents();
+                    }
                     this.hideAdjustAgentBalanceModal(); // 关闭模態框
                     await this.fetchDashboardData(); // 更新儀表板數據
                 } else {
@@ -3349,7 +3598,14 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage('代理删除成功', 'success');
-                    this.searchAgents(); // 重新载入代理列表
+                    // 根據當前介面決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新代理列表
+                        this.searchAgents();
+                    }
                 } else {
                     this.showMessage(response.data.message || '代理删除失败', 'error');
                 }
@@ -3528,6 +3784,206 @@ const app = createApp({
             } finally {
                 this.loading = false;
             }
+        },
+        
+        // 輸贏控制相關方法
+        
+        // 載入輸贏控制列表
+        async loadWinLossControls(page = 1) {
+            try {
+                this.loading = true;
+                console.log('載入輸贏控制列表...');
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control?page=${page}&limit=20`);
+                
+                if (response.data.success) {
+                    this.winLossControls = response.data.data || [];
+                    console.log('輸贏控制列表載入成功:', this.winLossControls.length, '項記錄');
+                    
+                    // 同時載入當前活躍控制、用戶清單和期數信息
+                    await Promise.all([
+                        this.loadActiveWinLossControl(),
+                        this.loadAvailableAgents(),
+                        this.loadAvailableMembers(),
+                        this.loadCurrentPeriod()
+                    ]);
+                } else {
+                    console.error('載入輸贏控制列表失敗:', response.data.message);
+                    this.showMessage('載入控制列表失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('載入輸贏控制列表錯誤:', error);
+                this.showMessage('載入控制列表時發生錯誤', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 載入可用代理清單
+        async loadAvailableAgents() {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/agents`);
+                if (response.data.success) {
+                    this.availableAgents = response.data.data || [];
+                    console.log('載入代理清單成功:', this.availableAgents.length, '個代理');
+                }
+            } catch (error) {
+                console.error('載入代理清單錯誤:', error);
+            }
+        },
+        
+        // 載入可用會員清單
+        async loadAvailableMembers() {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/members`);
+                if (response.data.success) {
+                    this.availableMembers = response.data.data || [];
+                    console.log('載入會員清單成功:', this.availableMembers.length, '個會員');
+                }
+            } catch (error) {
+                console.error('載入會員清單錯誤:', error);
+            }
+        },
+        
+        // 載入當前期數信息
+        async loadCurrentPeriod() {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/current-period`);
+                if (response.data.success) {
+                    this.currentPeriodInfo = response.data.data;
+                    // 自動設定建議的開始期數
+                    this.newWinLossControl.start_period = this.currentPeriodInfo.suggested_start;
+                    console.log('載入期數信息成功:', this.currentPeriodInfo);
+                }
+            } catch (error) {
+                console.error('載入期數信息錯誤:', error);
+            }
+        },
+        
+        // 載入當前活躍的輸贏控制
+        async loadActiveWinLossControl() {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/active`);
+                
+                if (response.data.success) {
+                    this.activeWinLossControl = response.data.data || { control_mode: 'normal', is_active: false };
+                    console.log('當前活躍控制:', this.activeWinLossControl);
+                } else {
+                    console.error('載入活躍控制失敗:', response.data.message);
+                }
+            } catch (error) {
+                console.error('載入活躍控制錯誤:', error);
+            }
+        },
+        
+        // 創建輸贏控制
+        async createWinLossControl() {
+            try {
+                this.loading = true;
+                console.log('創建輸贏控制:', this.newWinLossControl);
+                
+                const response = await axios.post(`${API_BASE_URL}/win-loss-control`, this.newWinLossControl);
+                
+                if (response.data.success) {
+                    this.showMessage('輸贏控制設定成功', 'success');
+                    
+                    // 重新載入列表和活躍控制
+                    await this.loadWinLossControls();
+                    
+                    // 重置表單
+                    this.newWinLossControl = {
+                        control_mode: 'normal',
+                        target_type: '',
+                        target_username: '',
+                        control_percentage: 50,
+                        win_control: false,
+                        loss_control: false
+                    };
+                } else {
+                    this.showMessage('設定失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('創建輸贏控制錯誤:', error);
+                this.showMessage('設定時發生錯誤', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        // 啟用輸贏控制
+        async activateWinLossControl(controlId) {
+            try {
+                console.log('啟用輸贏控制:', controlId);
+                
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
+                    is_active: true
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('控制已啟用', 'success');
+                    await this.loadWinLossControls();
+                } else {
+                    this.showMessage('啟用失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('啟用輸贏控制錯誤:', error);
+                this.showMessage('啟用時發生錯誤', 'error');
+            }
+        },
+        
+        // 停用輸贏控制
+        async deactivateWinLossControl(controlId) {
+            try {
+                console.log('停用輸贏控制:', controlId);
+                
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
+                    is_active: false
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('控制已停用', 'success');
+                    await this.loadWinLossControls();
+                } else {
+                    this.showMessage('停用失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('停用輸贏控制錯誤:', error);
+                this.showMessage('停用時發生錯誤', 'error');
+            }
+        },
+        
+        // 刪除輸贏控制
+        async deleteWinLossControl(controlId) {
+            try {
+                if (!confirm('確定要刪除此輸贏控制設定嗎？')) {
+                    return;
+                }
+                
+                console.log('刪除輸贏控制:', controlId);
+                
+                const response = await axios.delete(`${API_BASE_URL}/win-loss-control/${controlId}`);
+                
+                if (response.data.success) {
+                    this.showMessage('控制設定已刪除', 'success');
+                    await this.loadWinLossControls();
+                } else {
+                    this.showMessage('刪除失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('刪除輸贏控制錯誤:', error);
+                this.showMessage('刪除時發生錯誤', 'error');
+            }
+        },
+        
+        // 獲取控制模式文字
+        getControlModeText(mode) {
+            const modes = {
+                'normal': '正常機率',
+                'agent_line': '代理線控制',
+                'single_member': '單會員控制',
+                'auto_detect': '自動偵測控制'
+            };
+            return modes[mode] || mode;
         },
         
         // 顯示客服操作模態框
@@ -5320,6 +5776,36 @@ const app = createApp({
             } else if (this.agentTransferType === 'withdraw') {
                 // 提领時，检查下級代理余额是否足夠
                 return agentBalance >= amount;
+            }
+            
+            return false;
+        },
+
+        // 檢查會員點數轉移是否有效
+        isValidMemberTransfer() {
+            // 確保數值正確
+            const amount = parseFloat(this.memberTransferAmount) || 0;
+            const userBalance = parseFloat(this.user.balance) || 0;
+            const memberBalance = parseFloat(this.memberBalanceData?.currentBalance) || 0;
+            
+            console.log('驗證會員點數轉移:', {
+                amount, 
+                userBalance, 
+                memberBalance, 
+                type: this.memberTransferType
+            });
+            
+            // 金額必須大於0
+            if (amount <= 0) {
+                return false;
+            }
+            
+            if (this.memberTransferType === 'deposit') {
+                // 存入時，檢查代理(自己)餘額是否足夠
+                return userBalance >= amount;
+            } else if (this.memberTransferType === 'withdraw') {
+                // 提領時，檢查會員餘額是否足夠
+                return memberBalance >= amount;
             }
             
             return false;

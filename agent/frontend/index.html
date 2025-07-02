@@ -958,7 +958,7 @@
                     </div>
                     
                     <!-- 編輯代理備註 Modal -->
-                    <div class="modal fade" id="editAgentNotesModal" tabindex="-1" :class="{show: showEditAgentNotesModal}" :style="{display: showEditAgentNotesModal ? 'block' : 'none'}">
+                    <div class="modal fade" id="editAgentNotesModal" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
@@ -966,7 +966,7 @@
                                         <i class="fas fa-sticky-note me-2 text-primary"></i>
                                         編輯代理備註 - {{ editNotesData.username }}
                                     </h5>
-                                    <button type="button" class="btn-close" @click="hideEditAgentNotesModal"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <form @submit.prevent="updateAgentNotes">
@@ -993,7 +993,7 @@
                                             </small>
                                         </div>
                                         <div class="text-end">
-                                            <button type="button" class="btn btn-secondary me-2" @click="hideEditAgentNotesModal">取消</button>
+                                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">取消</button>
                                             <button type="submit" class="btn btn-primary" :disabled="loading">
                                                 <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
                                                 <i v-else class="fas fa-save me-1"></i>
@@ -2449,56 +2449,74 @@
                         </div>
                     </div>
                     
-                    <!-- 功能说明卡片 -->
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <i class="fas fa-user-shield fa-2x"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="card-title mb-1">客服權限</h5>
-                                            <p class="card-text mb-0">可以调整任何代理或会员的余额</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <i class="fas fa-history fa-2x"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="card-title mb-1">完整记录</h5>
-                                            <p class="card-text mb-0">所有操作都會记录在系统中</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-success text-white">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <i class="fas fa-bullhorn fa-2x"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="card-title mb-1">公告管理</h5>
-                                            <p class="card-text mb-0">可以新增和管理系统公告</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- 客服功能標籤頁 -->
+                    <ul class="nav nav-tabs mb-4" v-if="user.username === 'ti2025A' || user.username === 'ti2025D'">
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{active: customerServiceTab === 'transactions'}" 
+                               href="#" @click="customerServiceTab = 'transactions'">
+                                <i class="fas fa-exchange-alt me-1"></i>轉帳記錄
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{active: customerServiceTab === 'win-loss-control'}" 
+                               href="#" @click="customerServiceTab = 'win-loss-control'; loadWinLossControls()">
+                                <i class="fas fa-dice me-1"></i>輸贏控制
+                            </a>
+                        </li>
+                    </ul>
                     
-                    <!-- 操作记录 -->
+                    <!-- 轉帳記錄標籤頁 -->
+                    <div v-if="!customerServiceTab || customerServiceTab === 'transactions'">
+                        <!-- 功能说明卡片 -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas fa-user-shield fa-2x"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="card-title mb-1">客服權限</h5>
+                                                <p class="card-text mb-0">可以调整任何代理或会员的余额</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas fa-history fa-2x"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="card-title mb-1">完整记录</h5>
+                                                <p class="card-text mb-0">所有操作都會记录在系统中</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas fa-bullhorn fa-2x"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="card-title mb-1">公告管理</h5>
+                                                <p class="card-text mb-0">可以新增和管理系统公告</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 操作记录 -->
                     <div class="card">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
@@ -2587,6 +2605,249 @@
                                     </li>
                                 </ul>
                             </nav>
+                        </div>
+                    </div>
+                    </div>
+                    
+                    <!-- 輸贏控制標籤頁 -->
+                    <div v-if="customerServiceTab === 'win-loss-control' && (user.username === 'ti2025A' || user.username === 'ti2025D')">
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h5><i class="fas fa-dice me-2"></i>輸贏控制系統</h5>
+                                    <p class="mb-0">您可以設定遊戲的輸贏控制模式，目前支援四種模式：正常機率、代理線控制、單會員控制、自動偵測控制</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 當前活躍控制狀態 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card" :class="activeWinLossControl.is_active ? 'border-success' : 'border-secondary'">
+                                    <div class="card-header" :class="activeWinLossControl.is_active ? 'bg-success text-white' : 'bg-secondary text-white'">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-cog me-2"></i>當前控制狀態
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <strong>控制模式：</strong>
+                                            <span class="badge" :class="{
+                                                'bg-primary': activeWinLossControl.control_mode === 'normal',
+                                                'bg-warning': activeWinLossControl.control_mode === 'agent_line',
+                                                'bg-info': activeWinLossControl.control_mode === 'single_member',
+                                                'bg-secondary': activeWinLossControl.control_mode === 'auto_detect'
+                                            }">
+                                                {{ getControlModeText(activeWinLossControl.control_mode) }}
+                                            </span>
+                                        </div>
+                                        <div class="mb-2" v-if="activeWinLossControl.target_display_name">
+                                            <strong>控制目標：</strong>
+                                            <span class="text-primary">{{ activeWinLossControl.target_display_name }}</span>
+                                            <span class="badge ms-1" :class="activeWinLossControl.target_type === 'agent' ? 'bg-primary' : 'bg-info'">
+                                                {{ activeWinLossControl.target_type === 'agent' ? '代理' : '會員' }}
+                                            </span>
+                                        </div>
+                                        <div class="mb-2" v-if="activeWinLossControl.control_percentage">
+                                            <strong>控制比例：</strong>
+                                            <span class="text-info">{{ activeWinLossControl.control_percentage }}%</span>
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>控制類型：</strong>
+                                            <span v-if="activeWinLossControl.win_control" class="badge bg-success me-1">贏控制</span>
+                                            <span v-if="activeWinLossControl.loss_control" class="badge bg-danger me-1">輸控制</span>
+                                            <span v-if="!activeWinLossControl.win_control && !activeWinLossControl.loss_control" class="badge bg-secondary">無控制</span>
+                                        </div>
+                                        <div class="mb-0">
+                                            <strong>狀態：</strong>
+                                            <span class="badge" :class="activeWinLossControl.is_active ? 'bg-success' : 'bg-secondary'">
+                                                {{ activeWinLossControl.is_active ? '啟用中' : '未啟用' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-plus-circle me-2"></i>新增控制設定
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form @submit.prevent="createWinLossControl">
+                                            <div class="mb-3">
+                                                <label class="form-label">控制模式</label>
+                                                <select class="form-select" v-model="newWinLossControl.control_mode" required>
+                                                    <option value="normal">正常機率</option>
+                                                    <option value="agent_line">代理線控制</option>
+                                                    <option value="single_member">單會員控制</option>
+                                                    <option value="auto_detect">自動偵測控制</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div v-if="newWinLossControl.control_mode === 'agent_line' || newWinLossControl.control_mode === 'single_member'" class="mb-3">
+                                                <label class="form-label">目標類型</label>
+                                                <select class="form-select" v-model="newWinLossControl.target_type" required>
+                                                    <option value="">請選擇目標類型</option>
+                                                    <option value="agent" v-if="newWinLossControl.control_mode === 'agent_line'">代理</option>
+                                                    <option value="member" v-if="newWinLossControl.control_mode === 'single_member'">會員</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div v-if="newWinLossControl.target_type" class="mb-3">
+                                                <label class="form-label">目標用戶名</label>
+                                                <select class="form-select" v-model="newWinLossControl.target_username" required>
+                                                    <option value="">請選擇{{ newWinLossControl.target_type === 'agent' ? '代理' : '會員' }}</option>
+                                                    <template v-if="newWinLossControl.target_type === 'agent'">
+                                                        <option v-for="agent in availableAgents" :key="agent.id" :value="agent.username">
+                                                            {{ agent.username }} ({{ agent.level_name }})
+                                                        </option>
+                                                    </template>
+                                                    <template v-if="newWinLossControl.target_type === 'member'">
+                                                        <option v-for="member in availableMembers" :key="member.id" :value="member.username">
+                                                            {{ member.username }} ({{ member.agent_level_name }} - {{ member.agent_username }})
+                                                        </option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            
+                                            <div v-if="newWinLossControl.control_mode !== 'normal'" class="mb-3">
+                                                <label class="form-label">控制比例 (%)</label>
+                                                <input type="number" class="form-control" v-model="newWinLossControl.control_percentage" 
+                                                       min="0" max="100" step="0.01" placeholder="50.00" required>
+                                            </div>
+                                            
+                                            <div v-if="newWinLossControl.control_mode !== 'normal'" class="mb-3">
+                                                <label class="form-label">控制類型</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" v-model="newWinLossControl.win_control" id="winControl">
+                                                    <label class="form-check-label" for="winControl">
+                                                        贏控制（讓目標更容易贏）
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" v-model="newWinLossControl.loss_control" id="lossControl">
+                                                    <label class="form-check-label" for="lossControl">
+                                                        輸控制（讓目標更容易輸）
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div v-if="newWinLossControl.control_mode !== 'normal'" class="mb-3">
+                                                <label class="form-label">開始期數</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                                    <input type="number" class="form-control" v-model="newWinLossControl.start_period" 
+                                                           :min="currentPeriodInfo.next_period" placeholder="設定從第幾期開始控制" required>
+                                                </div>
+                                                <small class="form-text text-muted">
+                                                    當前期數：{{ currentPeriodInfo.current_period }} | 建議下一期：{{ currentPeriodInfo.next_period }}
+                                                </small>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-primary w-100" :disabled="loading">
+                                                <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+                                                <i v-else class="fas fa-save me-1"></i>
+                                                {{ loading ? '設定中...' : '創建控制設定' }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 控制設定列表 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-list me-2"></i>輸贏控制記錄
+                                    </h5>
+                                    <button class="btn btn-sm btn-outline-primary" @click="loadWinLossControls">
+                                        <i class="fas fa-sync me-1"></i>刷新
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>控制模式</th>
+                                                <th>目標類型</th>
+                                                <th>目標用戶</th>
+                                                <th>控制比例</th>
+                                                <th>控制類型</th>
+                                                <th>狀態</th>
+                                                <th>操作者</th>
+                                                <th>創建時間</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody v-if="winLossControls.length > 0">
+                                            <tr v-for="control in winLossControls" :key="control.id">
+                                                <td>{{ control.id }}</td>
+                                                <td>
+                                                    <span class="badge" :class="{
+                                                        'bg-primary': control.control_mode === 'normal',
+                                                        'bg-warning': control.control_mode === 'agent_line',
+                                                        'bg-info': control.control_mode === 'single_member',
+                                                        'bg-secondary': control.control_mode === 'auto_detect'
+                                                    }">
+                                                        {{ getControlModeText(control.control_mode) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span v-if="control.target_type" class="badge" :class="control.target_type === 'agent' ? 'bg-primary' : 'bg-info'">
+                                                        {{ control.target_type === 'agent' ? '代理' : '會員' }}
+                                                    </span>
+                                                    <span v-else>-</span>
+                                                </td>
+                                                <td>{{ control.target_display_name || '-' }}</td>
+                                                <td>{{ control.control_percentage ? control.control_percentage + '%' : '-' }}</td>
+                                                <td>
+                                                    <span v-if="control.win_control" class="badge bg-success me-1">贏</span>
+                                                    <span v-if="control.loss_control" class="badge bg-danger me-1">輸</span>
+                                                    <span v-if="!control.win_control && !control.loss_control">-</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge" :class="control.is_active ? 'bg-success' : 'bg-secondary'">
+                                                        {{ control.is_active ? '啟用' : '停用' }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ control.operator_username }}</td>
+                                                <td>{{ formatDateTime(control.created_at) }}</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button v-if="!control.is_active" class="btn btn-outline-success btn-sm" 
+                                                                @click="activateWinLossControl(control.id)" title="啟用">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                        <button v-if="control.is_active" class="btn btn-outline-warning btn-sm" 
+                                                                @click="deactivateWinLossControl(control.id)" title="停用">
+                                                            <i class="fas fa-pause"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger btn-sm" 
+                                                                @click="deleteWinLossControl(control.id)" title="刪除">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tbody v-else>
+                                            <tr>
+                                                <td colspan="10" class="text-center text-muted py-4">
+                                                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                                    <div>暫無輸贏控制記錄</div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2877,6 +3138,84 @@
             </div>
         </div>
         
+        <!-- 會員點數轉移 Modal -->
+        <div class="modal fade" id="adjustMemberBalanceModal" tabindex="-1" aria-labelledby="adjustMemberBalanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adjustMemberBalanceModalLabel">會員點數轉移</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitMemberBalanceTransfer">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">您的餘額</label>
+                                <input type="text" class="form-control" :value="formatMoney(user.balance)" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">會員餘額</label>
+                                <input type="text" class="form-control" :value="formatMoney(memberBalanceData.currentBalance)" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">轉移類型</label>
+                            <div class="btn-group w-100">
+                                <input type="radio" class="btn-check" name="memberTransferType" id="memberDeposit" v-model="memberTransferType" value="deposit">
+                                <label class="btn btn-outline-success" for="memberDeposit">存入 (您→會員)</label>
+                                
+                                <input type="radio" class="btn-check" name="memberTransferType" id="memberWithdraw" v-model="memberTransferType" value="withdraw">
+                                <label class="btn btn-outline-danger" for="memberWithdraw">提領 (會員→您)</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">點數轉移金額</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" v-model="memberTransferAmount" 
+                                       placeholder="請輸入要轉移的點數金額" min="0" required>
+                                <button type="button" class="btn btn-outline-primary" @click="setMaxMemberAmount()">
+                                    <i class="fas fa-coins me-1"></i>全部餘額
+                                </button>
+                                <span class="input-group-text">元</span>
+                            </div>
+                            <small class="form-text text-muted">
+                                {{ memberTransferType === 'deposit' ? '點擊「全部餘額」將填入您的全部餘額' : '點擊「全部餘額」將填入會員的全部餘額' }}
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">轉移後會員點數</label>
+                            <input type="text" class="form-control" 
+                                   :value="formatMoney(calculateFinalMemberBalanceTransfer())" 
+                                   disabled>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">轉移後您的點數</label>
+                            <input type="text" class="form-control" 
+                                   :value="formatMoney(calculateFinalAgentBalanceFromMember())" 
+                                   disabled>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">備註說明</label>
+                            <textarea class="form-control" v-model="memberBalanceData.description" 
+                                      placeholder="請輸入點數轉移原因"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" @click="submitMemberBalanceTransfer" :disabled="!isValidMemberTransfer">
+                        <i class="fas fa-check me-1"></i>確認轉移
+                    </button>
+                </div>
+            </div>
+        </div>
+        </div>
+
         <!-- 修改會員余额 Modal -->
         <div class="modal fade" id="modifyMemberBalanceModal" tabindex="-1" aria-labelledby="modifyMemberBalanceModalLabel" aria-hidden="true">
             <div class="modal-dialog">
