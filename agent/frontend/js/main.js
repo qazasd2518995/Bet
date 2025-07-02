@@ -3794,7 +3794,22 @@ const app = createApp({
                 this.loading = true;
                 console.log('載入輸贏控制列表...');
                 
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control?page=${page}&limit=20`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken; // 確保大小寫兼容
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                console.log('🔐 使用認證標頭:', { hasSessionToken: !!sessionToken, hasLegacyToken: !!legacyToken });
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control?page=${page}&limit=20`, { headers });
                 
                 if (response.data.success) {
                     this.winLossControls = response.data.data || [];
@@ -3813,7 +3828,23 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('載入輸贏控制列表錯誤:', error);
-                this.showMessage('載入控制列表時發生錯誤', 'error');
+                
+                // 🔧 特殊處理401錯誤
+                if (error.response?.status === 401) {
+                    console.warn('⚠️ 認證失敗，嘗試重新認證...');
+                    this.showMessage('會話已過期，請重新登入', 'warning');
+                    
+                    // 清除過期的認證信息
+                    delete axios.defaults.headers.common['Authorization'];
+                    delete axios.defaults.headers.common['x-session-token'];
+                    
+                    // 提示用戶重新登入
+                    setTimeout(() => {
+                        this.logout();
+                    }, 2000);
+                } else {
+                    this.showMessage('載入控制列表時發生錯誤', 'error');
+                }
             } finally {
                 this.loading = false;
             }
@@ -3822,7 +3853,20 @@ const app = createApp({
         // 載入可用代理清單
         async loadAvailableAgents() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control/agents`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/agents`, { headers });
                 if (response.data.success) {
                     this.availableAgents = response.data.data || [];
                     console.log('載入代理清單成功:', this.availableAgents.length, '個代理');
@@ -3835,7 +3879,20 @@ const app = createApp({
         // 載入可用會員清單
         async loadAvailableMembers() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control/members`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/members`, { headers });
                 if (response.data.success) {
                     this.availableMembers = response.data.data || [];
                     console.log('載入會員清單成功:', this.availableMembers.length, '個會員');
@@ -3863,7 +3920,20 @@ const app = createApp({
         // 載入當前活躍的輸贏控制
         async loadActiveWinLossControl() {
             try {
-                const response = await axios.get(`${API_BASE_URL}/win-loss-control/active`);
+                // 🔧 確保認證標頭設置正確
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/win-loss-control/active`, { headers });
                 
                 if (response.data.success) {
                     this.activeWinLossControl = response.data.data || { control_mode: 'normal', is_active: false };
