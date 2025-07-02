@@ -1206,17 +1206,26 @@ async function generateSmartRaceResult(period) {
     let shouldApplyControl = false;
     
     if (winLossControl.mode === 'auto_detect') {
-      console.log(`🔍 [偵錯] 使用自動偵測模式...`);
-      // 自動偵測模式：檢測大額下注
-      const highBets = findHighBetCombinations(betStats);
-      shouldApplyControl = highBets.length > 0;
+      console.log(`🤖 [自動偵測] 開始智能分析全體玩家輸贏比例...`);
       
-      console.log(`🔍 [偵錯] 自動偵測結果: 找到 ${highBets.length} 個大額下注，shouldApplyControl=${shouldApplyControl}`);
+      // 自動偵測模式：分析全體玩家與平台的輸贏比例
+      const autoDetectResult = await performAutoDetectAnalysis(period, betStats);
       
-      if (shouldApplyControl) {
-        console.log('✅ [偵錯] 自動偵測到大額下注，套用控制策略');
-        const weights = calculateResultWeights(highBets, betStats);
-        return generateWeightedResult(weights);
+      console.log(`🤖 [自動偵測] 分析完成:`, {
+        shouldApplyControl: autoDetectResult.shouldApplyControl,
+        reason: autoDetectResult.reason,
+        playerWinProbability: autoDetectResult.playerWinProbability,
+        platformAdvantage: autoDetectResult.platformAdvantage
+      });
+      
+      if (autoDetectResult.shouldApplyControl) {
+        console.log(`✅ [自動偵測] 觸發智能控制策略: ${autoDetectResult.reason}`);
+        const controlWeights = calculateAutoDetectWeights(autoDetectResult, betStats);
+        const controlledResult = generateWeightedResult(controlWeights);
+        console.log(`🎯 [自動偵測] 智能控制後的開獎結果: ${JSON.stringify(controlledResult)}`);
+        return controlledResult;
+      } else {
+        console.log(`📊 [自動偵測] 維持正常機率: ${autoDetectResult.reason}`);
       }
     } else if (winLossControl.mode === 'agent_line' || winLossControl.mode === 'single_member') {
       console.log(`🔍 [偵錯] 使用 ${winLossControl.mode} 控制模式，目標: ${winLossControl.target_username}`);
@@ -4588,4 +4597,424 @@ function calculateTodayStats(history, position, todayPeriod) {
     }
     
     return stats;
+}
+
+// 自動偵測分析：計算全體玩家與平台的輸贏比例
+async function performAutoDetectAnalysis(period, betStats) {
+  try {
+    console.log(`🤖 [自動偵測] 開始分析期數 ${period} 的全體玩家輸贏比例...`);
+    
+    // 1. 獲取該期所有下注資料
+    const allBets = await db.any(`
+      SELECT 
+        b.username, b.bet_type, b.bet_value, b.position, b.amount,
+        m.agent_id, a.username as agent_username
+      FROM bet_history b
+      LEFT JOIN members m ON b.username = m.username
+      LEFT JOIN agents a ON m.agent_id = a.id
+      WHERE b.period = $1 AND b.settled = false
+    `, [period]);
+    
+    if (allBets.length === 0) {
+      return {
+        shouldApplyControl: false,
+        reason: '該期無任何下注，維持正常機率',
+        playerWinProbability: 0,
+        platformAdvantage: 0
+      };
+    }
+    
+    const totalBetAmount = allBets.reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
+    console.log(`🤖 [自動偵測] 該期總下注金額: ${totalBetAmount}`);
+    
+    // 2. 計算近期平台盈虧狀況（最近5期）
+    const recentProfitLoss = await calculateRecentPlatformProfitLoss(5);
+    console.log(`🤖 [自動偵測] 近期平台盈虧: ${recentProfitLoss}`);
+    
+    // 3. 模擬所有可能的開獎結果，計算玩家與平台的輸贏比例
+    const simulationResults = simulateAllPossibleOutcomes(allBets);
+    console.log(`🤖 [自動偵測] 模擬分析完成:`, {
+      averagePlayerWinRate: simulationResults.averagePlayerWinRate,
+      averagePlatformProfit: simulationResults.averagePlatformProfit,
+      highRiskOutcomes: simulationResults.highRiskOutcomes.length
+    });
+    
+    // 4. 分析關鍵指標
+    const playerWinProbability = simulationResults.averagePlayerWinRate;
+    const platformAdvantage = simulationResults.averagePlatformProfit;
+    
+    // 5. 決策邏輯：讓平台小贏，玩家小輸
+    let shouldApplyControl = false;
+    let reason = '';
+    
+    // 平台虧損風險過高時觸發控制
+    if (platformAdvantage < -totalBetAmount * 0.1) {
+      shouldApplyControl = true;
+      reason = `平台面臨虧損風險 (預期虧損: ${platformAdvantage.toFixed(2)})，觸發保護機制`;
+    }
+    // 玩家勝率過高時觸發控制  
+    else if (playerWinProbability > 0.6) {
+      shouldApplyControl = true;
+      reason = `玩家勝率過高 (${(playerWinProbability * 100).toFixed(1)}%)，平衡輸贏比例`;
+    }
+    // 近期平台虧損過多時加強控制
+    else if (recentProfitLoss < -totalBetAmount * 2) {
+      shouldApplyControl = true;
+      reason = `近期平台虧損過多 (${recentProfitLoss.toFixed(2)})，適度調整`;
+    }
+    // 檢測異常大額下注模式
+    else if (simulationResults.highRiskOutcomes.length > 10) {
+      shouldApplyControl = true;
+      reason = `檢測到 ${simulationResults.highRiskOutcomes.length} 個高風險下注組合，啟動風控`;
+    }
+    // 正常情況下維持少量平台優勢
+    else if (totalBetAmount > 1000 && platformAdvantage < totalBetAmount * 0.05) {
+      shouldApplyControl = true;
+      reason = `維持健康的平台收益率，確保長期運營穩定`;
+    } else {
+      reason = `各項指標正常，維持正常機率開獎`;
+    }
+    
+    console.log(`🤖 [自動偵測] 決策結果: ${shouldApplyControl ? '觸發控制' : '維持正常'} - ${reason}`);
+    
+    return {
+      shouldApplyControl,
+      reason,
+      playerWinProbability,
+      platformAdvantage,
+      totalBetAmount,
+      recentProfitLoss,
+      allBets,
+      simulationResults
+    };
+    
+  } catch (error) {
+    console.error('🤖 [自動偵測] 分析過程出錯:', error);
+    return {
+      shouldApplyControl: false,
+      reason: '分析過程出錯，使用正常機率',
+      playerWinProbability: 0,
+      platformAdvantage: 0
+    };
+  }
+}
+
+// 模擬所有可能的開獎結果
+function simulateAllPossibleOutcomes(allBets) {
+  const outcomes = [];
+  
+  // 抽樣模擬（完整模擬開銷太大）
+  const sampleSize = 1000;
+  
+  for (let i = 0; i < sampleSize; i++) {
+    // 生成隨機開獎結果
+    const result = generateRaceResult();
+    
+    // 計算該結果下的總輸贏
+    let totalPlayerWin = 0;
+    let totalPlayerBet = 0;
+    
+    allBets.forEach(bet => {
+      const betAmount = parseFloat(bet.amount);
+      totalPlayerBet += betAmount;
+      
+      const winAmount = calculateWinAmountForBet(bet, result);
+      if (winAmount > 0) {
+        totalPlayerWin += winAmount;
+      }
+    });
+    
+    const platformProfit = totalPlayerBet - totalPlayerWin;
+    const playerWinRate = totalPlayerBet > 0 ? totalPlayerWin / totalPlayerBet : 0;
+    
+    outcomes.push({
+      result,
+      playerWinRate,
+      platformProfit,
+      totalPlayerWin,
+      totalPlayerBet
+    });
+  }
+  
+  // 統計分析
+  const averagePlayerWinRate = outcomes.reduce((sum, o) => sum + o.playerWinRate, 0) / outcomes.length;
+  const averagePlatformProfit = outcomes.reduce((sum, o) => sum + o.platformProfit, 0) / outcomes.length;
+  
+  // 找出高風險結果（平台虧損超過一定閾值）
+  const highRiskOutcomes = outcomes.filter(o => o.platformProfit < -o.totalPlayerBet * 0.2);
+  
+  return {
+    averagePlayerWinRate,
+    averagePlatformProfit,
+    highRiskOutcomes,
+    allOutcomes: outcomes
+  };
+}
+
+// 計算近期平台盈虧（專用於自動偵測）
+async function calculateRecentPlatformProfitLoss(periods = 5) {
+  try {
+    // 獲取最近N期的已結算注單
+    const recentBets = await db.any(`
+      SELECT amount, win, win_amount
+      FROM bet_history 
+      WHERE settled = true 
+      ORDER BY period DESC, id DESC
+      LIMIT $1
+    `, [periods * 100]); // 假設每期最多100筆下注
+    
+    let platformProfit = 0;
+    
+    recentBets.forEach(bet => {
+      const betAmount = parseFloat(bet.amount);
+      if (bet.win) {
+        // 玩家贏錢，平台虧損
+        platformProfit -= parseFloat(bet.win_amount) - betAmount;
+      } else {
+        // 玩家輸錢，平台獲利
+        platformProfit += betAmount;
+      }
+    });
+    
+    return platformProfit;
+  } catch (error) {
+    console.error('計算近期平台盈虧錯誤:', error);
+    return 0;
+  }
+}
+
+// 計算自動偵測控制權重
+function calculateAutoDetectWeights(autoDetectResult, betStats) {
+  const weights = {
+    positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+    sumValue: Array(17).fill(1)
+  };
+  
+  console.log(`🤖 [自動偵測] 開始計算控制權重...`);
+  
+  // 根據分析結果調整權重策略
+  const { allBets, platformAdvantage, playerWinProbability, totalBetAmount } = autoDetectResult;
+  
+  // 控制強度：根據風險程度決定
+  let controlIntensity = 0.3; // 基礎控制強度
+  
+  if (platformAdvantage < -totalBetAmount * 0.2) {
+    controlIntensity = 0.8; // 高風險時強控制
+  } else if (platformAdvantage < -totalBetAmount * 0.1) {
+    controlIntensity = 0.6; // 中風險時中等控制
+  } else if (playerWinProbability > 0.7) {
+    controlIntensity = 0.5; // 玩家勝率過高時適度控制
+  }
+  
+  console.log(`🤖 [自動偵測] 控制強度: ${controlIntensity}`);
+  
+  // 分析玩家下注分佈，對熱門選項進行反向調整
+  const betDistribution = analyzeBetDistribution(allBets);
+  
+  // 調整號碼權重
+  betDistribution.numberBets.forEach(bet => {
+    const position = parseInt(bet.position) - 1;
+    const value = parseInt(bet.bet_value) - 1;
+    
+    if (position >= 0 && position < 10 && value >= 0 && value < 10) {
+      // 對下注金額大的選項降低權重（讓平台小贏）
+      const betRatio = bet.totalAmount / totalBetAmount;
+      if (betRatio > 0.1) { // 超過10%的下注集中度
+        weights.positions[position][value] *= (1 - controlIntensity * betRatio);
+        console.log(`🤖 [自動偵測] 降低位置${position+1}號碼${value+1}權重，下注比例: ${(betRatio*100).toFixed(1)}%`);
+      }
+    }
+  });
+  
+  // 調整和值權重
+  betDistribution.sumValueBets.forEach(bet => {
+    const sumIndex = parseInt(bet.bet_value) - 3;
+    if (sumIndex >= 0 && sumIndex < 17) {
+      const betRatio = bet.totalAmount / totalBetAmount;
+      if (betRatio > 0.15) { // 超過15%的下注集中度
+        weights.sumValue[sumIndex] *= (1 - controlIntensity * betRatio);
+        console.log(`🤖 [自動偵測] 降低和值${bet.bet_value}權重，下注比例: ${(betRatio*100).toFixed(1)}%`);
+      }
+    }
+  });
+  
+  console.log(`🤖 [自動偵測] 權重計算完成`);
+  return weights;
+}
+
+// 分析下注分佈
+function analyzeBetDistribution(allBets) {
+  const numberBets = {};
+  const sumValueBets = {};
+  
+  allBets.forEach(bet => {
+    const amount = parseFloat(bet.amount);
+    
+    if (bet.bet_type === 'number') {
+      const key = `${bet.position}-${bet.bet_value}`;
+      if (!numberBets[key]) {
+        numberBets[key] = { position: bet.position, bet_value: bet.bet_value, totalAmount: 0, count: 0 };
+      }
+      numberBets[key].totalAmount += amount;
+      numberBets[key].count += 1;
+    } else if (bet.bet_type === 'sumValue') {
+      const key = bet.bet_value;
+      if (!sumValueBets[key]) {
+        sumValueBets[key] = { bet_value: bet.bet_value, totalAmount: 0, count: 0 };
+      }
+      sumValueBets[key].totalAmount += amount;
+      sumValueBets[key].count += 1;
+    }
+  });
+  
+  return {
+    numberBets: Object.values(numberBets),
+    sumValueBets: Object.values(sumValueBets)
+  };
+}
+
+// 計算單筆下注的贏錢金額（用於模擬）
+function calculateWinAmountForBet(bet, winResult) {
+  const amount = parseFloat(bet.amount);
+  
+  if (bet.bet_type === 'number') {
+    const position = parseInt(bet.position);
+    const betValue = parseInt(bet.bet_value);
+    
+    if (position >= 1 && position <= 10 && winResult[position - 1] === betValue) {
+      return amount * 9; // 固定賠率9倍
+    }
+  } else if (bet.bet_type === 'sumValue') {
+    const betSumValue = parseInt(bet.bet_value);
+    const actualSumValue = winResult[0] + winResult[1];
+    
+    if (betSumValue === actualSumValue) {
+      // 根據和值計算賠率
+      const odds = getSumValueOdds(betSumValue);
+      return amount * odds;
+    }
+  } else if (bet.bet_type === 'dragonTiger') {
+    const actualResult = winResult[0] > winResult[1] ? 'dragon' : 
+                        winResult[0] < winResult[1] ? 'tiger' : 'tie';
+    
+    if (bet.bet_value === actualResult) {
+      if (actualResult === 'tie') {
+        return amount * 8; // 和局賠率
+      } else {
+        return amount * 1.88; // 龍虎賠率
+      }
+    }
+  }
+  
+  return 0; // 未中獎
+}
+
+// 獲取和值賠率
+function getSumValueOdds(sumValue) {
+  const oddsTable = {
+    3: 180, 4: 60, 5: 30, 6: 18, 7: 12, 8: 8, 9: 6, 10: 6,
+    11: 6, 12: 8, 13: 12, 14: 18, 15: 30, 16: 60, 17: 180, 18: 180, 19: 180
+  };
+  return oddsTable[sumValue] || 6;
+}
+
+// 基於權重生成結果
+function generateWeightedResult(weights, attempts = 0) {
+  const MAX_ATTEMPTS = 50; // 增加最大嘗試次數以確保100%控制效果
+  const numbers = Array.from({length: 10}, (_, i) => i + 1);
+  const result = [];
+  let availableNumbers = [...numbers];
+  
+  console.log(`🎲 生成權重結果 (第${attempts + 1}次嘗試)`);
+  
+  // 生成前兩名(冠軍和亞軍)，這兩個位置最關鍵
+  for (let position = 0; position < 2; position++) {
+    // 根據權重選擇位置上的號碼
+    let numberWeights = [];
+    for (let i = 0; i < availableNumbers.length; i++) {
+      const num = availableNumbers[i];
+      numberWeights.push(weights.positions[position][num-1] || 1);
+    }
+    
+    // 檢查是否有極高權重的號碼（100%控制的情況）
+    const maxWeight = Math.max(...numberWeights);
+    const hasExtremeWeight = maxWeight > 100; // 極高權重閾值
+    
+    if (hasExtremeWeight) {
+      // 100%控制情況，直接選擇最高權重的號碼
+      const maxIndex = numberWeights.indexOf(maxWeight);
+      const selectedNumber = availableNumbers[maxIndex];
+      console.log(`🎯 位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
+      result.push(selectedNumber);
+      availableNumbers.splice(maxIndex, 1);
+    } else {
+      // 使用權重進行選擇
+      const selectedIndex = weightedRandomIndex(numberWeights);
+      const selectedNumber = availableNumbers[selectedIndex];
+      console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${numberWeights[selectedIndex]})`);
+      result.push(selectedNumber);
+      availableNumbers.splice(selectedIndex, 1);
+    }
+  }
+  
+  // 檢查是否符合目標和值權重
+  const sumValue = result[0] + result[1];
+  const sumValueIndex = sumValue - 3;
+  const sumWeight = weights.sumValue[sumValueIndex] || 1;
+  
+  console.log(`📊 當前冠亞軍: ${result[0]}, ${result[1]}, 和值: ${sumValue}, 和值權重: ${sumWeight}`);
+  
+  // 檢查和值控制邏輯
+  const hasHighSumWeight = sumWeight > 100; // 極高和值權重
+  const hasLowSumWeight = sumWeight < 0.1; // 極低和值權重
+  
+  if (hasLowSumWeight && attempts < MAX_ATTEMPTS) {
+    // 100%輸控制的和值，必須重新生成
+    console.log(`❌ 檢測到100%輸控制和值${sumValue}，重新生成 (第${attempts + 1}次嘗試)`);
+    return generateWeightedResult(weights, attempts + 1);
+  } else if (hasHighSumWeight) {
+    // 100%贏控制的和值，接受結果
+    console.log(`✅ 檢測到100%贏控制和值${sumValue}，接受結果`);
+  } else if (sumWeight < 0.5 && Math.random() < 0.7 && attempts < MAX_ATTEMPTS) {
+    // 一般控制情況
+    console.log(`🔄 和值${sumValue}權重較低，嘗試重新生成 (第${attempts + 1}次嘗試)`);
+    return generateWeightedResult(weights, attempts + 1);
+  }
+  
+  // 如果達到最大嘗試次數，記錄警告但接受當前結果
+  if (attempts >= MAX_ATTEMPTS) {
+    console.warn(`⚠️ 達到最大嘗試次數(${MAX_ATTEMPTS})，使用當前結果 - 和值: ${sumValue}`);
+  }
+  
+  // 剩餘位置隨機生成
+  while (availableNumbers.length > 0) {
+    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+    result.push(availableNumbers[randomIndex]);
+    availableNumbers.splice(randomIndex, 1);
+  }
+  
+  console.log(`🏁 最終開獎結果: [${result.join(', ')}]`);
+  return result;
+}
+
+// 根據權重隨機選擇索引
+function weightedRandomIndex(weights) {
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  
+  // 如果總權重為0，直接返回0
+  if (totalWeight === 0) {
+    console.warn('權重總和為0，返回索引0');
+    return 0;
+  }
+  
+  let random = Math.random() * totalWeight;
+  
+  for (let i = 0; i < weights.length; i++) {
+    random -= weights[i];
+    if (random <= 0) {
+      return i;
+    }
+  }
+  
+  return weights.length - 1; // 防止浮點誤差
 }
