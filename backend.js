@@ -1287,24 +1287,38 @@ async function checkTargetBets(period, control) {
       return hasTargetBets;
     } else if (control.mode === 'agent_line') {
       console.log(`🔍 [偵錯] 執行代理線下注查詢...`);
-      // 代理線控制：檢查該代理線下的所有會員是否有下注
+      // 代理線控制：檢查該代理下所有會員（包括下級代理的會員）是否有下注
+      
+      // 首先獲取目標代理的ID
+      const targetAgent = await db.oneOrNone('SELECT id FROM agents WHERE username = $1', [control.target_username]);
+      if (!targetAgent) {
+        console.log(`❌ [偵錯] 找不到代理: ${control.target_username}`);
+        return false;
+      }
+      
+      // 使用遞歸CTE查詢獲取所有下線代理ID（包括多層級）
       const agentLineBets = await db.oneOrNone(`
-        SELECT SUM(b.amount) as total_amount
+        WITH RECURSIVE agent_hierarchy AS (
+          -- 起始：目標代理本身
+          SELECT id, username, parent_id FROM agents WHERE id = $2
+          UNION ALL
+          -- 遞歸：所有下級代理
+          SELECT a.id, a.username, a.parent_id 
+          FROM agents a
+          INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
+        )
+        SELECT SUM(b.amount) as total_amount, COUNT(DISTINCT b.username) as member_count
         FROM bet_history b
         JOIN members m ON b.username = m.username
-        JOIN agents a ON m.agent_id = a.id
+        JOIN agent_hierarchy ah ON m.agent_id = ah.id
         WHERE b.period = $1 AND b.settled = false
-        AND (a.username = $2 OR a.id IN (
-          SELECT id FROM agents WHERE parent_id = (
-            SELECT id FROM agents WHERE username = $2
-          )
-        ))
-      `, [period, control.target_username]);
+      `, [period, targetAgent.id]);
       
       const totalAmount = agentLineBets ? parseFloat(agentLineBets.total_amount) || 0 : 0;
+      const memberCount = agentLineBets ? parseInt(agentLineBets.member_count) || 0 : 0;
       const hasTargetBets = totalAmount > 0;
       
-      console.log(`🔍 [偵錯] 代理線下注查詢結果: 代理=${control.target_username}, 總金額=${totalAmount}, 有下注=${hasTargetBets}`);
+      console.log(`🔍 [偵錯] 代理線下注查詢結果: 代理=${control.target_username}, 總金額=${totalAmount}, 會員數=${memberCount}, 有下注=${hasTargetBets}`);
       
       return hasTargetBets;
     }
@@ -1337,19 +1351,32 @@ async function calculateTargetControlWeights(period, control, betStats) {
         WHERE period = $1 AND username = $2 AND settled = false
       `, [period, control.target_username]);
     } else if (control.mode === 'agent_line') {
-      // 獲取該代理線下所有會員的下注
+      // 獲取該代理下所有會員的下注（包括下級代理的會員）
+      
+      // 首先獲取目標代理的ID
+      const targetAgent = await db.oneOrNone('SELECT id FROM agents WHERE username = $1', [control.target_username]);
+      if (!targetAgent) {
+        console.log(`❌ [計算權重] 找不到代理: ${control.target_username}`);
+        return weights;
+      }
+      
+      // 使用遞歸CTE查詢獲取所有下線的下注
       targetBets = await db.any(`
-        SELECT b.bet_type, b.bet_value, b.position, b.amount
+        WITH RECURSIVE agent_hierarchy AS (
+          -- 起始：目標代理本身
+          SELECT id, username, parent_id FROM agents WHERE id = $2
+          UNION ALL
+          -- 遞歸：所有下級代理
+          SELECT a.id, a.username, a.parent_id 
+          FROM agents a
+          INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
+        )
+        SELECT b.bet_type, b.bet_value, b.position, b.amount, b.username
         FROM bet_history b
         JOIN members m ON b.username = m.username
-        JOIN agents a ON m.agent_id = a.id
+        JOIN agent_hierarchy ah ON m.agent_id = ah.id
         WHERE b.period = $1 AND b.settled = false
-        AND (a.username = $2 OR a.id IN (
-          SELECT id FROM agents WHERE parent_id = (
-            SELECT id FROM agents WHERE username = $2
-          )
-        ))
-      `, [period, control.target_username]);
+      `, [period, targetAgent.id]);
     }
     
     // 根據控制設定調整權重 - 使用更強的控制邏輯
@@ -1358,29 +1385,72 @@ async function calculateTargetControlWeights(period, control, betStats) {
     console.log(`🎯 目標控制詳情: 用戶=${control.target_username}, 模式=${control.mode}, 贏控制=${control.win_control}, 輸控制=${control.loss_control}, 機率=${control.control_percentage}%`);
     console.log(`📊 找到 ${targetBets.length} 筆目標下注`);
     
+    // 統計下注分佈以處理多人下注衝突
+    const betConflicts = {};
     targetBets.forEach(bet => {
-      console.log(`📋 處理下注: 類型=${bet.bet_type}, 值=${bet.bet_value}, 位置=${bet.position}, 金額=${bet.amount}`);
+      let betKey;
+      if (bet.bet_type === 'number') {
+        betKey = `number_${bet.position}_${bet.bet_value}`;
+      } else if (bet.bet_type === 'sumValue') {
+        betKey = `sumValue_${bet.bet_value}`;
+      } else {
+        betKey = `${bet.bet_type}_${bet.bet_value}`;
+      }
+      
+      if (!betConflicts[betKey]) {
+        betConflicts[betKey] = { 
+          totalAmount: 0, 
+          userCount: 0, 
+          users: new Set(),
+          bets: []
+        };
+      }
+      
+      betConflicts[betKey].totalAmount += parseFloat(bet.amount);
+      betConflicts[betKey].users.add(bet.username);
+      betConflicts[betKey].userCount = betConflicts[betKey].users.size;
+      betConflicts[betKey].bets.push(bet);
+    });
+    
+    // 記錄衝突情況
+    Object.entries(betConflicts).forEach(([key, conflict]) => {
+      if (conflict.userCount > 1) {
+        console.log(`⚠️ 多人下注衝突: ${key}, 用戶數=${conflict.userCount}, 總金額=${conflict.totalAmount}, 用戶=[${Array.from(conflict.users).join(', ')}]`);
+      }
+    });
+    
+    // 使用合併後的下注資料進行權重調整，避免重複處理
+    Object.entries(betConflicts).forEach(([betKey, conflict]) => {
+      const bet = conflict.bets[0]; // 使用第一筆下注的資料做類型判斷
+      const totalAmount = conflict.totalAmount;
+      const userCount = conflict.userCount;
+      
+      console.log(`📋 處理合併下注: ${betKey}, 類型=${bet.bet_type}, 值=${bet.bet_value}, 位置=${bet.position}, 總金額=${totalAmount}, 用戶數=${userCount}`);
+      
+      // 計算衝突調整係數：多人下注時加強控制效果
+      const conflictFactor = Math.min(1 + (userCount - 1) * 0.2, 2.0); // 最多加強2倍
+      const adjustedControlFactor = Math.min(controlFactor * conflictFactor, 1.0);
       
       if (bet.bet_type === 'number') {
         const position = parseInt(bet.position) - 1;
         const value = parseInt(bet.bet_value) - 1;
         if (position >= 0 && position < 10 && value >= 0 && value < 10) {
           if (control.win_control) {
-            // 贏控制：大幅增加該號碼的權重，100%時確保必中
-            if (controlFactor >= 0.9) {
+            // 贏控制：大幅增加該號碼的權重，多人下注時效果更強
+            if (adjustedControlFactor >= 0.9) {
               weights.positions[position][value] *= 1000; // 100%控制時使用極高權重
             } else {
-              weights.positions[position][value] *= (1 + controlFactor * 10);
+              weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
             }
-            console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制)`);
+            console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
           } else if (control.loss_control) {
-            // 輸控制：大幅減少該號碼的權重，100%時確保不中
-            if (controlFactor >= 0.9) {
+            // 輸控制：大幅減少該號碼的權重，多人下注時效果更強
+            if (adjustedControlFactor >= 0.9) {
               weights.positions[position][value] = 0.001; // 100%控制時使用極低權重
             } else {
-              weights.positions[position][value] *= (1 - controlFactor * 0.9);
+              weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
             }
-            console.log(`❌ 減少位置${position+1}號碼${value+1}的權重 (輸控制)`);
+            console.log(`❌ 減少位置${position+1}號碼${value+1}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
           }
         }
       } else if (bet.bet_type === 'sumValue') {
@@ -1388,21 +1458,21 @@ async function calculateTargetControlWeights(period, control, betStats) {
           const sumIndex = parseInt(bet.bet_value) - 3;
           if (sumIndex >= 0 && sumIndex < 17) {
             if (control.win_control) {
-              // 贏控制：大幅增加該和值的權重
-              if (controlFactor >= 0.9) {
+              // 贏控制：大幅增加該和值的權重，多人下注時效果更強
+              if (adjustedControlFactor >= 0.9) {
                 weights.sumValue[sumIndex] *= 1000; // 100%控制時使用極高權重
               } else {
-                weights.sumValue[sumIndex] *= (1 + controlFactor * 10);
+                weights.sumValue[sumIndex] *= (1 + adjustedControlFactor * 10);
               }
-              console.log(`✅ 增加和值${bet.bet_value}的權重 (贏控制)`);
+              console.log(`✅ 增加和值${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
             } else if (control.loss_control) {
-              // 輸控制：大幅減少該和值的權重
-              if (controlFactor >= 0.9) {
+              // 輸控制：大幅減少該和值的權重，多人下注時效果更強
+              if (adjustedControlFactor >= 0.9) {
                 weights.sumValue[sumIndex] = 0.001; // 100%控制時使用極低權重
               } else {
-                weights.sumValue[sumIndex] *= (1 - controlFactor * 0.9);
+                weights.sumValue[sumIndex] *= (1 - adjustedControlFactor * 0.9);
               }
-              console.log(`❌ 減少和值${bet.bet_value}的權重 (輸控制)`);
+              console.log(`❌ 減少和值${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
             }
           }
         }

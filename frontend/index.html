@@ -7222,24 +7222,41 @@
                             // 顯示清潔的错误信息
                             let errorMessage = '下注失败，请稍後再試';
                             if (err.message) {
-                                // 提取純淨的错误訊息，去除HTTP狀態碼和JSON格式
-                                if (err.message.includes('投注金额不能少於')) {
-                                    errorMessage = '投注金额不能少於1元';
-                                } else if (err.message.includes('單注金額不能超過')) {
-                                    // 提取限制金額信息
-                                    errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
-                                    // 清除投注項目的金額，強制用戶重新設定
-                                    errorMessage += '，請重新輸入金額後再下注';
-                                } else if (err.message.includes('HTTP')) {
-                                    // 嘗試提取错误訊息的核心部分
-                                    const match = err.message.match(/:"([^"]+)"/);
-                                    if (match && match[1]) {
-                                        errorMessage = match[1];
+                                // 優先嘗試解析JSON格式的錯誤訊息
+                                try {
+                                    // 提取JSON部分，例如從 'HTTP 400: - {"success":false,"message":"單注金額不能超過 20000 元"}' 中提取JSON
+                                    const jsonMatch = err.message.match(/\{.*\}/);
+                                    if (jsonMatch) {
+                                        const errorData = JSON.parse(jsonMatch[0]);
+                                        if (errorData.message) {
+                                            errorMessage = errorData.message;
+                                            // 如果是限額錯誤，添加提示
+                                            if (errorMessage.includes('單注金額不能超過')) {
+                                                errorMessage += '，請重新輸入金額後再下注';
+                                            }
+                                        }
+                                    } else {
+                                        // 如果沒有JSON格式，使用原有邏輯
+                                        if (err.message.includes('投注金额不能少於')) {
+                                            errorMessage = '投注金额不能少於1元';
+                                        } else if (err.message.includes('單注金額不能超過')) {
+                                            // 提取限制金額信息
+                                            errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
+                                            errorMessage += '，請重新輸入金額後再下注';
+                                        } else {
+                                            errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
+                                        }
+                                    }
+                                } catch (parseError) {
+                                    // JSON解析失敗時使用原有邏輯
+                                    if (err.message.includes('投注金额不能少於')) {
+                                        errorMessage = '投注金额不能少於1元';
+                                    } else if (err.message.includes('單注金額不能超過')) {
+                                        errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
+                                        errorMessage += '，請重新輸入金額後再下注';
                                     } else {
                                         errorMessage = err.message.replace(/HTTP \d+:\s*/, '').replace(/^\s*-\s*/, '');
                                     }
-                                } else {
-                                    errorMessage = err.message;
                                 }
                             }
                             
