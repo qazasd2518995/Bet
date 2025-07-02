@@ -3662,6 +3662,74 @@ async function validateBetLimits(betType, value, amount, userBets = [], username
   return { valid: true };
 }
 
+// 會員限紅設定API
+app.get('/api/member-betting-limits', async (req, res) => {
+  try {
+    const { username } = req.query;
+    
+    if (!username) {
+      return res.status(400).json({ success: false, message: '缺少會員用戶名' });
+    }
+    
+    // 從代理系統獲取會員限紅設定
+    const response = await fetch(`${AGENT_API_URL}/member-betting-limit-by-username?username=${username}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.config) {
+        return res.json({
+          success: true,
+          config: data.config,
+          levelName: data.levelName,
+          levelDisplayName: data.levelDisplayName
+        });
+      }
+    }
+    
+    // 如果無法獲取會員限紅設定，返回預設配置
+    const defaultConfig = {
+      number: { maxBet: 2500, periodLimit: 5000 },
+      twoSide: { maxBet: 5000, periodLimit: 5000 },
+      sumValueSize: { maxBet: 5000, periodLimit: 5000 },
+      sumValueOddEven: { maxBet: 5000, periodLimit: 5000 },
+      sumValue: { maxBet: 1000, periodLimit: 2000 },
+      dragonTiger: { maxBet: 5000, periodLimit: 5000 }
+    };
+    
+    res.json({
+      success: true,
+      config: defaultConfig,
+      levelName: 'level1',
+      levelDisplayName: '標準限紅'
+    });
+    
+  } catch (error) {
+    console.error('獲取會員限紅設定錯誤:', error);
+    
+    // 錯誤時返回預設配置
+    const defaultConfig = {
+      number: { maxBet: 2500, periodLimit: 5000 },
+      twoSide: { maxBet: 5000, periodLimit: 5000 },
+      sumValueSize: { maxBet: 5000, periodLimit: 5000 },
+      sumValueOddEven: { maxBet: 5000, periodLimit: 5000 },
+      sumValue: { maxBet: 1000, periodLimit: 2000 },
+      dragonTiger: { maxBet: 5000, periodLimit: 5000 }
+    };
+    
+    res.json({
+      success: true,
+      config: defaultConfig,
+      levelName: 'level1',
+      levelDisplayName: '標準限紅'
+    });
+  }
+});
+
 // 獲取下注賠率函數 - 支持盤口系統
 function getOdds(betType, value, marketType = 'D') {
   try {

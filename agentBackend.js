@@ -3677,7 +3677,32 @@ app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
     `);
 
     const currentPeriod = latestDraw ? latestDraw.period : 20250101001;
-    const nextPeriod = currentPeriod + 1;
+    
+    // 使用正確的期數遞增邏輯
+    function getNextPeriod(currentPeriod) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+      
+      const currentPeriodStr = currentPeriod.toString();
+      
+      // 檢查當前期號是否為今天
+      if (currentPeriodStr.startsWith(todayStr)) {
+        // 提取期號後綴並遞增
+        const suffix = parseInt(currentPeriodStr.substring(8)) + 1;
+        
+        // 如果超過999場，使用4位數字，但保持日期部分不變
+        if (suffix > 999) {
+          return `${todayStr}${suffix.toString().padStart(4, '0')}`;
+        } else {
+          return parseInt(`${todayStr}${suffix.toString().padStart(3, '0')}`);
+        }
+      } else {
+        // 新的一天，重置期號為001
+        return parseInt(`${todayStr}001`);
+      }
+    }
+    
+    const nextPeriod = getNextPeriod(currentPeriod);
 
     res.json({
       success: true,

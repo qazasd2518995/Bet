@@ -5897,28 +5897,33 @@
                         </div>
                         <div class="table-row">
                             <div class="col-game">1-10車號</div>
-                            <div class="col-max">2,500元</div>
-                            <div class="col-period">5,000元</div>
+                            <div class="col-max">{{ formatMoney(betLimits.number.maxBet) }}</div>
+                            <div class="col-period">{{ formatMoney(betLimits.number.periodLimit) }}</div>
                         </div>
                         <div class="table-row">
                             <div class="col-game">兩面</div>
-                            <div class="col-max">5,000元</div>
-                            <div class="col-period">5,000元</div>
+                            <div class="col-max">{{ formatMoney(betLimits.twoSide.maxBet) }}</div>
+                            <div class="col-period">{{ formatMoney(betLimits.twoSide.periodLimit) }}</div>
                         </div>
                         <div class="table-row">
                             <div class="col-game">冠亞軍和大小</div>
-                            <div class="col-max">5,000元</div>
-                            <div class="col-period">5,000元</div>
+                            <div class="col-max">{{ formatMoney(betLimits.sumValueSize.maxBet) }}</div>
+                            <div class="col-period">{{ formatMoney(betLimits.sumValueSize.periodLimit) }}</div>
                         </div>
                         <div class="table-row">
                             <div class="col-game">冠亞軍和單雙</div>
-                            <div class="col-max">5,000元</div>
-                            <div class="col-period">5,000元</div>
+                            <div class="col-max">{{ formatMoney(betLimits.sumValueOddEven.maxBet) }}</div>
+                            <div class="col-period">{{ formatMoney(betLimits.sumValueOddEven.periodLimit) }}</div>
                         </div>
                         <div class="table-row">
                             <div class="col-game">冠亞軍和</div>
-                            <div class="col-max">1,000元</div>
-                            <div class="col-period">2,000元</div>
+                            <div class="col-max">{{ formatMoney(betLimits.sumValue.maxBet) }}</div>
+                            <div class="col-period">{{ formatMoney(betLimits.sumValue.periodLimit) }}</div>
+                        </div>
+                        <div class="table-row">
+                            <div class="col-game">龍虎</div>
+                            <div class="col-max">{{ formatMoney(betLimits.dragonTiger.maxBet) }}</div>
+                            <div class="col-period">{{ formatMoney(betLimits.dragonTiger.periodLimit) }}</div>
                         </div>
                     </div>
                     <div class="limits-note">
@@ -6581,6 +6586,9 @@
                         
                         // 获取用户盘口类型并更新赔率
                         this.getUserMarketType();
+                        
+                        // 載入會員限紅設定
+                        this.loadMemberBettingLimits();
                     } else {
                         // 登录资讯不完整，重定向到登录頁面
                         sessionStorage.clear();
@@ -9703,6 +9711,61 @@
                 showBetLimits() {
                     this.showBetLimitsModal = true;
                     this.showDropdownMenu = false; // 关闭選單
+                },
+                
+                // 載入會員限紅設定
+                async loadMemberBettingLimits() {
+                    if (!this.username) {
+                        console.warn('未找到會員用戶名，無法載入限紅設定');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch(`${this.API_BASE_URL}/api/member-betting-limits?username=${this.username}`);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.config) {
+                                // 更新限紅配置
+                                this.betLimits = {
+                                    number: {
+                                        maxBet: data.config.number.maxBet,
+                                        periodLimit: data.config.number.periodLimit
+                                    },
+                                    twoSide: {
+                                        maxBet: data.config.twoSide.maxBet,
+                                        periodLimit: data.config.twoSide.periodLimit
+                                    },
+                                    sumValueSize: {
+                                        maxBet: data.config.sumValueSize.maxBet,
+                                        periodLimit: data.config.sumValueSize.periodLimit
+                                    },
+                                    sumValueOddEven: {
+                                        maxBet: data.config.sumValueOddEven.maxBet,
+                                        periodLimit: data.config.sumValueOddEven.periodLimit
+                                    },
+                                    sumValue: {
+                                        maxBet: data.config.sumValue.maxBet,
+                                        periodLimit: data.config.sumValue.periodLimit
+                                    },
+                                    dragonTiger: {
+                                        maxBet: data.config.dragonTiger.maxBet,
+                                        periodLimit: data.config.dragonTiger.periodLimit
+                                    }
+                                };
+                                
+                                console.log('✅ 會員限紅設定載入成功:', this.betLimits);
+                                
+                                // 重新檢查當前下注的限紅狀態
+                                this.checkBetLimits();
+                            }
+                        } else {
+                            console.warn('載入會員限紅設定失敗，使用預設限紅');
+                        }
+                    } catch (error) {
+                        console.error('載入會員限紅設定出錯:', error);
+                        console.warn('使用預設限紅設定');
+                    }
                 },
                 
                 // 切換主題
