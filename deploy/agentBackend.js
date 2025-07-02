@@ -3422,17 +3422,29 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
 
     console.log(`[刪除] 找到控制設定:`, controlToDelete);
 
-    // 先刪除控制設定
+    // 使用事務確保數據一致性
     try {
-      await db.none('DELETE FROM win_loss_control WHERE id = $1', [id]);
-      console.log(`[刪除] 主記錄刪除成功 ID: ${id}`);
+      await db.tx(async t => {
+        // 先刪除相關的日誌記錄
+        const deleteLogCount = await t.result('DELETE FROM win_loss_control_logs WHERE control_id = $1', [id]);
+        console.log(`[刪除] 刪除了 ${deleteLogCount.rowCount} 條相關日誌記錄`);
+        
+        // 再刪除主記錄
+        await t.none('DELETE FROM win_loss_control WHERE id = $1', [id]);
+        console.log(`[刪除] 主記錄刪除成功 ID: ${id}`);
+        
+        // 最後記錄刪除操作（不使用外鍵約束的方式記錄）
+        await t.none(`
+          INSERT INTO win_loss_control_logs 
+          (control_id, action, old_values, new_values, operator_id, operator_username, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        `, [id, 'delete', JSON.stringify(controlToDelete), null, agent.id, agent.username]);
+        console.log(`[刪除] 操作日誌記錄成功`);
+      });
     } catch (deleteError) {
-      console.error(`[刪除] 主記錄刪除失敗:`, deleteError);
+      console.error(`[刪除] 刪除過程失敗:`, deleteError);
       throw deleteError;
     }
-
-    // 記錄操作日誌
-    await safeLogWinLossControl(id, 'delete', controlToDelete, null, agent.id, agent.username);
 
     res.json({
       success: true,
