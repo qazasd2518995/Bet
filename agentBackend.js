@@ -3147,8 +3147,8 @@ app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
           ELSE wlc.target_username
         END as target_display_name
       FROM win_loss_control wlc
-      LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id = a.id
-      LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id = m.id
+      LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id IS NOT NULL AND wlc.target_id = a.id
+      LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id IS NOT NULL AND wlc.target_id = m.id
       ORDER BY wlc.created_at DESC
       LIMIT $1 OFFSET $2
     `, [limit, offset]);
@@ -3433,12 +3433,12 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
         await t.none('DELETE FROM win_loss_control WHERE id = $1', [id]);
         console.log(`[刪除] 主記錄刪除成功 ID: ${id}`);
         
-        // 最後記錄刪除操作（不使用外鍵約束的方式記錄）
+        // 記錄刪除操作（使用負數ID避免外鍵約束衝突）
         await t.none(`
           INSERT INTO win_loss_control_logs 
           (control_id, action, old_values, new_values, operator_id, operator_username, created_at)
           VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        `, [id, 'delete', JSON.stringify(controlToDelete), null, agent.id, agent.username]);
+        `, [-Math.abs(id), 'delete', JSON.stringify(controlToDelete), null, agent.id, agent.username]);
         console.log(`[刪除] 操作日誌記錄成功`);
       });
     } catch (deleteError) {
@@ -3467,8 +3467,8 @@ app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
           ELSE wlc.target_username
         END as target_display_name
       FROM win_loss_control wlc
-      LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id = a.id
-      LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id = m.id
+      LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id IS NOT NULL AND wlc.target_id = a.id
+      LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id IS NOT NULL AND wlc.target_id = m.id
       WHERE wlc.is_active = true
       ORDER BY wlc.updated_at DESC
       LIMIT 1
@@ -3530,8 +3530,8 @@ app.get(`${API_PREFIX}/win-loss-control/active`, async (req, res) => {
           ELSE wlc.target_username
         END as target_display_name
       FROM win_loss_control wlc
-      LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id = a.id
-      LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id = m.id
+      LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id IS NOT NULL AND wlc.target_id = a.id
+      LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id IS NOT NULL AND wlc.target_id = m.id
       WHERE wlc.is_active = true
       ORDER BY wlc.updated_at DESC
       LIMIT 1
