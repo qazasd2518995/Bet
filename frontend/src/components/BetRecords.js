@@ -107,25 +107,38 @@ Vue.component('bet-records', {
       return parseFloat(odds).toFixed(2);
     },
 
-    // 根據投注類型和值获取正确的赔率 - 包含退水4.1%，與後端一致
+    // 根據投注類型和值获取正确的赔率 - 動態支持A盤D盤
     getCorrectOdds(bet) {
       const betType = bet.betType || bet.type;
       const value = bet.value;
       
-      // 如果bet對象已经有正确的赔率，直接使用
+      // 如果bet對象已经有正确的赔率，直接使用（優先級最高）
       if (bet.odds && bet.odds > 0) {
         return bet.odds;
       }
       
-      // 退水比例 4.1%
-      const rebatePercentage = 0.041;
+      // 根據用戶盤口類型設置退水比例和基礎賠率
+      const userMarketType = this.$parent?.userMarketType || sessionStorage.getItem('userMarketType') || 'D';
       
-      // 根據投注類型计算赔率 (包含退水4.1%)
+      let rebatePercentage, baseNumberOdds, baseTwoSideOdds;
+      if (userMarketType === 'A') {
+        // A盤配置：1.1%退水
+        rebatePercentage = 0.011;
+        baseNumberOdds = 10.0;  // A盤基礎單號賠率
+        baseTwoSideOdds = 1.96; // A盤基礎兩面賠率
+      } else {
+        // D盤配置：4.1%退水  
+        rebatePercentage = 0.041;
+        baseNumberOdds = 10.0;  // D盤基礎單號賠率
+        baseTwoSideOdds = 1.96; // D盤基礎兩面賠率
+      }
+      
+      // 根據投注類型计算赔率
       if (betType === 'sumValue') {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
-          return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+          return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
-          // 冠亞和值赔率表 (扣除退水4.1%)
+          // 冠亞和值赔率表 (扣除退水)
           const baseOdds = {
             '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
             '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
@@ -136,21 +149,21 @@ Vue.component('bet-records', {
           return parseFloat((baseOdd * (1 - rebatePercentage)).toFixed(3));
         }
       } else if (betType === 'number') {
-        return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 10.0 × (1-4.1%) = 9.59
+        return parseFloat((baseNumberOdds * (1 - rebatePercentage)).toFixed(3));
       } else if (betType === 'dragonTiger') {
-        return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+        return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
       } else if (betType === 'position') {
         // position類型（快速大小單雙）的赔率
         if (['big', 'small', 'odd', 'even'].includes(value)) {
-          return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+          return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
           return 1.0; // 無效值返回預設赔率
         }
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
-          return parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));  // 1.96 × (1-4.1%) = 1.88
+          return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
-          return parseFloat((10.0 * (1 - rebatePercentage)).toFixed(3));  // 單号投注：10.0 × (1-4.1%) = 9.59
+          return parseFloat((baseNumberOdds * (1 - rebatePercentage)).toFixed(3)); // 單号投注
         }
       }
       

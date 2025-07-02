@@ -3051,6 +3051,53 @@ const checkWinLossControlPermission = (agent) => {
   return agent.username === 'ti2025A' || agent.username === 'ti2025D';
 };
 
+// 安全記錄輸贏控制日誌的函數
+async function safeLogWinLossControl(controlId, action, oldValues = null, newValues = null, operatorId, operatorUsername) {
+  try {
+    console.log(`[日誌] 嘗試記錄 ${action} 操作:`, { controlId, operatorId, operatorUsername });
+    
+    // 確保 JSON 序列化不會失敗
+    let oldValuesStr = null;
+    let newValuesStr = null;
+    
+    if (oldValues) {
+      try {
+        oldValuesStr = JSON.stringify(oldValues);
+      } catch (jsonError) {
+        console.warn('舊數據 JSON 序列化失敗:', jsonError.message);
+        oldValuesStr = JSON.stringify({ error: 'JSON序列化失敗' });
+      }
+    }
+    
+    if (newValues) {
+      try {
+        newValuesStr = JSON.stringify(newValues);
+      } catch (jsonError) {
+        console.warn('新數據 JSON 序列化失敗:', jsonError.message);
+        newValuesStr = JSON.stringify({ error: 'JSON序列化失敗' });
+      }
+    }
+    
+    await db.none(`
+      INSERT INTO win_loss_control_logs (control_id, action, old_values, new_values, operator_id, operator_username)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [
+      controlId,
+      action,
+      oldValuesStr,
+      newValuesStr,
+      operatorId,
+      operatorUsername
+    ]);
+    
+    console.log(`[日誌] ${action} 操作記錄成功`);
+  } catch (logError) {
+    console.warn(`記錄輸贏控制日誌失敗 (${action}):`, logError.message);
+    console.warn('詳細錯誤:', logError);
+    // 日誌失敗不影響主要操作
+  }
+}
+
 // 獲取輸贏控制列表
 app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
   try {
@@ -3229,15 +3276,7 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
     ]);
 
     // 記錄操作日誌
-    await db.none(`
-      INSERT INTO win_loss_control_logs (control_id, action, new_values, operator_id, operator_username)
-      VALUES ($1, 'create', $2, $3, $4)
-    `, [
-      newControl.id,
-      JSON.stringify(newControl),
-      agent.id,
-      agent.username
-    ]);
+    await safeLogWinLossControl(newControl.id, 'create', null, newControl, agent.id, agent.username);
 
     console.log('✅ 輸贏控制創建成功:', newControl);
 
@@ -3319,16 +3358,7 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
     `, [control_percentage, win_control, loss_control, is_active, id]);
 
     // 記錄操作日誌
-    await db.none(`
-      INSERT INTO win_loss_control_logs (control_id, action, old_values, new_values, operator_id, operator_username)
-      VALUES ($1, 'update', $2, $3, $4, $5)
-    `, [
-      id,
-      JSON.stringify(oldControl),
-      JSON.stringify(updatedControl),
-      agent.id,
-      agent.username
-    ]);
+    await safeLogWinLossControl(id, 'update', oldControl, updatedControl, agent.id, agent.username);
 
     res.json({
       success: true,
@@ -3381,25 +3411,28 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
       });
     }
 
+    console.log(`[刪除] 開始刪除控制設定 ID: ${id}`);
+
     // 獲取要刪除的資料
     const controlToDelete = await db.oneOrNone('SELECT * FROM win_loss_control WHERE id = $1', [id]);
     if (!controlToDelete) {
+      console.log(`[刪除] 控制設定 ID ${id} 不存在`);
       return res.status(404).json({ success: false, message: '找不到指定的控制設定' });
     }
 
-    // 記錄操作日誌
-    await db.none(`
-      INSERT INTO win_loss_control_logs (control_id, action, old_values, operator_id, operator_username)
-      VALUES ($1, 'delete', $2, $3, $4)
-    `, [
-      id,
-      JSON.stringify(controlToDelete),
-      agent.id,
-      agent.username
-    ]);
+    console.log(`[刪除] 找到控制設定:`, controlToDelete);
 
-    // 刪除控制設定
-    await db.none('DELETE FROM win_loss_control WHERE id = $1', [id]);
+    // 先刪除控制設定
+    try {
+      await db.none('DELETE FROM win_loss_control WHERE id = $1', [id]);
+      console.log(`[刪除] 主記錄刪除成功 ID: ${id}`);
+    } catch (deleteError) {
+      console.error(`[刪除] 主記錄刪除失敗:`, deleteError);
+      throw deleteError;
+    }
+
+    // 記錄操作日誌
+    await safeLogWinLossControl(id, 'delete', controlToDelete, null, agent.id, agent.username);
 
     res.json({
       success: true,
@@ -3761,10 +3794,7 @@ app.put(`${API_PREFIX}/win-loss-control/:id/activate`, async (req, res) => {
     await db.none('UPDATE win_loss_control SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
 
     // 記錄操作日誌
-    await db.none(`
-      INSERT INTO win_loss_control_logs (control_id, action, operator_id, operator_username)
-      VALUES ($1, 'activate', $2, $3)
-    `, [id, agent.id, agent.username]);
+    await safeLogWinLossControl(id, 'activate', null, null, agent.id, agent.username);
 
     res.json({ success: true, message: '控制設定已激活' });
   } catch (error) {
@@ -3813,10 +3843,7 @@ app.put(`${API_PREFIX}/win-loss-control/:id/deactivate`, async (req, res) => {
     await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
 
     // 記錄操作日誌
-    await db.none(`
-      INSERT INTO win_loss_control_logs (control_id, action, operator_id, operator_username)
-      VALUES ($1, 'deactivate', $2, $3)
-    `, [id, agent.id, agent.username]);
+    await safeLogWinLossControl(id, 'deactivate', null, null, agent.id, agent.username);
 
     res.json({ success: true, message: '控制設定已停用' });
   } catch (error) {
