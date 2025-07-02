@@ -1026,7 +1026,7 @@ async function initDatabase() {
         CREATE TABLE IF NOT EXISTS win_loss_control (
           id SERIAL PRIMARY KEY,
           control_mode VARCHAR(20) DEFAULT 'normal' CHECK (control_mode IN ('normal', 'agent_line', 'single_member', 'auto_detect')),
-          target_type VARCHAR(10) CHECK (target_type IN ('agent', 'member')),
+          target_type VARCHAR(10) CHECK (target_type IS NULL OR target_type IN ('agent', 'member')),
           target_id INTEGER,
           target_username VARCHAR(50),
           control_percentage DECIMAL(5,2) DEFAULT 50.00 CHECK (control_percentage >= 0 AND control_percentage <= 100),

@@ -5,7 +5,7 @@ const AGENT_API = 'http://localhost:3003';
 // 測試憑證
 const testAgent = {
   username: 'ti2025A', 
-  password: 'Ti2025a!'
+  password: 'ti2025A'
 };
 
 let authHeaders = {};
