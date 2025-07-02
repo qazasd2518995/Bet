@@ -586,6 +586,15 @@ const app = createApp({
             setTimeout(() => {
                 this.modalSystemReady = true;
                 console.log('🔓 模態框系统已启用');
+                
+                // 隱藏加載遮罩層
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 300); // 0.3秒淡出動畫
+                }
             }, 1000); // 延遲1秒确保一切就緒
         });
     },
