@@ -465,82 +465,101 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 更新賠率顯示
             updateOddsDisplay() {
+                const rebateA = 0.011; // A盤1.1%退水
+                const rebateD = 0.041; // D盤4.1%退水
+                
                 if (this.userMarketType === 'A') {
-                    // A盤賠率：1.1%退水
+                    // A盤賠率：使用正確公式計算
+                    const twoSideOdds = parseFloat((2 * (1 - rebateA)).toFixed(3)); // 1.978
+                    const numberOdds = parseFloat((10 * (1 - rebateA)).toFixed(3)); // 9.89
+                    
                     this.odds = {
                         sumValue: {
-                            '3': 40.559, '4': 20.769, '5': 15.824, '6': 12.857, '7': 10.879,
-                            '8': 8.901, '9': 7.922, '10': 6.943, '11': 6.943, '12': 7.922,
-                            '13': 8.901, '14': 10.879, '15': 12.857, '16': 15.824, '17': 20.769,
-                            '18': 40.559, '19': 80.119,
-                            big: 1.9, small: 1.9, odd: 1.9, even: 1.9
+                            '3': parseFloat((41.0 * (1 - rebateA)).toFixed(3)), 
+                            '4': parseFloat((21.0 * (1 - rebateA)).toFixed(3)), 
+                            '5': parseFloat((16.0 * (1 - rebateA)).toFixed(3)), 
+                            '6': parseFloat((13.0 * (1 - rebateA)).toFixed(3)), 
+                            '7': parseFloat((11.0 * (1 - rebateA)).toFixed(3)),
+                            '8': parseFloat((9.0 * (1 - rebateA)).toFixed(3)), 
+                            '9': parseFloat((8.0 * (1 - rebateA)).toFixed(3)), 
+                            '10': parseFloat((7.0 * (1 - rebateA)).toFixed(3)), 
+                            '11': parseFloat((7.0 * (1 - rebateA)).toFixed(3)), 
+                            '12': parseFloat((8.0 * (1 - rebateA)).toFixed(3)),
+                            '13': parseFloat((9.0 * (1 - rebateA)).toFixed(3)), 
+                            '14': parseFloat((11.0 * (1 - rebateA)).toFixed(3)), 
+                            '15': parseFloat((13.0 * (1 - rebateA)).toFixed(3)), 
+                            '16': parseFloat((16.0 * (1 - rebateA)).toFixed(3)), 
+                            '17': parseFloat((21.0 * (1 - rebateA)).toFixed(3)),
+                            '18': parseFloat((41.0 * (1 - rebateA)).toFixed(3)), 
+                            '19': parseFloat((81.0 * (1 - rebateA)).toFixed(3)),
+                            big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds
                         },
-                        champion: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        runnerup: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        third: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        fourth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        fifth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        sixth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        seventh: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        eighth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        ninth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
-                        tenth: { big: 1.9, small: 1.9, odd: 1.9, even: 1.9 },
+                        champion: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        runnerup: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        third: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        fourth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        fifth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        sixth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        seventh: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        eighth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        ninth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        tenth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
                         dragonTiger: { 
-                            dragon: 1.9, 
-                            tiger: 1.9 
+                            dragon: twoSideOdds, 
+                            tiger: twoSideOdds 
                         },
                         number: {
-                            first: 9.89,  // 10.0 - 0.11 = 9.89
-                            second: 9.89,
-                            third: 9.89,
-                            fourth: 9.89,
-                            fifth: 9.89,
-                            sixth: 9.89,
-                            seventh: 9.89,
-                            eighth: 9.89,
-                            ninth: 9.89,
-                            tenth: 9.89
+                            first: numberOdds, second: numberOdds, third: numberOdds, fourth: numberOdds, fifth: numberOdds,
+                            sixth: numberOdds, seventh: numberOdds, eighth: numberOdds, ninth: numberOdds, tenth: numberOdds
                         }
                     };
-                    console.log('✅ 已切換至A盤賠率 (1.1%退水)');
+                    console.log(`✅ 已切換至A盤賠率 (1.1%退水) - 單號:${numberOdds} 兩面:${twoSideOdds}`);
                 } else {
-                    // D盤賠率：4.1%退水 (預設)
+                    // D盤賠率：使用正確公式計算
+                    const twoSideOdds = parseFloat((2 * (1 - rebateD)).toFixed(3)); // 1.918
+                    const numberOdds = parseFloat((10 * (1 - rebateD)).toFixed(3)); // 9.59
+                    
                     this.odds = {
                         sumValue: {
-                            '3': 39.319, '4': 20.139, '5': 15.344, '6': 12.467, '7': 10.549,
-                            '8': 8.631, '9': 7.672, '10': 6.713, '11': 6.713, '12': 7.672,
-                            '13': 8.631, '14': 10.549, '15': 12.467, '16': 15.344, '17': 20.139,
-                            '18': 39.319, '19': 77.679,
-                            big: 1.88, small: 1.88, odd: 1.88, even: 1.88
+                            '3': parseFloat((41.0 * (1 - rebateD)).toFixed(3)), 
+                            '4': parseFloat((21.0 * (1 - rebateD)).toFixed(3)), 
+                            '5': parseFloat((16.0 * (1 - rebateD)).toFixed(3)), 
+                            '6': parseFloat((13.0 * (1 - rebateD)).toFixed(3)), 
+                            '7': parseFloat((11.0 * (1 - rebateD)).toFixed(3)),
+                            '8': parseFloat((9.0 * (1 - rebateD)).toFixed(3)), 
+                            '9': parseFloat((8.0 * (1 - rebateD)).toFixed(3)), 
+                            '10': parseFloat((7.0 * (1 - rebateD)).toFixed(3)), 
+                            '11': parseFloat((7.0 * (1 - rebateD)).toFixed(3)), 
+                            '12': parseFloat((8.0 * (1 - rebateD)).toFixed(3)),
+                            '13': parseFloat((9.0 * (1 - rebateD)).toFixed(3)), 
+                            '14': parseFloat((11.0 * (1 - rebateD)).toFixed(3)), 
+                            '15': parseFloat((13.0 * (1 - rebateD)).toFixed(3)), 
+                            '16': parseFloat((16.0 * (1 - rebateD)).toFixed(3)), 
+                            '17': parseFloat((21.0 * (1 - rebateD)).toFixed(3)),
+                            '18': parseFloat((41.0 * (1 - rebateD)).toFixed(3)), 
+                            '19': parseFloat((81.0 * (1 - rebateD)).toFixed(3)),
+                            big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds
                         },
-                        champion: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        runnerup: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        third: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        fourth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        fifth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        sixth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        seventh: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        eighth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        ninth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
-                        tenth: { big: 1.88, small: 1.88, odd: 1.88, even: 1.88 },
+                        champion: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        runnerup: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        third: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        fourth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        fifth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        sixth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        seventh: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        eighth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        ninth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
+                        tenth: { big: twoSideOdds, small: twoSideOdds, odd: twoSideOdds, even: twoSideOdds },
                         dragonTiger: { 
-                            dragon: 1.88, 
-                            tiger: 1.88 
+                            dragon: twoSideOdds, 
+                            tiger: twoSideOdds 
                         },
                         number: {
-                            first: 9.59,  // 10.0 - 0.41 = 9.59
-                            second: 9.59,
-                            third: 9.59,
-                            fourth: 9.59,
-                            fifth: 9.59,
-                            sixth: 9.59,
-                            seventh: 9.59,
-                            eighth: 9.59,
-                            ninth: 9.59,
-                            tenth: 9.59
+                            first: numberOdds, second: numberOdds, third: numberOdds, fourth: numberOdds, fifth: numberOdds,
+                            sixth: numberOdds, seventh: numberOdds, eighth: numberOdds, ninth: numberOdds, tenth: numberOdds
                         }
                     };
-                    console.log('✅ 已切換至D盤賠率 (4.1%退水)');
+                    console.log(`✅ 已切換至D盤賠率 (4.1%退水) - 單號:${numberOdds} 兩面:${twoSideOdds}`);
                 }
             },
             

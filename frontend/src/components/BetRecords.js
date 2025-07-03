@@ -125,12 +125,12 @@ Vue.component('bet-records', {
         // A盤配置：1.1%退水
         rebatePercentage = 0.011;
         baseNumberOdds = 10.0;  // A盤基礎單號賠率
-        baseTwoSideOdds = 1.96; // A盤基礎兩面賠率
+        baseTwoSideOdds = 2.0; // A盤基礎兩面賠率：2×(1-0.011)=1.978
       } else {
         // D盤配置：4.1%退水  
         rebatePercentage = 0.041;
         baseNumberOdds = 10.0;  // D盤基礎單號賠率
-        baseTwoSideOdds = 1.96; // D盤基礎兩面賠率
+        baseTwoSideOdds = 2.0; // D盤基礎兩面賠率：2×(1-0.041)=1.918
       }
       
       // 根據投注類型计算赔率

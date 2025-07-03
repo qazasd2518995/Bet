@@ -522,80 +522,92 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
-// 賠率數據 - 根據極速賽車實際賠率設置 (包含退水0.41)
-let odds = {
-  // 冠亞和值賠率 (扣除退水0.41)
-  sumValue: {
-    '3': 40.59, '4': 20.59, '5': 15.59, '6': 12.59, '7': 10.59, '8': 8.59,
-    '9': 7.59, '10': 6.59, '11': 6.59, '12': 7.59, '13': 8.59, '14': 10.59, 
-    '15': 12.59, '16': 15.59, '17': 20.59, '18': 40.59, '19': 80.59, 
-    big: 1.55, small: 1.55, odd: 1.55, even: 1.55 // 大小單雙
-  },
-  // 單車號碼賠率 (10.0 - 0.41 = 9.59)
-  number: {
-    first: 9.59,  // 冠軍號碼
-    second: 9.59, // 亞軍號碼
-    third: 9.59,  // 第三名
-    fourth: 9.59, // 第四名
-    fifth: 9.59,  // 第五名
-    sixth: 9.59,  // 第六名
-    seventh: 9.59,// 第七名
-    eighth: 9.59, // 第八名
-    ninth: 9.59,  // 第九名
-    tenth: 9.59   // 第十名
-  },
-  // 冠亞軍單雙大小賠率 (1.96 × (1-4.1%) = 1.88)
-  champion: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  runnerup: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  third: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  fourth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  fifth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  sixth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  seventh: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  eighth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  ninth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  tenth: {
-    big: 1.88, small: 1.88, odd: 1.88, even: 1.88
-  },
-  // 龍虎賠率 (1.96 × (1-4.1%) = 1.88)
-  dragonTiger: 1.88
-};
+// 動態生成賠率數據函數
+function generateOdds(marketType = 'D') {
+  const config = MARKET_CONFIG[marketType] || MARKET_CONFIG.D;
+  const rebatePercentage = config.rebatePercentage;
+  
+  // 冠亞和值基礎賠率表
+  const sumValueBaseOdds = {
+    '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
+    '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
+    '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
+    '18': 41.0, '19': 81.0
+  };
+  
+  // 計算冠亞和值賠率（扣除退水）
+  const sumValueOdds = {};
+  Object.keys(sumValueBaseOdds).forEach(key => {
+    sumValueOdds[key] = parseFloat((sumValueBaseOdds[key] * (1 - rebatePercentage)).toFixed(3));
+  });
+  
+  return {
+    // 冠亞和值賠率
+    sumValue: {
+      ...sumValueOdds,
+      big: config.twoSideOdds,
+      small: config.twoSideOdds,
+      odd: config.twoSideOdds,
+      even: config.twoSideOdds
+    },
+    // 單號賠率
+    number: {
+      first: config.numberOdds,
+      second: config.numberOdds,
+      third: config.numberOdds,
+      fourth: config.numberOdds,
+      fifth: config.numberOdds,
+      sixth: config.numberOdds,
+      seventh: config.numberOdds,
+      eighth: config.numberOdds,
+      ninth: config.numberOdds,
+      tenth: config.numberOdds
+    },
+    // 各位置兩面賠率
+    champion: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    runnerup: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    third: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    fourth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    fifth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    sixth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    seventh: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    eighth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    ninth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    tenth: { big: config.twoSideOdds, small: config.twoSideOdds, odd: config.twoSideOdds, even: config.twoSideOdds },
+    // 龍虎賠率
+    dragonTiger: {
+      dragon: config.dragonTigerOdds,
+      tiger: config.dragonTigerOdds
+    }
+  };
+}
 
-// 盤口配置系統
+// 預設使用D盤賠率
+let odds = generateOdds('D');
+
+// 盤口配置系統 - 使用精確數學公式計算
 const MARKET_CONFIG = {
   A: {
     name: 'A盤',
     rebatePercentage: 0.011, // 1.1%退水
     description: '高賠率盤口',
-    numberOdds: 9.89,        // 單號賠率
-    twoSideOdds: 1.9,        // 兩面賠率 
-    dragonTigerOdds: 1.9     // 龍虎賠率
+    // 單號賠率：10 × (1 - 0.011) = 9.89
+    numberOdds: parseFloat((10 * (1 - 0.011)).toFixed(3)),
+    // 兩面賠率：2 × (1 - 0.011) = 1.978
+    twoSideOdds: parseFloat((2 * (1 - 0.011)).toFixed(3)),
+    // 龍虎賠率：2 × (1 - 0.011) = 1.978
+    dragonTigerOdds: parseFloat((2 * (1 - 0.011)).toFixed(3))
   },
   D: {
     name: 'D盤', 
     rebatePercentage: 0.041, // 4.1%退水
     description: '標準盤口',
-    numberOdds: 9.59,        // 單號賠率
-    twoSideOdds: 1.88,       // 兩面賠率
-    dragonTigerOdds: 1.88    // 龍虎賠率
+    // 單號賠率：10 × (1 - 0.041) = 9.59
+    numberOdds: parseFloat((10 * (1 - 0.041)).toFixed(3)),
+    // 兩面賠率：2 × (1 - 0.041) = 1.918
+    twoSideOdds: parseFloat((2 * (1 - 0.041)).toFixed(3)),
+    // 龍虎賠率：2 × (1 - 0.041) = 1.918
+    dragonTigerOdds: parseFloat((2 * (1 - 0.041)).toFixed(3))
   }
 };
 
