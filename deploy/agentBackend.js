@@ -5048,15 +5048,17 @@ app.delete(`${API_PREFIX}/notice/:id`, async (req, res) => {
 // 新增: 獲取總代理API端點
 app.get(`${API_PREFIX}/admin-agent`, async (req, res) => {
   try {
-    // 獲取總代理 (level = 0)
-    const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0');
+    // 獲取總代理 (level = 0)，如果有多個則取第一個
+    const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0 ORDER BY id ASC LIMIT 1');
     
-    if (!adminAgent) {
+    if (adminAgents.length === 0) {
       return res.json({
         success: false,
         message: '系統還未設置總代理'
       });
     }
+    
+    const adminAgent = adminAgents[0];
     
     res.json({
       success: true,

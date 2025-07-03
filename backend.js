@@ -222,7 +222,7 @@ app.post('/api/member/login', async (req, res) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
       
-      const response = await fetch(`${AGENT_API_URL}/member/verify-login`, {
+      const response = await fetch(`${AGENT_API_URL}/api/agent/member/verify-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -3359,7 +3359,7 @@ app.post('/api/bet', async (req, res) => {
         console.log(`嘗試從代理系統扣除會員 ${username} 餘額 ${amountNum} 元`);
         
         // 調用代理系統API扣除餘額
-        const deductResponse = await fetch(`${AGENT_API_URL}/deduct-member-balance`, {
+        const deductResponse = await fetch(`${AGENT_API_URL}/api/agent/deduct-member-balance`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -3526,7 +3526,7 @@ function isValidBet(betType, value, position) {
 async function getAdminAgentId() {
   try {
     // 從代理系統獲取總代理ID
-    const response = await fetch(`${AGENT_API_URL}/admin-agent`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/admin-agent`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -3609,7 +3609,7 @@ async function validateBetLimits(betType, value, amount, userBets = [], username
   // 如果提供了用戶名，嘗試從代理系統獲取會員的限紅設定
   if (username) {
     try {
-      const response = await fetch(`${AGENT_API_URL}/member-betting-limit-by-username?username=${username}`, {
+      const response = await fetch(`${AGENT_API_URL}/api/agent/member-betting-limit-by-username?username=${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -3751,7 +3751,7 @@ app.get('/api/member-betting-limits', async (req, res) => {
     }
     
     // 從代理系統獲取會員限紅設定
-    const response = await fetch(`${AGENT_API_URL}/member-betting-limit-by-username?username=${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member-betting-limit-by-username?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
