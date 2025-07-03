@@ -3062,6 +3062,7 @@
         .date-cell {
             flex-direction: column;
             padding: 8px;
+            min-width: 60px;
         }
 
         .date-number {
@@ -3073,12 +3074,29 @@
             padding: 4px 8px;
             margin-bottom: 4px;
             min-width: 40px;
+            white-space: nowrap;
         }
 
         .weekday-label {
             font-size: 12px;
             color: #666;
             font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .bet-count-cell {
+            min-width: 50px;
+            white-space: nowrap;
+        }
+
+        .amount-cell {
+            min-width: 60px;
+            white-space: nowrap;
+        }
+
+        .profit-cell {
+            min-width: 70px;
+            white-space: nowrap;
         }
 
         .profit-cell.profit-positive {
@@ -3133,15 +3151,18 @@
             }
             
             /* 注數欄位 */
-            .row-cell:nth-child(2) {
+            .row-cell:nth-child(2),
+            .bet-count-cell {
                 min-width: 40px;
                 text-align: center;
                 font-size: 10px;
                 padding: 8px 2px;
+                white-space: nowrap;
             }
             
             /* 有效金額欄位 */
-            .row-cell:nth-child(3) {
+            .row-cell:nth-child(3),
+            .amount-cell {
                 min-width: 50px;
                 text-align: center;
                 font-size: 10px;
@@ -3196,15 +3217,19 @@
             }
             
             /* 注數欄位 */
-            .row-cell:nth-child(2) {
+            .row-cell:nth-child(2),
+            .bet-count-cell {
                 min-width: 35px;
                 font-size: 9px;
+                white-space: nowrap;
             }
             
             /* 有效金額欄位 */
-            .row-cell:nth-child(3) {
+            .row-cell:nth-child(3),
+            .amount-cell {
                 min-width: 45px;
                 font-size: 9px;
+                white-space: nowrap;
             }
             
             /* 輸贏欄位 */
@@ -3213,6 +3238,7 @@
                 min-width: 50px;
                 font-size: 10px !important;
                 padding: 6px 2px !important;
+                white-space: nowrap;
             }
         }
         
@@ -3241,13 +3267,16 @@
             
             /* 確保所有欄位都能正常顯示 */
             .row-cell:nth-child(1) { min-width: 45px; }
-            .row-cell:nth-child(2) { min-width: 30px; font-size: 8px; }
-            .row-cell:nth-child(3) { min-width: 40px; font-size: 8px; }
+            .row-cell:nth-child(2),
+            .bet-count-cell { min-width: 30px; font-size: 8px; white-space: nowrap; }
+            .row-cell:nth-child(3),
+            .amount-cell { min-width: 40px; font-size: 8px; white-space: nowrap; }
             .row-cell:nth-child(4),
             .profit-cell { 
                 min-width: 45px; 
                 font-size: 9px !important; 
                 padding: 4px 1px !important;
+                white-space: nowrap;
             }
         }
 
@@ -5765,12 +5794,12 @@
                         </div>
                                                  <div v-for="(record, index) in profitRecords" :key="`profit-${record.date}-${index}`" 
                              class="table-row" @click="showDayDetail(record.date)">
-                             <div class="row-cell date-cell">
+                            <div class="row-cell date-cell">
                                 <div class="date-number">{{ formatDateNumber(record.date) }}</div>
                                 <div class="weekday-label">{{ record.weekday || getWeekday(record.date) }}</div>
                             </div>
-                            <div class="row-cell">{{ record.betCount }}注</div>
-                            <div class="row-cell">{{ record.totalBet ? formatMoney(record.totalBet) : '0' }}</div>
+                            <div class="row-cell bet-count-cell">{{ record.betCount }}注</div>
+                            <div class="row-cell amount-cell">{{ record.totalBet ? formatMoney(record.totalBet) : '0' }}</div>
                             <div class="row-cell profit-cell" :class="{ 
                                 'profit-positive': record.profit > 0, 
                                 'profit-negative': record.profit < 0,
