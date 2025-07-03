@@ -3291,78 +3291,133 @@
             color: #6c757d;
         }
 
-        /* 週報表響應式設計 - 修正版本 v2.1 強制刷新 */
-        @media (max-width: 768px) {
-            .weekly-table-header, .table-row {
-                grid-template-columns: 1.2fr 0.8fr 1fr 1fr !important;
-                font-size: 12px !important;
-                min-width: 0 !important;
-                width: 100% !important;
-                display: grid !important;
-            }
+        /* 盈虧記錄表格 - Table布局重構版本 v3.0 */
+        .weekly-profit-content {
+            width: 100% !important;
+            overflow-x: auto !important;
+            background: rgba(0,0,0,0.3) !important;
+            border-radius: 8px !important;
+            padding: 15px !important;
+            box-sizing: border-box !important;
+        }
 
+        .weekly-table-header {
+            display: table !important;
+            width: 100% !important;
+            background: rgba(255,255,255,0.1) !important;
+            border-radius: 6px 6px 0 0 !important;
+            table-layout: fixed !important;
+        }
+
+        .weekly-table-header .header-cell {
+            display: table-cell !important;
+            padding: 12px 8px !important;
+            text-align: center !important;
+            font-weight: bold !important;
+            color: rgba(255,255,255,0.9) !important;
+            border-bottom: 2px solid rgba(255,255,255,0.2) !important;
+            vertical-align: middle !important;
+            background: rgba(255,255,255,0.05) !important;
+        }
+
+        .weekly-table-body {
+            width: 100% !important;
+            display: table !important;
+            table-layout: fixed !important;
+        }
+
+        .table-row {
+            display: table-row !important;
+            background: rgba(255,255,255,0.03) !important;
+            cursor: pointer !important;
+            transition: background 0.2s ease !important;
+        }
+
+        .table-row:hover {
+            background: rgba(255,255,255,0.08) !important;
+        }
+
+        .table-row .row-cell {
+            display: table-cell !important;
+            padding: 10px 8px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
+
+        /* 確保各欄位寬度一致 */
+        .header-cell:nth-child(1), .row-cell:nth-child(1) { width: 25% !important; }
+        .header-cell:nth-child(2), .row-cell:nth-child(2) { width: 20% !important; }
+        .header-cell:nth-child(3), .row-cell:nth-child(3) { width: 25% !important; }
+        .header-cell:nth-child(4), .row-cell:nth-child(4) { width: 30% !important; }
+
+        /* 日期欄位樣式 */
+        .date-cell {
+            text-align: center !important;
+        }
+
+        .date-number {
+            display: block !important;
+            font-size: 14px !important;
+            font-weight: bold !important;
+            color: #fff !important;
+            margin-bottom: 3px !important;
+            background: rgba(255,255,255,0.1) !important;
+            padding: 3px 6px !important;
+            border-radius: 3px !important;
+            display: inline-block !important;
+        }
+
+        .weekday-label {
+            font-size: 10px !important;
+            color: rgba(255,255,255,0.6) !important;
+            display: block !important;
+        }
+
+        /* 注數欄位樣式 */
+        .bet-count-cell {
+            color: rgba(255,255,255,0.8) !important;
+            font-size: 13px !important;
+        }
+
+        /* 金額欄位樣式 */
+        .amount-cell {
+            color: rgba(255,255,255,0.8) !important;
+            font-size: 13px !important;
+        }
+
+        /* 盈虧欄位樣式 */
+        .profit-cell {
+            font-weight: bold !important;
+            font-size: 14px !important;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .weekly-profit-content {
+                padding: 10px !important;
+            }
+            
             .header-cell, .row-cell {
-                padding: 8px 3px;
-                font-size: 11px;
-                min-width: 0;
-                overflow: visible;
-                text-align: center;
-                word-wrap: break-word;
+                padding: 8px 4px !important;
+                font-size: 12px !important;
             }
 
             .date-number {
-                font-size: 11px;
-                padding: 2px 4px;
-                min-width: 26px;
-                white-space: nowrap;
+                font-size: 12px !important;
+                padding: 2px 4px !important;
             }
 
             .weekday-label {
-                font-size: 9px;
-                white-space: nowrap;
+                font-size: 9px !important;
             }
-            
-            /* 日期欄位 */
-            .row-cell:nth-child(1) {
-                min-width: 60px;
-                max-width: none;
-                text-align: center;
-            }
-            
-            /* 注數欄位 */
-            .row-cell:nth-child(2),
-            .bet-count-cell {
-                min-width: 40px;
-                text-align: center;
-                font-size: 10px;
-                padding: 8px 2px;
-                white-space: nowrap;
-            }
-            
-            /* 有效金額欄位 */
-            .row-cell:nth-child(3),
-            .amount-cell {
-                min-width: 50px;
-                text-align: center;
-                font-size: 10px;
-                padding: 8px 2px;
-                word-break: keep-all;
-                white-space: nowrap;
-            }
-            
-            /* 輸贏欄位 - 關鍵修正 v2.1 */
-            .row-cell:nth-child(4),
-            .profit-cell {
-                min-width: 55px !important;
-                max-width: none !important;
-                text-align: center !important;
+
+            .bet-count-cell, .amount-cell {
                 font-size: 11px !important;
-                font-weight: 600 !important;
-                padding: 8px 3px !important;
-                word-break: keep-all !important;
-                white-space: nowrap !important;
-                overflow: visible !important;
-                grid-column: 4 !important;
+            }
+
+            .profit-cell {
+                font-size: 12px !important;
             }
         }
         
@@ -3460,6 +3515,39 @@
             }
         }
 
+        /* 防止其他CSS干擾盈虧記錄表格 - 最高優先級 */
+        .weekly-table-header,
+        .table-row {
+            display: grid !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .header-cell,
+        .row-cell {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            text-align: center !important;
+        }
+
+        /* 確保表格容器不會溢出 */
+        .weekly-profit-content {
+            width: 100% !important;
+            overflow-x: auto !important;
+            box-sizing: border-box !important;
+        }
+
+        .weekly-table-body {
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 確保日期欄位垂直排列 */
+        .date-cell {
+            flex-direction: column !important;
+        }
 
         /* 下注确认彈窗樣式 */
         .bet-confirmation {
@@ -6688,6 +6776,7 @@
                     roadBeadRows: [], // 路珠走勢數據
                     showDrawHistoryPopup: false, // 控制開獎紀錄小視窗顯示狀態
                     recentDrawHistory: [], // 最近10期開獎紀錄
+                    drawHistoryUpdateTimer: null, // 開獎記錄更新定時器
                     
                     // 熱門投注
                     hotBets: [],
@@ -8469,6 +8558,10 @@
                     this.updateGameData();
                     // 每次更新游戏數據時也更新历史记录
                     this.updateHistoryRecords();
+                    // 同時更新開獎紀錄彈窗內容（如果已打開）
+                    if (this.showDrawHistoryPopup) {
+                        this.loadRecentDrawHistory();
+                    }
                 }, 5000);
                     
                     // 每10秒更新余額和下注记录
@@ -8481,6 +8574,10 @@
                     // 每5秒更新历史记录以确保即时性
                     this.historyTimer = setInterval(() => {
                         this.updateHistoryRecords();
+                        // 同時更新開獎紀錄彈窗內容（如果已打開）
+                        if (this.showDrawHistoryPopup) {
+                            this.loadRecentDrawHistory();
+                        }
                     }, 5000);
                 },
                 stopUpdateTimers() {
@@ -8509,8 +8606,28 @@
                 // 🔥 開獎紀錄按鍵切換
                 toggleDrawHistory() {
                     this.showDrawHistoryPopup = !this.showDrawHistoryPopup;
-                    if (this.showDrawHistoryPopup && this.recentDrawHistory.length === 0) {
+                    
+                    if (this.showDrawHistoryPopup) {
+                        // 打開時立即載入
                         this.loadRecentDrawHistory();
+                        
+                        // 清除舊的定時器
+                        if (this.drawHistoryUpdateTimer) {
+                            clearInterval(this.drawHistoryUpdateTimer);
+                        }
+                        
+                        // 每2秒自動更新開獎記錄
+                        this.drawHistoryUpdateTimer = setInterval(() => {
+                            if (this.showDrawHistoryPopup) {
+                                this.loadRecentDrawHistory();
+                            }
+                        }, 2000);
+                    } else {
+                        // 關閉時清除定時器
+                        if (this.drawHistoryUpdateTimer) {
+                            clearInterval(this.drawHistoryUpdateTimer);
+                            this.drawHistoryUpdateTimer = null;
+                        }
                     }
                 },
                 // 🔥 載入最近10期開獎紀錄
