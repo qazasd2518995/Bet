@@ -5792,7 +5792,7 @@
                             @click="selectMultiPositionProperty('big')"
                         >
                             <span>大</span>
-                            <span class="odds">{{ formatOdds(1.96) }}</span>
+                            <span class="odds">{{ formatOdds(getQuickOptionOdds('big')) }}</span>
                         </div>
                         <div 
                             class="option property-option" 
@@ -5800,7 +5800,7 @@
                             @click="selectMultiPositionProperty('small')"
                         >
                             <span>小</span>
-                            <span class="odds">{{ formatOdds(1.96) }}</span>
+                            <span class="odds">{{ formatOdds(getQuickOptionOdds('small')) }}</span>
                         </div>
                         <div 
                             class="option property-option" 
@@ -5808,7 +5808,7 @@
                             @click="selectMultiPositionProperty('odd')"
                         >
                             <span>單</span>
-                            <span class="odds">{{ formatOdds(1.96) }}</span>
+                            <span class="odds">{{ formatOdds(getQuickOptionOdds('odd')) }}</span>
                         </div>
                         <div 
                             class="option property-option" 
@@ -5816,7 +5816,7 @@
                             @click="selectMultiPositionProperty('even')"
                         >
                             <span>雙</span>
-                            <span class="odds">{{ formatOdds(1.96) }}</span>
+                            <span class="odds">{{ formatOdds(getQuickOptionOdds('even')) }}</span>
                         </div>
                     </div>
                 </div>
@@ -7912,14 +7912,8 @@
                         'ninth': '第九名',
                         'tenth': '第十名',
                         'dragonTiger': '龍虎',
-                        'number': '單号',
-                        'position': '快速大小單雙'
+                        'number': '單号'
                     };
-                    
-                    // 如果是位置投注，顯示具體位置
-                    if (bet.type === 'position' && bet.position) {
-                        return this.getPositionLabel(bet.position);
-                    }
                     
                     return typeMap[bet.type] || bet.type;
                 },
@@ -8149,6 +8143,23 @@
                     return positionObj ? positionObj.label : `第${position}名`;
                 },
                 
+                // 將position數字轉換為對應的betType
+                getPositionBetType(position) {
+                    const positionMap = {
+                        1: 'champion',
+                        2: 'runnerup', 
+                        3: 'third',
+                        4: 'fourth',
+                        5: 'fifth',
+                        6: 'sixth',
+                        7: 'seventh',
+                        8: 'eighth',
+                        9: 'ninth',
+                        10: 'tenth'
+                    };
+                    return positionMap[position] || 'champion';
+                },
+                
                 // 多位置选择相关方法
                 togglePosition(position) {
                     const index = this.selectedPositions.indexOf(position);
@@ -8292,17 +8303,19 @@
                     }
                     
                     this.selectedPositions.forEach(position => {
+                        // 將position轉換為對應的betType，與正常兩面投注使用相同邏輯
+                        const betType = this.getPositionBetType(position);
+                        
                         const bet = {
-                            type: 'position',
-                            position: position,
-                            property: property,
+                            type: betType,
+                            value: property,
+                            position: null, // 兩面投注不需要position屬性
                             amount: this.betAmount
                         };
                         
                         const existingBetIndex = this.selectedBets.findIndex(b => 
-                            b.type === 'position' && 
-                            b.position === position && 
-                            b.property === property
+                            b.type === betType && 
+                            b.value === property
                         );
                         
                         if (existingBetIndex === -1) {
@@ -8313,13 +8326,13 @@
                     });
                 },
                 isAnyPositionPropertySelected(property) {
-                    return this.selectedPositions.some(position => 
-                        this.selectedBets.some(bet => 
-                            bet.type === 'position' && 
-                            bet.position === position && 
-                            bet.property === property
-                        )
-                    );
+                    return this.selectedPositions.some(position => {
+                        const betType = this.getPositionBetType(position);
+                        return this.selectedBets.some(bet => 
+                            bet.type === betType && 
+                            bet.value === property
+                        );
+                    });
                 },
 
                 getPropertyOdds(property) {
@@ -8334,6 +8347,34 @@
                         tiger: parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3))
                     };
                     return baseOdds[property] || parseFloat((1.96 * (1 - rebatePercentage)).toFixed(3));
+                },
+                
+                // 獲取快速選項賠率（支援A盤D盤動態計算）
+                getQuickOptionOdds(property) {
+                    // 根據使用者盤口類型動態計算賠率
+                    const userMarketType = this.userMarketType || 'D';
+                    
+                    let rebatePercentage, baseTwoSideOdds;
+                    if (userMarketType === 'A') {
+                        // A盤配置：1.1%退水
+                        rebatePercentage = 0.011;
+                        baseTwoSideOdds = 2.0; // A盤基礎兩面賠率：2×(1-0.011)=1.978
+                    } else {
+                        // D盤配置：4.1%退水  
+                        rebatePercentage = 0.041;
+                        baseTwoSideOdds = 2.0; // D盤基礎兩面賠率：2×(1-0.041)=1.918
+                    }
+                    
+                    // 計算實際賠率
+                    const actualOdds = parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
+                    
+                    // 對於快速選項的大小單雙，返回統一的兩面賠率
+                    if (['big', 'small', 'odd', 'even'].includes(property)) {
+                        return actualOdds;
+                    }
+                    
+                    // 如果是其他屬性，返回預設值
+                    return actualOdds;
                 },
                 getSumClass(sum) {
                     if (sum > 11) {
