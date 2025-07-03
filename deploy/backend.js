@@ -26,13 +26,11 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 代理後端URL
-const AGENT_API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://bet-agent.onrender.com'
-  : 'http://localhost:3003';
+// 代理後端URL - 強制使用 Render 代理系統
+const AGENT_API_URL = 'https://bet-agent.onrender.com';
 
 console.log(`🌐 當前環境: ${process.env.NODE_ENV || 'development'}`);
-console.log(`🔗 代理系統API URL: ${AGENT_API_URL}`);
+console.log(`🔗 代理系統API URL: ${AGENT_API_URL} (強制使用 Render)`);
 
 // 立即同步開獎結果到代理系統
 async function syncToAgentSystem(period, result) {
