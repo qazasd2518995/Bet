@@ -290,23 +290,56 @@ app.post('/api/member/login', async (req, res) => {
     if (useLocalAuth) {
       console.log('🔄 切換到本地驗證模式');
       
-      // 擴展的本地用戶驗證（支持生產環境測試）
-      const validUsers = {
-        'test': { password: 'test', id: 1, balance: 10000 },
-        'demo': { password: 'demo', id: 2, balance: 5000 },
-        'user1': { password: '123456', id: 3, balance: 8000 },
-        'admin': { password: 'admin123', id: 999, balance: 50000 }
-      };
-      
-      const user = validUsers[username];
-      if (!user || user.password !== password) {
-        return res.status(400).json({
-          success: false,
-          message: '帳號或密碼錯誤'
-        });
-      }
-      
       try {
+        // 先從資料庫查詢會員
+        console.log(`🔍 從資料庫查詢會員: ${username}`);
+        const member = await db.oneOrNone('SELECT id, username, password, balance, agent_id, status, market_type FROM members WHERE username = $1 AND status = 1', [username]);
+        
+        let user = null;
+        
+        if (member) {
+          console.log(`🔍 找到會員記錄: ${member.username}, 密碼匹配: ${member.password === password}`);
+          if (member.password === password) {
+            user = {
+              id: member.id,
+              balance: member.balance,
+              agent_id: member.agent_id,
+              market_type: member.market_type || 'D'
+            };
+            console.log(`✅ 資料庫驗證成功: ${username}, ID: ${member.id}, 餘額: ${member.balance}`);
+          }
+        } else {
+          console.log(`❌ 資料庫中未找到會員: ${username}`);
+        }
+        
+        if (!user) {
+          // 如果資料庫中沒有，則使用硬編碼的測試帳號
+          console.log(`🔄 嘗試使用測試帳號驗證: ${username}`);
+          const validUsers = {
+            'test': { password: 'test', id: 1, balance: 10000 },
+            'demo': { password: 'demo', id: 2, balance: 5000 },
+            'user1': { password: '123456', id: 3, balance: 8000 },
+            'admin': { password: 'admin123', id: 999, balance: 50000 }
+          };
+          
+          const testUser = validUsers[username];
+          if (testUser && testUser.password === password) {
+            user = {
+              id: testUser.id,
+              balance: testUser.balance,
+              agent_id: 1,
+              market_type: 'D'
+            };
+            console.log(`✅ 測試帳號驗證成功: ${username}, ID: ${testUser.id}`);
+          }
+        }
+        
+        if (!user) {
+          return res.status(400).json({
+            success: false,
+            message: '帳號或密碼錯誤'
+          });
+        }
         // 創建或更新本地用戶
         await UserModel.createOrUpdate({
           username: username,
