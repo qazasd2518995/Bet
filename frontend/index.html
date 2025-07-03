@@ -3366,9 +3366,9 @@
             margin: 0 20px 20px 20px;
         }
 
-        .table-header {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr;
+        .profit-records-simple .table-header {
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr !important;
             background: #f8f9fa;
             padding: 12px 15px;
             border-radius: 6px 6px 0 0;
@@ -3376,14 +3376,14 @@
             border-bottom: none;
         }
 
-        .table-header .col {
+        .profit-records-simple .table-header .col {
             font-weight: 600;
             color: #495057;
             font-size: 14px;
             text-align: center;
         }
 
-        .table-body {
+        .profit-records-simple .table-body {
             border: 1px solid #e9ecef;
             border-radius: 0 0 6px 6px;
             overflow: hidden;
@@ -3391,24 +3391,24 @@
             overflow-y: auto;
         }
 
-        .table-row {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr;
+        .profit-records-simple .table-row {
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr !important;
             padding: 12px 15px;
             border-bottom: 1px solid #e9ecef;
             cursor: pointer;
             transition: background 0.2s;
         }
 
-        .table-row:hover {
+        .profit-records-simple .table-row:hover {
             background: #f8f9fa;
         }
 
-        .table-row:last-child {
+        .profit-records-simple .table-row:last-child {
             border-bottom: none;
         }
 
-        .table-row .col {
+        .profit-records-simple .table-row .col {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -3416,13 +3416,13 @@
             font-size: 14px;
         }
 
-        /* 日期欄位樣式 */
-        .date-col {
+        /* 盈虧記錄日期欄位樣式 */
+        .profit-records-simple .date-col {
             flex-direction: column !important;
             align-items: center !important;
         }
 
-        .date-box {
+        .profit-records-simple .date-box {
             background: #6c5ce7;
             color: white;
             padding: 4px 8px;
@@ -3432,23 +3432,23 @@
             margin-bottom: 2px;
         }
 
-        .weekday {
+        .profit-records-simple .weekday {
             font-size: 11px;
             color: #666;
         }
 
         /* 盈虧顏色樣式 */
-        .profit-positive {
+        .profit-records-simple .profit-positive {
             color: #28a745 !important;
             font-weight: 600;
         }
 
-        .profit-negative {
+        .profit-records-simple .profit-negative {
             color: #dc3545 !important;
             font-weight: 600;
         }
 
-        .profit-zero {
+        .profit-records-simple .profit-zero {
             color: #6c757d !important;
         }
 
@@ -3517,23 +3517,23 @@
                 margin: 0 15px 15px 15px;
             }
 
-            .table-header,
-            .table-row {
-                grid-template-columns: 1fr 1fr 1.5fr 1fr;
+            .profit-records-simple .table-header,
+            .profit-records-simple .table-row {
+                grid-template-columns: 1fr 1fr 1.5fr 1fr !important;
                 padding: 10px 8px;
             }
 
-            .table-header .col,
-            .table-row .col {
+            .profit-records-simple .table-header .col,
+            .profit-records-simple .table-row .col {
                 font-size: 12px;
             }
 
-            .date-box {
+            .profit-records-simple .date-box {
                 font-size: 10px;
                 padding: 2px 4px;
             }
 
-            .weekday {
+            .profit-records-simple .weekday {
                 font-size: 9px;
             }
 
