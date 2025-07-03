@@ -3287,9 +3287,9 @@
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            max-width: 500px;
+            max-width: 700px;
             width: 95%;
-            max-height: 90vh;
+            /* 移除max-height限制，讓視窗自動調整高度顯示完整一週數據 */
             overflow: hidden;
             position: relative;
         }
@@ -3387,8 +3387,7 @@
             border: 1px solid #e9ecef;
             border-radius: 0 0 6px 6px;
             overflow: hidden;
-            max-height: 300px;
-            overflow-y: auto;
+            /* 移除滾動條，讓表格完整顯示一週數據 */
         }
 
         .profit-records-simple .table-row {
@@ -7771,17 +7770,45 @@
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
                     
+                    // 使用與盈虧記錄相同的API確保數據同步
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    fetch(`${this.API_BASE_URL}/api/day-detail?username=${username}&date=${today}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.dailyProfit = Math.round((parseFloat(data.stats.profit) || 0) * 100) / 100;
+                                this.dailyBetCount = parseInt(data.stats.betCount) || 0;
+                                console.log('今日盈虧更新成功:', this.dailyProfit, '注數:', this.dailyBetCount);
+                            } else {
+                                console.error('獲取今日盈虧失敗:', data.message);
+                                // 備用：使用舊API
+                                this.updateDailyProfitFallback();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('獲取今日盈虧失敗:', error);
+                            // 備用：使用舊API
+                            this.updateDailyProfitFallback();
+                        });
+                },
+                
+                // 備用今日盈虧更新方法
+                updateDailyProfitFallback() {
+                    const username = sessionStorage.getItem('username');
+                    if (!username) return;
+                    
                     fetch(`${this.API_BASE_URL}/api/daily-profit?username=${username}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                this.dailyProfit = Math.round((parseFloat(data.profit) || 0) * 100) / 100; // 保留兩位小數
+                                this.dailyProfit = Math.round((parseFloat(data.profit) || 0) * 100) / 100;
                             } else {
-                                console.error('获取今日盈亏失败:', data.message);
+                                console.error('備用API獲取今日盈虧失敗:', data.message);
                             }
                         })
                         .catch(error => {
-                            console.error('获取今日盈亏失败:', error);
+                            console.error('備用API獲取今日盈虧失敗:', error);
                         });
                 },
                 placeBets() {
@@ -10491,8 +10518,13 @@
                 // 盈亏记录展示
                 showProfitRecords() {
                     this.showProfitModal = true;
-                    this.getProfitRecords();
                     this.showDropdownMenu = false; // 关闭選單
+                    
+                    // 同時更新今日盈虧確保數據同步
+                    this.updateDailyProfit();
+                    
+                    // 立即載入盈虧記錄
+                    this.getProfitRecords();
                 },
                 
                 // 長龍排行展示
