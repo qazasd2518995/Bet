@@ -3691,11 +3691,52 @@ function calculateWinAmount(bet, winResult) {
         break;
         
       case 'dragonTiger':
-        // 龍虎
-        if (bet.bet_value === 'dragon' && champion > runnerup) {
+        // 龍虎投注 - 支援傳統格式和位置對比格式
+        let dragonTigerType, pos1, pos2;
+        
+        if (bet.bet_value === 'dragon' || bet.bet_value === 'tiger') {
+          // 傳統格式：默認冠軍vs亞軍
+          dragonTigerType = bet.bet_value;
+          pos1 = 0; // 冠軍
+          pos2 = 1; // 亞軍
+        } else if (typeof bet.bet_value === 'string' && 
+                   (bet.bet_value.startsWith('dragon_') || bet.bet_value.startsWith('tiger_'))) {
+          // 複雜格式：dragon_5_6 表示第5名vs第6名
+          const parts = bet.bet_value.split('_');
+          if (parts.length === 3) {
+            dragonTigerType = parts[0];
+            pos1 = parseInt(parts[1]) - 1; // 轉為0-9索引
+            pos2 = parseInt(parts[2]) - 1;
+            
+            // 驗證位置有效性
+            if (isNaN(pos1) || isNaN(pos2) || pos1 < 0 || pos1 > 9 || pos2 < 0 || pos2 > 9 || pos1 === pos2) {
+              console.warn(`⚠️ 龍虎結算：無效的投注格式: ${bet.bet_value}`);
+              break;
+            }
+          } else {
+            console.warn(`⚠️ 龍虎結算：無法解析投注格式: ${bet.bet_value}`);
+            break;
+          }
+        } else {
+          console.warn(`⚠️ 龍虎結算：未知的投注格式: ${bet.bet_value}`);
+          break;
+        }
+        
+        // 獲取對應位置的開獎號碼
+        const pos1Value = winResult[pos1];
+        const pos2Value = winResult[pos2];
+        
+        console.log(`🐉🐅 龍虎結算檢查: ${bet.bet_value}, 第${pos1+1}名=${pos1Value}, 第${pos2+1}名=${pos2Value}`);
+        
+        // 判斷龍虎結果
+        if (dragonTigerType === 'dragon' && pos1Value > pos2Value) {
+          console.log(`✅ 龍虎中獎: 龍勝 (${pos1Value} > ${pos2Value})`);
           return calculateWinningAmount(amount, betOdds);
-        } else if (bet.bet_value === 'tiger' && champion < runnerup) {
+        } else if (dragonTigerType === 'tiger' && pos1Value < pos2Value) {
+          console.log(`✅ 龍虎中獎: 虎勝 (${pos1Value} < ${pos2Value})`);
           return calculateWinningAmount(amount, betOdds);
+        } else {
+          console.log(`❌ 龍虎未中獎: 投注${dragonTigerType}, 實際${pos1Value > pos2Value ? '龍' : pos1Value < pos2Value ? '虎' : '和'}勝`);
         }
         break;
         
