@@ -8991,8 +8991,13 @@
                         const originalText = ball.getAttribute('data-original-text');
                         if (originalText && originalText !== '?') {
                             ball.textContent = originalText;
+                            // 🎨 重新設置正確的顏色CSS class
+                            ball.className = `number-ball color-${originalText}`;
                         } else if (this.lastResults && this.lastResults.length > index) {
-                            ball.textContent = this.lastResults[index];
+                            const number = this.lastResults[index];
+                            ball.textContent = number;
+                            // 🎨 重新設置正確的顏色CSS class
+                            ball.className = `number-ball color-${number}`;
                         }
                     });
                     
@@ -9154,8 +9159,11 @@
                             resultBalls.forEach((ball, index) => {
                                 setTimeout(() => {
                                     if (latestResult.length > index) {
-                                        ball.textContent = latestResult[index];
-                                        ball.setAttribute('data-original-text', latestResult[index]);
+                                        const number = latestResult[index];
+                                        ball.textContent = number;
+                                        ball.setAttribute('data-original-text', number);
+                                        // 🎨 重新設置正確的顏色CSS class
+                                        ball.className = `number-ball color-${number}`;
                                         ball.style.animation = 'ballReveal 0.5s ease-out';
                                     }
                                 }, index * 150);
@@ -9167,6 +9175,8 @@
                                 const originalText = ball.getAttribute('data-original-text');
                                 if (originalText && originalText !== '?') {
                                     ball.textContent = originalText;
+                                    // 🎨 重新設置正確的顏色CSS class
+                                    ball.className = `number-ball color-${originalText}`;
                                 }
                             });
                         }
