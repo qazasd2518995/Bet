@@ -1509,9 +1509,235 @@ async function calculateTargetControlWeights(period, control, betStats) {
               console.log(`❌ 減少和值${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
             }
           }
+        } else if (['big', 'small', 'odd', 'even'].includes(bet.bet_value)) {
+          // 處理冠亞和大小單雙
+          if (control.win_control) {
+            // 贏控制：調整相應範圍的和值權重
+            for (let i = 0; i < 17; i++) {
+              const sumValue = i + 3; // 實際和值 3-19
+              let shouldIncrease = false;
+              
+              if (bet.bet_value === 'big' && sumValue >= 11) shouldIncrease = true;
+              else if (bet.bet_value === 'small' && sumValue <= 10) shouldIncrease = true;
+              else if (bet.bet_value === 'odd' && sumValue % 2 === 1) shouldIncrease = true;
+              else if (bet.bet_value === 'even' && sumValue % 2 === 0) shouldIncrease = true;
+              
+              if (shouldIncrease) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.sumValue[i] *= 1000;
+                } else {
+                  weights.sumValue[i] *= (1 + adjustedControlFactor * 10);
+                }
+              }
+            }
+            console.log(`✅ 增加冠亞和${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          } else if (control.loss_control) {
+            // 輸控制：調整相應範圍的和值權重
+            for (let i = 0; i < 17; i++) {
+              const sumValue = i + 3;
+              let shouldDecrease = false;
+              
+              if (bet.bet_value === 'big' && sumValue >= 11) shouldDecrease = true;
+              else if (bet.bet_value === 'small' && sumValue <= 10) shouldDecrease = true;
+              else if (bet.bet_value === 'odd' && sumValue % 2 === 1) shouldDecrease = true;
+              else if (bet.bet_value === 'even' && sumValue % 2 === 0) shouldDecrease = true;
+              
+              if (shouldDecrease) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.sumValue[i] = 0.001;
+                } else {
+                  weights.sumValue[i] *= (1 - adjustedControlFactor * 0.9);
+                }
+              }
+            }
+            console.log(`❌ 減少冠亞和${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          }
         }
+      } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(bet.bet_type)) {
+        // 處理位置投注（包括號碼投注和大小單雙）
+        const positionMap = {
+          'champion': 0, 'runnerup': 1, 'third': 2, 'fourth': 3, 'fifth': 4,
+          'sixth': 5, 'seventh': 6, 'eighth': 7, 'ninth': 8, 'tenth': 9
+        };
+        const position = positionMap[bet.bet_type];
+        
+        if (!isNaN(parseInt(bet.bet_value))) {
+          // 號碼投注
+          const value = parseInt(bet.bet_value) - 1;
+          if (value >= 0 && value < 10) {
+            if (control.win_control) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[position][value] *= 1000;
+              } else {
+                weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
+              }
+              console.log(`✅ 增加${bet.bet_type}號碼${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            } else if (control.loss_control) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[position][value] = 0.001;
+              } else {
+                weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
+              }
+              console.log(`❌ 減少${bet.bet_type}號碼${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            }
+          }
+        } else if (['big', 'small', 'odd', 'even'].includes(bet.bet_value)) {
+          // 兩面投注（大小單雙）
+          if (control.win_control) {
+            // 贏控制：調整該位置符合條件的號碼權重
+            for (let value = 0; value < 10; value++) {
+              const actualValue = value + 1; // 實際號碼 1-10
+              let shouldIncrease = false;
+              
+              if (bet.bet_value === 'big' && actualValue >= 6) shouldIncrease = true;
+              else if (bet.bet_value === 'small' && actualValue <= 5) shouldIncrease = true;
+              else if (bet.bet_value === 'odd' && actualValue % 2 === 1) shouldIncrease = true;
+              else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldIncrease = true;
+              
+              if (shouldIncrease) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[position][value] *= 1000;
+                } else {
+                  weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
+                }
+              }
+            }
+            console.log(`✅ 增加${bet.bet_type}${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          } else if (control.loss_control) {
+            // 輸控制：調整該位置符合條件的號碼權重
+            for (let value = 0; value < 10; value++) {
+              const actualValue = value + 1;
+              let shouldDecrease = false;
+              
+              if (bet.bet_value === 'big' && actualValue >= 6) shouldDecrease = true;
+              else if (bet.bet_value === 'small' && actualValue <= 5) shouldDecrease = true;
+              else if (bet.bet_value === 'odd' && actualValue % 2 === 1) shouldDecrease = true;
+              else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldDecrease = true;
+              
+              if (shouldDecrease) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[position][value] = 0.001;
+                } else {
+                  weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
+                }
+              }
+            }
+            console.log(`❌ 減少${bet.bet_type}${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          }
+        }
+      } else if (bet.bet_type === 'position') {
+        // 處理快速投注（位置大小單雙）
+        const position = parseInt(bet.position) - 1;
+        if (position >= 0 && position < 10 && ['big', 'small', 'odd', 'even'].includes(bet.bet_value)) {
+          if (control.win_control) {
+            // 贏控制：調整該位置符合條件的號碼權重
+            for (let value = 0; value < 10; value++) {
+              const actualValue = value + 1;
+              let shouldIncrease = false;
+              
+              if (bet.bet_value === 'big' && actualValue >= 6) shouldIncrease = true;
+              else if (bet.bet_value === 'small' && actualValue <= 5) shouldIncrease = true;
+              else if (bet.bet_value === 'odd' && actualValue % 2 === 1) shouldIncrease = true;
+              else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldIncrease = true;
+              
+              if (shouldIncrease) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[position][value] *= 1000;
+                } else {
+                  weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
+                }
+              }
+            }
+            console.log(`✅ 增加位置${bet.position}${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          } else if (control.loss_control) {
+            // 輸控制：調整該位置符合條件的號碼權重
+            for (let value = 0; value < 10; value++) {
+              const actualValue = value + 1;
+              let shouldDecrease = false;
+              
+              if (bet.bet_value === 'big' && actualValue >= 6) shouldDecrease = true;
+              else if (bet.bet_value === 'small' && actualValue <= 5) shouldDecrease = true;
+              else if (bet.bet_value === 'odd' && actualValue % 2 === 1) shouldDecrease = true;
+              else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldDecrease = true;
+              
+              if (shouldDecrease) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[position][value] = 0.001;
+                } else {
+                  weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
+                }
+              }
+            }
+            console.log(`❌ 減少位置${bet.position}${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          }
+        }
+      } else if (bet.bet_type === 'dragonTiger') {
+        // 處理龍虎投注
+        if (['dragon', 'tiger'].includes(bet.bet_value)) {
+          // 龍虎投注需要在開獎結果生成時特別處理
+          // 這裡我們通過調整相關位置的權重來間接影響龍虎結果
+          
+          if (control.win_control) {
+            // 贏控制：如果下注龍，增加冠軍大號碼和亞軍小號碼的權重
+            // 如果下注虎，增加冠軍小號碼和亞軍大號碼的權重
+            if (bet.bet_value === 'dragon') {
+              // 龍贏：冠軍 > 亞軍，增加冠軍大號碼權重，減少亞軍大號碼權重
+              for (let value = 5; value < 10; value++) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[0][value] *= 1000; // 冠軍大號碼
+                  weights.positions[1][value] = 0.001; // 亞軍大號碼
+                } else {
+                  weights.positions[0][value] *= (1 + adjustedControlFactor * 10);
+                  weights.positions[1][value] *= (1 - adjustedControlFactor * 0.5);
+                }
+              }
+              console.log(`✅ 增加龍的獲勝權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            } else if (bet.bet_value === 'tiger') {
+              // 虎贏：亞軍 > 冠軍，增加亞軍大號碼權重，減少冠軍大號碼權重
+              for (let value = 5; value < 10; value++) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[1][value] *= 1000; // 亞軍大號碼
+                  weights.positions[0][value] = 0.001; // 冠軍大號碼
+                } else {
+                  weights.positions[1][value] *= (1 + adjustedControlFactor * 10);
+                  weights.positions[0][value] *= (1 - adjustedControlFactor * 0.5);
+                }
+              }
+              console.log(`✅ 增加虎的獲勝權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            }
+          } else if (control.loss_control) {
+            // 輸控制：反向操作
+            if (bet.bet_value === 'dragon') {
+              // 龍輸：讓虎贏，增加亞軍大號碼權重
+              for (let value = 5; value < 10; value++) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[1][value] *= 1000;
+                  weights.positions[0][value] = 0.001;
+                } else {
+                  weights.positions[1][value] *= (1 + adjustedControlFactor * 10);
+                  weights.positions[0][value] *= (1 - adjustedControlFactor * 0.5);
+                }
+              }
+              console.log(`❌ 減少龍的獲勝權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            } else if (bet.bet_value === 'tiger') {
+              // 虎輸：讓龍贏，增加冠軍大號碼權重
+              for (let value = 5; value < 10; value++) {
+                if (adjustedControlFactor >= 0.9) {
+                  weights.positions[0][value] *= 1000;
+                  weights.positions[1][value] = 0.001;
+                } else {
+                  weights.positions[0][value] *= (1 + adjustedControlFactor * 10);
+                  weights.positions[1][value] *= (1 - adjustedControlFactor * 0.5);
+                }
+              }
+              console.log(`❌ 減少虎的獲勝權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            }
+          }
+        }
+      } else {
+        // 其他未知下注類型
+        console.log(`⚠️ 未處理的下注類型: ${bet.bet_type}=${bet.bet_value}, 位置=${bet.position || 'N/A'}`);
       }
-      // 可以擴展其他下注類型的控制邏輯
     });
     
     console.log(`目標控制權重調整完成: ${control.target_username}, 控制比例: ${control.control_percentage}%`);
