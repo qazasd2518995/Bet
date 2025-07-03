@@ -1601,52 +1601,7 @@ async function calculateTargetControlWeights(period, control, betStats) {
             console.log(`❌ 減少${bet.bet_type}${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
           }
         }
-      } else if (bet.bet_type === 'position') {
-        // 處理快速投注（位置大小單雙）
-        const position = parseInt(bet.position) - 1;
-        if (position >= 0 && position < 10 && ['big', 'small', 'odd', 'even'].includes(bet.bet_value)) {
-          if (control.win_control) {
-            // 贏控制：調整該位置符合條件的號碼權重
-            for (let value = 0; value < 10; value++) {
-              const actualValue = value + 1;
-              let shouldIncrease = false;
-              
-              if (bet.bet_value === 'big' && actualValue >= 6) shouldIncrease = true;
-              else if (bet.bet_value === 'small' && actualValue <= 5) shouldIncrease = true;
-              else if (bet.bet_value === 'odd' && actualValue % 2 === 1) shouldIncrease = true;
-              else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldIncrease = true;
-              
-              if (shouldIncrease) {
-                if (adjustedControlFactor >= 0.9) {
-                  weights.positions[position][value] *= 1000;
-                } else {
-                  weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
-                }
-              }
-            }
-            console.log(`✅ 增加位置${bet.position}${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
-          } else if (control.loss_control) {
-            // 輸控制：調整該位置符合條件的號碼權重
-            for (let value = 0; value < 10; value++) {
-              const actualValue = value + 1;
-              let shouldDecrease = false;
-              
-              if (bet.bet_value === 'big' && actualValue >= 6) shouldDecrease = true;
-              else if (bet.bet_value === 'small' && actualValue <= 5) shouldDecrease = true;
-              else if (bet.bet_value === 'odd' && actualValue % 2 === 1) shouldDecrease = true;
-              else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldDecrease = true;
-              
-              if (shouldDecrease) {
-                if (adjustedControlFactor >= 0.9) {
-                  weights.positions[position][value] = 0.001;
-                } else {
-                  weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
-                }
-              }
-            }
-            console.log(`❌ 減少位置${bet.position}${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
-          }
-        }
+
       } else if (bet.bet_type === 'dragonTiger') {
         // 處理龍虎投注 - 支援所有位置對比
         // 格式：dragon, tiger (傳統冠軍vs亞軍) 或 dragon_pos1_pos2, tiger_pos1_pos2
