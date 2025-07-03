@@ -1986,7 +1986,7 @@ function generateWeightedResult(weights, attempts = 0) {
   
   console.log(`🎲 生成權重結果 (第${attempts + 1}次嘗試)`);
   
-  // 生成前兩名(冠軍和亞軍)，這兩個位置最關鍵
+  // 步驟1：生成前兩名(冠軍和亞軍)，用於檢查冠亞和控制
   for (let position = 0; position < 2; position++) {
     // 根據權重選擇位置上的號碼
     let numberWeights = [];
@@ -2102,11 +2102,34 @@ function generateWeightedResult(weights, attempts = 0) {
     console.warn(`⚠️ 達到最大嘗試次數(${MAX_ATTEMPTS})，使用當前結果 - 和值: ${sumValue}`);
   }
   
-  // 剩餘位置隨機生成
-  while (availableNumbers.length > 0) {
-    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-    result.push(availableNumbers[randomIndex]);
-    availableNumbers.splice(randomIndex, 1);
+  // 步驟2：生成剩餘位置(第3-10名)，每個位置都使用權重控制
+  for (let position = 2; position < 10; position++) {
+    // 根據權重選擇位置上的號碼
+    let numberWeights = [];
+    for (let i = 0; i < availableNumbers.length; i++) {
+      const num = availableNumbers[i];
+      numberWeights.push(weights.positions[position][num-1] || 1);
+    }
+    
+    // 檢查是否有極高權重的號碼（100%控制的情況）
+    const maxWeight = Math.max(...numberWeights);
+    const hasExtremeWeight = maxWeight > 100; // 極高權重閾值
+    
+    if (hasExtremeWeight) {
+      // 100%控制情況，直接選擇最高權重的號碼
+      const maxIndex = numberWeights.indexOf(maxWeight);
+      const selectedNumber = availableNumbers[maxIndex];
+      console.log(`🎯 位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
+      result.push(selectedNumber);
+      availableNumbers.splice(maxIndex, 1);
+    } else {
+      // 使用權重進行選擇
+      const selectedIndex = weightedRandomIndex(numberWeights);
+      const selectedNumber = availableNumbers[selectedIndex];
+      console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${numberWeights[selectedIndex]})`);
+      result.push(selectedNumber);
+      availableNumbers.splice(selectedIndex, 1);
+    }
   }
   
   console.log(`🏁 最終開獎結果: [${result.join(', ')}]`);
@@ -2183,11 +2206,21 @@ function generateTargetSumResult(weights, targetSum, attempts = 0) {
   // 從可用號碼中移除已選擇的
   availableNumbers = availableNumbers.filter(num => num !== selectedChampion && num !== selectedRunnerup);
   
-  // 剩餘位置隨機生成
-  while (availableNumbers.length > 0) {
-    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-    result.push(availableNumbers[randomIndex]);
-    availableNumbers.splice(randomIndex, 1);
+  // 生成剩餘位置(第3-10名)，同樣使用權重控制
+  for (let position = 2; position < 10; position++) {
+    // 根據權重選擇位置上的號碼
+    let numberWeights = [];
+    for (let i = 0; i < availableNumbers.length; i++) {
+      const num = availableNumbers[i];
+      numberWeights.push(weights.positions[position][num-1] || 1);
+    }
+    
+    // 使用權重進行選擇
+    const selectedIndex = weightedRandomIndex(numberWeights);
+    const selectedNumber = availableNumbers[selectedIndex];
+    console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${numberWeights[selectedIndex]})`);
+    result.push(selectedNumber);
+    availableNumbers.splice(selectedIndex, 1);
   }
   
   console.log(`🎯 目標和值${targetSum}生成完成: [${result.join(', ')}]`);
