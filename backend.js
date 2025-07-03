@@ -2022,7 +2022,77 @@ function generateWeightedResult(weights, attempts = 0) {
   
   console.log(`🎲 生成權重結果 (第${attempts + 1}次嘗試)`);
   
-  // 步驟1：生成前兩名(冠軍和亞軍)，用於檢查冠亞和控制
+  // 🔥 新增：檢查是否有100%位置控制，如果有則優先處理
+  const extremePositionControls = [];
+  for (let position = 0; position < 10; position++) {
+    for (let num = 0; num < 10; num++) {
+      const weight = weights.positions[position][num];
+      if (weight > 100) {
+        extremePositionControls.push({
+          position: position,
+          number: num + 1,
+          weight: weight
+        });
+      }
+    }
+  }
+  
+  // 如果有100%位置控制，按權重排序並優先處理
+  if (extremePositionControls.length > 0) {
+    extremePositionControls.sort((a, b) => b.weight - a.weight);
+    console.log(`🎯 檢測到${extremePositionControls.length}個100%位置控制:`, extremePositionControls.map(c => `位置${c.position+1}號碼${c.number}(權重:${c.weight})`).join(', '));
+    
+    // 預先分配100%控制的位置
+    const reservedNumbers = new Set();
+    const positionAssignments = Array(10).fill(null);
+    
+    for (const control of extremePositionControls) {
+      if (!reservedNumbers.has(control.number)) {
+        positionAssignments[control.position] = control.number;
+        reservedNumbers.add(control.number);
+        console.log(`🔒 預先分配位置${control.position + 1}號碼${control.number}`);
+      } else {
+        console.log(`⚠️ 號碼${control.number}已被其他位置預先分配，位置${control.position + 1}將使用隨機選擇`);
+      }
+    }
+    
+    // 更新可用號碼列表
+    availableNumbers = numbers.filter(num => !reservedNumbers.has(num));
+    
+    // 按位置順序生成結果
+    for (let position = 0; position < 10; position++) {
+      if (positionAssignments[position] !== null) {
+        // 使用預先分配的號碼
+        const assignedNumber = positionAssignments[position];
+        result.push(assignedNumber);
+        console.log(`🎯 位置${position + 1}使用預先分配號碼${assignedNumber}`);
+      } else {
+        // 從剩餘號碼中選擇
+        if (availableNumbers.length > 0) {
+          let numberWeights = [];
+          for (let i = 0; i < availableNumbers.length; i++) {
+            const num = availableNumbers[i];
+            numberWeights.push(weights.positions[position][num-1] || 1);
+          }
+          
+          const selectedIndex = weightedRandomIndex(numberWeights);
+          const selectedNumber = availableNumbers[selectedIndex];
+          console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${numberWeights[selectedIndex]})`);
+          result.push(selectedNumber);
+          availableNumbers.splice(selectedIndex, 1);
+        } else {
+          console.error(`❌ 位置${position + 1}沒有可用號碼！`);
+          // 緊急情況：使用任意號碼
+          result.push(1);
+        }
+      }
+    }
+    
+    console.log(`🏁 最終開獎結果: [${result.join(', ')}]`);
+    return result;
+  }
+  
+  // 原有邏輯：步驟1：生成前兩名(冠軍和亞軍)，用於檢查冠亞和控制
   for (let position = 0; position < 2; position++) {
     // 根據權重選擇位置上的號碼
     let numberWeights = [];

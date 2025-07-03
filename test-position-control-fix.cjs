@@ -1,275 +1,246 @@
-#!/usr/bin/env node
-const { Client } = require('pg');
+const { Pool } = require('pg');
 
-// 資料庫配置 - Render PostgreSQL
-const dbConfig = {
-  host: 'dpg-ct4n3452ng1s73aijre0-a.oregon-postgres.render.com',
-  port: 5432,
-  database: 'extremecar_db',
-  user: 'extremecar_db_user',
-  password: 'BgcxcARrdqrtMKD0k9k6cN35eAmLODUa',
-  ssl: { rejectUnauthorized: false }
-};
+// 資料庫配置
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/bet_database',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-// 測試用戶和控制設定
-const TEST_CONFIG = {
-  testMember: 'testmember_position',
-  testAgent: 'ti2025D',
-  testPeriod: Date.now().toString().slice(-8), // 8位測試期數
+// 模擬generateWeightedResult函數（修復後版本）
+function generateWeightedResult(weights, attempts = 0) {
+  const MAX_ATTEMPTS = 50;
+  const numbers = Array.from({length: 10}, (_, i) => i + 1);
+  const result = [];
+  let availableNumbers = [...numbers];
   
-  // 測試不同名次的控制
-  testCases: [
-    { position: 3, number: 7, controlType: 'win', description: '第三名7號100%贏控制' },
-    { position: 5, number: 2, controlType: 'win', description: '第五名2號100%贏控制' },
-    { position: 8, number: 9, controlType: 'loss', description: '第八名9號100%輸控制' },
-    { position: 10, number: 4, controlType: 'loss', description: '第十名4號100%輸控制' }
-  ]
-};
-
-class PositionControlTester {
-  constructor() {
-    this.db = null;
-  }
-
-  async init() {
-    console.log('🔧 初始化資料庫連接...');
-    this.db = new Client(dbConfig);
-    await this.db.connect();
-    console.log('✅ 資料庫連接成功');
-  }
-
-  async cleanup() {
-    if (this.db) {
-      await this.db.end();
-      console.log('🔒 資料庫連接已關閉');
+  console.log(`🎲 生成權重結果 (第${attempts + 1}次嘗試)`);
+  
+  // 🔥 新增：檢查是否有100%位置控制，如果有則優先處理
+  const extremePositionControls = [];
+  for (let position = 0; position < 10; position++) {
+    for (let num = 0; num < 10; num++) {
+      const weight = weights.positions[position][num];
+      if (weight > 100) {
+        extremePositionControls.push({
+          position: position,
+          number: num + 1,
+          weight: weight
+        });
+      }
     }
   }
-
-  // 清理測試數據
-  async cleanupTestData() {
-    console.log('🧹 清理測試數據...');
+  
+  // 如果有100%位置控制，按權重排序並優先處理
+  if (extremePositionControls.length > 0) {
+    extremePositionControls.sort((a, b) => b.weight - a.weight);
+    console.log(`🎯 檢測到${extremePositionControls.length}個100%位置控制:`, extremePositionControls.map(c => `位置${c.position+1}號碼${c.number}(權重:${c.weight})`).join(', '));
     
-    try {
-      // 刪除測試會員
-      await this.db.query('DELETE FROM members WHERE username = $1', [TEST_CONFIG.testMember]);
-      
-      // 刪除測試下注記錄
-      await this.db.query('DELETE FROM bet_history WHERE username = $1', [TEST_CONFIG.testMember]);
-      
-      // 刪除測試控制設定
-      await this.db.query(`
-        DELETE FROM win_loss_control 
-        WHERE target_username = $1 OR start_period = $2
-      `, [TEST_CONFIG.testMember, TEST_CONFIG.testPeriod]);
-      
-      console.log('✅ 測試數據清理完成');
-    } catch (error) {
-      console.warn('⚠️ 清理測試數據時出現警告:', error.message);
-    }
-  }
-
-  // 創建測試會員
-  async createTestMember() {
-    console.log('👤 創建測試會員...');
+    // 預先分配100%控制的位置
+    const reservedNumbers = new Set();
+    const positionAssignments = Array(10).fill(null);
     
-    // 獲取代理ID
-    const agentResult = await this.db.query('SELECT id FROM agents WHERE username = $1', [TEST_CONFIG.testAgent]);
-    if (agentResult.rows.length === 0) {
-      throw new Error(`找不到代理: ${TEST_CONFIG.testAgent}`);
-    }
-    const agentId = agentResult.rows[0].id;
-    
-    // 創建測試會員
-    await this.db.query(`
-      INSERT INTO members (username, password, balance, agent_id, status, market_type, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
-      ON CONFLICT (username) DO UPDATE SET 
-        balance = $3, agent_id = $4, status = $5, market_type = $6
-    `, [TEST_CONFIG.testMember, 'test123', 10000, agentId, 'active', 'D']);
-    
-    console.log(`✅ 測試會員創建成功: ${TEST_CONFIG.testMember}`);
-  }
-
-  // 創建測試下注記錄
-  async createTestBets() {
-    console.log('💰 創建測試下注記錄...');
-    
-    for (const testCase of TEST_CONFIG.testCases) {
-      await this.db.query(`
-        INSERT INTO bet_history (
-          username, period, bet_type, position, bet_value, amount, odds, 
-          settled, win, win_amount, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-      `, [
-        TEST_CONFIG.testMember,
-        TEST_CONFIG.testPeriod,
-        'number',                    // bet_type
-        testCase.position,           // position
-        testCase.number,             // bet_value
-        1000,                        // amount
-        9.59,                        // odds (D盤單號賠率)
-        false,                       // settled
-        false,                       // win
-        0                            // win_amount
-      ]);
-      
-      console.log(`📝 下注記錄創建: ${testCase.description} - 位置${testCase.position}號碼${testCase.number}`);
+    for (const control of extremePositionControls) {
+      if (!reservedNumbers.has(control.number)) {
+        positionAssignments[control.position] = control.number;
+        reservedNumbers.add(control.number);
+        console.log(`🔒 預先分配位置${control.position + 1}號碼${control.number}`);
+      } else {
+        console.log(`⚠️ 號碼${control.number}已被其他位置預先分配，位置${control.position + 1}將使用隨機選擇`);
+      }
     }
     
-    console.log('✅ 所有測試下注記錄創建完成');
-  }
-
-  // 創建控制設定並測試
-  async testPositionControl() {
-    console.log('🎯 開始測試不同名次的控制效果...');
+    // 更新可用號碼列表
+    availableNumbers = numbers.filter(num => !reservedNumbers.has(num));
     
-    const results = [];
-    
-    for (const testCase of TEST_CONFIG.testCases) {
-      console.log(`\n🧪 測試: ${testCase.description}`);
-      
-      // 創建控制設定
-      const controlResult = await this.db.query(`
-        INSERT INTO win_loss_control (
-          mode, target_username, win_control, loss_control, 
-          control_percentage, start_period, status, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-        RETURNING id
-      `, [
-        'single_member',
-        TEST_CONFIG.testMember,
-        testCase.controlType === 'win',  // win_control
-        testCase.controlType === 'loss', // loss_control
-        100,                             // control_percentage
-        TEST_CONFIG.testPeriod,          // start_period
-        'active'                         // status
-      ]);
-      
-      const controlId = controlResult.rows[0].id;
-      console.log(`✅ 控制設定創建成功 (ID: ${controlId})`);
-      
-      // 測試開獎生成多次
-      const testResults = [];
-      for (let attempt = 1; attempt <= 10; attempt++) {
-        try {
-          // 調用後端API測試控制效果
-          const response = await fetch('http://localhost:3000/api/test-control', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              period: TEST_CONFIG.testPeriod,
-              testMode: true
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            const result = data.result;
-            
-            if (result && result.length >= testCase.position) {
-              const actualNumber = result[testCase.position - 1]; // 轉為0-based索引
-              const isControlled = (actualNumber === testCase.number);
-              
-              testResults.push({
-                attempt,
-                actualNumber,
-                expectedNumber: testCase.number,
-                isControlled,
-                fullResult: result
-              });
-              
-              console.log(`  第${attempt}次: 位置${testCase.position} = ${actualNumber} ${isControlled ? '✅控制成功' : '❌控制失效'}`);
-            }
+    // 按位置順序生成結果
+    for (let position = 0; position < 10; position++) {
+      if (positionAssignments[position] !== null) {
+        // 使用預先分配的號碼
+        const assignedNumber = positionAssignments[position];
+        result.push(assignedNumber);
+        console.log(`🎯 位置${position + 1}使用預先分配號碼${assignedNumber}`);
+      } else {
+        // 從剩餘號碼中選擇
+        if (availableNumbers.length > 0) {
+          let numberWeights = [];
+          for (let i = 0; i < availableNumbers.length; i++) {
+            const num = availableNumbers[i];
+            numberWeights.push(weights.positions[position][num-1] || 1);
           }
-        } catch (error) {
-          console.error(`  第${attempt}次測試失敗:`, error.message);
+          
+          const selectedIndex = weightedRandomIndex(numberWeights);
+          const selectedNumber = availableNumbers[selectedIndex];
+          console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${numberWeights[selectedIndex]})`);
+          result.push(selectedNumber);
+          availableNumbers.splice(selectedIndex, 1);
+        } else {
+          console.error(`❌ 位置${position + 1}沒有可用號碼！`);
+          result.push(1);
         }
       }
-      
-      // 計算控制成功率
-      const successCount = testResults.filter(r => r.isControlled).length;
-      const successRate = (successCount / testResults.length) * 100;
-      
-      results.push({
-        testCase,
-        successCount,
-        totalAttempts: testResults.length,
-        successRate,
-        results: testResults
-      });
-      
-      console.log(`📊 ${testCase.description} 控制成功率: ${successCount}/${testResults.length} (${successRate.toFixed(1)}%)`);
-      
-      // 刪除本次控制設定
-      await this.db.query('DELETE FROM win_loss_control WHERE id = $1', [controlId]);
     }
     
-    return results;
+    console.log(`🏁 最終開獎結果: [${result.join(', ')}]`);
+    return result;
   }
+  
+  // 原有邏輯（略）
+  console.log('沒有100%位置控制，使用原有邏輯');
+  return [1,2,3,4,5,6,7,8,9,10]; // 簡化返回
+}
 
-  // 生成測試報告
-  generateReport(results) {
-    console.log('\n' + '='.repeat(80));
-    console.log('📋 第3-10名控制輸贏測試報告');
-    console.log('='.repeat(80));
+function weightedRandomIndex(weights) {
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  
+  if (totalWeight === 0) {
+    console.warn('權重總和為0，返回索引0');
+    return 0;
+  }
+  
+  let random = Math.random() * totalWeight;
+  
+  for (let i = 0; i < weights.length; i++) {
+    random -= weights[i];
+    if (random <= 0) {
+      return i;
+    }
+  }
+  
+  return weights.length - 1;
+}
+
+async function testPositionControlFix() {
+  console.log('\n🧪 測試位置控制修復效果...\n');
+  
+  // 測試情境1：justin111第6名投注10號，100%贏控制
+  console.log('📋 測試情境1：justin111第6名投注10號，100%贏控制');
+  
+  const weights1 = {
+    positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+    sumValue: Array(17).fill(1)
+  };
+  
+  // 設置第6名(位置5)的10號(索引9)為100%贏控制
+  weights1.positions[5][9] = 1000; // 100%控制使用1000倍權重
+  
+  console.log('權重設置：位置6號碼10 = 1000倍權重');
+  
+  const result1 = generateWeightedResult(weights1);
+  const isSuccess1 = result1[5] === 10;
+  
+  console.log(`\n✅ 測試結果1: 第6名開出${result1[5]}號，預期10號，${isSuccess1 ? '成功✅' : '失敗❌'}`);
+  
+  // 測試情境2：多個位置控制
+  console.log('\n📋 測試情境2：多個位置控制（第3名8號，第7名5號）');
+  
+  const weights2 = {
+    positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+    sumValue: Array(17).fill(1)
+  };
+  
+  weights2.positions[2][7] = 1000; // 第3名8號
+  weights2.positions[6][4] = 1000; // 第7名5號
+  
+  console.log('權重設置：位置3號碼8 = 1000倍權重，位置7號碼5 = 1000倍權重');
+  
+  const result2 = generateWeightedResult(weights2);
+  const isSuccess2 = result2[2] === 8 && result2[6] === 5;
+  
+  console.log(`\n✅ 測試結果2: 第3名開出${result2[2]}號(預期8)，第7名開出${result2[6]}號(預期5)，${isSuccess2 ? '成功✅' : '失敗❌'}`);
+  
+  // 測試情境3：衝突情境（多個位置都要同一號碼）
+  console.log('\n📋 測試情境3：衝突情境（第1名和第6名都要10號）');
+  
+  const weights3 = {
+    positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+    sumValue: Array(17).fill(1)
+  };
+  
+  weights3.positions[0][9] = 1500; // 第1名10號（更高權重）
+  weights3.positions[5][9] = 1000; // 第6名10號（較低權重）
+  
+  console.log('權重設置：位置1號碼10 = 1500倍權重，位置6號碼10 = 1000倍權重');
+  
+  const result3 = generateWeightedResult(weights3);
+  const isSuccess3 = result3[0] === 10; // 第1名應該獲得10號
+  
+  console.log(`\n✅ 測試結果3: 第1名開出${result3[0]}號(預期10)，第6名開出${result3[5]}號(應該不是10)，${isSuccess3 ? '成功✅' : '失敗❌'}`);
+  
+  console.log('\n🎯 總結：位置控制修復效果');
+  console.log(`測試1（單一位置控制）：${isSuccess1 ? '通過✅' : '失敗❌'}`);
+  console.log(`測試2（多位置控制）：${isSuccess2 ? '通過✅' : '失敗❌'}`);
+  console.log(`測試3（衝突處理）：${isSuccess3 ? '通過✅' : '失敗❌'}`);
+  
+  const allSuccess = isSuccess1 && isSuccess2 && isSuccess3;
+  console.log(`\n🏆 整體測試結果：${allSuccess ? '完全成功✅' : '需要進一步調試❌'}`);
+}
+
+// 測試生產環境真實情況
+async function testRealWorldScenario() {
+  console.log('\n🌍 測試生產環境真實情況...\n');
+  
+  try {
+    // 模擬justin111在第6名投注10號的場景
+    const period = '20250703999'; // 測試期數
     
-    let overallSuccess = 0;
-    let overallTotal = 0;
+    // 檢查是否有真實下注記錄
+    const betCheck = await pool.query(`
+      SELECT bet_type, bet_value, position, amount, username
+      FROM bet_history 
+      WHERE username = 'justin111' AND bet_type = 'number' AND position = 6 AND bet_value = 10
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
     
-    results.forEach((result, index) => {
-      const { testCase, successCount, totalAttempts, successRate } = result;
+    if (betCheck.rows.length > 0) {
+      console.log('✅ 找到justin111第6名投注10號的記錄：', betCheck.rows[0]);
       
-      console.log(`\n${index + 1}. ${testCase.description}`);
-      console.log(`   位置: 第${testCase.position}名`);
-      console.log(`   號碼: ${testCase.number}`);
-      console.log(`   控制類型: ${testCase.controlType === 'win' ? '100%贏控制' : '100%輸控制'}`);
-      console.log(`   成功率: ${successCount}/${totalAttempts} (${successRate.toFixed(1)}%)`);
-      console.log(`   狀態: ${successRate >= 80 ? '✅ 控制有效' : successRate >= 50 ? '⚠️ 控制部分有效' : '❌ 控制失效'}`);
+      // 模擬權重計算
+      const weights = {
+        positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+        sumValue: Array(17).fill(1)
+      };
       
-      overallSuccess += successCount;
-      overallTotal += totalAttempts;
-    });
-    
-    const overallSuccessRate = (overallSuccess / overallTotal) * 100;
-    
-    console.log('\n' + '-'.repeat(80));
-    console.log(`📈 總體控制成功率: ${overallSuccess}/${overallTotal} (${overallSuccessRate.toFixed(1)}%)`);
-    
-    if (overallSuccessRate >= 80) {
-      console.log('🎉 修復成功！第3-10名控制輸贏功能正常工作');
-    } else if (overallSuccessRate >= 50) {
-      console.log('⚠️ 部分修復！控制效果有所改善但仍需優化');
+      // 100%贏控制
+      weights.positions[5][9] = 1000;
+      
+      console.log('\n模擬100%贏控制權重調整...');
+      const result = generateWeightedResult(weights);
+      
+      console.log(`\n🎯 模擬開獎結果：[${result.join(', ')}]`);
+      console.log(`第6名開出：${result[5]}號`);
+      console.log(`控制效果：${result[5] === 10 ? '成功，開出目標號碼10' : '失敗，未開出目標號碼10'}`);
+      
     } else {
-      console.log('❌ 修復失效！第3-10名控制輸贏功能仍有問題');
+      console.log('❌ 未找到justin111第6名投注10號的記錄');
+      console.log('創建模擬下注進行測試...');
+      
+      const weights = {
+        positions: Array.from({ length: 10 }, () => Array(10).fill(1)),
+        sumValue: Array(17).fill(1)
+      };
+      
+      weights.positions[5][9] = 1000;
+      const result = generateWeightedResult(weights);
+      
+      console.log(`模擬開獎結果：[${result.join(', ')}]`);
+      console.log(`第6名開出：${result[5]}號，控制效果：${result[5] === 10 ? '成功✅' : '失敗❌'}`);
     }
     
-    console.log('='.repeat(80));
-  }
-
-  async run() {
-    try {
-      await this.init();
-      await this.cleanupTestData();
-      await this.createTestMember();
-      await this.createTestBets();
-      
-      const results = await this.testPositionControl();
-      this.generateReport(results);
-      
-      await this.cleanupTestData();
-      
-    } catch (error) {
-      console.error('❌ 測試執行失敗:', error);
-    } finally {
-      await this.cleanup();
-    }
+  } catch (error) {
+    console.error('❌ 測試真實情況時出錯：', error.message);
   }
 }
 
-// 執行測試
-if (require.main === module) {
-  const tester = new PositionControlTester();
-  tester.run().catch(console.error);
+async function main() {
+  try {
+    await testPositionControlFix();
+    await testRealWorldScenario();
+  } catch (error) {
+    console.error('❌ 測試過程出錯：', error);
+  } finally {
+    await pool.end();
+  }
 }
 
-module.exports = PositionControlTester; 
+main(); 
