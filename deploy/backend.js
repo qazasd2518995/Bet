@@ -3424,18 +3424,15 @@ app.post('/api/bet', async (req, res) => {
       // 移除立即退水分配 - 退水將在結算階段處理
       console.log(`用戶 ${username} 下注 ${amountNum} 元成功，退水將在結算後分配`);
       
-      // 獲取新的餘額
-      const newBalance = await getBalance(username);
-      
       console.log(`用戶 ${username} 下注 ${amountNum} 元，類型：${betType}，值：${value}，位置：${position || 'N/A'}`);
-      console.log(`用戶 ${username} 下注 ${amountNum} 元後餘額更新為: ${newBalance}`);
+      console.log(`用戶 ${username} 下注 ${amountNum} 元後餘額更新為: ${updatedBalance}`);
       
-      // 返回成功和更新後的餘額
+      // 直接使用代理系統返回的餘額，避免重新查詢導致競態條件
       return res.json({ 
         success: true, 
         message: '下注成功', 
         betId: betResult.id, 
-        balance: newBalance.toString() 
+        balance: updatedBalance.toString() 
       });
     } catch (innerError) {
       console.error('下注處理過程中發生錯誤:', innerError);
