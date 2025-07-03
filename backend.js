@@ -41,7 +41,7 @@ async function syncToAgentSystem(period, result) {
     console.log(`🚀 立即同步開獎結果到代理系統: 期數=${period}`);
     
     // 調用代理系統的內部同步API
-    const response = await fetch(`${AGENT_API_URL}/sync-draw-record`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/sync-draw-record`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -218,7 +218,7 @@ app.post('/api/member/login', async (req, res) => {
     // 嘗試向代理系統查詢會員資訊
     let useLocalAuth = false;
     try {
-      console.log(`🔄 嘗試連接代理系統: ${AGENT_API_URL}/member/verify-login`);
+      console.log(`🔄 嘗試連接代理系統: ${AGENT_API_URL}/api/agent/member/verify-login`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
@@ -688,7 +688,7 @@ async function initializeUserData(username) {
     }
     
     // 從代理系統獲取會員資料
-    const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member-balance?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -799,7 +799,7 @@ app.post('/api/register', async (req, res) => {
     
     // 嘗試同步到代理系統
     try {
-      await fetch(`${AGENT_API_URL}/sync-new-member`, {
+      await fetch(`${AGENT_API_URL}/api/agent/sync-new-member`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1126,10 +1126,10 @@ const CONTROL_PARAMS = {
 async function checkWinLossControl(period) {
   try {
     console.log(`🔍 [偵錯] 開始檢查期數 ${period} 的輸贏控制設定...`);
-    console.log(`🔍 [偵錯] 代理系統API URL: ${AGENT_API_URL}/internal/win-loss-control/active`);
+    console.log(`🔍 [偵錯] 代理系統API URL: ${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
     
     // 調用代理系統內部API獲取活躍的輸贏控制設定
-    const response = await fetch(`${AGENT_API_URL}/internal/win-loss-control/active`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/internal/win-loss-control/active`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -1138,7 +1138,7 @@ async function checkWinLossControl(period) {
 
     if (!response.ok) {
       console.log(`❌ [偵錯] 期數 ${period} 無法獲取輸贏控制設定，HTTP狀態: ${response.status}`);
-      console.log(`❌ [偵錯] API URL: ${AGENT_API_URL}/internal/win-loss-control/active`);
+              console.log(`❌ [偵錯] API URL: ${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
       console.log(`❌ [偵錯] 響應狀態文本: ${response.statusText}`);
       return { mode: 'normal', enabled: false };
     }
@@ -1190,7 +1190,7 @@ async function checkWinLossControl(period) {
     };
   } catch (error) {
     console.error('❌ [偵錯] 檢查輸贏控制設定錯誤:', error.message);
-    console.error('❌ [偵錯] API URL:', `${AGENT_API_URL}/internal/win-loss-control/active`);
+            console.error('❌ [偵錯] API URL:', `${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
     console.error('❌ [偵錯] 完整錯誤:', error);
     return { mode: 'normal', enabled: false };
   }

@@ -38,7 +38,7 @@ async function syncToAgentSystem(period, result) {
     console.log(`🚀 立即同步開獎結果到代理系統: 期數=${period}`);
     
     // 調用代理系統的內部同步API
-    const response = await fetch(`${AGENT_API_URL}/sync-draw-record`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/sync-draw-record`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ app.post('/api/member/login', async (req, res) => {
     // 嘗試向代理系統查詢會員資訊
     let useLocalAuth = false;
     try {
-      console.log(`🔄 嘗試連接代理系統: ${AGENT_API_URL}/member/verify-login`);
+      console.log(`🔄 嘗試連接代理系統: ${AGENT_API_URL}/api/agent/member/verify-login`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超時
@@ -368,7 +368,7 @@ app.get('/api/member/balance/:username', async (req, res) => {
     const { username } = req.params;
     
     // 向代理系統查詢會員餘額
-    const response = await fetch(`${AGENT_API_URL}/member/balance/${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member/balance/${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -402,7 +402,7 @@ app.get('/api/member/bet-records/:username', async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     
     // 向代理系統查詢會員投注記錄
-    const response = await fetch(`${AGENT_API_URL}/member/bet-records/${username}?page=${page}&limit=${limit}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member/bet-records/${username}?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -436,7 +436,7 @@ app.get('/api/member/profit-loss/:username', async (req, res) => {
     const { period = 'today' } = req.query;
     
     // 向代理系統查詢會員盈虧
-    const response = await fetch(`${AGENT_API_URL}/member/profit-loss/${username}?period=${period}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member/profit-loss/${username}?period=${period}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -652,7 +652,7 @@ async function initializeUserData(username) {
     }
     
     // 從代理系統獲取會員資料
-    const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member-balance?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -763,7 +763,7 @@ app.post('/api/register', async (req, res) => {
     
     // 嘗試同步到代理系統
     try {
-      await fetch(`${AGENT_API_URL}/sync-new-member`, {
+      await fetch(`${AGENT_API_URL}/api/agent/sync-new-member`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1090,10 +1090,10 @@ const CONTROL_PARAMS = {
 async function checkWinLossControl(period) {
   try {
     console.log(`🔍 [偵錯] 開始檢查期數 ${period} 的輸贏控制設定...`);
-    console.log(`🔍 [偵錯] 代理系統API URL: ${AGENT_API_URL}/internal/win-loss-control/active`);
+    console.log(`🔍 [偵錯] 代理系統API URL: ${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
     
     // 調用代理系統內部API獲取活躍的輸贏控制設定
-    const response = await fetch(`${AGENT_API_URL}/internal/win-loss-control/active`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/internal/win-loss-control/active`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -1102,7 +1102,7 @@ async function checkWinLossControl(period) {
 
     if (!response.ok) {
       console.log(`❌ [偵錯] 期數 ${period} 無法獲取輸贏控制設定，HTTP狀態: ${response.status}`);
-      console.log(`❌ [偵錯] API URL: ${AGENT_API_URL}/internal/win-loss-control/active`);
+              console.log(`❌ [偵錯] API URL: ${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
       console.log(`❌ [偵錯] 響應狀態文本: ${response.statusText}`);
       return { mode: 'normal', enabled: false };
     }
@@ -1154,7 +1154,7 @@ async function checkWinLossControl(period) {
     };
   } catch (error) {
     console.error('❌ [偵錯] 檢查輸贏控制設定錯誤:', error.message);
-    console.error('❌ [偵錯] API URL:', `${AGENT_API_URL}/internal/win-loss-control/active`);
+            console.error('❌ [偵錯] API URL:', `${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
     console.error('❌ [偵錯] 完整錯誤:', error);
     return { mode: 'normal', enabled: false };
   }
@@ -1934,7 +1934,7 @@ async function settleBets(period, winResult) {
           
           // 只同步餘額到代理系統（不扣代理點數）
           try {
-            await fetch(`${AGENT_API_URL}/sync-member-balance`, {
+            await fetch(`${AGENT_API_URL}/api/agent/sync-member-balance`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -2130,7 +2130,7 @@ app.get('/api/balance', async (req, res) => {
 
     try {
       // 從代理系統獲取餘額
-      const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
+      const response = await fetch(`${AGENT_API_URL}/api/agent/member-balance?username=${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -2192,7 +2192,7 @@ app.get('/api/daily-profit', async (req, res) => {
 
     // 先檢查代理系統中的會員信息
     try {
-      const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+      const memberResponse = await fetch(`${AGENT_API_URL}/api/agent/member/info/${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -2280,7 +2280,7 @@ app.get('/api/profit-records', async (req, res) => {
 
     // 先檢查代理系統中的會員信息
     try {
-      const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+      const memberResponse = await fetch(`${AGENT_API_URL}/api/agent/member/info/${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -2395,7 +2395,7 @@ app.get('/api/weekly-profit-records', async (req, res) => {
 
     // 先檢查代理系統中的會員信息
     try {
-      const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+      const memberResponse = await fetch(`${AGENT_API_URL}/api/agent/member/info/${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -2701,7 +2701,7 @@ app.get('/api/game-data', async (req, res) => {
     if (username) {
       try {
         // 先嘗試作為會員查詢
-        const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+        const memberResponse = await fetch(`${AGENT_API_URL}/api/agent/member/info/${username}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -3308,7 +3308,7 @@ app.post('/api/bet', async (req, res) => {
         console.log(`检查会员 ${username} 状态和盤口信息`);
         
         // 调用代理系统API检查会员状态
-        const memberResponse = await fetch(`${AGENT_API_URL}/member/info/${username}`, {
+        const memberResponse = await fetch(`${AGENT_API_URL}/api/agent/member/info/${username}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -3755,7 +3755,7 @@ app.get('/api/member-betting-limits', async (req, res) => {
     }
     
     // 從代理系統獲取會員限紅設定
-    const response = await fetch(`${AGENT_API_URL}/member-betting-limit-by-username?username=${username}`, {
+    const response = await fetch(`${AGENT_API_URL}/api/agent/member-betting-limit-by-username?username=${username}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -3900,7 +3900,7 @@ async function getBalance(username) {
     
     // 嘗試從代理系統獲取餘額
     try {
-      const response = await fetch(`${AGENT_API_URL}/member-balance?username=${username}`, {
+      const response = await fetch(`${AGENT_API_URL}/api/agent/member-balance?username=${username}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -3970,14 +3970,14 @@ async function updateMemberBalance(username, amount, adminAgent, reason) {
     let agentSystemSuccess = false;
     if (adminAgent) {
       try {
-        console.log(`向代理系統發送餘額同步請求: ${AGENT_API_URL}/sync-member-balance`);
+        console.log(`向代理系統發送餘額同步請求: ${AGENT_API_URL}/api/agent/sync-member-balance`);
         console.log(`請求體:`, JSON.stringify({
           username: username,
           balance: newBalance,
           reason: reason
         }));
         
-        const response = await fetch(`${AGENT_API_URL}/sync-member-balance`, {
+        const response = await fetch(`${AGENT_API_URL}/api/agent/sync-member-balance`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
