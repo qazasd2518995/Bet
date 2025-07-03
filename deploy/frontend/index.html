@@ -9066,13 +9066,16 @@
                         setTimeout(() => {
                             // 使用最新获取的结果
                             if (this.lastResults && this.lastResults.length > index) {
-                                ball.textContent = this.lastResults[index];
+                                const number = this.lastResults[index];
+                                ball.textContent = number;
+                                ball.className = `number-ball color-${number}`;
                                 console.log(`🎯 顯示第${index+1}位结果`);
                             } else {
                                 // 恢恢复始數字（如果沒有新结果）
                                 const originalText = ball.getAttribute('data-original-text');
                                 if (originalText) {
                                     ball.textContent = originalText;
+                                    ball.className = `number-ball color-${originalText}`;
                                     console.log(`⚠️ 使用原始數字: ${originalText}`);
                                 }
                             }
