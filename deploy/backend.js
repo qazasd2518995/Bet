@@ -1986,25 +1986,42 @@ function generateWeightedResult(weights, attempts = 0) {
   
   console.log(`🎲 生成權重結果 (第${attempts + 1}次嘗試)`);
   
-  // 🔥 新增：檢查是否有100%位置控制，如果有則優先處理
+  // 🔥 修復：只檢查真正的100%位置控制，不包括龍虎等其他控制的高權重
+  // 檢查是否有真正獨立的100%位置控制（權重超高且不是範圍權重）
   const extremePositionControls = [];
   for (let position = 0; position < 10; position++) {
+    let extremeCount = 0;
+    let extremeNumbers = [];
+    
+    // 計算該位置有多少個極高權重號碼
     for (let num = 0; num < 10; num++) {
       const weight = weights.positions[position][num];
       if (weight > 100) {
+        extremeCount++;
+        extremeNumbers.push(num + 1);
+      }
+    }
+    
+    // 只有當該位置只有1-2個極高權重號碼時，才認為是真正的位置控制
+    // 如果有5個或更多極高權重號碼，可能是龍虎控制等範圍性控制
+    if (extremeCount > 0 && extremeCount <= 2) {
+      for (const num of extremeNumbers) {
+        const weight = weights.positions[position][num - 1];
         extremePositionControls.push({
           position: position,
-          number: num + 1,
+          number: num,
           weight: weight
         });
       }
+    } else if (extremeCount > 2) {
+      console.log(`🐉🐅 位置${position + 1}檢測到${extremeCount}個極高權重號碼[${extremeNumbers.join(',')}]，判斷為龍虎或其他範圍控制，不進行預先分配`);
     }
   }
   
-  // 如果有100%位置控制，按權重排序並優先處理
+  // 如果有真正的100%位置控制，按權重排序並優先處理
   if (extremePositionControls.length > 0) {
     extremePositionControls.sort((a, b) => b.weight - a.weight);
-    console.log(`🎯 檢測到${extremePositionControls.length}個100%位置控制:`, extremePositionControls.map(c => `位置${c.position+1}號碼${c.number}(權重:${c.weight})`).join(', '));
+    console.log(`🎯 檢測到${extremePositionControls.length}個真正的100%位置控制:`, extremePositionControls.map(c => `位置${c.position+1}號碼${c.number}(權重:${c.weight})`).join(', '));
     
     // 預先分配100%控制的位置
     const reservedNumbers = new Set();
@@ -2052,7 +2069,7 @@ function generateWeightedResult(weights, attempts = 0) {
       }
     }
     
-    console.log(`🏁 最終開獎結果: [${result.join(', ')}]`);
+    console.log(`🏁 預先分配結果: [${result.join(', ')}]`);
     return result;
   }
   
