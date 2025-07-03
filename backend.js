@@ -558,17 +558,43 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
+// 盤口配置系統 - 使用精確數學公式計算
+const MARKET_CONFIG = {
+  A: {
+    name: 'A盤',
+    rebatePercentage: 0.011, // 1.1%退水
+    description: '高賠率盤口',
+    // 單號賠率：10 × (1 - 0.011) = 9.89
+    numberOdds: parseFloat((10 * (1 - 0.011)).toFixed(3)),
+    // 兩面賠率：2 × (1 - 0.011) = 1.978
+    twoSideOdds: parseFloat((2 * (1 - 0.011)).toFixed(3)),
+    // 龍虎賠率：2 × (1 - 0.011) = 1.978
+    dragonTigerOdds: parseFloat((2 * (1 - 0.011)).toFixed(3))
+  },
+  D: {
+    name: 'D盤', 
+    rebatePercentage: 0.041, // 4.1%退水
+    description: '標準盤口',
+    // 單號賠率：10 × (1 - 0.041) = 9.59
+    numberOdds: parseFloat((10 * (1 - 0.041)).toFixed(3)),
+    // 兩面賠率：2 × (1 - 0.041) = 1.918
+    twoSideOdds: parseFloat((2 * (1 - 0.041)).toFixed(3)),
+    // 龍虎賠率：2 × (1 - 0.041) = 1.918
+    dragonTigerOdds: parseFloat((2 * (1 - 0.041)).toFixed(3))
+  }
+};
+
 // 動態生成賠率數據函數
 function generateOdds(marketType = 'D') {
   const config = MARKET_CONFIG[marketType] || MARKET_CONFIG.D;
   const rebatePercentage = config.rebatePercentage;
   
-  // 冠亞和值基礎賠率表
+  // 冠亞和值基礎賠率表 - 使用用戶提供的新賠率表
   const sumValueBaseOdds = {
-    '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
-    '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
-    '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
-    '18': 41.0, '19': 81.0
+    '3': 45.0, '4': 23.0, '5': 15.0, '6': 11.5, '7': 9.0,
+    '8': 7.5, '9': 6.5, '10': 5.7, '11': 5.7, '12': 6.5,
+    '13': 7.5, '14': 9.0, '15': 11.5, '16': 15.0, '17': 23.0,
+    '18': 45.0, '19': 90.0
   };
   
   // 計算冠亞和值賠率（扣除退水）
@@ -620,32 +646,6 @@ function generateOdds(marketType = 'D') {
 
 // 預設使用D盤賠率
 let odds = generateOdds('D');
-
-// 盤口配置系統 - 使用精確數學公式計算
-const MARKET_CONFIG = {
-  A: {
-    name: 'A盤',
-    rebatePercentage: 0.011, // 1.1%退水
-    description: '高賠率盤口',
-    // 單號賠率：10 × (1 - 0.011) = 9.89
-    numberOdds: parseFloat((10 * (1 - 0.011)).toFixed(3)),
-    // 兩面賠率：2 × (1 - 0.011) = 1.978
-    twoSideOdds: parseFloat((2 * (1 - 0.011)).toFixed(3)),
-    // 龍虎賠率：2 × (1 - 0.011) = 1.978
-    dragonTigerOdds: parseFloat((2 * (1 - 0.011)).toFixed(3))
-  },
-  D: {
-    name: 'D盤', 
-    rebatePercentage: 0.041, // 4.1%退水
-    description: '標準盤口',
-    // 單號賠率：10 × (1 - 0.041) = 9.59
-    numberOdds: parseFloat((10 * (1 - 0.041)).toFixed(3)),
-    // 兩面賠率：2 × (1 - 0.041) = 1.918
-    twoSideOdds: parseFloat((2 * (1 - 0.041)).toFixed(3)),
-    // 龍虎賠率：2 × (1 - 0.041) = 1.918
-    dragonTigerOdds: parseFloat((2 * (1 - 0.041)).toFixed(3))
-  }
-};
 
 // 限紅配置
 const BET_LIMITS = {
@@ -3229,25 +3229,25 @@ app.get('/api/game-data', async (req, res) => {
     // 根據用戶盤口類型動態生成賠率
     const config = MARKET_CONFIG[userMarketType] || MARKET_CONFIG.D;
     const dynamicOdds = {
-      // 冠亞和值賠率
+      // 冠亞和值賠率 - 使用新的基礎賠率表
       sumValue: {
-        '3': parseFloat((41.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '4': parseFloat((21.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '5': parseFloat((16.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '6': parseFloat((13.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '7': parseFloat((11.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '8': parseFloat((9.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '9': parseFloat((8.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '10': parseFloat((7.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '11': parseFloat((7.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '12': parseFloat((8.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '13': parseFloat((9.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '14': parseFloat((11.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '15': parseFloat((13.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '16': parseFloat((16.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '17': parseFloat((21.0 * (1 - config.rebatePercentage)).toFixed(3)),
-        '18': parseFloat((41.0 * (1 - config.rebatePercentage)).toFixed(3)), 
-        '19': parseFloat((81.0 * (1 - config.rebatePercentage)).toFixed(3)),
+        '3': parseFloat((45.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '4': parseFloat((23.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '5': parseFloat((15.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '6': parseFloat((11.5 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '7': parseFloat((9.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '8': parseFloat((7.5 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '9': parseFloat((6.5 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '10': parseFloat((5.7 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '11': parseFloat((5.7 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '12': parseFloat((6.5 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '13': parseFloat((7.5 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '14': parseFloat((9.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '15': parseFloat((11.5 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '16': parseFloat((15.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '17': parseFloat((23.0 * (1 - config.rebatePercentage)).toFixed(3)),
+        '18': parseFloat((45.0 * (1 - config.rebatePercentage)).toFixed(3)), 
+        '19': parseFloat((90.0 * (1 - config.rebatePercentage)).toFixed(3)),
         big: config.twoSideOdds, small: config.twoSideOdds, 
         odd: config.twoSideOdds, even: config.twoSideOdds
       },
@@ -4278,25 +4278,25 @@ function getOdds(betType, value, marketType = 'D') {
       if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
         return config.twoSideOdds;  // 使用盤口配置的兩面賠率
       } else {
-        // 和值賠率表 (扣除退水4.1%)
+        // 和值賠率表 - 使用新的基礎賠率表
         const sumOdds = {
-          '3': parseFloat((41.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '4': parseFloat((21.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '5': parseFloat((16.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '6': parseFloat((13.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '7': parseFloat((11.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '8': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '9': parseFloat((8.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '10': parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '11': parseFloat((7.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '12': parseFloat((8.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '13': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '14': parseFloat((11.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '15': parseFloat((13.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '16': parseFloat((16.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '17': parseFloat((21.0 * (1 - rebatePercentage)).toFixed(3)),
-          '18': parseFloat((41.0 * (1 - rebatePercentage)).toFixed(3)), 
-          '19': parseFloat((81.0 * (1 - rebatePercentage)).toFixed(3))
+          '3': parseFloat((45.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '4': parseFloat((23.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '5': parseFloat((15.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '6': parseFloat((11.5 * (1 - rebatePercentage)).toFixed(3)), 
+          '7': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '8': parseFloat((7.5 * (1 - rebatePercentage)).toFixed(3)), 
+          '9': parseFloat((6.5 * (1 - rebatePercentage)).toFixed(3)), 
+          '10': parseFloat((5.7 * (1 - rebatePercentage)).toFixed(3)), 
+          '11': parseFloat((5.7 * (1 - rebatePercentage)).toFixed(3)), 
+          '12': parseFloat((6.5 * (1 - rebatePercentage)).toFixed(3)), 
+          '13': parseFloat((7.5 * (1 - rebatePercentage)).toFixed(3)), 
+          '14': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '15': parseFloat((11.5 * (1 - rebatePercentage)).toFixed(3)), 
+          '16': parseFloat((15.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '17': parseFloat((23.0 * (1 - rebatePercentage)).toFixed(3)),
+          '18': parseFloat((45.0 * (1 - rebatePercentage)).toFixed(3)), 
+          '19': parseFloat((90.0 * (1 - rebatePercentage)).toFixed(3))
         };
         return sumOdds[value] || 1.0;
       }

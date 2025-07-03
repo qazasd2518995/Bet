@@ -138,12 +138,12 @@ Vue.component('bet-records', {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
-          // 冠亞和值赔率表 (扣除退水)
+          // 冠亞和值赔率表 (扣除退水) - 使用新的基礎賠率表
           const baseOdds = {
-            '3': 41.0, '4': 21.0, '5': 16.0, '6': 13.0, '7': 11.0,
-            '8': 9.0, '9': 8.0, '10': 7.0, '11': 7.0, '12': 8.0,
-            '13': 9.0, '14': 11.0, '15': 13.0, '16': 16.0, '17': 21.0,
-            '18': 41.0, '19': 81.0
+            '3': 45.0, '4': 23.0, '5': 15.0, '6': 11.5, '7': 9.0,
+            '8': 7.5, '9': 6.5, '10': 5.7, '11': 5.7, '12': 6.5,
+            '13': 7.5, '14': 9.0, '15': 11.5, '16': 15.0, '17': 23.0,
+            '18': 45.0, '19': 90.0
           };
           const baseOdd = baseOdds[value] || 1.0;
           return parseFloat((baseOdd * (1 - rebatePercentage)).toFixed(3));
