@@ -2140,31 +2140,82 @@ function generateWeightedResult(weights, attempts = 0) {
   
   // 步驟2：生成剩餘位置(第3-10名)，每個位置都使用權重控制
   for (let position = 2; position < 10; position++) {
-    // 根據權重選擇位置上的號碼
-    let numberWeights = [];
-    for (let i = 0; i < availableNumbers.length; i++) {
-      const num = availableNumbers[i];
-      numberWeights.push(weights.positions[position][num-1] || 1);
+    let attempts = 0;
+    const MAX_POSITION_ATTEMPTS = 10; // 每個位置最多嘗試10次
+    let selectedNumber = null;
+    
+    while (attempts < MAX_POSITION_ATTEMPTS && selectedNumber === null) {
+      // 根據權重選擇位置上的號碼
+      let numberWeights = [];
+      for (let i = 0; i < availableNumbers.length; i++) {
+        const num = availableNumbers[i];
+        numberWeights.push(weights.positions[position][num-1] || 1);
+      }
+      
+      // 檢查是否有極高權重的號碼（100%控制的情況）
+      const maxWeight = Math.max(...numberWeights);
+      const minWeight = Math.min(...numberWeights);
+      const hasExtremeWeight = maxWeight > 100; // 極高權重閾值
+      const hasExtremelyLowWeight = minWeight < 0.01; // 極低權重閾值（100%輸控制）
+      
+      if (hasExtremeWeight) {
+        // 100%贏控制情況，直接選擇最高權重的號碼
+        const maxIndex = numberWeights.indexOf(maxWeight);
+        selectedNumber = availableNumbers[maxIndex];
+        console.log(`🎯 位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
+      } else if (hasExtremelyLowWeight) {
+        // 100%輸控制情況，避免選擇極低權重的號碼
+        const validIndices = [];
+        for (let i = 0; i < numberWeights.length; i++) {
+          if (numberWeights[i] >= 0.1) { // 只選擇權重不太低的號碼
+            validIndices.push(i);
+          }
+        }
+        
+        if (validIndices.length > 0) {
+          // 從有效號碼中隨機選擇
+          const randomValidIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
+          selectedNumber = availableNumbers[randomValidIndex];
+          console.log(`🚫 位置${position + 1}避開低權重號碼，選擇${selectedNumber} (權重:${numberWeights[randomValidIndex]})`);
+        } else {
+          // 如果所有號碼權重都很低，強制選擇權重最高的
+          const maxIndex = numberWeights.indexOf(maxWeight);
+          selectedNumber = availableNumbers[maxIndex];
+          console.log(`⚠️ 位置${position + 1}所有權重都很低，強制選擇${selectedNumber} (權重:${maxWeight})`);
+        }
+      } else {
+        // 使用權重進行選擇
+        const selectedIndex = weightedRandomIndex(numberWeights);
+        const candidateNumber = availableNumbers[selectedIndex];
+        const candidateWeight = numberWeights[selectedIndex];
+        
+        // 檢查是否需要重新選擇（針對中等權重的控制）
+        if (candidateWeight < 0.5 && Math.random() < 0.7 && attempts < MAX_POSITION_ATTEMPTS - 1) {
+          console.log(`🔄 位置${position + 1}號碼${candidateNumber}權重較低(${candidateWeight})，重新選擇 (第${attempts + 1}次嘗試)`);
+          attempts++;
+          continue;
+        }
+        
+        selectedNumber = candidateNumber;
+        console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${candidateWeight})`);
+      }
+      
+      attempts++;
     }
     
-    // 檢查是否有極高權重的號碼（100%控制的情況）
-    const maxWeight = Math.max(...numberWeights);
-    const hasExtremeWeight = maxWeight > 100; // 極高權重閾值
+    // 如果經過多次嘗試還是沒有選到合適的號碼，使用最後選擇的號碼
+    if (selectedNumber === null && availableNumbers.length > 0) {
+      selectedNumber = availableNumbers[0]; // 使用第一個可用號碼
+      console.warn(`⚠️ 位置${position + 1}經過${MAX_POSITION_ATTEMPTS}次嘗試，使用默認號碼${selectedNumber}`);
+    }
     
-    if (hasExtremeWeight) {
-      // 100%控制情況，直接選擇最高權重的號碼
-      const maxIndex = numberWeights.indexOf(maxWeight);
-      const selectedNumber = availableNumbers[maxIndex];
-      console.log(`🎯 位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
+    // 將選中的號碼加入結果並從可用號碼中移除
+    if (selectedNumber !== null) {
       result.push(selectedNumber);
-      availableNumbers.splice(maxIndex, 1);
-    } else {
-      // 使用權重進行選擇
-      const selectedIndex = weightedRandomIndex(numberWeights);
-      const selectedNumber = availableNumbers[selectedIndex];
-      console.log(`🎲 位置${position + 1}權重選擇號碼${selectedNumber} (權重:${numberWeights[selectedIndex]})`);
-      result.push(selectedNumber);
-      availableNumbers.splice(selectedIndex, 1);
+      const removeIndex = availableNumbers.indexOf(selectedNumber);
+      if (removeIndex > -1) {
+        availableNumbers.splice(removeIndex, 1);
+      }
     }
   }
   
@@ -2242,11 +2293,85 @@ function generateTargetSumResult(weights, targetSum, attempts = 0) {
   // 從可用號碼中移除已選擇的
   availableNumbers = availableNumbers.filter(num => num !== selectedChampion && num !== selectedRunnerup);
   
-  // 剩餘位置隨機生成
-  while (availableNumbers.length > 0) {
-    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-    result.push(availableNumbers[randomIndex]);
-    availableNumbers.splice(randomIndex, 1);
+  // 生成剩餘位置(第3-10名)，同樣使用權重控制
+  for (let position = 2; position < 10; position++) {
+    let attempts = 0;
+    const MAX_POSITION_ATTEMPTS = 10; // 每個位置最多嘗試10次
+    let selectedNumber = null;
+    
+    while (attempts < MAX_POSITION_ATTEMPTS && selectedNumber === null) {
+      // 根據權重選擇位置上的號碼
+      let numberWeights = [];
+      for (let i = 0; i < availableNumbers.length; i++) {
+        const num = availableNumbers[i];
+        numberWeights.push(weights.positions[position][num-1] || 1);
+      }
+      
+      // 檢查是否有極高權重的號碼（100%控制的情況）
+      const maxWeight = Math.max(...numberWeights);
+      const minWeight = Math.min(...numberWeights);
+      const hasExtremeWeight = maxWeight > 100; // 極高權重閾值
+      const hasExtremelyLowWeight = minWeight < 0.01; // 極低權重閾值（100%輸控制）
+      
+      if (hasExtremeWeight) {
+        // 100%贏控制情況，直接選擇最高權重的號碼
+        const maxIndex = numberWeights.indexOf(maxWeight);
+        selectedNumber = availableNumbers[maxIndex];
+        console.log(`🎯 目標和值-位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
+      } else if (hasExtremelyLowWeight) {
+        // 100%輸控制情況，避免選擇極低權重的號碼
+        const validIndices = [];
+        for (let i = 0; i < numberWeights.length; i++) {
+          if (numberWeights[i] >= 0.1) { // 只選擇權重不太低的號碼
+            validIndices.push(i);
+          }
+        }
+        
+        if (validIndices.length > 0) {
+          // 從有效號碼中隨機選擇
+          const randomValidIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
+          selectedNumber = availableNumbers[randomValidIndex];
+          console.log(`🚫 目標和值-位置${position + 1}避開低權重號碼，選擇${selectedNumber} (權重:${numberWeights[randomValidIndex]})`);
+        } else {
+          // 如果所有號碼權重都很低，強制選擇權重最高的
+          const maxIndex = numberWeights.indexOf(maxWeight);
+          selectedNumber = availableNumbers[maxIndex];
+          console.log(`⚠️ 目標和值-位置${position + 1}所有權重都很低，強制選擇${selectedNumber} (權重:${maxWeight})`);
+        }
+      } else {
+        // 使用權重進行選擇
+        const selectedIndex = weightedRandomIndex(numberWeights);
+        const candidateNumber = availableNumbers[selectedIndex];
+        const candidateWeight = numberWeights[selectedIndex];
+        
+        // 檢查是否需要重新選擇（針對中等權重的控制）
+        if (candidateWeight < 0.5 && Math.random() < 0.7 && attempts < MAX_POSITION_ATTEMPTS - 1) {
+          console.log(`🔄 目標和值-位置${position + 1}號碼${candidateNumber}權重較低(${candidateWeight})，重新選擇 (第${attempts + 1}次嘗試)`);
+          attempts++;
+          continue;
+        }
+        
+        selectedNumber = candidateNumber;
+        console.log(`🎲 目標和值-位置${position + 1}權重選擇號碼${selectedNumber} (權重:${candidateWeight})`);
+      }
+      
+      attempts++;
+    }
+    
+    // 如果經過多次嘗試還是沒有選到合適的號碼，使用最後選擇的號碼
+    if (selectedNumber === null && availableNumbers.length > 0) {
+      selectedNumber = availableNumbers[0]; // 使用第一個可用號碼
+      console.warn(`⚠️ 目標和值-位置${position + 1}經過${MAX_POSITION_ATTEMPTS}次嘗試，使用默認號碼${selectedNumber}`);
+    }
+    
+    // 將選中的號碼加入結果並從可用號碼中移除
+    if (selectedNumber !== null) {
+      result.push(selectedNumber);
+      const removeIndex = availableNumbers.indexOf(selectedNumber);
+      if (removeIndex > -1) {
+        availableNumbers.splice(removeIndex, 1);
+      }
+    }
   }
   
   console.log(`🎯 目標和值${targetSum}生成完成: [${result.join(', ')}]`);
