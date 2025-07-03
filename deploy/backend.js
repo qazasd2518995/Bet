@@ -2148,40 +2148,44 @@ function generateWeightedResult(weights, attempts = 0) {
     }
   }
 
-  // 🐉🐅 新增龍虎控制檢查邏輯
-  // 檢查所有可能的龍虎對比是否需要控制
-  const dragonTigerChecks = [];
+  // 🐉🐅 修復龍虎控制檢查邏輯 - 在結果完全生成後進行完整檢查
+  // 檢查是否需要龍虎控制
+  let needsDragonTigerCheck = false;
   
-  // 檢查所有位置的權重是否有極端值（>100或<0.01）
+  // 先檢查是否有龍虎控制權重設置
   for (let pos1 = 0; pos1 < 10; pos1++) {
     for (let pos2 = 0; pos2 < 10; pos2++) {
       if (pos1 !== pos2) {
-        const pos1Value = result[pos1] || 1; // 如果位置尚未生成，使用默認值
-        const pos2Value = result[pos2] || 1;
+        // 檢查是否有龍虎控制的極端權重設置
+        let pos1HasDragonTigerWeight = false;
+        let pos2HasDragonTigerWeight = false;
         
-        // 只檢查已生成的位置（前兩位）
-        if (pos1 < 2 && pos2 < 2) {
-          const pos1Weight = weights.positions[pos1][pos1Value - 1] || 1;
-          const pos2Weight = weights.positions[pos2][pos2Value - 1] || 1;
-          
-          // 檢查是否有極端權重差異（暗示龍虎控制）
-          const hasExtremeWeightDiff = (pos1Weight > 100 && pos2Weight < 0.01) || 
-                                     (pos1Weight < 0.01 && pos2Weight > 100);
-          
-          if (hasExtremeWeightDiff) {
-            const shouldDragonWin = pos1Weight > pos2Weight;
-            const actualDragonWins = result[pos1] > result[pos2];
-            
-            if (shouldDragonWin !== actualDragonWins && attempts < MAX_ATTEMPTS) {
-              console.log(`🐉🐅 檢測到龍虎控制失效: 第${pos1+1}名(${result[pos1]})vs第${pos2+1}名(${result[pos2]})，期望龍${shouldDragonWin ? '贏' : '輸'}，實際龍${actualDragonWins ? '贏' : '輸'}，重新生成 (第${attempts + 1}次嘗試)`);
-              return generateWeightedResult(weights, attempts + 1);
-            } else if (shouldDragonWin === actualDragonWins) {
-              console.log(`✅ 龍虎控制生效: 第${pos1+1}名(${result[pos1]})vs第${pos2+1}名(${result[pos2]})，龍${actualDragonWins ? '贏' : '輸'}`);
-            }
-          }
+        // 檢查pos1是否有龍虎控制權重（5個大號碼權重高或5個小號碼權重低）
+        let pos1HighCount = 0, pos1LowCount = 0;
+        for (let num = 0; num < 10; num++) {
+          const weight = weights.positions[pos1][num];
+          if (weight > 100) pos1HighCount++;
+          if (weight < 0.01) pos1LowCount++;
+        }
+        pos1HasDragonTigerWeight = (pos1HighCount === 5 && pos1LowCount === 5);
+        
+        // 檢查pos2是否有龍虎控制權重
+        let pos2HighCount = 0, pos2LowCount = 0;
+        for (let num = 0; num < 10; num++) {
+          const weight = weights.positions[pos2][num];
+          if (weight > 100) pos2HighCount++;
+          if (weight < 0.01) pos2LowCount++;
+        }
+        pos2HasDragonTigerWeight = (pos2HighCount === 5 && pos2LowCount === 5);
+        
+        if (pos1HasDragonTigerWeight && pos2HasDragonTigerWeight) {
+          needsDragonTigerCheck = true;
+          console.log(`🐉🐅 檢測到第${pos1+1}名vs第${pos2+1}名的龍虎控制權重設置`);
+          break;
         }
       }
     }
+    if (needsDragonTigerCheck) break;
   }
   
   // 如果達到最大嘗試次數，記錄警告但接受當前結果
@@ -2270,6 +2274,60 @@ function generateWeightedResult(weights, attempts = 0) {
     }
   }
   
+  // 🐉🐅 在完整結果生成後進行龍虎控制檢查
+  if (needsDragonTigerCheck) {
+    console.log(`🐉🐅 開始檢查龍虎控制結果: [${result.join(', ')}]`);
+    
+    // 檢查所有位置的龍虎控制
+    for (let pos1 = 0; pos1 < 10; pos1++) {
+      for (let pos2 = 0; pos2 < 10; pos2++) {
+        if (pos1 !== pos2 && result[pos1] && result[pos2]) {
+          // 檢查該位置對是否有龍虎控制權重
+          let pos1HighCount = 0, pos1LowCount = 0;
+          let pos2HighCount = 0, pos2LowCount = 0;
+          
+          for (let num = 0; num < 10; num++) {
+            const weight1 = weights.positions[pos1][num];
+            const weight2 = weights.positions[pos2][num];
+            if (weight1 > 100) pos1HighCount++;
+            if (weight1 < 0.01) pos1LowCount++;
+            if (weight2 > 100) pos2HighCount++;
+            if (weight2 < 0.01) pos2LowCount++;
+          }
+          
+          const pos1HasDragonTigerWeight = (pos1HighCount === 5 && pos1LowCount === 5);
+          const pos2HasDragonTigerWeight = (pos2HighCount === 5 && pos2LowCount === 5);
+          
+          if (pos1HasDragonTigerWeight && pos2HasDragonTigerWeight) {
+            const pos1Value = result[pos1];
+            const pos2Value = result[pos2];
+            const pos1Weight = weights.positions[pos1][pos1Value - 1] || 1;
+            const pos2Weight = weights.positions[pos2][pos2Value - 1] || 1;
+            
+            // 判斷期望的龍虎結果
+            let shouldDragonWin = false;
+            if (pos1Weight > 100 && pos2Weight < 0.01) {
+              shouldDragonWin = true; // pos1應該大於pos2（龍勝）
+            } else if (pos1Weight < 0.01 && pos2Weight > 100) {
+              shouldDragonWin = false; // pos1應該小於pos2（虎勝）
+            } else {
+              continue; // 沒有明確的龍虎控制要求
+            }
+            
+            const actualDragonWins = pos1Value > pos2Value;
+            
+            if (shouldDragonWin !== actualDragonWins && attempts < MAX_ATTEMPTS) {
+              console.log(`🐉🐅 龍虎控制失效: 第${pos1+1}名(${pos1Value})vs第${pos2+1}名(${pos2Value})，期望龍${shouldDragonWin ? '贏' : '輸'}，實際龍${actualDragonWins ? '贏' : '輸'}，重新生成 (第${attempts + 1}次嘗試)`);
+              return generateWeightedResult(weights, attempts + 1);
+            } else if (shouldDragonWin === actualDragonWins) {
+              console.log(`✅ 龍虎控制生效: 第${pos1+1}名(${pos1Value})vs第${pos2+1}名(${pos2Value})，龍${actualDragonWins ? '贏' : '輸'}，符合預期`);
+            }
+          }
+        }
+      }
+    }
+  }
+
   console.log(`🏁 最終開獎結果: [${result.join(', ')}]`);
   return result;
 }
