@@ -3316,10 +3316,10 @@
             padding: 12px 8px !important;
             text-align: center !important;
             font-weight: bold !important;
-            color: rgba(255,255,255,0.9) !important;
-            border-bottom: 2px solid rgba(255,255,255,0.2) !important;
+            color: #333 !important;
+            border-bottom: 2px solid #ddd !important;
             vertical-align: middle !important;
-            background: rgba(255,255,255,0.05) !important;
+            background: #f8f9fa !important;
         }
 
         .weekly-table-body {
@@ -7222,10 +7222,8 @@
                     this.showDropdownMenu = !this.showDropdownMenu;
                     console.log('🍔 漢堡菜單新狀態:', this.showDropdownMenu);
                     
-                    // 如果打開選單，立即更新今日盈亏
-                    if (this.showDropdownMenu) {
-                        this.updateDailyProfit();
-                    }
+                    // 移除立即更新，因為數據應該在初始化時就是最新的
+                    // 如果需要更新，讓定期更新機制處理
                 },
                 updateGameData() {
                     console.log('开始获取游戏數據...');
@@ -8490,6 +8488,8 @@
                         this.updateBalance();
                         this.updateBetHistory();
                         this.updateDailyStats();
+                        // 同時更新今日盈虧（從API獲取最新數據）
+                        this.updateDailyProfit();
                     }, 10000);
                     
                     // 每5秒更新历史记录以确保即时性
