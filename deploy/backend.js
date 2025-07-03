@@ -1636,66 +1636,129 @@ async function calculateTargetControlWeights(period, control, betStats) {
           }
         }
       } else if (bet.bet_type === 'dragonTiger') {
-        // 處理龍虎投注
-        if (['dragon', 'tiger'].includes(bet.bet_value)) {
-          // 龍虎投注需要在開獎結果生成時特別處理
-          // 這裡我們通過調整相關位置的權重來間接影響龍虎結果
-          
-          if (control.win_control) {
-            // 贏控制：如果下注龍，增加冠軍大號碼和亞軍小號碼的權重
-            // 如果下注虎，增加冠軍小號碼和亞軍大號碼的權重
-            if (bet.bet_value === 'dragon') {
-              // 龍贏：冠軍 > 亞軍，增加冠軍大號碼權重，減少亞軍大號碼權重
-              for (let value = 5; value < 10; value++) {
-                if (adjustedControlFactor >= 0.9) {
-                  weights.positions[0][value] *= 1000; // 冠軍大號碼
-                  weights.positions[1][value] = 0.001; // 亞軍大號碼
-                } else {
-                  weights.positions[0][value] *= (1 + adjustedControlFactor * 10);
-                  weights.positions[1][value] *= (1 - adjustedControlFactor * 0.5);
-                }
-              }
-              console.log(`✅ 增加龍的獲勝權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
-            } else if (bet.bet_value === 'tiger') {
-              // 虎贏：亞軍 > 冠軍，增加亞軍大號碼權重，減少冠軍大號碼權重
-              for (let value = 5; value < 10; value++) {
-                if (adjustedControlFactor >= 0.9) {
-                  weights.positions[1][value] *= 1000; // 亞軍大號碼
-                  weights.positions[0][value] = 0.001; // 冠軍大號碼
-                } else {
-                  weights.positions[1][value] *= (1 + adjustedControlFactor * 10);
-                  weights.positions[0][value] *= (1 - adjustedControlFactor * 0.5);
-                }
-              }
-              console.log(`✅ 增加虎的獲勝權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+        // 處理龍虎投注 - 支援所有位置對比
+        // 格式：dragon, tiger (傳統冠軍vs亞軍) 或 dragon_pos1_pos2, tiger_pos1_pos2
+        
+        let dragonTigerType, pos1, pos2;
+        
+        if (bet.bet_value === 'dragon' || bet.bet_value === 'tiger') {
+          // 傳統格式：默認冠軍vs亞軍
+          dragonTigerType = bet.bet_value;
+          pos1 = 0; // 冠軍
+          pos2 = 1; // 亞軍
+        } else if (typeof bet.bet_value === 'string' && 
+                   (bet.bet_value.startsWith('dragon_') || bet.bet_value.startsWith('tiger_'))) {
+          // 複雜格式：dragon_4_7 表示第4名vs第7名
+          const parts = bet.bet_value.split('_');
+          if (parts.length === 3) {
+            dragonTigerType = parts[0];
+            pos1 = parseInt(parts[1]) - 1; // 轉為0-9索引
+            pos2 = parseInt(parts[2]) - 1;
+            
+            // 驗證位置有效性
+            if (isNaN(pos1) || isNaN(pos2) || pos1 < 0 || pos1 > 9 || pos2 < 0 || pos2 > 9 || pos1 === pos2) {
+              console.warn(`⚠️ 無效的龍虎投注格式: ${bet.bet_value}`);
+              return weights;
             }
-          } else if (control.loss_control) {
-            // 輸控制：反向操作
-            if (bet.bet_value === 'dragon') {
-              // 龍輸：讓虎贏，增加亞軍大號碼權重
-              for (let value = 5; value < 10; value++) {
-                if (adjustedControlFactor >= 0.9) {
-                  weights.positions[1][value] *= 1000;
-                  weights.positions[0][value] = 0.001;
-                } else {
-                  weights.positions[1][value] *= (1 + adjustedControlFactor * 10);
-                  weights.positions[0][value] *= (1 - adjustedControlFactor * 0.5);
-                }
+          } else {
+            console.warn(`⚠️ 無法解析龍虎投注格式: ${bet.bet_value}`);
+            return weights;
+          }
+        } else {
+          console.warn(`⚠️ 未知的龍虎投注格式: ${bet.bet_value}`);
+          return weights;
+        }
+        
+        if (control.win_control) {
+          if (dragonTigerType === 'dragon') {
+            // 龍贏：pos1 > pos2，增加pos1大號碼權重，減少pos2大號碼權重
+            for (let value = 5; value < 10; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos1][value] *= 1000; // pos1大號碼
+                weights.positions[pos2][value] = 0.001; // pos2大號碼
+              } else {
+                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
               }
-              console.log(`❌ 減少龍的獲勝權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
-            } else if (bet.bet_value === 'tiger') {
-              // 虎輸：讓龍贏，增加冠軍大號碼權重
-              for (let value = 5; value < 10; value++) {
-                if (adjustedControlFactor >= 0.9) {
-                  weights.positions[0][value] *= 1000;
-                  weights.positions[1][value] = 0.001;
-                } else {
-                  weights.positions[0][value] *= (1 + adjustedControlFactor * 10);
-                  weights.positions[1][value] *= (1 - adjustedControlFactor * 0.5);
-                }
-              }
-              console.log(`❌ 減少虎的獲勝權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
             }
+            // 同時增加pos1小號碼的反向權重，減少pos2小號碼權重
+            for (let value = 0; value < 5; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos1][value] = 0.001; // pos1小號碼
+                weights.positions[pos2][value] *= 1000; // pos2小號碼
+              } else {
+                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
+              }
+            }
+            console.log(`✅ 增加龍的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          } else if (dragonTigerType === 'tiger') {
+            // 虎贏：pos2 > pos1，增加pos2大號碼權重，減少pos1大號碼權重
+            for (let value = 5; value < 10; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos2][value] *= 1000; // pos2大號碼
+                weights.positions[pos1][value] = 0.001; // pos1大號碼
+              } else {
+                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
+              }
+            }
+            // 同時處理小號碼
+            for (let value = 0; value < 5; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos2][value] = 0.001; // pos2小號碼
+                weights.positions[pos1][value] *= 1000; // pos1小號碼
+              } else {
+                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
+              }
+            }
+            console.log(`✅ 增加虎的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          }
+        } else if (control.loss_control) {
+          // 輸控制：反向操作
+          if (dragonTigerType === 'dragon') {
+            // 龍輸：讓虎贏，增加pos2大號碼權重
+            for (let value = 5; value < 10; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos2][value] *= 1000;
+                weights.positions[pos1][value] = 0.001;
+              } else {
+                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
+              }
+            }
+            for (let value = 0; value < 5; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos2][value] = 0.001;
+                weights.positions[pos1][value] *= 1000;
+              } else {
+                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
+              }
+            }
+            console.log(`❌ 減少龍的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+          } else if (dragonTigerType === 'tiger') {
+            // 虎輸：讓龍贏，增加pos1大號碼權重
+            for (let value = 5; value < 10; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos1][value] *= 1000;
+                weights.positions[pos2][value] = 0.001;
+              } else {
+                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
+              }
+            }
+            for (let value = 0; value < 5; value++) {
+              if (adjustedControlFactor >= 0.9) {
+                weights.positions[pos1][value] = 0.001;
+                weights.positions[pos2][value] *= 1000;
+              } else {
+                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
+              }
+            }
+            console.log(`❌ 減少虎的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
           }
         }
       } else {
@@ -2028,6 +2091,42 @@ function generateWeightedResult(weights, attempts = 0) {
       // 一般控制情況
       console.log(`🔄 和值${sumValue}權重較低，嘗試重新生成 (第${attempts + 1}次嘗試)`);
       return generateWeightedResult(weights, attempts + 1);
+    }
+  }
+
+  // 🐉🐅 新增龍虎控制檢查邏輯
+  // 檢查所有可能的龍虎對比是否需要控制
+  const dragonTigerChecks = [];
+  
+  // 檢查所有位置的權重是否有極端值（>100或<0.01）
+  for (let pos1 = 0; pos1 < 10; pos1++) {
+    for (let pos2 = 0; pos2 < 10; pos2++) {
+      if (pos1 !== pos2) {
+        const pos1Value = result[pos1] || 1; // 如果位置尚未生成，使用默認值
+        const pos2Value = result[pos2] || 1;
+        
+        // 只檢查已生成的位置（前兩位）
+        if (pos1 < 2 && pos2 < 2) {
+          const pos1Weight = weights.positions[pos1][pos1Value - 1] || 1;
+          const pos2Weight = weights.positions[pos2][pos2Value - 1] || 1;
+          
+          // 檢查是否有極端權重差異（暗示龍虎控制）
+          const hasExtremeWeightDiff = (pos1Weight > 100 && pos2Weight < 0.01) || 
+                                     (pos1Weight < 0.01 && pos2Weight > 100);
+          
+          if (hasExtremeWeightDiff) {
+            const shouldDragonWin = pos1Weight > pos2Weight;
+            const actualDragonWins = result[pos1] > result[pos2];
+            
+            if (shouldDragonWin !== actualDragonWins && attempts < MAX_ATTEMPTS) {
+              console.log(`🐉🐅 檢測到龍虎控制失效: 第${pos1+1}名(${result[pos1]})vs第${pos2+1}名(${result[pos2]})，期望龍${shouldDragonWin ? '贏' : '輸'}，實際龍${actualDragonWins ? '贏' : '輸'}，重新生成 (第${attempts + 1}次嘗試)`);
+              return generateWeightedResult(weights, attempts + 1);
+            } else if (shouldDragonWin === actualDragonWins) {
+              console.log(`✅ 龍虎控制生效: 第${pos1+1}名(${result[pos1]})vs第${pos2+1}名(${result[pos2]})，龍${actualDragonWins ? '贏' : '輸'}`);
+            }
+          }
+        }
+      }
     }
   }
   

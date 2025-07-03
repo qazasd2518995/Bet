@@ -3291,14 +3291,16 @@
             color: #6c757d;
         }
 
-        /* 盈虧記錄表格 - Table布局重構版本 v3.0 */
+        /* 盈虧記錄表格 - Table布局重構版本 v4.0 */
         .weekly-profit-content {
             width: 100% !important;
             overflow-x: auto !important;
-            background: rgba(0,0,0,0.3) !important;
+            background: rgba(255,255,255,0.12) !important;
             border-radius: 8px !important;
             padding: 15px !important;
             box-sizing: border-box !important;
+            backdrop-filter: blur(5px) !important;
+            border: 1px solid rgba(255,255,255,0.3) !important;
         }
 
         .weekly-table-header {
@@ -6139,8 +6141,8 @@
                                 <div class="date-number">{{ formatDateNumber(record.date) }}</div>
                                 <div class="weekday-label">{{ record.weekday || getWeekday(record.date) }}</div>
                             </div>
-                            <div class="row-cell bet-count-cell">{{ record.betCount }}注</div>
-                            <div class="row-cell amount-cell">{{ record.totalBet ? formatMoney(record.totalBet) : '0' }}</div>
+                            <div class="row-cell bet-count-cell">{{ record.betCount || 0 }}注</div>
+                            <div class="row-cell amount-cell">{{ formatMoney(record.totalBet || 0) }}</div>
                             <div class="row-cell profit-cell" :class="{ 
                                 'profit-positive': record.profit > 0, 
                                 'profit-negative': record.profit < 0,
