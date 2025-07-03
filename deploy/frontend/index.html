@@ -8521,9 +8521,10 @@
                             if (data.success && Array.isArray(data.records)) {
                                 this.recentDrawHistory = data.records.map(record => ({
                                     period: this.formatPeriodDisplay(record.period),
-                                    results: record.results || []
+                                    results: record.result || []  // 修正：使用 result 而不是 results
                                 }));
                                 console.log('開獎紀錄載入成功，記錄數量:', this.recentDrawHistory.length);
+                                console.log('第一筆記錄:', this.recentDrawHistory[0]);
                             } else {
                                 console.error('開獎紀錄API返回異常數據格式:', data);
                                 this.recentDrawHistory = [];

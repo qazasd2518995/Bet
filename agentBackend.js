@@ -1591,32 +1591,30 @@ const MemberModel = {
   // 更新會員餘額
   async updateBalance(username, amount) {
     try {
-      // 獲取當前餘額
-      const member = await this.findByUsername(username);
-      if (!member) throw new Error('會員不存在');
+      // 使用新的原子性更新函數
+      const result = await db.one(`
+        SELECT * FROM atomic_update_member_balance($1, $2)
+      `, [username, amount]);
       
-      const beforeBalance = parseFloat(member.balance);
-      const afterBalance = beforeBalance + parseFloat(amount);
-      
-      // 確保餘額不會小於0
-      if (afterBalance < 0) throw new Error('会员余额不足');
-      
-      // 更新餘額
-      const updatedMember = await db.one(`
-        UPDATE members 
-        SET balance = $1 
-        WHERE username = $2 
-        RETURNING *
-      `, [afterBalance, username]);
+      if (!result.success) {
+        throw new Error(result.message);
+      }
       
       // 記錄交易 - 修復交易類型分類
-      await db.none(`
-        INSERT INTO transaction_records 
-        (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['member', member.id, amount, amount > 0 ? 'game_win' : 'game_bet', beforeBalance, afterBalance, '會員點數調整']);
+      const member = await this.findByUsername(username);
+      if (member) {
+        await db.none(`
+          INSERT INTO transaction_records 
+          (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, ['member', member.id, amount, amount > 0 ? 'game_win' : 'game_bet', 
+            result.before_balance, result.balance, '會員點數調整']);
+      }
       
-      return updatedMember;
+      return {
+        ...member,
+        balance: result.balance
+      };
     } catch (error) {
       console.error('更新會員餘額出錯:', error);
       throw error;
@@ -6823,7 +6821,7 @@ app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
   }
 });
 
-// 新增: 扣除會員餘額API（用於遊戲下注）
+// 新增: 扣除會員餘額API（用於遊戲下注）- 使用安全鎖定機制
 app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
   const { username, amount, reason } = req.body;
   
@@ -6845,41 +6843,239 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
       });
     }
     
-    // 查詢會員
-    const member = await MemberModel.findByUsername(username);
-    if (!member) {
-      console.log(`扣除餘額失敗: 會員 ${username} 不存在`);
-      return res.json({
-        success: false,
-        message: '會員不存在'
-      });
+    // 生成唯一的下注ID用於鎖定
+    const betId = `bet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    try {
+      // 使用安全的扣款函數（帶鎖定機制）
+      const result = await db.one(`
+        SELECT * FROM safe_bet_deduction($1, $2, $3)
+      `, [username, deductAmount, betId]);
+      
+      if (result.success) {
+        console.log(`成功扣除會員 ${username} 餘額 ${deductAmount} 元，新餘額: ${result.balance}`);
+        
+        // 記錄交易歷史
+        try {
+          const member = await MemberModel.findByUsername(username);
+          if (member) {
+            await db.none(`
+              INSERT INTO transaction_records 
+              (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, ['member', member.id, -deductAmount, 'game_bet', 
+                parseFloat(result.balance) + deductAmount, parseFloat(result.balance), 
+                reason || '遊戲下注']);
+          }
+        } catch (logError) {
+          console.error('記錄交易歷史失敗:', logError);
+          // 不影響主要操作
+        }
+        
+        res.json({
+          success: true,
+          message: '餘額扣除成功',
+          balance: parseFloat(result.balance),
+          deductedAmount: deductAmount
+        });
+      } else {
+        console.log(`扣除餘額失敗: ${result.message}`);
+        res.json({
+          success: false,
+          message: result.message,
+          balance: parseFloat(result.balance)
+        });
+      }
+    } catch (dbError) {
+      console.error('執行安全扣款函數失敗:', dbError);
+      
+      // 如果函數不存在，使用傳統方式（向後兼容）
+      if (dbError.code === '42883') { // function does not exist
+        console.log('安全扣款函數不存在，使用傳統方式');
+        
+        // 查詢會員
+        const member = await MemberModel.findByUsername(username);
+        if (!member) {
+          console.log(`扣除餘額失敗: 會員 ${username} 不存在`);
+          return res.json({
+            success: false,
+            message: '會員不存在'
+          });
+        }
+        
+        const currentBalance = parseFloat(member.balance);
+        const afterBalance = currentBalance - deductAmount;
+        
+        // 檢查餘額是否足夠
+        if (afterBalance < 0) {
+          console.log(`扣除余额失败: 会员 ${username} 余额不足 (当前: ${currentBalance}, 尝试扣除: ${deductAmount})`);
+          return res.json({
+            success: false,
+            message: '余额不足'
+          });
+        }
+        
+        // 執行扣除操作（使用負金額表示扣除）
+        const updatedMember = await MemberModel.updateBalance(username, -deductAmount);
+        
+        console.log(`成功扣除會員 ${username} 餘額 ${deductAmount} 元，新餘額: ${updatedMember.balance}`);
+        
+        res.json({
+          success: true,
+          message: '餘額扣除成功',
+          balance: parseFloat(updatedMember.balance),
+          deductedAmount: deductAmount
+        });
+      } else {
+        throw dbError;
+      }
     }
-    
-    const currentBalance = parseFloat(member.balance);
-    const afterBalance = currentBalance - deductAmount;
-    
-    // 檢查餘額是否足夠
-    if (afterBalance < 0) {
-      console.log(`扣除余额失败: 会员 ${username} 余额不足 (当前: ${currentBalance}, 尝试扣除: ${deductAmount})`);
-      return res.json({
-        success: false,
-        message: '余额不足'
-      });
-    }
-    
-    // 執行扣除操作（使用負金額表示扣除）
-    const updatedMember = await MemberModel.updateBalance(username, -deductAmount);
-    
-    console.log(`成功扣除會員 ${username} 餘額 ${deductAmount} 元，新餘額: ${updatedMember.balance}`);
-    
-    res.json({
-      success: true,
-      message: '餘額扣除成功',
-      balance: parseFloat(updatedMember.balance),
-      deductedAmount: deductAmount
-    });
   } catch (error) {
     console.error('扣除會員餘額出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 新增: 批量扣除會員餘額API（用於多筆同時下注）
+app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
+  const { username, bets } = req.body;
+  
+  console.log(`收到批量扣除會員餘額請求: 會員=${username}, 下注筆數=${bets?.length || 0}`);
+  
+  try {
+    if (!username || !bets || !Array.isArray(bets) || bets.length === 0) {
+      return res.json({
+        success: false,
+        message: '請提供會員用戶名和下注列表'
+      });
+    }
+    
+    // 驗證所有下注金額
+    for (let i = 0; i < bets.length; i++) {
+      const bet = bets[i];
+      if (!bet.amount || parseFloat(bet.amount) <= 0) {
+        return res.json({
+          success: false,
+          message: `第 ${i + 1} 筆下注金額無效`
+        });
+      }
+    }
+    
+    // 生成每筆下注的唯一ID
+    const betsWithIds = bets.map((bet, index) => ({
+      amount: parseFloat(bet.amount),
+      bet_id: bet.bet_id || `bet_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
+    }));
+    
+    try {
+      // 使用批量扣款函數
+      const result = await db.one(`
+        SELECT * FROM batch_bet_deduction($1, $2::jsonb)
+      `, [username, JSON.stringify(betsWithIds)]);
+      
+      if (result.success) {
+        console.log(`成功批量扣除會員 ${username} 餘額，總金額: ${result.total_deducted} 元，新餘額: ${result.balance}`);
+        
+        // 記錄交易歷史
+        try {
+          const member = await MemberModel.findByUsername(username);
+          if (member) {
+            await db.none(`
+              INSERT INTO transaction_records 
+              (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, ['member', member.id, -result.total_deducted, 'game_bet', 
+                parseFloat(result.balance) + parseFloat(result.total_deducted), 
+                parseFloat(result.balance), 
+                `批量下注 ${bets.length} 筆`]);
+          }
+        } catch (logError) {
+          console.error('記錄交易歷史失敗:', logError);
+          // 不影響主要操作
+        }
+        
+        res.json({
+          success: true,
+          message: '批量餘額扣除成功',
+          balance: parseFloat(result.balance),
+          totalDeducted: parseFloat(result.total_deducted),
+          processedBets: betsWithIds,
+          failedBets: result.failed_bets || []
+        });
+      } else {
+        console.log(`批量扣除餘額失敗: ${result.message}`);
+        res.json({
+          success: false,
+          message: result.message,
+          balance: parseFloat(result.balance),
+          failedBets: result.failed_bets || bets
+        });
+      }
+    } catch (dbError) {
+      console.error('執行批量扣款函數失敗:', dbError);
+      
+      // 如果函數不存在，降級到逐筆處理
+      if (dbError.code === '42883') { // function does not exist
+        console.log('批量扣款函數不存在，降級到逐筆處理');
+        
+        // 使用事務逐筆處理
+        let totalDeducted = 0;
+        let finalBalance = 0;
+        const processedBets = [];
+        const failedBets = [];
+        
+        try {
+          await db.tx(async t => {
+            // 先檢查總餘額是否足夠
+            const member = await t.oneOrNone('SELECT * FROM members WHERE username = $1 FOR UPDATE', [username]);
+            if (!member) {
+              throw new Error('會員不存在');
+            }
+            
+            const totalAmount = betsWithIds.reduce((sum, bet) => sum + bet.amount, 0);
+            if (parseFloat(member.balance) < totalAmount) {
+              throw new Error('余额不足');
+            }
+            
+            // 執行批量扣款
+            finalBalance = await t.one(`
+              UPDATE members 
+              SET balance = balance - $1 
+              WHERE username = $2 
+              RETURNING balance
+            `, [totalAmount, username]).then(r => parseFloat(r.balance));
+            
+            totalDeducted = totalAmount;
+            processedBets.push(...betsWithIds);
+          });
+          
+          console.log(`降級處理成功: 總扣款 ${totalDeducted} 元，新餘額 ${finalBalance}`);
+          
+          res.json({
+            success: true,
+            message: '批量餘額扣除成功（降級處理）',
+            balance: finalBalance,
+            totalDeducted: totalDeducted,
+            processedBets: processedBets,
+            failedBets: failedBets
+          });
+        } catch (txError) {
+          console.error('降級處理失敗:', txError);
+          res.json({
+            success: false,
+            message: txError.message || '批量扣款失敗',
+            failedBets: betsWithIds
+          });
+        }
+      } else {
+        throw dbError;
+      }
+    }
+  } catch (error) {
+    console.error('批量扣除會員餘額出錯:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
