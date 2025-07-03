@@ -2979,27 +2979,31 @@
             max-width: 100%;
         }
 
+        /* 強制重置表格Grid布局 v2.1 */
         .weekly-table-header {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1fr 1fr;
-            background: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-            width: 100%;
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr !important;
+            background: #f8f9fa !important;
+            border-bottom: 2px solid #dee2e6 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .weekly-table-body {
-            background: white;
-            width: 100%;
+            background: white !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .table-row {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1fr 1fr;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            align-items: center;
-            width: 100%;
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr !important;
+            border-bottom: 1px solid #eee !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease !important;
+            align-items: center !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .table-row:hover {
@@ -3113,13 +3117,14 @@
             color: #6c757d;
         }
 
-        /* 週報表響應式設計 - 修正版本 */
+        /* 週報表響應式設計 - 修正版本 v2.1 強制刷新 */
         @media (max-width: 768px) {
             .weekly-table-header, .table-row {
-                grid-template-columns: 1.2fr 0.8fr 1fr 1fr;
-                font-size: 12px;
-                min-width: 0;
-                width: 100%;
+                grid-template-columns: 1.2fr 0.8fr 1fr 1fr !important;
+                font-size: 12px !important;
+                min-width: 0 !important;
+                width: 100% !important;
+                display: grid !important;
             }
 
             .header-cell, .row-cell {
@@ -3171,18 +3176,19 @@
                 white-space: nowrap;
             }
             
-            /* 輸贏欄位 - 關鍵修正 */
+            /* 輸贏欄位 - 關鍵修正 v2.1 */
             .row-cell:nth-child(4),
             .profit-cell {
-                min-width: 55px;
-                max-width: none;
-                text-align: center;
+                min-width: 55px !important;
+                max-width: none !important;
+                text-align: center !important;
                 font-size: 11px !important;
-                font-weight: 600;
+                font-weight: 600 !important;
                 padding: 8px 3px !important;
-                word-break: keep-all;
-                white-space: nowrap;
-                overflow: visible;
+                word-break: keep-all !important;
+                white-space: nowrap !important;
+                overflow: visible !important;
+                grid-column: 4 !important;
             }
         }
         

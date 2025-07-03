@@ -1978,14 +1978,16 @@ async function distributeRebate(username, betAmount, period) {
       return;
     }
     
-    // 計算總退水金額：使用會員直屬代理的退水比例
+    // 🔧 修正：計算固定的總退水池（根據盤口類型）
     const directAgent = agentChain[0]; // 第一個是直屬代理
-    const totalRebateAmount = parseFloat(betAmount) * parseFloat(directAgent.rebate_percentage);
+    const maxRebatePercentage = directAgent.market_type === 'A' ? 0.011 : 0.041; // A盤1.1%, D盤4.1%
+    const totalRebatePool = parseFloat(betAmount) * maxRebatePercentage; // 固定總池
     
     console.log(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(L${a.level}-${a.rebate_mode}:${(a.rebate_percentage*100).toFixed(1)}%)`));
+    console.log(`固定退水池: ${totalRebatePool.toFixed(2)} 元 (${(maxRebatePercentage*100).toFixed(1)}%)`);
     
-    // 從最下級代理開始分配退水
-    let remainingRebate = totalRebateAmount;
+    // 🔧 修正：從固定總池中分配，從最下級代理開始
+    let remainingRebate = totalRebatePool;
     
     for (let i = 0; i < agentChain.length; i++) {
       const agent = agentChain[i];
@@ -1993,30 +1995,29 @@ async function distributeRebate(username, betAmount, period) {
       
       // 如果沒有剩餘退水，結束分配
       if (remainingRebate <= 0.01) {
-        console.log(`退水已全部分配完畢`);
+        console.log(`退水池已全部分配完畢`);
         break;
       }
       
-      // 簡化邏輯：直接根據代理的退水比例進行分配
       const rebatePercentage = parseFloat(agent.rebate_percentage);
       
       if (isNaN(rebatePercentage) || rebatePercentage <= 0) {
-        // 退水比例為0或無效，該代理不拿退水，全部給上級
+        // 退水比例為0，該代理不拿退水，全部給上級
         agentRebateAmount = 0;
-        console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，不拿任何退水，所有退水 ${remainingRebate.toFixed(2)} 元繼續分配給上級`);
+        console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，不拿任何退水，剩餘 ${remainingRebate.toFixed(2)} 元繼續向上分配`);
       } else {
-        // 代理從總下注金額中獲得設定的比例
+        // 🔧 修正：從固定總池中分配，而非從下注金額計算
         const desiredAmount = parseFloat(betAmount) * rebatePercentage;
-        // 確保不超過剩餘退水
+        // 確保不超過剩餘退水池
         agentRebateAmount = Math.min(desiredAmount, remainingRebate);
         // 四捨五入到小數點後2位
         agentRebateAmount = Math.round(agentRebateAmount * 100) / 100;
         remainingRebate -= agentRebateAmount;
-        console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，獲得退水 ${agentRebateAmount.toFixed(2)} 元，剩餘 ${remainingRebate.toFixed(2)} 元歸上級`);
+        console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，從池中獲得 ${agentRebateAmount.toFixed(2)} 元，剩餘池額 ${remainingRebate.toFixed(2)} 元`);
         
-        // 如果該代理拿了最大退水比例（等於總退水），說明是全拿模式，直接結束分配
-        if (rebatePercentage >= directAgent.rebate_percentage) {
-          console.log(`代理 ${agent.username} 拿了最大退水比例，結束分配`);
+        // 如果該代理的比例達到或超過最大值，說明是全拿模式
+        if (rebatePercentage >= maxRebatePercentage) {
+          console.log(`代理 ${agent.username} 拿了全部退水池，結束分配`);
           remainingRebate = 0;
         }
       }
@@ -2035,8 +2036,10 @@ async function distributeRebate(username, betAmount, period) {
     
     // 剩餘退水歸平台所有
     if (remainingRebate > 0.01) { // 考慮浮點數精度問題
-      console.log(`剩餘退水 ${remainingRebate.toFixed(2)} 歸平台所有`);
+      console.log(`剩餘退水池 ${remainingRebate.toFixed(2)} 元歸平台所有`);
     }
+    
+    console.log(`✅ 退水分配完成，總池: ${totalRebatePool.toFixed(2)}元，已分配: ${(totalRebatePool - remainingRebate).toFixed(2)}元，平台保留: ${remainingRebate.toFixed(2)}元`);
     
   } catch (error) {
     console.error('分配退水時發生錯誤:', error);
