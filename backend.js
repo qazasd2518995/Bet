@@ -1517,8 +1517,8 @@ async function calculateTargetControlWeights(period, control, betStats) {
               const sumValue = i + 3; // 實際和值 3-19
               let shouldIncrease = false;
               
-              if (bet.bet_value === 'big' && sumValue >= 11) shouldIncrease = true;
-              else if (bet.bet_value === 'small' && sumValue <= 10) shouldIncrease = true;
+              if (bet.bet_value === 'big' && sumValue >= 12) shouldIncrease = true;
+              else if (bet.bet_value === 'small' && sumValue <= 11) shouldIncrease = true;
               else if (bet.bet_value === 'odd' && sumValue % 2 === 1) shouldIncrease = true;
               else if (bet.bet_value === 'even' && sumValue % 2 === 0) shouldIncrease = true;
               
@@ -2033,6 +2033,7 @@ function generateWeightedResult(weights, attempts = 0) {
   const hasHighSumWeight = sumWeight > 100; // 極高和值權重
   const hasLowSumWeight = sumWeight < 0.1; // 極低和值權重
   
+  // 🎯 新增智能和值控制邏輯
   if (hasLowSumWeight && attempts < MAX_ATTEMPTS) {
     // 100%輸控制的和值，必須重新生成
     console.log(`❌ 檢測到100%輸控制和值${sumValue}，重新生成 (第${attempts + 1}次嘗試)`);
@@ -2040,10 +2041,30 @@ function generateWeightedResult(weights, attempts = 0) {
   } else if (hasHighSumWeight) {
     // 100%贏控制的和值，接受結果
     console.log(`✅ 檢測到100%贏控制和值${sumValue}，接受結果`);
-  } else if (sumWeight < 0.5 && Math.random() < 0.7 && attempts < MAX_ATTEMPTS) {
-    // 一般控制情況
-    console.log(`🔄 和值${sumValue}權重較低，嘗試重新生成 (第${attempts + 1}次嘗試)`);
-    return generateWeightedResult(weights, attempts + 1);
+  } else {
+    // 檢查是否有其他高權重和值，如果有，優先生成那些和值
+    const maxSumWeight = Math.max(...weights.sumValue);
+    if (maxSumWeight > 100 && attempts < MAX_ATTEMPTS) {
+      // 找到所有高權重和值
+      const highWeightSums = [];
+      for (let i = 0; i < weights.sumValue.length; i++) {
+        if (weights.sumValue[i] > 100) {
+          highWeightSums.push(i + 3); // 實際和值
+        }
+      }
+      
+      if (highWeightSums.length > 0 && !highWeightSums.includes(sumValue)) {
+        const targetSum = highWeightSums[Math.floor(Math.random() * highWeightSums.length)];
+        console.log(`🎯 檢測到高權重和值${highWeightSums.join(',')}，當前${sumValue}不符合，重新生成目標和值${targetSum} (第${attempts + 1}次嘗試)`);
+        
+        // 智能生成目標和值
+        return generateTargetSumResult(weights, targetSum, attempts + 1);
+      }
+    } else if (sumWeight < 0.5 && Math.random() < 0.7 && attempts < MAX_ATTEMPTS) {
+      // 一般控制情況
+      console.log(`🔄 和值${sumValue}權重較低，嘗試重新生成 (第${attempts + 1}次嘗試)`);
+      return generateWeightedResult(weights, attempts + 1);
+    }
   }
   
   // 如果達到最大嘗試次數，記錄警告但接受當前結果
@@ -2082,6 +2103,65 @@ function weightedRandomIndex(weights) {
   }
   
   return weights.length - 1; // 防止浮點誤差
+}
+
+// 智能生成目標和值的開獎結果
+function generateTargetSumResult(weights, targetSum, attempts = 0) {
+  const MAX_ATTEMPTS = 50;
+  const numbers = Array.from({length: 10}, (_, i) => i + 1);
+  const result = [];
+  let availableNumbers = [...numbers];
+  
+  console.log(`🎯 智能生成目標和值${targetSum} (第${attempts}次嘗試)`);
+  
+  // 找到所有可能的冠軍+亞軍組合
+  const possiblePairs = [];
+  for (let i = 1; i <= 10; i++) {
+    for (let j = 1; j <= 10; j++) {
+      if (i !== j && i + j === targetSum) {
+        possiblePairs.push([i, j]);
+      }
+    }
+  }
+  
+  if (possiblePairs.length === 0) {
+    console.warn(`⚠️ 無法生成和值${targetSum}的有效組合，使用普通生成`);
+    return generateWeightedResult(weights, attempts);
+  }
+  
+  // 根據位置權重選擇最優組合
+  let bestPair = possiblePairs[0];
+  let bestWeight = 0;
+  
+  for (const [champion, runnerup] of possiblePairs) {
+    const championWeight = weights.positions[0][champion - 1] || 1;
+    const runnerupWeight = weights.positions[1][runnerup - 1] || 1;
+    const combinedWeight = championWeight * runnerupWeight;
+    
+    if (combinedWeight > bestWeight) {
+      bestWeight = combinedWeight;
+      bestPair = [champion, runnerup];
+    }
+  }
+  
+  const [selectedChampion, selectedRunnerup] = bestPair;
+  console.log(`🏆 選擇冠軍${selectedChampion}，亞軍${selectedRunnerup}，和值=${selectedChampion + selectedRunnerup}`);
+  
+  result.push(selectedChampion);
+  result.push(selectedRunnerup);
+  
+  // 從可用號碼中移除已選擇的
+  availableNumbers = availableNumbers.filter(num => num !== selectedChampion && num !== selectedRunnerup);
+  
+  // 剩餘位置隨機生成
+  while (availableNumbers.length > 0) {
+    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+    result.push(availableNumbers[randomIndex]);
+    availableNumbers.splice(randomIndex, 1);
+  }
+  
+  console.log(`🎯 目標和值${targetSum}生成完成: [${result.join(', ')}]`);
+  return result;
 }
 
 // 監控並調整系統
