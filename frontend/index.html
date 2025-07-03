@@ -2094,7 +2094,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: white;
             border-radius: 15px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             z-index: 9999;
@@ -2105,6 +2105,7 @@
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
+            border: 2px solid var(--primary-color);
         }
 
         .draw-history-popup.show {
@@ -2114,10 +2115,12 @@
 
         .draw-history-header {
             padding: 15px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 15px 15px 0 0;
         }
 
         .draw-history-title {
@@ -2146,13 +2149,14 @@
             padding: 20px;
             max-height: 400px;
             overflow-y: auto;
+            background: white;
         }
 
         .history-item {
             display: flex;
             align-items: center;
             padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid #eee;
         }
 
         .history-item:last-child {
@@ -2160,10 +2164,11 @@
         }
 
         .history-period {
-            color: rgba(255, 255, 255, 0.8);
+            color: #666;
             font-size: 12px;
             margin-right: 15px;
             min-width: 60px;
+            font-weight: 500;
         }
 
         .history-numbers {
@@ -2173,7 +2178,7 @@
             flex-wrap: wrap;
         }
 
-        /* 🔥 開獎紀錄中的球號樣式 - 使用與主遊戲一致的樣式 */
+        /* 🔥 開獎紀錄中的球號樣式 - 確保在白色背景下正確顯示 */
         .draw-history-content .number-ball {
             width: 24px !important;
             height: 24px !important;
@@ -2187,6 +2192,50 @@
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
             margin: 0 !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+
+        /* 強制確保球號的background顏色正確顯示 */
+        .draw-history-content .number-ball.color-1 {
+            background: #ffcc00 !important;
+            color: #000 !important;
+        }
+        .draw-history-content .number-ball.color-2 {
+            background: #3399ff !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-3 {
+            background: #777777 !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-4 {
+            background: #ff9933 !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-5 {
+            background: #00ccff !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-6 {
+            background: #9966cc !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-7 {
+            background: #aaaaaa !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-8 {
+            background: #ff3333 !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-9 {
+            background: #990000 !important;
+            color: #fff !important;
+        }
+        .draw-history-content .number-ball.color-10 {
+            background: #33cc33 !important;
+            color: #fff !important;
         }
 
         /* 🎬 原开奖動畫按鈕樣式 (保留向後兼容) */
