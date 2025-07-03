@@ -5795,16 +5795,25 @@ async function startServer() {
       }
     }
     
-    // 首次同步開獎記錄
-    await syncDrawRecords();
-    
-    // 每60秒同步一次開獎記錄作為備援（主要依靠即時同步）
-    setInterval(syncDrawRecords, 60 * 1000);
-    
-    // 啟動Express服務器
+    // 先啟動Express服務器，確保 Render 能檢測到端口
     const PORT = process.env.PORT || 3003;
     app.listen(PORT, () => {
       console.log(`代理管理系統後端運行在端口 ${PORT}`);
+      
+      // 端口啟動後，異步執行開獎記錄同步，避免阻塞部署
+      setImmediate(async () => {
+        try {
+          console.log('開始異步同步開獎記錄...');
+          await syncDrawRecords();
+          console.log('開獎記錄同步完成');
+          
+          // 每60秒同步一次開獎記錄作為備援（主要依靠即時同步）
+          setInterval(syncDrawRecords, 60 * 1000);
+        } catch (error) {
+          console.error('同步開獎記錄失敗:', error);
+          // 即使同步失敗，服務器仍然可以運行
+        }
+      });
     });
   } catch (error) {
     console.error('啟動服務器時出錯:', error);
