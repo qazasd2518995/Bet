@@ -3348,11 +3348,25 @@
             color: #333 !important;
         }
 
-        /* 確保各欄位寬度一致 */
-        .header-cell:nth-child(1), .row-cell:nth-child(1) { width: 25% !important; }
-        .header-cell:nth-child(2), .row-cell:nth-child(2) { width: 20% !important; }
-        .header-cell:nth-child(3), .row-cell:nth-child(3) { width: 25% !important; }
-        .header-cell:nth-child(4), .row-cell:nth-child(4) { width: 30% !important; }
+        /* 確保各欄位寬度一致和內容對齊 */
+        .header-cell:nth-child(1), .row-cell:nth-child(1) { 
+            width: 25% !important; 
+            text-align: center !important;
+        }
+        .header-cell:nth-child(2), .row-cell:nth-child(2) { 
+            width: 20% !important; 
+            text-align: center !important;
+        }
+        .header-cell:nth-child(3), .row-cell:nth-child(3) { 
+            width: 25% !important; 
+            text-align: right !important;
+            padding-right: 12px !important;
+        }
+        .header-cell:nth-child(4), .row-cell:nth-child(4) { 
+            width: 30% !important; 
+            text-align: right !important;
+            padding-right: 12px !important;
+        }
 
         /* 日期欄位樣式 */
         .date-cell {
@@ -3363,9 +3377,9 @@
             display: block !important;
             font-size: 14px !important;
             font-weight: bold !important;
-            color: #fff !important;
+            color: #333 !important;
             margin-bottom: 3px !important;
-            background: rgba(255,255,255,0.1) !important;
+            background: #e9ecef !important;
             padding: 3px 6px !important;
             border-radius: 3px !important;
             display: inline-block !important;
@@ -3373,7 +3387,7 @@
 
         .weekday-label {
             font-size: 10px !important;
-            color: rgba(255,255,255,0.6) !important;
+            color: #666 !important;
             display: block !important;
         }
 
@@ -3381,18 +3395,39 @@
         .bet-count-cell {
             color: #333 !important;
             font-size: 13px !important;
+            text-align: center !important;
         }
 
-        /* 金額欄位樣式 */
+        /* 金額欄位樣式 - 右對齊 */
         .amount-cell {
             color: #333 !important;
             font-size: 13px !important;
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
         }
 
-        /* 盈虧欄位樣式 */
+        /* 盈虧欄位樣式 - 右對齊並加強顏色對比 */
         .profit-cell {
             font-weight: bold !important;
             font-size: 14px !important;
+            text-align: right !important;
+            font-family: 'Courier New', monospace !important;
+        }
+
+        /* 盈虧顏色 - 加強對比度 */
+        .profit-cell.profit-positive {
+            color: #198754 !important; /* 更深的綠色 */
+            font-weight: 700 !important;
+        }
+
+        .profit-cell.profit-negative {
+            color: #dc3545 !important; /* 紅色 */
+            font-weight: 700 !important;
+        }
+
+        .profit-cell.profit-zero {
+            color: #6c757d !important; /* 灰色 */
+            font-weight: 600 !important;
         }
 
         /* 響應式設計 */
@@ -3421,6 +3456,13 @@
 
             .profit-cell {
                 font-size: 12px !important;
+            }
+
+            /* 手機版金額欄位右對齊 */
+            .header-cell:nth-child(3), .row-cell:nth-child(3),
+            .header-cell:nth-child(4), .row-cell:nth-child(4) {
+                text-align: right !important;
+                padding-right: 8px !important;
             }
         }
         
