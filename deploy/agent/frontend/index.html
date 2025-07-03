@@ -975,9 +975,9 @@
                                                 <div class="mb-3">
                                                     <label class="form-label">退水模式</label>
                                                     <select class="form-select" v-model="newAgent.rebate_mode" required>
-                                                        <option value="all">全拿所有退水（不讓下線拿退水）</option>
-                                                        <option value="percentage">设定具體比例（其餘歸上級）</option>
-                                                        <option value="none">全退給下級（所有退水都給下級）</option>
+                                                        <option value="all">全拿退水（本代理拿走所有退水）</option>
+                                                        <option value="percentage">按比例分配（本代理分得設定比例）</option>
+                                                        <option value="none">全退下級（本代理不拿，全給下級代理）</option>
                                                     </select>
                                                     <small class="form-text text-muted">退水分配方式</small>
                                                 </div>
@@ -1037,9 +1037,9 @@
                                         <div class="mb-3">
                                             <label class="form-label">退水模式</label>
                                             <select class="form-select" v-model="rebateSettings.rebate_mode" required>
-                                                <option value="all">全拿所有退水</option>
-                                                <option value="percentage">设定具體比例</option>
-                                                <option value="none">全退給下級</option>
+                                                <option value="all">全拿退水</option>
+                                                <option value="percentage">按比例分配</option>
+                                                <option value="none">全退下級</option>
                                             </select>
                                         </div>
                                         <div class="mb-3" v-if="rebateSettings.rebate_mode === 'percentage'">

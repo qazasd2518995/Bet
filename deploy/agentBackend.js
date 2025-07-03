@@ -2608,13 +2608,13 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     let finalRebateMode = rebate_mode || 'percentage';
     
     if (rebate_mode === 'all') {
-      // 全拿所有退水：退水能力設為最大值
-      finalRebatePercentage = maxRebatePercentage;
+      // 全拿退水：上級代理（本代理）拿走所有退水，下級代理拿0%
+      finalRebatePercentage = 0;
     } else if (rebate_mode === 'none') {
-      // 全退給下級：退水能力保持最大值，但分配方式不同
+      // 全退下級：上級代理（本代理）不拿退水，下級代理拿最大值
       finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
-      // 設定具體百分比
+      // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
       if (parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
@@ -2701,13 +2701,13 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
     const maxRebatePercentage = agent.max_rebate_percentage || 0.041;
     
     if (rebate_mode === 'all') {
-      // 全拿所有退水：退水能力設為最大值
-      finalRebatePercentage = maxRebatePercentage;
+      // 全拿退水：上級代理（本代理）拿走所有退水，下級代理拿0%
+      finalRebatePercentage = 0;
     } else if (rebate_mode === 'none') {
-      // 全退給下級：退水能力保持最大值，但分配方式不同
+      // 全退下級：上級代理（本代理）不拿退水，下級代理拿最大值
       finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
-      // 設定具體百分比
+      // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
       if (parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
