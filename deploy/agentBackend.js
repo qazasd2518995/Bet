@@ -7594,7 +7594,7 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
           bet_stats AS (
             SELECT am.agent_id, am.agent_username, am.level,
                    COUNT(bh.id) as bet_count,
-                   COALESCE(SUM(bh.bet_amount), 0) as total_bet_amount,
+                   COALESCE(SUM(bh.amount), 0) as total_bet_amount,
                    COALESCE(SUM(bh.win_amount), 0) as total_win_amount
             FROM agent_members am
             LEFT JOIN bet_history bh ON bh.username = am.member_username
