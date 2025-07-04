@@ -812,7 +812,7 @@
                                         <tr v-for="item in hierarchicalMembers" :key="item.id">
                                             <td>
                                                 <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? getLevelShortName(item.level) : '會員' }}
+                                                    {{ item.userType === 'agent' ? getLevelShortName(item.level) + '代理' : '會員' }}
                                                 </span>
                                             </td>
                                             <td>{{ item.id }}</td>
@@ -968,7 +968,7 @@
                                                     <label class="form-label">退水模式</label>
                                                     <select class="form-select" v-model="newAgent.rebate_mode" required>
                                                         <option value="all">全拿退水（本代理拿走所有退水）</option>
-                                                        <option value="percentage">按比例分配（本代理分得設定比例）</option>
+                                                        <option value="percentage">按比例分配（分配給下級代理設定比例）</option>
                                                         <option value="none">全退下級（本代理不拿，全給下級代理）</option>
                                                     </select>
                                                     <small class="form-text text-muted">退水分配方式</small>
@@ -994,7 +994,7 @@
                                                     <div class="card-body">
                                                         <ul class="mb-0 small">
                                                             <li><strong>全拿所有退水：</strong>該代理获得所有可得退水 ({{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}%)</li>
-                                                            <li><strong>设定具體比例：</strong>該代理获得指定比例的退水</li>
+                                                            <li><strong>设定具體比例：</strong>分配給下級代理指定比例的退水</li>
                                                             <li><strong>全退給下級：</strong>該代理不获得退水，全部給下級代理</li>
                                                         </ul>
                                                     </div>

@@ -2369,7 +2369,7 @@ const app = createApp({
         // 獲取級別簡短名稱（用於帳號管理表格）
         getLevelShortName(level) {
             if (level === 0) return '總代理';
-            return `${level}級代理`;
+            return `${level}級`;
         },
         
         // 提交余额调整
