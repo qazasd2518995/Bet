@@ -832,11 +832,6 @@
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? getLevelName(item.level) : '會員' }}
-                                                </span>
-                                            </td>
                                             <td>{{ formatMoney(item.balance) }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
@@ -876,13 +871,9 @@
                                                         <i class="fas fa-key me-1"></i>重設密碼
                                                     </button>
                                                     <div class="btn-group">
-                                                        <button type="button" class="btn btn-sm" :class="getStatusBadgeClass(item.status)" disabled>
-                                                            <i class="fas" :class="getStatusIconClass(item.status)"></i>
-                                                            {{ getStatusText(item.status) }}
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" 
                                                                 data-bs-toggle="dropdown" aria-expanded="false">
-                                                            <span class="visually-hidden">切換狀態</span>
+                                                            <i class="fas fa-cog me-1"></i>狀態
                                                         </button>
                                                         <ul class="dropdown-menu">
                                                             <li v-if="item.status !== 1">
@@ -965,12 +956,12 @@
                                                     <label class="form-label">盤口類型</label>
                                                     <div class="form-control-plaintext bg-light border rounded p-2">
                                                         <i class="fas fa-info-circle text-info me-2"></i>
-                                                        <strong>{{ getMarketInfo(currentManagingAgent.market_type || 'D').name }}</strong>
-                                                        <small class="text-muted ms-2">({{ getMarketInfo(currentManagingAgent.market_type || 'D').description }})</small>
+                                                        <strong>{{ getMarketInfo((currentMemberManagingAgent && currentMemberManagingAgent.market_type ? currentMemberManagingAgent.market_type : (currentManagingAgent.market_type || user.market_type)) || 'D').name }}</strong>
+                                                        <small class="text-muted ms-2">({{ getMarketInfo((currentMemberManagingAgent && currentMemberManagingAgent.market_type ? currentMemberManagingAgent.market_type : (currentManagingAgent.market_type || user.market_type)) || 'D').description }})</small>
                                                     </div>
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-arrow-down me-1"></i>
-                                                        盤口類型自動繼承自 {{ currentManagingAgent.username }}，無需選擇
+                                                        盤口類型自動繼承自 {{ (currentMemberManagingAgent && currentMemberManagingAgent.username ? currentMemberManagingAgent.username : currentManagingAgent.username) }}，無需選擇
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
@@ -985,9 +976,9 @@
                                                 <div class="mb-3" v-if="newAgent.rebate_mode === 'percentage'">
                                                     <label class="form-label">退水比例 (%)</label>
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
-                                                           step="0.01" min="0" :max="((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || (currentManagingAgent.market_type === 'A' ? 0.011 : 0.041)) * 100" required>
+                                                           step="0.01" min="0" :max="((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100" required>
                                                     <small class="form-text text-muted">
-                                                        可设定范围：0% - {{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || (currentManagingAgent.market_type === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}% (當前代理限制)
+                                                        可设定范围：0% - {{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}% (當前代理限制)
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
@@ -1002,7 +993,7 @@
                                                     </div>
                                                     <div class="card-body">
                                                         <ul class="mb-0 small">
-                                                            <li><strong>全拿所有退水：</strong>該代理获得所有可得退水 ({{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || (currentManagingAgent.market_type === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}%)</li>
+                                                            <li><strong>全拿所有退水：</strong>該代理获得所有可得退水 ({{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}%)</li>
                                                             <li><strong>设定具體比例：</strong>該代理获得指定比例的退水</li>
                                                             <li><strong>全退給下級：</strong>該代理不获得退水，全部給下級代理</li>
                                                         </ul>
@@ -1046,16 +1037,16 @@
                                         <div class="mb-3" v-if="rebateSettings.rebate_mode === 'percentage'">
                                             <label class="form-label">退水比例 (%)</label>
                                             <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
-                                                   step="0.01" min="0" :max="(rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100" required>
+                                                   step="0.01" min="0" :max="(rebateAgent.max_rebate_percentage || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100" required>
                                             <small class="form-text text-muted">
-                                                可设定范围：0% - {{ ((rebateAgent.rebate_percentage || rebateAgent.max_rebate_percentage || 0.041) * 100).toFixed(1) }}%
+                                                可设定范围：0% - {{ ((rebateAgent.max_rebate_percentage || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}%
                                             </small>
                                         </div>
                                         <div class="alert alert-info">
                                             <h6>目前设定：</h6>
                                             <p class="mb-0">
-                                                {{ getRebateModeText(rebateAgent.rebate_mode) }}
-                                                {{ rebateAgent.rebate_mode === 'percentage' ? ` ${(rebateAgent.rebate_percentage * 100).toFixed(1)}%` : '' }}
+                                                {{ getRebateModeText(rebateSettings.rebate_mode) }}
+                                                {{ rebateSettings.rebate_mode === 'percentage' ? ` ${rebateSettings.rebate_percentage}%` : '' }}
                                             </p>
                                         </div>
                                         <div class="text-end">

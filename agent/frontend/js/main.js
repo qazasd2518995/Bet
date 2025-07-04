@@ -2463,38 +2463,20 @@ const app = createApp({
                         notes: ''
                     };
                     
-                    // 如果不是為自己創建會員，跳轉到會員管理並設置層級
-                    if (!isCurrentUser) {
-                        // 切換到會員管理標籤
-                        this.setActiveTab('members');
-                        
-                        // 設置會員管理的當前代理為創建會員的代理
-                        this.currentMemberManagingAgent = {
-                            id: this.currentManagingAgent.id,
-                            username: this.currentManagingAgent.username,
-                            level: this.currentManagingAgent.level
-                        };
-                        
-                        // 設置麵包屑導航到該代理
-                        this.memberBreadcrumb = [{
-                            id: this.currentManagingAgent.id,
-                            username: this.currentManagingAgent.username,
-                            level: this.getLevelName(this.currentManagingAgent.level)
-                        }];
-                        
-                        // 載入該代理的會員列表
-                        await this.loadHierarchicalMembers();
-                        
-                        // 顯示成功訊息和提示
-                        this.showMessage(
-                            `已為代理 ${agentName} 创建会员 ${memberUsername}，請根據需求調整點數及限紅`, 
-                            'success'
-                        );
+                    // 統一處理：創建會員成功後顯示訊息並刷新列表，不進行跳轉
+                    const message = isCurrentUser 
+                        ? `会员 ${memberUsername} 创建成功!`
+                        : `已為代理 ${agentName} 创建会员 ${memberUsername}，請根據需求調整點數及限紅`;
+                    
+                    this.showMessage(message, 'success');
+                    
+                    // 根據當前標籤頁決定刷新方式
+                    if (this.activeTab === 'members') {
+                        // 在層級會員管理介面時刷新層級會員數據
+                        await this.refreshHierarchicalMembers();
                     } else {
-                        // 為自己創建會員，正常刷新列表
-                        const message = `会员 ${memberUsername} 创建成功!`;
-                        this.showMessage(message, 'success');
-                        await this.searchMembers(); // 刷新会员列表
+                        // 在其他介面時刷新會員列表
+                        await this.searchMembers();
                     }
                 } else {
                     this.showMessage(response.data.message || '会员创建失败', 'error');
@@ -2912,16 +2894,17 @@ const app = createApp({
         
         // 顯示退水设定模態框
         showRebateSettingsModal(agent) {
-            // 修復：需要從上級代理获取退水限制，根據盤口類型設定默認值
-            const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
+            // 修復：正確取得上級代理的盤口類型和退水限制
+            const marketType = this.currentManagingAgent.market_type || this.user.market_type || 'D';
+            const defaultMaxRebate = marketType === 'A' ? 0.011 : 0.041;
             const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate;
             
             this.rebateAgent = {
                 id: agent.id,
                 username: agent.username,
                 rebate_mode: agent.rebate_mode || 'percentage',
-                rebate_percentage: maxRebate, // 使用上級代理的退水限制
-                max_rebate_percentage: agent.max_rebate_percentage || defaultMaxRebate
+                rebate_percentage: agent.rebate_percentage || 0, // 使用代理本身的退水比例，而非上級限制
+                max_rebate_percentage: maxRebate // 使用上級代理的退水限制作為最大值
             };
             
             this.rebateSettings = {
