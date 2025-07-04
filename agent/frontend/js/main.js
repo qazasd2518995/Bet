@@ -2894,23 +2894,34 @@ const app = createApp({
         
         // 顯示退水设定模態框
         showRebateSettingsModal(agent) {
+            // 修復：從最新的agents陣列中找到該代理，確保使用最新資料
+            const latestAgent = this.agents.find(a => a.id === agent.id) || agent;
+            
             // 修復：正確取得上級代理的盤口類型和退水限制
             const marketType = this.currentManagingAgent.market_type || this.user.market_type || 'D';
             const defaultMaxRebate = marketType === 'A' ? 0.011 : 0.041;
             const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate;
             
             this.rebateAgent = {
-                id: agent.id,
-                username: agent.username,
-                rebate_mode: agent.rebate_mode || 'percentage',
-                rebate_percentage: agent.rebate_percentage || 0, // 使用代理本身的退水比例，而非上級限制
+                id: latestAgent.id,
+                username: latestAgent.username,
+                rebate_mode: latestAgent.rebate_mode || 'percentage',
+                rebate_percentage: latestAgent.rebate_percentage || 0, // 使用代理本身的退水比例，而非上級限制
                 max_rebate_percentage: maxRebate // 使用上級代理的退水限制作為最大值
             };
             
             this.rebateSettings = {
-                rebate_mode: agent.rebate_mode || 'percentage',
-                rebate_percentage: ((agent.rebate_percentage || 0) * 100).toFixed(1)
+                rebate_mode: latestAgent.rebate_mode || 'percentage',
+                rebate_percentage: ((latestAgent.rebate_percentage || 0) * 100).toFixed(1)
             };
+            
+            console.log('📋 顯示退水設定 - 使用最新代理資料:', {
+                agentId: latestAgent.id,
+                username: latestAgent.username,
+                rebate_mode: latestAgent.rebate_mode,
+                rebate_percentage: latestAgent.rebate_percentage,
+                displayPercentage: this.rebateSettings.rebate_percentage
+            });
             
             this.showRebateModal = true;
             this.$nextTick(() => {

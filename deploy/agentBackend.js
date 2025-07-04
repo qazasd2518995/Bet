@@ -1410,12 +1410,16 @@ const AgentModel = {
         throw new Error('退水比例不能超過最大允許比例');
       }
       
+      console.log(`🔄 更新代理退水設定: ID=${id}, mode=${rebate_mode}, percentage=${rebate_percentage}`);
+      
       const result = await db.one(`
         UPDATE agents 
         SET rebate_percentage = $1, rebate_mode = $2, max_rebate_percentage = $3 
         WHERE id = $4 
         RETURNING *
       `, [rebate_percentage, rebate_mode, max_rebate_percentage, id]);
+      
+      console.log(`✅ 退水設定已更新: ${result.username} - ${rebate_mode} ${(rebate_percentage * 100).toFixed(1)}%`);
       
       return result;
     } catch (error) {
