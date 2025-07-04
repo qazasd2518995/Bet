@@ -2023,15 +2023,27 @@ function generateWeightedResult(weights, attempts = 0) {
     
     // 檢查輸控制：如果有多個極低權重號碼，認為是100%輸控制
     if (extremeLowCount >= 3) {
-      // 輸控制：隨機選擇一個極低權重號碼
-      const randomLowNumber = extremeLowNumbers[Math.floor(Math.random() * extremeLowNumbers.length)];
-      extremePositionControls.push({
-        position: position,
-        number: randomLowNumber,
-        weight: 0.001,
-        type: 'loss'
-      });
-      console.log(`❌ 位置${position + 1}檢測到${extremeLowCount}個100%輸控制號碼[${extremeLowNumbers.join(',')}]，隨機選擇${randomLowNumber}`);
+      // 100%輸控制：讓會員輸錢，選擇正常權重號碼（用戶未下注的號碼）
+      const normalWeightNumbers = [];
+      for (let num = 0; num < 10; num++) {
+        const weight = weights.positions[position][num];
+        if (weight >= 1) { // 正常權重（用戶未下注的號碼）
+          normalWeightNumbers.push(num + 1);
+        }
+      }
+      
+      if (normalWeightNumbers.length > 0) {
+        const randomNormalNumber = normalWeightNumbers[Math.floor(Math.random() * normalWeightNumbers.length)];
+        extremePositionControls.push({
+          position: position,
+          number: randomNormalNumber,
+          weight: 1,
+          type: 'loss'
+        });
+        console.log(`💰 位置${position + 1}檢測到100%輸控制[用戶下注:${extremeLowNumbers.join(',')}]，選擇未下注號碼${randomNormalNumber}讓會員輸錢`);
+      } else {
+        console.log(`⚠️ 位置${position + 1}輸控制：無正常權重號碼可選，跳過預先分配`);
+      }
     }
     
     // 龍虎控制檢測
