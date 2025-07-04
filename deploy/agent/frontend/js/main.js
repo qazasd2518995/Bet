@@ -2346,7 +2346,7 @@ const app = createApp({
         // 获取级别名稱
         getLevelName(level) {
             const levels = {
-                0: '客服',
+                0: '總代理',
                 1: '一級代理', 
                 2: '二級代理',
                 3: '三級代理',
@@ -3009,15 +3009,28 @@ const app = createApp({
                 const response = await axios.post(`${API_BASE_URL}/toggle-member-status`, { memberId, status: newStatus });
                 if (response.data.success) {
                     this.showMessage(`会员已${actionText}`, 'success');
-                    // 更新本地会员列表中的狀態
+                    
+                    // 立即更新本地会员列表中的狀態
                     const member = this.members.find(m => m.id === memberId);
                     if (member) {
                         member.status = newStatus;
                     }
+                    
+                    // 如果在帳號管理頁面，也更新層級管理中的會員狀態
+                    if (this.activeTab === 'accounts' && this.hierarchicalMembers) {
+                        const hierarchicalMember = this.hierarchicalMembers.find(m => m.id === memberId);
+                        if (hierarchicalMember) {
+                            hierarchicalMember.status = newStatus;
+                        }
+                    }
+                    
                     // 重新載入會員列表以確保狀態同步
                     if (this.activeTab === 'members') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
+                    } else if (this.activeTab === 'accounts') {
+                        // 在帳號管理頁面時，重新載入當前層級的數據
+                        await this.loadHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新會員列表
                         await this.searchMembers();
@@ -3398,15 +3411,28 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`会员已设为${actionText}`, 'success');
-                    // 更新本地會員列表中的狀態
+                    
+                    // 立即更新本地會員列表中的狀態
                     const memberInList = this.members.find(m => m.id === member.id);
                     if (memberInList) {
                         memberInList.status = newStatus;
                     }
-                    // 根據當前介面決定刷新方式
+                    
+                    // 如果在帳號管理頁面，也更新層級管理中的會員狀態
+                    if (this.activeTab === 'accounts' && this.hierarchicalMembers) {
+                        const hierarchicalMember = this.hierarchicalMembers.find(m => m.id === member.id);
+                        if (hierarchicalMember) {
+                            hierarchicalMember.status = newStatus;
+                        }
+                    }
+                    
+                    // 根據當前介面決定是否需要重新載入數據
                     if (this.activeTab === 'members') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
+                    } else if (this.activeTab === 'accounts') {
+                        // 在帳號管理頁面時，重新載入當前層級的數據
+                        await this.loadHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新會員列表
                         await this.searchMembers();

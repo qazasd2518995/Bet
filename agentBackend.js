@@ -5475,7 +5475,7 @@ app.get(`${API_PREFIX}/downline-agents`, async (req, res) => {
     // 輔助函數：獲取級別名稱
     function getLevelName(level) {
       const levels = {
-        0: '客服',
+        0: '總代理',
         1: '一級代理', 
         2: '二級代理',
         3: '三級代理',
@@ -5587,7 +5587,7 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
     // 輔助函數：獲取級別名稱
     function getLevelName(level) {
       const levels = {
-        0: '客服',
+        0: '總代理',
         1: '一級代理', 
         2: '二級代理',
         3: '三級代理',
