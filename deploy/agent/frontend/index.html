@@ -214,13 +214,7 @@
                                 <a class="nav-link" :class="{active: activeTab === 'dashboard'}" href="#" @click="setActiveTab('dashboard')">儀表板</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'login-logs'}" href="#" @click="setActiveTab('login-logs')">登錄日誌</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'agents'}" href="#" @click="setActiveTab('agents')">代理管理</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" :class="{active: activeTab === 'members'}" href="#" @click="setActiveTab('members')">会员管理</a>
+                                <a class="nav-link" :class="{active: activeTab === 'accounts'}" href="#" @click="setActiveTab('accounts')">帳號管理</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" :class="{active: activeTab === 'reports'}" href="#" @click="setActiveTab('reports')">報表查詢</a>
@@ -236,6 +230,9 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" :class="{active: activeTab === 'notices'}" href="#" @click="setActiveTab('notices')">系统公告</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{active: activeTab === 'login-logs'}" href="#" @click="setActiveTab('login-logs')">登錄日誌</a>
                             </li>
                             <li class="nav-item" v-if="user.level === 0">
                                 <a class="nav-link" :class="{active: activeTab === 'customer-service'}" href="#" @click="setActiveTab('customer-service')">客服功能</a>
@@ -553,15 +550,9 @@
                                 <div class="card-body">
                                     <div class="row g-2">
                                         <div class="col-6">
-                                            <button class="btn btn-outline-primary w-100" @click="setActiveTab('agents')">
+                                            <button class="btn btn-outline-primary w-100" @click="setActiveTab('accounts')">
                                                 <i class="fas fa-users-cog mb-1"></i><br>
-                                                <small>代理管理</small>
-                                            </button>
-                                        </div>
-                                        <div class="col-6">
-                                            <button class="btn btn-outline-success w-100" @click="setActiveTab('members')">
-                                                <i class="fas fa-user-friends mb-1"></i><br>
-                                                <small>会员管理</small>
+                                                <small>帳號管理</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
@@ -728,43 +719,52 @@
                     </div>
                 </div>
 
-                <!-- 代理管理 -->
-                <div v-if="activeTab === 'agents'">
-                    <!-- 導航路徑 -->
-                    <nav aria-label="breadcrumb" class="mb-3">
-                        <ol class="breadcrumb">
+                <!-- 帳號管理 (合併代理管理和會員管理) -->
+                <div v-if="activeTab === 'accounts'">
+                    <!-- 面包屑導航 -->
+                    <nav v-if="memberBreadcrumb.length > 0" aria-label="帳號管理層級導航">
+                        <ol class="breadcrumb mb-3 bg-light p-2 rounded">
                             <li class="breadcrumb-item">
-                                <a href="#" @click.prevent="navigateToAgentLevel(user.id, user.username)" 
-                                   class="text-decoration-none">
-                                    {{ user.username }} ({{ getLevelName(user.level) }})
-                                </a>
+                                <button class="btn btn-link p-0 text-decoration-none" @click="memberBreadcrumb = []; loadHierarchicalMembers()">
+                                    <i class="fas fa-home me-1"></i>根層級 ({{ user.username }})
+                                </button>
                             </li>
-                            <li v-for="(breadcrumb, index) in agentBreadcrumbs" :key="breadcrumb.id" 
-                                class="breadcrumb-item" 
-                                :class="{ active: index === agentBreadcrumbs.length - 1 }">
-                                <a v-if="index !== agentBreadcrumbs.length - 1" 
-                                   href="#" @click.prevent="navigateToAgentLevel(breadcrumb.id, breadcrumb.username)" 
-                                   class="text-decoration-none">
-                                    {{ breadcrumb.username }} ({{ getLevelName(breadcrumb.level) }})
-                                </a>
-                                <span v-else>{{ breadcrumb.username }} ({{ getLevelName(breadcrumb.level) }})</span>
+                            <li v-for="(item, index) in memberBreadcrumb" :key="index" 
+                                class="breadcrumb-item"
+                                :class="{ 'active': index === memberBreadcrumb.length - 1 }">
+                                <span v-if="index === memberBreadcrumb.length - 1" class="fw-bold">
+                                    {{ item.username }} ({{ item.level }})
+                                </span>
+                                <button v-else class="btn btn-link p-0 text-decoration-none" 
+                                        @click="memberBreadcrumb.splice(index + 1); goBackToMemberLevel(item)">
+                                    {{ item.username }} ({{ item.level }})
+                                </button>
+                            </li>
+                            <li v-if="memberBreadcrumb.length > 0" class="breadcrumb-item ms-auto">
+                                <button class="btn btn-sm btn-outline-secondary" @click="goBackToParentMember()">
+                                    <i class="fas fa-arrow-left me-1"></i>返回上級
+                                </button>
                             </li>
                         </ol>
                     </nav>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2>
-                            {{ currentManagingAgent.id === user.id ? '我的下級代理' : currentManagingAgent.username + ' 的下級管理' }}
+                            <i class="fas fa-users-cog me-2"></i>帳號管理
                         </h2>
-                        <div>
-                            <button v-if="agentBreadcrumbs.length > 0" class="btn btn-secondary me-2" @click="goBackToParentLevel">
-                                <i class="fas fa-arrow-left me-1"></i>返回上級
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-info d-flex align-items-center justify-content-center" style="height: 32px; padding: 8px 12px;">
+                                共 {{ hierarchicalMembers ? hierarchicalMembers.length : 0 }} 個下級
+                                ({{ memberHierarchyStats.agentCount || 0 }}代理 + {{ memberHierarchyStats.memberCount || 0 }}會員)
+                            </span>
+                            <button class="btn btn-primary me-2" @click="quickCreateMember">
+                                <i class="fas fa-user-plus me-1"></i>新增會員
                             </button>
-                            <button v-if="agentBreadcrumbs.length > 0" class="btn btn-success me-2" @click="quickCreateMember">
-                                <i class="fas fa-user-plus me-1"></i>新增会员
-                            </button>
-                            <button class="btn btn-primary" @click="showAgentModal">
+                            <button class="btn btn-success me-2" @click="showAgentModal">
                                 <i class="fas fa-plus me-1"></i>新增代理
+                            </button>
+                            <button class="btn btn-outline-primary" @click="refreshHierarchicalMembers()">
+                                <i class="fas fa-sync me-1"></i>刷新
                             </button>
                         </div>
                     </div>
@@ -777,19 +777,19 @@
                             <div class="row g-3">
                                 <div class="col-md-3">
                                     <label class="form-label">狀態</label>
-                                    <select class="form-select" v-model="agentFilters.status">
+                                    <select class="form-select" v-model="memberFilters.status" @change="loadHierarchicalMembers">
                                         <option value="-1">全部</option>
                                         <option value="1">启用</option>
                                         <option value="0">停用</option>
                                         <option value="2">凍結</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label">关键字</label>
-                                    <input type="text" class="form-control" placeholder="用戶名/ID" v-model="agentFilters.keyword">
+                                    <input type="text" class="form-control" placeholder="用戶名/ID" v-model="memberFilters.keyword" @keyup.enter="loadHierarchicalMembers">
                                 </div>
-                                <div class="col-md-3 d-flex align-items-end">
-                                    <button class="btn btn-primary w-100" @click="searchAgents">搜索</button>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button class="btn btn-primary" @click="loadHierarchicalMembers">搜索</button>
                                 </div>
                             </div>
                         </div>
@@ -798,103 +798,125 @@
                     <div class="card">
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-striped table-hover">
+                                <table class="table table-striped table-hover align-middle">
                                     <thead>
                                         <tr>
+                                            <th>類型</th>
                                             <th>ID</th>
                                             <th>用戶名</th>
-                                            <th>级别</th>
-                                            <th>盤口</th>
-                                            <th>余额</th>
-                                            <th>退水设定</th>
+                                            <th>級別</th>
+                                            <th>餘額</th>
                                             <th>備註</th>
-                                            <th>创建时间</th>
                                             <th>狀態</th>
+                                            <th>創建時間</th>
                                             <th>操作</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="agent in agents" :key="agent.id">
-                                            <td>{{ agent.id }}</td>
-                                            <td>
-                                                <a href="#" @click.prevent="enterAgentManagement(agent)" 
-                                                   class="text-decoration-none fw-bold">
-                                                    {{ agent.username }}
-                                                    <i class="fas fa-arrow-right ms-1 text-muted"></i>
-                                                </a>
+                                        <tr v-if="hierarchicalMembers.length === 0">
+                                            <td colspan="9" class="text-center text-muted py-4">
+                                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                                沒有資料
                                             </td>
-                                            <td>{{ getLevelName(agent.level) }}</td>
+                                        </tr>
+                                        <tr v-for="item in hierarchicalMembers" :key="item.userType + '_' + item.id">
                                             <td>
-                                                <span class="badge" :class="agent.market_type === 'A' ? 'bg-warning' : 'bg-primary'">
-                                                    {{ agent.market_type }}盤 
-                                                    <small>({{ getMarketInfo(agent.market_type).rebate }})</small>
+                                                <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
+                                                    {{ item.userType === 'agent' ? '代理' : '會員' }}
                                                 </span>
                                             </td>
-                                            <td>{{ formatMoney(agent.balance) }}</td>
+                                            <td>{{ item.id }}</td>
                                             <td>
-                                                <span class="badge bg-info">
-                                                    {{ getRebateModeText(agent.rebate_mode) }}
-                                                    {{ agent.rebate_mode === 'percentage' ? ` ${(agent.rebate_percentage * 100).toFixed(1)}%` : '' }}
+                                                <!-- 如果是代理且有下級，顯示為可點擊 -->
+                                                <div v-if="item.userType === 'agent' && item.hasDownline" class="d-flex align-items-center">
+                                                    <button class="btn btn-link p-0 text-decoration-none fw-bold text-primary" 
+                                                            @click="enterAgentMemberManagement(item)">
+                                                        {{ item.username }}
+                                                        <i class="fas fa-chevron-right ms-1 small"></i>
+                                                    </button>
+                                                </div>
+                                                <!-- 其他情況顯示為普通文字 -->
+                                                <div v-else class="d-flex align-items-center">
+                                                    <span class="fw-bold" :class="item.userType === 'agent' ? 'text-primary' : 'text-success'">
+                                                        {{ item.username }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
+                                                    {{ item.userType === 'agent' ? getLevelName(item.level) : '會員' }}
                                                 </span>
                                             </td>
+                                            <td>{{ formatMoney(item.balance) }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <span v-if="agent.notes" class="text-truncate" style="max-width: 150px;" :title="agent.notes">
-                                                        {{ agent.notes }}
+                                                    <span v-if="item.notes" class="text-truncate" style="max-width: 150px;" :title="item.notes">
+                                                        {{ item.notes }}
                                                     </span>
                                                     <span v-else class="text-muted fst-italic">無備註</span>
                                                     <button class="btn btn-sm btn-outline-secondary ms-2" 
-                                                            @click="editAgentNotes(agent)" 
-                                                            :title="agent.notes ? '編輯備註' : '新增備註'">
+                                                            @click="item.userType === 'agent' ? editAgentNotes(item) : editMemberNotes(item)" 
+                                                            :title="item.notes ? '編輯備註' : '新增備註'">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td>{{ formatDate(agent.created_at) }}</td>
                                             <td>
-                                                <span :class="getStatusBadgeClass(agent.status)">
-                                                    {{ getStatusText(agent.status) }}
+                                                <span class="badge" :class="getStatusBadgeClass(item.status)">
+                                                    {{ getStatusText(item.status) }}
                                                 </span>
                                             </td>
+                                            <td>{{ formatDate(item.created_at) }}</td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary" @click="adjustAgentBalance(agent)">
-                                                        <i class="fas fa-exchange-alt me-1"></i>点数转移
+                                                    <button class="btn btn-outline-primary" 
+                                                            @click="item.userType === 'agent' ? adjustAgentBalance(item) : adjustMemberBalance(item)">
+                                                        <i class="fas fa-exchange-alt me-1"></i>點數轉移
                                                     </button>
-                                                    <button class="btn btn-outline-info" @click="showRebateSettingsModal(agent)">
-                                                        <i class="fas fa-percent me-1"></i>退水设定
+                                                    <!-- 代理獨有：退水設定 -->
+                                                    <button v-if="item.userType === 'agent'" class="btn btn-outline-info" @click="showRebateSettingsModal(item)">
+                                                        <i class="fas fa-percent me-1"></i>退水設定
                                                     </button>
-                                                    <button class="btn btn-outline-warning" @click="resetAgentPassword(agent)">
-                                                        <i class="fas fa-key me-1"></i>重设密碼
+                                                    <!-- 會員獨有：調整限紅 -->
+                                                    <button v-if="item.userType === 'member'" class="btn btn-outline-info" @click="adjustMemberBettingLimit(item)">
+                                                        <i class="fas fa-sliders-h me-1"></i>調整限紅
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" 
+                                                            @click="item.userType === 'agent' ? resetAgentPassword(item) : resetMemberPassword(item)">
+                                                        <i class="fas fa-key me-1"></i>重設密碼
                                                     </button>
                                                     <div class="btn-group">
-                                                        <button type="button" class="btn btn-sm" :class="getStatusBadgeClass(agent.status)" disabled>
-                                                            <i class="fas" :class="getStatusIconClass(agent.status)"></i>
-                                                            {{ getStatusText(agent.status) }}
+                                                        <button type="button" class="btn btn-sm" :class="getStatusBadgeClass(item.status)" disabled>
+                                                            <i class="fas" :class="getStatusIconClass(item.status)"></i>
+                                                            {{ getStatusText(item.status) }}
                                                         </button>
                                                         <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
                                                                 data-bs-toggle="dropdown" aria-expanded="false">
                                                             <span class="visually-hidden">切換狀態</span>
                                                         </button>
                                                         <ul class="dropdown-menu">
-                                                            <li v-if="agent.status !== 1">
-                                                                <a class="dropdown-item" href="#" @click.prevent="changeAgentStatus(agent, 1)">
-                                                                    <i class="fas fa-check text-success me-2"></i>设为启用
+                                                            <li v-if="item.status !== 1">
+                                                                <a class="dropdown-item" href="#" 
+                                                                   @click.prevent="item.userType === 'agent' ? changeAgentStatus(item, 1) : changeMemberStatus(item, 1)">
+                                                                    <i class="fas fa-check text-success me-2"></i>設為启用
                                                                 </a>
                                                             </li>
-                                                            <li v-if="agent.status !== 0">
-                                                                <a class="dropdown-item" href="#" @click.prevent="changeAgentStatus(agent, 0)">
-                                                                    <i class="fas fa-ban text-secondary me-2"></i>设为停用
+                                                            <li v-if="item.status !== 0">
+                                                                <a class="dropdown-item" href="#" 
+                                                                   @click.prevent="item.userType === 'agent' ? changeAgentStatus(item, 0) : changeMemberStatus(item, 0)">
+                                                                    <i class="fas fa-ban text-secondary me-2"></i>設為停用
                                                                 </a>
                                                             </li>
-                                                            <li v-if="agent.status !== 2">
-                                                                <a class="dropdown-item" href="#" @click.prevent="changeAgentStatus(agent, 2)">
-                                                                    <i class="fas fa-snowflake text-warning me-2"></i>设为凍結
+                                                            <li v-if="item.status !== 2">
+                                                                <a class="dropdown-item" href="#" 
+                                                                   @click.prevent="item.userType === 'agent' ? changeAgentStatus(item, 2) : changeMemberStatus(item, 2)">
+                                                                    <i class="fas fa-snowflake text-warning me-2"></i>設為凍結
                                                                 </a>
                                                             </li>
                                                         </ul>
                                                     </div>
-                                                    <button class="btn btn-outline-danger" @click="deleteAgent(agent.id, agent.username)">
+                                                    <button class="btn btn-outline-danger" 
+                                                            @click="item.userType === 'agent' ? deleteAgent(item.id, item.username) : deleteMember(item.id, item.username)">
                                                         <i class="fas fa-trash-alt me-1"></i>删除
                                                     </button>
                                                 </div>
@@ -904,27 +926,18 @@
                                 </table>
                             </div>
 
-                            <div v-if="agents.length === 0" class="text-center py-4">
+                            <div v-if="hierarchicalMembers.length === 0" class="text-center py-4">
                                 <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
-                                <p class="text-muted">目前沒有下級代理</p>
-                                <button class="btn btn-primary" @click="showAgentModal">
-                                    <i class="fas fa-plus me-1"></i>立即新增代理
-                                </button>
+                                <p class="text-muted">目前沒有下級帳號</p>
+                                <div>
+                                    <button class="btn btn-primary me-2" @click="quickCreateMember">
+                                        <i class="fas fa-user-plus me-1"></i>新增會員
+                                    </button>
+                                    <button class="btn btn-success" @click="showAgentModal">
+                                        <i class="fas fa-plus me-1"></i>新增代理
+                                    </button>
+                                </div>
                             </div>
-
-                            <nav v-if="agentPagination.totalPages > 1">
-                                <ul class="pagination justify-content-center">
-                                    <li class="page-item" :class="{disabled: agentPagination.currentPage === 1}">
-                                        <a class="page-link" href="#" @click.prevent="changePage(agentPagination.currentPage - 1, 'agents')">上一頁</a>
-                                    </li>
-                                    <li class="page-item" v-for="page in agentPagination.totalPages" :key="page" :class="{active: page === agentPagination.currentPage}">
-                                        <a class="page-link" href="#" @click.prevent="changePage(page, 'agents')">{{ page }}</a>
-                                    </li>
-                                    <li class="page-item" :class="{disabled: agentPagination.currentPage === agentPagination.totalPages}">
-                                        <a class="page-link" href="#" @click.prevent="changePage(agentPagination.currentPage + 1, 'agents')">下一頁</a>
-                                    </li>
-                                </ul>
-                            </nav>
                         </div>
                     </div>
 
@@ -1166,203 +1179,7 @@
                     </div>
                 </div>
 
-                <!-- 会员管理 -->
-                <div v-if="activeTab === 'members'">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2>
-                            <i class="fas fa-users me-2"></i>層級會員管理
-                        </h2>
-                        <div class="d-flex gap-2 align-items-center">
-                            <span class="badge bg-info d-flex align-items-center justify-content-center" style="height: 32px; padding: 8px 12px;">
-                                共 {{ hierarchicalMembers ? hierarchicalMembers.length : 0 }} 個下級
-                                ({{ memberHierarchyStats.agentCount || 0 }}代理 + {{ memberHierarchyStats.memberCount || 0 }}會員)
-                            </span>
-                            <button class="btn btn-primary" @click="quickCreateMember">
-                                <i class="fas fa-plus me-1"></i>新增会员
-                            </button>
-                            <button class="btn btn-outline-primary" @click="refreshHierarchicalMembers()">
-                                <i class="fas fa-sync me-1"></i>刷新
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- 面包屑導航 -->
-                    <nav v-if="memberBreadcrumb.length > 0" aria-label="會員管理層級導航">
-                        <ol class="breadcrumb mb-3 bg-light p-2 rounded">
-                            <li class="breadcrumb-item">
-                                <button class="btn btn-link p-0 text-decoration-none" @click="memberBreadcrumb = []; loadHierarchicalMembers()">
-                                    <i class="fas fa-home me-1"></i>根層級
-                                </button>
-                            </li>
-                            <li v-for="(item, index) in memberBreadcrumb" :key="index" 
-                                class="breadcrumb-item"
-                                :class="{ 'active': index === memberBreadcrumb.length - 1 }">
-                                <span v-if="index === memberBreadcrumb.length - 1" class="fw-bold">
-                                    {{ item.username }} ({{ item.level }})
-                                </span>
-                                <button v-else class="btn btn-link p-0 text-decoration-none" 
-                                        @click="memberBreadcrumb.splice(index + 1); goBackToMemberLevel(item)">
-                                    {{ item.username }} ({{ item.level }})
-                                </button>
-                            </li>
-                            <li v-if="memberBreadcrumb.length > 0" class="breadcrumb-item ms-auto">
-                                <button class="btn btn-sm btn-outline-secondary" @click="goBackToParentMember()">
-                                    <i class="fas fa-arrow-left me-1"></i>返回上級
-                                </button>
-                            </li>
-                        </ol>
-                    </nav>
-
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            搜索條件
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">狀態</label>
-                                    <select class="form-select" v-model="memberFilters.status" @change="loadHierarchicalMembers">
-                                        <option value="-1">全部</option>
-                                        <option value="1">启用</option>
-                                        <option value="0">停用</option>
-                                        <option value="2">凍結</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-5">
-                                    <label class="form-label">关键字</label>
-                                    <input type="text" class="form-control" placeholder="用戶名/ID" v-model="memberFilters.keyword" @keyup.enter="loadHierarchicalMembers">
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button class="btn btn-primary" @click="loadHierarchicalMembers">搜索</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>類型</th>
-                                            <th>ID</th>
-                                            <th>用戶名</th>
-                                            <th>餘額</th>
-                                            <th>備註</th>
-                                            <th>狀態</th>
-                                            <th>創建時間</th>
-                                            <th>操作</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-if="hierarchicalMembers.length === 0">
-                                            <td colspan="8" class="text-center text-muted py-4">
-                                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
-                                                沒有資料
-                                            </td>
-                                        </tr>
-                                        <tr v-for="item in hierarchicalMembers" :key="item.userType + '_' + item.id">
-                                            <td>
-                                                <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? '代理' : '會員' }}
-                                                </span>
-                                            </td>
-                                            <td>{{ item.id }}</td>
-                                            <td>
-                                                <!-- 如果是代理且有下級，顯示為可點擊 -->
-                                                <div v-if="item.userType === 'agent' && item.hasDownline" class="d-flex align-items-center">
-                                                    <button class="btn btn-link p-0 text-decoration-none fw-bold text-primary" 
-                                                            @click="enterAgentMemberManagement(item)">
-                                                        {{ item.username }}
-                                                        <i class="fas fa-chevron-right ms-1 small"></i>
-                                                    </button>
-                                                </div>
-                                                <!-- 其他情況顯示為普通文字 -->
-                                                <div v-else class="d-flex align-items-center">
-                                                    <span class="fw-bold" :class="item.userType === 'agent' ? 'text-primary' : 'text-success'">
-                                                        {{ item.username }}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td>{{ formatMoney(item.balance) }}</td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <span v-if="item.notes" class="text-truncate" style="max-width: 150px;" :title="item.notes">
-                                                        {{ item.notes }}
-                                                    </span>
-                                                    <span v-else class="text-muted fst-italic">無備註</span>
-                                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
-                                                            @click="item.userType === 'agent' ? editAgentNotes(item) : editMemberNotes(item)" 
-                                                            :title="item.notes ? '編輯備註' : '新增備註'">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span class="badge" :class="getStatusBadgeClass(item.status)">
-                                                    {{ getStatusText(item.status) }}
-                                                </span>
-                                            </td>
-                                            <td>{{ formatDate(item.created_at) }}</td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-primary" 
-                                                            @click="item.userType === 'agent' ? adjustAgentBalance(item) : adjustMemberBalance(item)">
-                                                        <i class="fas fa-exchange-alt me-1"></i>點數轉移
-                                                    </button>
-                                                    <button class="btn btn-outline-warning" 
-                                                            @click="item.userType === 'agent' ? resetAgentPassword(item) : resetMemberPassword(item)">
-                                                        <i class="fas fa-key me-1"></i>重設密碼
-                                                    </button>
-                                                    <button class="btn btn-outline-info" 
-                                                            v-if="item.userType === 'member'"
-                                                            @click="adjustMemberBettingLimit(item)">
-                                                        <i class="fas fa-sliders-h me-1"></i>調整限紅
-                                                    </button>
-                                                    <div class="btn-group">
-                                                        <button type="button" class="btn btn-sm" :class="getStatusBadgeClass(item.status)" disabled>
-                                                            <i class="fas" :class="getStatusIconClass(item.status)"></i>
-                                                            {{ getStatusText(item.status) }}
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
-                                                                data-bs-toggle="dropdown" aria-expanded="false">
-                                                            <span class="visually-hidden">切換狀態</span>
-                                                        </button>
-                                                        <ul class="dropdown-menu">
-                                                            <li v-if="item.status !== 1">
-                                                                <a class="dropdown-item" href="#" 
-                                                                   @click.prevent="item.userType === 'agent' ? changeAgentStatus(item, 1) : changeMemberStatus(item, 1)">
-                                                                    <i class="fas fa-check text-success me-2"></i>設為启用
-                                                                </a>
-                                                            </li>
-                                                            <li v-if="item.status !== 0">
-                                                                <a class="dropdown-item" href="#" 
-                                                                   @click.prevent="item.userType === 'agent' ? changeAgentStatus(item, 0) : changeMemberStatus(item, 0)">
-                                                                    <i class="fas fa-ban text-secondary me-2"></i>設為停用
-                                                                </a>
-                                                            </li>
-                                                            <li v-if="item.status !== 2">
-                                                                <a class="dropdown-item" href="#" 
-                                                                   @click.prevent="item.userType === 'agent' ? changeAgentStatus(item, 2) : changeMemberStatus(item, 2)">
-                                                                    <i class="fas fa-snowflake text-warning me-2"></i>設為凍結
-                                                                </a>
-                                                            </li>
-                                                        </ul>
-                                                    </div>
-                                                    <button class="btn btn-outline-danger" 
-                                                            @click="item.userType === 'agent' ? deleteAgent(item.id, item.username) : deleteMember(item.id, item.username)">
-                                                        <i class="fas fa-trash-alt me-1"></i>删除
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- 報表查詢頁面 -->
                 <div v-if="activeTab === 'reports'">

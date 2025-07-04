@@ -877,8 +877,8 @@ const app = createApp({
         setActiveTab(tab) {
             console.log('🔄 切換頁籤到:', tab);
             
-            // 如果不是在代理管理頁面，重置当前管理代理為自己
-            if (tab !== 'agents') {
+            // 如果不是在帳號管理頁面，重置当前管理代理為自己
+            if (tab !== 'accounts') {
                 if (this.currentManagingAgent.id !== this.user.id) {
                     console.log('📍 重置管理視角：從', this.currentManagingAgent.username, '回到', this.user.username);
                     const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
@@ -894,8 +894,8 @@ const app = createApp({
                     // 清空代理導航面包屑
                     this.agentBreadcrumbs = [];
                     
-                    // 如果切換到会员管理或下注记录，重新载入相关數據
-                    if (tab === 'members') {
+                    // 如果切換到帳號管理，重新載入相關數據
+                    if (tab === 'accounts') {
                         // 初始化層級會員管理
                         this.currentMemberManagingAgent = {
                             id: this.currentManagingAgent.id,
@@ -908,17 +908,27 @@ const app = createApp({
                         this.searchBets();
                     }
                 }
+            } else {
+                // 切換到帳號管理時，初始化層級管理
+                this.currentMemberManagingAgent = {
+                    id: this.user.id,
+                    username: this.user.username,
+                    level: this.user.level
+                };
+                this.memberBreadcrumb = [];
+                this.loadHierarchicalMembers();
             }
             
             this.activeTab = tab;
             
-            // 关闭Bootstrap漢堡選單
-            const navbarCollapse = document.getElementById('navbarNav');
-            if (navbarCollapse && navbarCollapse.classList.contains('show')) {
-                const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+            // 关闭漢堡選單
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const navbarCollapse = document.querySelector('.navbar-collapse');
+            if (navbarToggler && navbarCollapse && navbarCollapse.classList.contains('show')) {
+                const bootstrapCollapse = new bootstrap.Collapse(navbarCollapse, {
                     toggle: false
                 });
-                bsCollapse.hide();
+                bootstrapCollapse.hide();
             }
         },
         
