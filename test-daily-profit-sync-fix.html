@@ -133,11 +133,11 @@ this.updateHistoryRecords();
             </div>
             
             <div class="fix-item">
-                <strong>5. 函數棄用標記：</strong>為updateDailyStats添加棄用警告
+                <strong>5. 函數完全移除：</strong>直接刪除updateDailyStats函數避免誤用
                 <div class="code-block">
 ✅ 修復後：
-// ⚠️ 已棄用：此函數會導致數字閃現，請使用updateDailyProfit()
-updateDailyStats() { ... }
+// 完全移除updateDailyStats函數，防止未來可能的誤調用
+// 統一使用updateDailyProfit() API計算確保數據準確性
                 </div>
             </div>
         </div>
@@ -147,11 +147,12 @@ updateDailyStats() { ... }
             
             <h3>✅ 修復效果確認</h3>
             <ul>
-                <li class="success">✓ 移除所有updateDailyStats()調用</li>
+                <li class="success">✓ 完全移除updateDailyStats()函數和所有調用</li>
                 <li class="success">✓ 統一使用updateDailyProfit() API計算</li>
                 <li class="success">✓ 數字不再閃現，直接顯示正確結果</li>
                 <li class="success">✓ 今日盈虧與數據庫和盈虧記錄完全同步</li>
                 <li class="success">✓ 前端和deploy版本同步修復</li>
+                <li class="success">✓ 杜絕未來誤用可能性</li>
             </ul>
             
             <h3>🎯 API同步確認</h3>

@@ -8682,46 +8682,7 @@
                     };
                     return positionMap[position] || 'first';
                 },
-                // ⚠️ 已棄用：此函數會導致數字閃現，請使用updateDailyProfit()
-                updateDailyStats() {
-                    let dailyBetCount = 0;
-                    let dailyProfit = 0;
-                    
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
-                    // 确保betHistory是數組
-                    if (Array.isArray(this.betHistory)) {
-                        this.betHistory.forEach(bet => {
-                        const betDate = new Date(bet.time);
-                    
-                            // 只统计今日的注單
-                            if (betDate >= today) {
-                                dailyBetCount++;
-                    
-                                // 确保金额是數字類型
-                                const betAmount = parseFloat(bet.amount) || 0;
-                                
-                                // 如果已結算，计算盈亏
-                        if (bet.settled) {
-                                    // 根據輸贏计算盈亏
-                            if (bet.win) {
-                                        // 贏: 获得奖金 - 下注金额 = 凈利润
-                                        const winAmount = parseFloat(bet.winAmount) || 0;
-                                        dailyProfit += (winAmount - betAmount);
-                            } else {
-                                        // 輸: 损失下注金额
-                                        dailyProfit -= betAmount;
-                                    }
-                                }
-                            }
-                        });
-                    }
-                    
-                    // 确保盈亏保留小數位，註數顯示為整數
-                    this.dailyBetCount = dailyBetCount;
-                    this.dailyProfit = Math.round(dailyProfit * 100) / 100; // 保留兩位小數
-                },
+
                 getBalance() {
                     const username = sessionStorage.getItem('username');
                     if (!username) return;
