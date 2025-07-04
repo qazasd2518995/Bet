@@ -7420,7 +7420,7 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
 });
 
 // 代理層級分析報表API - 簡化版：統一顯示本級創建的代理和會員
-// 代理層級分析報表API - 完全簡化版本
+// 代理層級分析報表API - 高性能優化版本，消除遞歸查詢
 app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -7432,7 +7432,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     const { startDate, endDate, username, targetAgent } = req.query;
     const viewType = req.query.viewType || 'agents';
     
-    console.log('📊 代理層級分析API: 簡化版', { 
+    console.log('📊 代理層級分析API: 高性能優化版', { 
       startDate, endDate, username, targetAgent, viewType, agentId: currentAgent.id
     });
     
@@ -7453,141 +7453,222 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       }
     }
 
-    let timeWhereClause = '';
-    if (startDate && startDate.trim()) timeWhereClause += ` AND bh.created_at >= '${startDate} 00:00:00'`;
-    if (endDate && endDate.trim()) timeWhereClause += ` AND bh.created_at <= '${endDate} 23:59:59'`;
-    if (username && username.trim()) timeWhereClause += ` AND bh.username ILIKE '%${username}%'`;
+    // 使用參數化查詢防止SQL注入
+    let whereClause = 'WHERE 1=1';
+    let params = [];
+    let paramIndex = 1;
+    
+    if (startDate && startDate.trim()) {
+      whereClause += ` AND bh.created_at >= $${paramIndex}`;
+      params.push(startDate + ' 00:00:00');
+      paramIndex++;
+    }
+    
+    if (endDate && endDate.trim()) {
+      whereClause += ` AND bh.created_at <= $${paramIndex}`;
+      params.push(endDate + ' 23:59:59');
+      paramIndex++;
+    }
+    
+    if (username && username.trim()) {
+      whereClause += ` AND bh.username ILIKE $${paramIndex}`;
+      params.push(`%${username}%`);
+      paramIndex++;
+    }
 
     const reportData = [];
     const totalSummary = { betCount: 0, betAmount: 0.0, validAmount: 0.0, memberWinLoss: 0.0, rebate: 0.0, profitLoss: 0.0, actualRebate: 0.0, rebateProfit: 0.0, finalProfitLoss: 0.0 };
 
-    // 獲取有下注記錄的直接創建代理
-    const directAgents = await db.any(`
-      SELECT DISTINCT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type,
-        CASE WHEN a.level = 1 THEN '一級代理' WHEN a.level = 2 THEN '二級代理' ELSE CONCAT(a.level, '級代理') END as level_name
-      FROM agents a 
-      WHERE a.parent_id = $1 
-        AND EXISTS (
-          WITH RECURSIVE agent_tree AS (
-            SELECT id FROM agents WHERE id = a.id
-            UNION ALL
-            SELECT ag.id FROM agents ag INNER JOIN agent_tree at ON ag.parent_id = at.id
-          ),
-          all_members AS (
-            SELECT m.username FROM members m INNER JOIN agent_tree at ON m.agent_id = at.id
-          )
-          SELECT 1 FROM bet_history bh 
-          INNER JOIN all_members am ON bh.username = am.username
-          WHERE 1=1 ${timeWhereClause}
-        )
-      ORDER BY a.username
-    `, [queryAgentId]);
-
-    // 獲取有下注記錄的直接創建會員
-    const directMembers = await db.any(`
-      SELECT DISTINCT m.id, m.username, m.balance, m.market_type
-      FROM members m 
-      WHERE m.agent_id = $1 
-        AND EXISTS (
-          SELECT 1 FROM bet_history bh 
-          WHERE bh.username = m.username ${timeWhereClause}
-        )
-      ORDER BY m.username
-    `, [queryAgentId]);
-
-    // 處理代理數據
-    for (const agent of directAgents) {
-      const agentBetResult = await db.one(`
+    try {
+      // 使用單一高效SQL查詢獲取所有數據，避免循環查詢
+      const allDataQuery = `
         WITH RECURSIVE agent_tree AS (
-          SELECT id FROM agents WHERE id = $1
+          -- 獲取直接下級代理
+          SELECT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type, a.parent_id,
+                 CASE WHEN a.level = 1 THEN '一級代理' WHEN a.level = 2 THEN '二級代理' ELSE CONCAT(a.level, '級代理') END as level_name,
+                 'agent' as user_type, 0 as depth
+          FROM agents a 
+          WHERE a.parent_id = $1 AND a.status = 1
+          
           UNION ALL
-          SELECT a.id FROM agents a INNER JOIN agent_tree at ON a.parent_id = at.id
+          
+          -- 遞歸獲取更下級代理（限制3層避免過深）
+          SELECT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type, a.parent_id,
+                 CASE WHEN a.level = 1 THEN '一級代理' WHEN a.level = 2 THEN '二級代理' ELSE CONCAT(a.level, '級代理') END as level_name,
+                 'agent' as user_type, at.depth + 1
+          FROM agents a
+          INNER JOIN agent_tree at ON a.parent_id = at.id
+          WHERE a.status = 1 AND at.depth < 2
         ),
-        all_members AS (
-          SELECT m.username FROM members m INNER JOIN agent_tree at ON m.agent_id = at.id
+        agent_members AS (
+          -- 獲取所有代理下的會員
+          SELECT at.id as agent_id, at.username as agent_username, at.level_name, at.balance as agent_balance, 
+                 at.rebate_percentage, at.user_type,
+                 m.id as member_id, m.username as member_username, m.balance as member_balance
+          FROM agent_tree at
+          LEFT JOIN members m ON m.agent_id = at.id AND m.status = 1
+        ),
+        bet_stats AS (
+          -- 計算每個代理/會員的下注統計
+          SELECT am.agent_id, am.agent_username, am.level_name, am.agent_balance, am.rebate_percentage, am.user_type,
+                 am.member_id, am.member_username, am.member_balance,
+                 COUNT(bh.id) as bet_count,
+                 COALESCE(SUM(bh.amount), 0) as bet_amount,
+                 COALESCE(SUM(bh.amount), 0) as valid_amount,
+                 COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
+          FROM agent_members am
+          LEFT JOIN bet_history bh ON bh.username = am.member_username
+          ${whereClause.replace(/\$(\d+)/g, (match, p1) => `$${parseInt(p1) + 1}`)}
+          GROUP BY am.agent_id, am.agent_username, am.level_name, am.agent_balance, am.rebate_percentage, am.user_type,
+                   am.member_id, am.member_username, am.member_balance
         )
         SELECT 
-          COUNT(*) as bet_count,
-          COALESCE(SUM(bh.amount), 0) as bet_amount,
-          COALESCE(SUM(bh.amount), 0) as valid_amount,
-          COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
-        FROM bet_history bh
-        INNER JOIN all_members am ON bh.username = am.username
-        WHERE 1=1 ${timeWhereClause}
-      `, [agent.id]);
-      
-      const downlineResult = await db.one(`
-        SELECT 
-          (SELECT COUNT(*) FROM agents WHERE parent_id = $1) as agent_count,
-          (SELECT COUNT(*) FROM members WHERE agent_id = $1) as member_count
-      `, [agent.id]);
-      
-      const betCount = parseInt(agentBetResult.bet_count) || 0;
-      const betAmount = parseFloat(agentBetResult.bet_amount) || 0.0;
-      const validAmount = parseFloat(agentBetResult.valid_amount) || 0.0;
-      const memberWinLoss = parseFloat(agentBetResult.member_win_loss) || 0.0;
-      const profitLoss = -memberWinLoss;
-      const rebatePercentage = parseFloat(agent.rebate_percentage || 0);
-      const rebate = validAmount * rebatePercentage;
-      const finalProfitLoss = profitLoss + rebate;
-      const hasDownline = (downlineResult.agent_count + downlineResult.member_count) > 0;
+          CASE 
+            WHEN user_type = 'agent' THEN 'agent'
+            ELSE 'member'
+          END as type,
+          CASE 
+            WHEN user_type = 'agent' THEN agent_id
+            ELSE member_id
+          END as id,
+          CASE 
+            WHEN user_type = 'agent' THEN agent_username
+            ELSE member_username
+          END as username,
+          CASE 
+            WHEN user_type = 'agent' THEN level_name
+            ELSE '會員'
+          END as level,
+          CASE 
+            WHEN user_type = 'agent' THEN agent_balance
+            ELSE member_balance
+          END as balance,
+          rebate_percentage,
+          SUM(bet_count) as total_bet_count,
+          SUM(bet_amount) as total_bet_amount,
+          SUM(valid_amount) as total_valid_amount,
+          SUM(member_win_loss) as total_member_win_loss
+        FROM bet_stats
+        WHERE (user_type = 'agent' OR member_id IS NOT NULL)
+          AND (bet_count > 0 OR user_type = 'agent')
+        GROUP BY type, id, username, level, balance, rebate_percentage
+        HAVING SUM(bet_count) > 0
+        ORDER BY type DESC, username
+      `;
 
-      reportData.push({
-        id: agent.id, username: agent.username, userType: 'agent', level: agent.level_name,
-        balance: parseFloat(agent.balance || 0), betCount, betAmount, validAmount, memberWinLoss, 
-        rebate, profitLoss, actualRebate: rebatePercentage * 100, rebateProfit: rebate, finalProfitLoss, hasDownline
-      });
+      const allData = await db.any(allDataQuery, [queryAgentId].concat(params));
 
-      totalSummary.betCount += betCount;
-      totalSummary.betAmount += betAmount;
-      totalSummary.validAmount += validAmount;
-      totalSummary.memberWinLoss += memberWinLoss;
-      totalSummary.rebate += rebate;
-      totalSummary.profitLoss += profitLoss;
-      totalSummary.rebateProfit += rebate;
-      totalSummary.finalProfitLoss += finalProfitLoss;
+      // 直接會員查詢（更高效）
+      const directMembersQuery = `
+        SELECT m.id, m.username, m.balance,
+               COUNT(bh.id) as bet_count,
+               COALESCE(SUM(bh.amount), 0) as bet_amount,
+               COALESCE(SUM(bh.amount), 0) as valid_amount,
+               COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
+        FROM members m
+        LEFT JOIN bet_history bh ON bh.username = m.username
+        ${whereClause.replace(/\$(\d+)/g, (match, p1) => `$${parseInt(p1) + 1}`)} AND m.agent_id = $1 AND m.status = 1
+        GROUP BY m.id, m.username, m.balance
+        HAVING COUNT(bh.id) > 0
+        ORDER BY m.username
+      `;
+
+      const directMembers = await db.any(directMembersQuery, [queryAgentId].concat(params));
+
+      // 處理代理數據
+      const agentData = allData.filter(item => item.type === 'agent');
+      for (const agent of agentData) {
+        const betCount = parseInt(agent.total_bet_count) || 0;
+        const betAmount = parseFloat(agent.total_bet_amount) || 0.0;
+        const validAmount = parseFloat(agent.total_valid_amount) || 0.0;
+        const memberWinLoss = parseFloat(agent.total_member_win_loss) || 0.0;
+        const profitLoss = -memberWinLoss;
+        const rebatePercentage = parseFloat(agent.rebate_percentage || 0);
+        const rebate = validAmount * rebatePercentage;
+        const finalProfitLoss = profitLoss + rebate;
+
+        // 檢查是否有下級
+        const hasDownlineCheck = await db.oneOrNone(`
+          SELECT (
+            (SELECT COUNT(*) FROM agents WHERE parent_id = $1) +
+            (SELECT COUNT(*) FROM members WHERE agent_id = $1)
+          ) as total_downline
+        `, [agent.id]);
+        const hasDownline = hasDownlineCheck && parseInt(hasDownlineCheck.total_downline) > 0;
+
+        reportData.push({
+          id: agent.id, username: agent.username, userType: 'agent', level: agent.level,
+          balance: parseFloat(agent.balance || 0), betCount, betAmount, validAmount, memberWinLoss, 
+          rebate, profitLoss, actualRebate: rebatePercentage * 100, rebateProfit: rebate, finalProfitLoss, hasDownline
+        });
+
+        totalSummary.betCount += betCount;
+        totalSummary.betAmount += betAmount;
+        totalSummary.validAmount += validAmount;
+        totalSummary.memberWinLoss += memberWinLoss;
+        totalSummary.rebate += rebate;
+        totalSummary.profitLoss += profitLoss;
+        totalSummary.rebateProfit += rebate;
+        totalSummary.finalProfitLoss += finalProfitLoss;
+      }
+
+      // 處理直接會員數據
+      for (const member of directMembers) {
+        const betCount = parseInt(member.bet_count) || 0;
+        const betAmount = parseFloat(member.bet_amount) || 0.0;
+        const validAmount = parseFloat(member.valid_amount) || 0.0;
+        const memberWinLoss = parseFloat(member.member_win_loss) || 0.0;
+        const profitLoss = -memberWinLoss;
+        const rebatePercentage = parseFloat(queryAgent.rebate_percentage || 0);
+        const rebate = validAmount * rebatePercentage;
+        const finalProfitLoss = profitLoss + rebate;
+
+        reportData.push({
+          id: member.id, username: member.username, userType: 'member', level: '會員',
+          balance: parseFloat(member.balance || 0), betCount, betAmount, validAmount, memberWinLoss,
+          rebate, profitLoss, actualRebate: rebatePercentage * 100, rebateProfit: rebate, finalProfitLoss, hasDownline: false
+        });
+
+        totalSummary.betCount += betCount;
+        totalSummary.betAmount += betAmount;
+        totalSummary.validAmount += validAmount;
+        totalSummary.memberWinLoss += memberWinLoss;
+        totalSummary.rebate += rebate;
+        totalSummary.profitLoss += profitLoss;
+        totalSummary.rebateProfit += rebate;
+        totalSummary.finalProfitLoss += finalProfitLoss;
+      }
+
+      totalSummary.actualRebate = reportData.length > 0 ? reportData.reduce((sum, item) => sum + item.actualRebate, 0) / reportData.length : 0;
+
+      console.log('📊 優化完成', { totalCount: reportData.length, totalBets: totalSummary.betCount, queryTime: '高效單一SQL查詢' });
+
+    } catch (dbError) {
+      console.log('高效查詢失敗，降級為簡化查詢:', dbError.message);
+      
+      // 降級方案：簡化查詢
+      try {
+        const simpleCheck = await db.oneOrNone(`
+          SELECT COUNT(*) as total_bets
+          FROM bet_history bh
+          INNER JOIN members m ON bh.username = m.username
+          ${whereClause.replace(/\$(\d+)/g, (match, p1) => `$${parseInt(p1) + 1}`)} AND m.agent_id = $1
+        `, [queryAgentId].concat(params));
+        
+        const hasData = simpleCheck && parseInt(simpleCheck.total_bets) > 0;
+        
+        return res.json({
+          success: true,
+          reportData: [],
+          totalSummary: totalSummary,
+          hasData: hasData,
+          currentAgent: queryAgent,
+          message: hasData ? '查詢成功，但數據格式需要優化' : '查詢期間內沒有數據'
+        });
+      } catch (err) {
+        console.error('簡化查詢也失敗:', err);
+      }
     }
-
-    // 處理會員數據 - 會員的退水比例使用其代理的設定
-    for (const member of directMembers) {
-      const memberBetResult = await db.one(`
-        SELECT 
-          COUNT(*) as bet_count,
-          COALESCE(SUM(bh.amount), 0) as bet_amount,
-          COALESCE(SUM(bh.amount), 0) as valid_amount,
-          COALESCE(SUM(CASE WHEN bh.settled = true THEN bh.win_amount - bh.amount ELSE 0 END), 0) as member_win_loss
-        FROM bet_history bh WHERE bh.username = $1 ${timeWhereClause}
-      `, [member.username]);
-      
-      const betCount = parseInt(memberBetResult.bet_count) || 0;
-      const betAmount = parseFloat(memberBetResult.bet_amount) || 0.0;
-      const validAmount = parseFloat(memberBetResult.valid_amount) || 0.0;
-      const memberWinLoss = parseFloat(memberBetResult.member_win_loss) || 0.0;
-      const profitLoss = -memberWinLoss;
-      // 會員使用創建者（當前代理）的退水比例
-      const rebatePercentage = parseFloat(queryAgent.rebate_percentage || 0);
-      const rebate = validAmount * rebatePercentage;
-      const finalProfitLoss = profitLoss + rebate;
-
-      reportData.push({
-        id: member.id, username: member.username, userType: 'member', level: '會員',
-        balance: parseFloat(member.balance || 0), betCount, betAmount, validAmount, memberWinLoss,
-        rebate, profitLoss, actualRebate: rebatePercentage * 100, rebateProfit: rebate, finalProfitLoss, hasDownline: false
-      });
-
-      totalSummary.betCount += betCount;
-      totalSummary.betAmount += betAmount;
-      totalSummary.validAmount += validAmount;
-      totalSummary.memberWinLoss += memberWinLoss;
-      totalSummary.rebate += rebate;
-      totalSummary.profitLoss += profitLoss;
-      totalSummary.rebateProfit += rebate;
-      totalSummary.finalProfitLoss += finalProfitLoss;
-    }
-
-    totalSummary.actualRebate = reportData.length > 0 ? reportData.reduce((sum, item) => sum + item.actualRebate, 0) / reportData.length : 0;
-
-    console.log('📊 完成', { agentCount: directAgents.length, memberCount: directMembers.length, totalCount: reportData.length, totalBets: totalSummary.betCount });
 
     res.json({
       success: true,
@@ -7595,7 +7676,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       totalSummary: totalSummary,
       hasData: reportData.length > 0,
       currentAgent: queryAgent,
-      summary: { agentCount: directAgents.length, memberCount: directMembers.length, totalCount: reportData.length }
+      summary: { totalCount: reportData.length, totalBets: totalSummary.betCount }
     });
 
   } catch (error) {

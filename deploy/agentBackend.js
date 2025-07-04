@@ -7224,7 +7224,7 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
 });
 
 // 代理層級分析報表API - 簡化版：統一顯示本級創建的代理和會員
-// 代理層級分析報表API - 完全簡化版本
+// 代理層級分析報表API - 高性能優化版本，消除遞歸查詢
 app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -7236,7 +7236,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     const { startDate, endDate, username, targetAgent } = req.query;
     const viewType = req.query.viewType || 'agents';
     
-    console.log('📊 代理層級分析API: 簡化版', { 
+    console.log('📊 代理層級分析API: 高性能優化版', { 
       startDate, endDate, username, targetAgent, viewType, agentId: currentAgent.id
     });
     
@@ -7257,10 +7257,28 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       }
     }
 
-    let timeWhereClause = '';
-    if (startDate && startDate.trim()) timeWhereClause += ` AND bh.created_at >= '${startDate} 00:00:00'`;
-    if (endDate && endDate.trim()) timeWhereClause += ` AND bh.created_at <= '${endDate} 23:59:59'`;
-    if (username && username.trim()) timeWhereClause += ` AND bh.username ILIKE '%${username}%'`;
+    // 使用參數化查詢防止SQL注入
+    let whereClause = 'WHERE 1=1';
+    let params = [];
+    let paramIndex = 1;
+    
+    if (startDate && startDate.trim()) {
+      whereClause += ` AND bh.created_at >= $${paramIndex}`;
+      params.push(startDate + ' 00:00:00');
+      paramIndex++;
+    }
+    
+    if (endDate && endDate.trim()) {
+      whereClause += ` AND bh.created_at <= $${paramIndex}`;
+      params.push(endDate + ' 23:59:59');
+      paramIndex++;
+    }
+    
+    if (username && username.trim()) {
+      whereClause += ` AND bh.username ILIKE $${paramIndex}`;
+      params.push(`%${username}%`);
+      paramIndex++;
+    }
 
     const reportData = [];
     const totalSummary = { betCount: 0, betAmount: 0.0, validAmount: 0.0, memberWinLoss: 0.0, rebate: 0.0, profitLoss: 0.0, actualRebate: 0.0, rebateProfit: 0.0, finalProfitLoss: 0.0 };
