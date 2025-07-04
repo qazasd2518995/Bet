@@ -1473,30 +1473,47 @@ async function calculateTargetControlWeights(period, control, betStats) {
       
       console.log(`📋 處理合併下注: ${betKey}, 類型=${bet.bet_type}, 值=${bet.bet_value}, 位置=${bet.position}, 總金額=${totalAmount}, 用戶數=${userCount}`);
       
-      // 計算衝突調整係數：多人下注時加強控制效果
-      const conflictFactor = Math.min(1 + (userCount - 1) * 0.2, 2.0); // 最多加強2倍
-      const adjustedControlFactor = Math.min(controlFactor * conflictFactor, 1.0);
+      // 計算正確的權重比例 - 支援多號碼下注的情況
+      const controlPercentage = parseFloat(control.control_percentage);
       
       if (bet.bet_type === 'number') {
         const position = parseInt(bet.position) - 1;
         const value = parseInt(bet.bet_value) - 1;
         if (position >= 0 && position < 10 && value >= 0 && value < 10) {
           if (control.win_control) {
-            // 贏控制：大幅增加該號碼的權重，多人下注時效果更強
-            if (adjustedControlFactor >= 0.9) {
-              weights.positions[position][value] *= 1000; // 100%控制時使用極高權重
+            if (controlPercentage >= 99.9) {
+              // 100%控制時使用極高權重
+              weights.positions[position][value] = 1000;
+            } else if (controlPercentage <= 0.1) {
+              // 0%控制時不調整權重
+              weights.positions[position][value] = 1;
             } else {
-              weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
+              // 需要先分析這個位置總共有多少個目標號碼
+              // 通過檢查所有同位置的下注來確定目標號碼總數
+              const samePositionBets = Object.keys(betConflicts).filter(key => 
+                key.startsWith(`number_${bet.position}_`)
+              ).length;
+              
+              const targetCount = samePositionBets; // 該位置的目標號碼數量
+              const nonTargetCount = 10 - targetCount; // 該位置的非目標號碼數量
+              
+              // 計算精確權重：W = (P * M) / ((1 - P) * N)
+              const targetWeight = (controlPercentage * nonTargetCount) / ((100 - controlPercentage) * targetCount);
+              weights.positions[position][value] = Math.max(targetWeight, 0.001);
+              
+              console.log(`📊 [權重計算] 位置${position+1}: ${targetCount}個目標號碼, ${nonTargetCount}個非目標號碼, ${controlPercentage}%控制 → 權重=${targetWeight.toFixed(3)}`);
             }
-            console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            
+            console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
           } else if (control.loss_control) {
-            // 輸控制：大幅減少該號碼的權重，多人下注時效果更強
-            if (adjustedControlFactor >= 0.9) {
+            // 輸控制：大幅減少該號碼的權重
+            if (controlPercentage >= 99.9) {
               weights.positions[position][value] = 0.001; // 100%控制時使用極低權重
             } else {
-              weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
+              const lossWeight = 1 - (controlPercentage / 100) * 0.999;
+              weights.positions[position][value] = Math.max(lossWeight, 0.001);
             }
-            console.log(`❌ 減少位置${position+1}號碼${value+1}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`❌ 減少位置${position+1}號碼${value+1}的權重 (輸控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
           }
         }
       } else if (bet.bet_type === 'sumValue') {
