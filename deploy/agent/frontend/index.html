@@ -832,11 +832,7 @@
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? getLevelName(item.level) : '會員' }}
-                                                </span>
-                                            </td>
+
                                             <td>{{ formatMoney(item.balance) }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">

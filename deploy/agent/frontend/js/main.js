@@ -3325,7 +3325,7 @@ const app = createApp({
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
-                        this.searchAgents();
+                        await this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || `${actionText}代理失败`, 'error');
@@ -3367,7 +3367,7 @@ const app = createApp({
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
-                        this.searchAgents();
+                        await this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || `设置代理状态失败`, 'error');
@@ -3505,7 +3505,7 @@ const app = createApp({
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
-                        this.searchAgents();
+                        await this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || '更新代理備註失敗', 'error');
@@ -3708,7 +3708,7 @@ const app = createApp({
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
-                        this.searchAgents();
+                        await this.searchAgents();
                     }
                     this.hideAdjustAgentBalanceModal(); // 关闭模態框
                     await this.fetchDashboardData(); // 更新儀表板數據
@@ -3742,7 +3742,7 @@ const app = createApp({
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
-                        this.searchAgents();
+                        await this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || '代理删除失败', 'error');
