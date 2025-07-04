@@ -2242,8 +2242,16 @@ const TransactionModel = {
       
       // 計算今日所有交易總額（包括代理和會員的所有轉帳）
       try {
-        // 查詢真實的下注統計數據（從bet_history表通過members表關聯）
+        // 查詢真實的下注統計數據（包含所有下線代理的會員）
         const betStatsResult = await db.oneOrNone(`
+          WITH RECURSIVE agent_hierarchy AS (
+            -- 起始：目標代理本身
+            SELECT id FROM agents WHERE id = $1
+            UNION ALL
+            -- 遞歸：所有下級代理
+            SELECT a.id FROM agents a
+            INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
+          )
           SELECT 
             COUNT(bh.*) as total_bets,
             COALESCE(SUM(bh.amount), 0) as total_bet_amount,
@@ -2251,8 +2259,8 @@ const TransactionModel = {
             COALESCE(SUM(bh.amount) - SUM(bh.win_amount), 0) as agent_profit
           FROM bet_history bh
           JOIN members m ON bh.username = m.username
-          WHERE m.agent_id = $1
-            AND DATE(bh.created_at) = $2
+          JOIN agent_hierarchy ah ON m.agent_id = ah.id
+          WHERE DATE(bh.created_at) = $2
         `, [parsedAgentId, today]);
         
         const totalBets = parseInt(betStatsResult ? betStatsResult.total_bets : 0);
@@ -2265,13 +2273,19 @@ const TransactionModel = {
         const agentLosses = agentProfit < 0 ? Math.abs(agentProfit) : 0;  // 代理虧損（會員盈利）
         const netRevenue = agentProfit;  // 淨收益
         
-        // 獲取今日活躍會員數（有下注的會員）
+        // 獲取今日活躍會員數（包含所有下線代理的會員）
         const activeMembersResult = await db.oneOrNone(`
+          WITH RECURSIVE agent_hierarchy AS (
+            SELECT id FROM agents WHERE id = $1
+            UNION ALL
+            SELECT a.id FROM agents a
+            INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
+          )
           SELECT COUNT(DISTINCT bh.username) as count 
           FROM bet_history bh
           JOIN members m ON bh.username = m.username
-          WHERE m.agent_id = $1
-            AND DATE(bh.created_at) = $2
+          JOIN agent_hierarchy ah ON m.agent_id = ah.id
+          WHERE DATE(bh.created_at) = $2
         `, [parsedAgentId, today]);
         
         const activeMembers = parseInt(activeMembersResult ? activeMembersResult.count : 0);
@@ -7485,7 +7499,20 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         WITH RECURSIVE agent_tree AS (
           -- 獲取直接下級代理
           SELECT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type, a.parent_id,
-                 CASE WHEN a.level = 1 THEN '一級代理' WHEN a.level = 2 THEN '二級代理' ELSE CONCAT(a.level, '級代理') END as level_name,
+                 CASE 
+                   WHEN a.level = 0 THEN '總代理'
+                   WHEN a.level = 1 THEN '一級代理' 
+                   WHEN a.level = 2 THEN '二級代理'
+                   WHEN a.level = 3 THEN '三級代理'
+                   WHEN a.level = 4 THEN '四級代理'
+                   WHEN a.level = 5 THEN '五級代理'
+                   WHEN a.level = 6 THEN '六級代理'
+                   WHEN a.level = 7 THEN '七級代理'
+                   WHEN a.level = 8 THEN '八級代理'
+                   WHEN a.level = 9 THEN '九級代理'
+                   WHEN a.level = 10 THEN '十級代理'
+                   ELSE CONCAT(a.level, '級代理') 
+                 END as level_name,
                  'agent' as user_type, 0 as depth
           FROM agents a 
           WHERE a.parent_id = $1 AND a.status = 1
@@ -7494,7 +7521,20 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
           
           -- 遞歸獲取更下級代理（限制3層避免過深）
           SELECT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type, a.parent_id,
-                 CASE WHEN a.level = 1 THEN '一級代理' WHEN a.level = 2 THEN '二級代理' ELSE CONCAT(a.level, '級代理') END as level_name,
+                 CASE 
+                   WHEN a.level = 0 THEN '總代理'
+                   WHEN a.level = 1 THEN '一級代理' 
+                   WHEN a.level = 2 THEN '二級代理'
+                   WHEN a.level = 3 THEN '三級代理'
+                   WHEN a.level = 4 THEN '四級代理'
+                   WHEN a.level = 5 THEN '五級代理'
+                   WHEN a.level = 6 THEN '六級代理'
+                   WHEN a.level = 7 THEN '七級代理'
+                   WHEN a.level = 8 THEN '八級代理'
+                   WHEN a.level = 9 THEN '九級代理'
+                   WHEN a.level = 10 THEN '十級代理'
+                   ELSE CONCAT(a.level, '級代理') 
+                 END as level_name,
                  'agent' as user_type, at.depth + 1
           FROM agents a
           INNER JOIN agent_tree at ON a.parent_id = at.id

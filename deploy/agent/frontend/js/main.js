@@ -476,6 +476,28 @@ const app = createApp({
                 next_period: 0,
                 suggested_start: 0
             },
+            
+            // 會員注單詳情相關
+            memberBetDetails: {
+                memberUsername: '',
+                memberId: null,
+                startDate: new Date().toISOString().split('T')[0],
+                endDate: new Date().toISOString().split('T')[0],
+                bets: [],
+                currentPage: 1,
+                totalPages: 1,
+                totalBets: 0,
+                loading: false
+            },
+            
+            // 佔成明細
+            commissionDetails: [],
+            
+            // 開獎結果
+            drawResult: {
+                period: '',
+                numbers: []
+            },
         };
     },
     
@@ -5717,6 +5739,195 @@ const app = createApp({
                   console.error('查看會員下注記錄失敗:', error);
                   this.showMessage('查看會員下注記錄失敗: ' + error.message, 'error');
               }
+          },
+
+          // 顯示會員注單詳情Modal
+          async showMemberBetDetails(member) {
+              try {
+                  console.log('🔍 顯示會員注單詳情:', member);
+                  
+                  this.memberBetDetails.memberUsername = member.username;
+                  this.memberBetDetails.memberId = member.id;
+                  this.memberBetDetails.currentPage = 1;
+                  
+                  // 重置數據
+                  this.memberBetDetails.bets = [];
+                  this.memberBetDetails.totalPages = 1;
+                  this.memberBetDetails.totalBets = 0;
+                  
+                  // 顯示Modal
+                  const modal = new bootstrap.Modal(document.getElementById('memberBetDetailsModal'));
+                  modal.show();
+                  
+                  // 載入注單數據
+                  await this.loadMemberBetDetails();
+                  
+              } catch (error) {
+                  console.error('顯示會員注單詳情失敗:', error);
+                  this.showMessage('顯示會員注單詳情失敗: ' + error.message, 'error');
+              }
+          },
+
+          // 載入會員注單詳情
+          async loadMemberBetDetails() {
+              if (!this.memberBetDetails.memberUsername) return;
+              
+              try {
+                  this.memberBetDetails.loading = true;
+                  
+                  const params = {
+                      username: this.memberBetDetails.memberUsername,
+                      startDate: this.memberBetDetails.startDate,
+                      endDate: this.memberBetDetails.endDate,
+                      page: this.memberBetDetails.currentPage,
+                      limit: 20
+                  };
+                  
+                  console.log('🔄 載入會員注單詳情:', params);
+                  
+                  const response = await axios.get(`${API_BASE_URL}/member-bet-details`, {
+                      params,
+                      headers: {
+                          'Authorization': `Bearer ${this.sessionToken}`,
+                          'X-Session-Token': this.sessionToken
+                      }
+                  });
+                  
+                  if (response.data.success) {
+                      this.memberBetDetails.bets = response.data.bets || [];
+                      this.memberBetDetails.totalPages = response.data.totalPages || 1;
+                      this.memberBetDetails.totalBets = response.data.total || 0;
+                      
+                      console.log('✅ 注單詳情載入成功:', response.data);
+                  } else {
+                      throw new Error(response.data.message || '載入注單詳情失敗');
+                  }
+                  
+              } catch (error) {
+                  console.error('載入會員注單詳情失敗:', error);
+                  this.showMessage('載入注單詳情失敗: ' + error.message, 'error');
+              } finally {
+                  this.memberBetDetails.loading = false;
+              }
+          },
+
+          // 刷新會員注單詳情
+          async refreshMemberBetDetails() {
+              this.memberBetDetails.currentPage = 1;
+              await this.loadMemberBetDetails();
+          },
+
+          // 切換會員注單頁面
+          async changeMemberBetPage(page) {
+              if (page < 1 || page > this.memberBetDetails.totalPages) return;
+              this.memberBetDetails.currentPage = page;
+              await this.loadMemberBetDetails();
+          },
+
+          // 獲取會員注單分頁範圍
+          getMemberBetPageRange() {
+              const current = this.memberBetDetails.currentPage;
+              const total = this.memberBetDetails.totalPages;
+              const range = [];
+              
+              const start = Math.max(1, current - 2);
+              const end = Math.min(total, current + 2);
+              
+              for (let i = start; i <= end; i++) {
+                  range.push(i);
+              }
+              
+              return range;
+          },
+
+          // 顯示佔成明細
+          async showCommissionDetails(bet) {
+              try {
+                  console.log('🔍 顯示佔成明細:', bet);
+                  
+                  const response = await axios.get(`${API_BASE_URL}/bet-commission-details/${bet.id}`, {
+                      headers: {
+                          'Authorization': `Bearer ${this.sessionToken}`,
+                          'X-Session-Token': this.sessionToken
+                      }
+                  });
+                  
+                  if (response.data.success) {
+                      this.commissionDetails = response.data.details || [];
+                      
+                      // 顯示Modal
+                      const modal = new bootstrap.Modal(document.getElementById('commissionDetailsModal'));
+                      modal.show();
+                  } else {
+                      throw new Error(response.data.message || '載入佔成明細失敗');
+                  }
+                  
+              } catch (error) {
+                  console.error('顯示佔成明細失敗:', error);
+                  this.showMessage('顯示佔成明細失敗: ' + error.message, 'error');
+              }
+          },
+
+          // 顯示開獎結果
+          async showDrawResult(period) {
+              try {
+                  console.log('🔍 顯示開獎結果:', period);
+                  
+                  const response = await axios.get(`${API_BASE_URL}/draw-result/${period}`, {
+                      headers: {
+                          'Authorization': `Bearer ${this.sessionToken}`,
+                          'X-Session-Token': this.sessionToken
+                      }
+                  });
+                  
+                  if (response.data.success) {
+                      this.drawResult.period = period;
+                      this.drawResult.numbers = response.data.result || [];
+                      
+                      // 顯示Modal
+                      const modal = new bootstrap.Modal(document.getElementById('drawResultModal'));
+                      modal.show();
+                  } else {
+                      throw new Error(response.data.message || '載入開獎結果失敗');
+                  }
+                  
+              } catch (error) {
+                  console.error('顯示開獎結果失敗:', error);
+                  this.showMessage('顯示開獎結果失敗: ' + error.message, 'error');
+              }
+          },
+
+          // 格式化投注時間
+          formatBetTime(dateString) {
+              const date = new Date(dateString);
+              return date.toLocaleString('zh-TW', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+              });
+          },
+
+          // 格式化投注內容
+          formatBetContent(bet) {
+              if (bet.bet_type === 'number') {
+                  return `第${bet.position}名 ${bet.bet_value}`;
+              } else if (bet.bet_type === 'size') {
+                  return `第${bet.position}名 ${bet.bet_value === 'big' ? '大' : '小'}`;
+              } else if (bet.bet_type === 'odd_even') {
+                  return `第${bet.position}名 ${bet.bet_value === 'odd' ? '單' : '雙'}`;
+              } else if (bet.bet_type === 'dragon_tiger') {
+                  return `龍虎 ${bet.bet_value === 'dragon' ? '龍' : '虎'}`;
+              }
+              return `${bet.bet_type} ${bet.bet_value}`;
+          },
+
+          // 獲取位置名稱
+          getPositionName(position) {
+              const positions = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+              return positions[position - 1] || position;
           },
 
           // 設置下注記錄期間查詢
