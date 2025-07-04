@@ -801,10 +801,9 @@
                                 <table class="table table-striped table-hover align-middle">
                                     <thead>
                                         <tr>
-                                            <th>類型</th>
+                                            <th>級別</th>
                                             <th>ID</th>
                                             <th>用戶名</th>
-                                            <th>級別</th>
                                             <th>餘額</th>
                                             <th>備註</th>
                                             <th>狀態</th>
@@ -814,7 +813,7 @@
                                     </thead>
                                     <tbody>
                                         <tr v-if="hierarchicalMembers.length === 0">
-                                            <td colspan="9" class="text-center text-muted py-4">
+                                            <td colspan="8" class="text-center text-muted py-4">
                                                 <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                                 沒有資料
                                             </td>
@@ -2134,47 +2133,6 @@
                         </div>
                     </div>
                     
-                    <div class="card mt-4">
-                        <div class="card-header">
-                            下注统计信息
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <div class="card bg-primary text-white">
-                                        <div class="card-body">
-                                            <h5 class="card-title">總投注筆數</h5>
-                                            <h2 class="card-text">{{ betStats.totalBets || 0 }}</h2>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <div class="card bg-info text-white">
-                                        <div class="card-body">
-                                            <h5 class="card-title">總投注金额</h5>
-                                            <h2 class="card-text">{{ formatMoney(betStats.totalAmount || 0) }}</h2>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <div class="card" :class="betStats.totalProfit >= 0 ? 'bg-success' : 'bg-danger'">
-                                        <div class="card-body text-white">
-                                            <h5 class="card-title">会员總盈亏</h5>
-                                            <h2 class="card-text">{{ formatMoney(betStats.totalProfit || 0) }}</h2>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <div class="card" :class="betStats.totalProfit < 0 ? 'bg-success' : 'bg-danger'">
-                                        <div class="card-body text-white">
-                                            <h5 class="card-title">代理收益</h5>
-                                            <h2 class="card-text">{{ formatMoney(betStats.totalProfit ? -betStats.totalProfit : 0) }}</h2>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- 系统公告 -->
