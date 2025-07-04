@@ -2022,35 +2022,61 @@ function generateWeightedResult(weights, attempts = 0) {
   
   console.log(`🎲 生成權重結果 (第${attempts + 1}次嘗試)`);
   
-  // 🔥 修復：只檢查真正的100%位置控制，不包括龍虎等其他控制的高權重
-  // 檢查是否有真正獨立的100%位置控制（權重超高且不是範圍權重）
+  // 🔥 修復：檢查真正的100%位置控制，包括贏控制和輸控制
+  // 檢查是否有真正獨立的100%位置控制（權重超高或超低且不是範圍權重）
   const extremePositionControls = [];
   for (let position = 0; position < 10; position++) {
-    let extremeCount = 0;
-    let extremeNumbers = [];
+    let extremeHighCount = 0;
+    let extremeLowCount = 0;
+    let extremeHighNumbers = [];
+    let extremeLowNumbers = [];
     
-    // 計算該位置有多少個極高權重號碼
+    // 計算該位置的極高權重和極低權重號碼
     for (let num = 0; num < 10; num++) {
       const weight = weights.positions[position][num];
       if (weight > 100) {
-        extremeCount++;
-        extremeNumbers.push(num + 1);
+        extremeHighCount++;
+        extremeHighNumbers.push(num + 1);
+      } else if (weight < 0.01) {
+        extremeLowCount++;
+        extremeLowNumbers.push(num + 1);
       }
     }
     
-    // 只有當該位置只有1-2個極高權重號碼時，才認為是真正的位置控制
-    // 如果有5個或更多極高權重號碼，可能是龍虎控制等範圍性控制
-    if (extremeCount > 0 && extremeCount <= 2) {
-      for (const num of extremeNumbers) {
+    // 檢查贏控制：只有1-2個極高權重號碼時，認為是真正的位置控制
+    if (extremeHighCount > 0 && extremeHighCount <= 2) {
+      for (const num of extremeHighNumbers) {
         const weight = weights.positions[position][num - 1];
         extremePositionControls.push({
           position: position,
           number: num,
-          weight: weight
+          weight: weight,
+          type: 'win'
         });
       }
-    } else if (extremeCount > 2) {
-      console.log(`🐉🐅 位置${position + 1}檢測到${extremeCount}個極高權重號碼[${extremeNumbers.join(',')}]，判斷為龍虎或其他範圍控制，不進行預先分配`);
+      console.log(`🎯 位置${position + 1}檢測到${extremeHighCount}個100%贏控制號碼[${extremeHighNumbers.join(',')}]`);
+    }
+    
+    // 檢查輸控制：如果有多個極低權重號碼，認為是100%輸控制
+    if (extremeLowCount >= 3) {
+      // 輸控制：隨機選擇一個極低權重號碼
+      const randomLowNumber = extremeLowNumbers[Math.floor(Math.random() * extremeLowNumbers.length)];
+      extremePositionControls.push({
+        position: position,
+        number: randomLowNumber,
+        weight: 0.001,
+        type: 'loss'
+      });
+      console.log(`❌ 位置${position + 1}檢測到${extremeLowCount}個100%輸控制號碼[${extremeLowNumbers.join(',')}]，隨機選擇${randomLowNumber}`);
+    }
+    
+    // 龍虎控制檢測
+    if (extremeHighCount > 2 || extremeLowCount > 2) {
+      if (extremeHighCount === 5 && extremeLowCount === 5) {
+        console.log(`🐉🐅 位置${position + 1}檢測到龍虎控制權重設置，不進行預先分配`);
+      } else if (extremeHighCount > 2) {
+        console.log(`🐉🐅 位置${position + 1}檢測到${extremeHighCount}個極高權重號碼[${extremeHighNumbers.join(',')}]，判斷為範圍控制，不進行預先分配`);
+      }
     }
   }
   
