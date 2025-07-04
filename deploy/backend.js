@@ -2219,24 +2219,33 @@ function generateWeightedResult(weights, attempts = 0) {
         selectedNumber = availableNumbers[maxIndex];
         console.log(`🎯 位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
       } else if (hasExtremelyLowWeight) {
-        // 100%輸控制情況，避免選擇極低權重的號碼
-        const validIndices = [];
+        // 🔥 修復：100%輸控制情況，應該選擇極低權重的號碼
+        const lowWeightIndices = [];
+        const normalWeightIndices = [];
+        
         for (let i = 0; i < numberWeights.length; i++) {
-          if (numberWeights[i] >= 0.1) { // 只選擇權重不太低的號碼
-            validIndices.push(i);
+          if (numberWeights[i] < 0.01) { // 極低權重號碼（被控制的號碼）
+            lowWeightIndices.push(i);
+          } else {
+            normalWeightIndices.push(i);
           }
         }
         
-        if (validIndices.length > 0) {
-          // 從有效號碼中隨機選擇
-          const randomValidIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
-          selectedNumber = availableNumbers[randomValidIndex];
-          console.log(`🚫 位置${position + 1}避開低權重號碼，選擇${selectedNumber} (權重:${numberWeights[randomValidIndex]})`);
+        if (lowWeightIndices.length > 0) {
+          // 優先從極低權重號碼中選擇，實現100%輸控制
+          const randomLowIndex = lowWeightIndices[Math.floor(Math.random() * lowWeightIndices.length)];
+          selectedNumber = availableNumbers[randomLowIndex];
+          console.log(`❌ 位置${position + 1}輸控制：選擇低權重號碼${selectedNumber} (權重:${numberWeights[randomLowIndex]})`);
+        } else if (normalWeightIndices.length > 0) {
+          // 如果沒有極低權重號碼，從正常權重中選擇
+          const randomNormalIndex = normalWeightIndices[Math.floor(Math.random() * normalWeightIndices.length)];
+          selectedNumber = availableNumbers[randomNormalIndex];
+          console.log(`⚠️ 位置${position + 1}輸控制：無低權重號碼，選擇正常權重${selectedNumber} (權重:${numberWeights[randomNormalIndex]})`);
         } else {
-          // 如果所有號碼權重都很低，強制選擇權重最高的
-          const maxIndex = numberWeights.indexOf(maxWeight);
-          selectedNumber = availableNumbers[maxIndex];
-          console.log(`⚠️ 位置${position + 1}所有權重都很低，強制選擇${selectedNumber} (權重:${maxWeight})`);
+          // 所有號碼權重都很低，隨機選擇一個
+          const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+          selectedNumber = availableNumbers[randomIndex];
+          console.log(`⚠️ 位置${position + 1}輸控制：所有權重都很低，隨機選擇${selectedNumber} (權重:${numberWeights[randomIndex]})`);
         }
       } else {
         // 使用權重進行選擇
@@ -2428,24 +2437,33 @@ function generateTargetSumResult(weights, targetSum, attempts = 0) {
         selectedNumber = availableNumbers[maxIndex];
         console.log(`🎯 目標和值-位置${position + 1}強制選擇號碼${selectedNumber} (權重:${maxWeight})`);
       } else if (hasExtremelyLowWeight) {
-        // 100%輸控制情況，避免選擇極低權重的號碼
-        const validIndices = [];
+        // 🔥 修復：100%輸控制情況，應該選擇極低權重的號碼
+        const lowWeightIndices = [];
+        const normalWeightIndices = [];
+        
         for (let i = 0; i < numberWeights.length; i++) {
-          if (numberWeights[i] >= 0.1) { // 只選擇權重不太低的號碼
-            validIndices.push(i);
+          if (numberWeights[i] < 0.01) { // 極低權重號碼（被控制的號碼）
+            lowWeightIndices.push(i);
+          } else {
+            normalWeightIndices.push(i);
           }
         }
         
-        if (validIndices.length > 0) {
-          // 從有效號碼中隨機選擇
-          const randomValidIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
-          selectedNumber = availableNumbers[randomValidIndex];
-          console.log(`🚫 目標和值-位置${position + 1}避開低權重號碼，選擇${selectedNumber} (權重:${numberWeights[randomValidIndex]})`);
+        if (lowWeightIndices.length > 0) {
+          // 優先從極低權重號碼中選擇，實現100%輸控制
+          const randomLowIndex = lowWeightIndices[Math.floor(Math.random() * lowWeightIndices.length)];
+          selectedNumber = availableNumbers[randomLowIndex];
+          console.log(`❌ 目標和值-位置${position + 1}輸控制：選擇低權重號碼${selectedNumber} (權重:${numberWeights[randomLowIndex]})`);
+        } else if (normalWeightIndices.length > 0) {
+          // 如果沒有極低權重號碼，從正常權重中選擇
+          const randomNormalIndex = normalWeightIndices[Math.floor(Math.random() * normalWeightIndices.length)];
+          selectedNumber = availableNumbers[randomNormalIndex];
+          console.log(`⚠️ 目標和值-位置${position + 1}輸控制：無低權重號碼，選擇正常權重${selectedNumber} (權重:${numberWeights[randomNormalIndex]})`);
         } else {
-          // 如果所有號碼權重都很低，強制選擇權重最高的
-          const maxIndex = numberWeights.indexOf(maxWeight);
-          selectedNumber = availableNumbers[maxIndex];
-          console.log(`⚠️ 目標和值-位置${position + 1}所有權重都很低，強制選擇${selectedNumber} (權重:${maxWeight})`);
+          // 所有號碼權重都很低，隨機選擇一個
+          const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+          selectedNumber = availableNumbers[randomIndex];
+          console.log(`⚠️ 目標和值-位置${position + 1}輸控制：所有權重都很低，隨機選擇${selectedNumber} (權重:${numberWeights[randomIndex]})`);
         }
       } else {
         // 使用權重進行選擇
