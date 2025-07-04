@@ -1069,7 +1069,8 @@ const app = createApp({
                 // 初始化可用会员列表
                 this.availableMembers = this.members;
                     
-                    this.showMessage('登录成功', 'success');
+                    // 移除登入成功訊息視窗
+                    // this.showMessage('登录成功', 'success');
                 } else {
                     this.showMessage(response.data.message || '登录失败', 'error');
                     this.refreshCaptcha();

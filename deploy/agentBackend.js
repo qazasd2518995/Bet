@@ -7265,18 +7265,39 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     const reportData = [];
     const totalSummary = { betCount: 0, betAmount: 0.0, validAmount: 0.0, memberWinLoss: 0.0, rebate: 0.0, profitLoss: 0.0, actualRebate: 0.0, rebateProfit: 0.0, finalProfitLoss: 0.0 };
 
-    // 獲取直接創建的代理
+    // 獲取有下注記錄的直接創建代理
     const directAgents = await db.any(`
-      SELECT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type,
+      SELECT DISTINCT a.id, a.username, a.balance, a.level, a.rebate_percentage, a.market_type,
         CASE WHEN a.level = 1 THEN '一級代理' WHEN a.level = 2 THEN '二級代理' ELSE CONCAT(a.level, '級代理') END as level_name
-      FROM agents a WHERE a.parent_id = $1 ORDER BY a.username
+      FROM agents a 
+      WHERE a.parent_id = $1 
+        AND EXISTS (
+          WITH RECURSIVE agent_tree AS (
+            SELECT id FROM agents WHERE id = a.id
+            UNION ALL
+            SELECT ag.id FROM agents ag INNER JOIN agent_tree at ON ag.parent_id = at.id
+          ),
+          all_members AS (
+            SELECT m.username FROM members m INNER JOIN agent_tree at ON m.agent_id = at.id
+          )
+          SELECT 1 FROM bet_history bh 
+          INNER JOIN all_members am ON bh.username = am.username
+          WHERE 1=1 ${timeWhereClause}
+        )
+      ORDER BY a.username
     `, [queryAgentId]);
 
-         // 獲取直接創建的會員
-     const directMembers = await db.any(`
-       SELECT m.id, m.username, m.balance, m.market_type
-       FROM members m WHERE m.agent_id = $1 ORDER BY m.username
-     `, [queryAgentId]);
+    // 獲取有下注記錄的直接創建會員
+    const directMembers = await db.any(`
+      SELECT DISTINCT m.id, m.username, m.balance, m.market_type
+      FROM members m 
+      WHERE m.agent_id = $1 
+        AND EXISTS (
+          SELECT 1 FROM bet_history bh 
+          WHERE bh.username = m.username ${timeWhereClause}
+        )
+      ORDER BY m.username
+    `, [queryAgentId]);
 
     // 處理代理數據
     for (const agent of directAgents) {
