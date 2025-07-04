@@ -1879,11 +1879,6 @@ const app = createApp({
                 
                 console.log('📡 载入整條代理線的会员...');
                 
-                // 顯示加載中狀態
-                if (!this.loading) {
-                    this.showMessage('載入會員列表中...', 'info');
-                }
-                
                 const response = await axios.get(`${API_BASE_URL}/downline-members`, {
                     params: { 
                         rootAgentId: this.currentManagingAgent.id,
@@ -1902,7 +1897,6 @@ const app = createApp({
             } catch (error) {
                 console.error('❌ 载入整條代理線会员错误:', error);
                 this.availableMembers = [];
-                this.showMessage('载入会员列表失败', 'error');
             }
         },
         
@@ -1984,7 +1978,20 @@ const app = createApp({
                 const url = `${API_BASE_URL}/bets?${params.toString()}`;
                 console.log('📡 请求URL:', url);
                 
-                const response = await axios.get(url);
+                // 確保認證標頭正確設置
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(url, { headers });
                 
                 if (!response.data.success) {
                     console.error('❌ 搜索下注记录失败:', response.data.message);
@@ -5146,39 +5153,33 @@ const app = createApp({
 
 
          async searchReports() {
+             this.loading = true;
+             
              try {
-                 this.loading = true;
-                 
-                 // 準備篩選參數
                  const params = new URLSearchParams();
+                 if (this.reportFilters.startDate) params.append('startDate', this.reportFilters.startDate);
+                 if (this.reportFilters.endDate) params.append('endDate', this.reportFilters.endDate);
+                 if (this.reportFilters.username) params.append('username', this.reportFilters.username);
                  
-                 // 日期參數
-                 if (this.reportFilters.startDate) {
-                     params.append('startDate', this.reportFilters.startDate);
+                 console.log('📡 报表查詢參數:', this.reportFilters);
+                 
+                 const url = `${API_BASE_URL}/agent-hierarchical-analysis?${params.toString()}&agentId=${this.currentManagingAgent.id}`;
+                 const response = await fetch(url, {
+                     method: 'GET',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Authorization': localStorage.getItem('agent_token') || '',
+                         'x-session-token': localStorage.getItem('agent_session_token') || ''
+                     }
+                 });
+                 
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
                  }
-                 if (this.reportFilters.endDate) {
-                     params.append('endDate', this.reportFilters.endDate);
-                 }
                  
-                 // 結算狀態
-                 if (this.reportFilters.settlementStatus) {
-                     params.append('settlementStatus', this.reportFilters.settlementStatus);
-                 }
+                 const data = await response.json();
                  
-                 // 用戶名篩選
-                 if (this.reportFilters.username && this.reportFilters.username.trim()) {
-                     params.append('username', this.reportFilters.username.trim());
-                 }
-                 
-                 // 遊戲類型：只支援極速賽車
-                 params.append('gameTypes', 'pk10');
-
-                 console.log('📊 前端: 調用代理層級分析API');
-                 
-                 const response = await axios.get(`${API_BASE_URL}/reports/agent-analysis?${params.toString()}`);
-                 const data = response.data;
-                 
-                 console.log('📊 前端: 接收到報表數據', data);
+                 console.log('📊 代理層級分析數據:', data);
                  
                  // 新的簡化數據結構
                  this.reportData = {
@@ -5200,13 +5201,8 @@ const app = createApp({
                      message: data.message
                  };
                  
-                 if (!data.hasData) {
-                     this.showMessage(data.message || '查詢期間內沒有數據', 'info');
-                 }
-                 
              } catch (error) {
                  console.error('查詢報表失敗:', error);
-                 this.showMessage('查詢報表失敗: ' + error.message, 'error');
                  
                  // 設置空的報表數據結構
                  this.reportData = {
