@@ -7153,8 +7153,7 @@
                     // 检查登錄狀態
                     this.checkLoginStatus();
                     
-                    // 更新初始资料
-                    this.updateDailyStats();
+                    // 更新初始資料（已在checkLoginStatus中呼叫updateDailyProfit）
                     this.updateHistoryRecords();
                     
                     // 立即更新一次游戏數據以获取最新狀態
@@ -7915,8 +7914,8 @@
                             // 更新注單历史
                             this.getBetHistory();
                             
-                            // 计算今日盈亏
-                            this.updateDailyStats();
+                            // 更新今日盈虧（使用API確保準確性）
+                            this.updateDailyProfit();
                             
                             // 关闭加載中提示
                             this.isLoading = false;
@@ -8057,8 +8056,10 @@
                                 this.updateBalance();
                             }
                             
-                            // 更新今日统计
-                            this.updateDailyStats();
+                            // 只在有新結算時更新今日盈虧（使用API確保準確性）
+                            if (hadSettledBets) {
+                                this.updateDailyProfit();
+                            }
                         })
                         .catch(error => {
                             console.error('获取注單历史失败:', error);
@@ -8681,6 +8682,7 @@
                     };
                     return positionMap[position] || 'first';
                 },
+                // ⚠️ 已棄用：此函數會導致數字閃現，請使用updateDailyProfit()
                 updateDailyStats() {
                     let dailyBetCount = 0;
                     let dailyProfit = 0;
@@ -8816,8 +8818,7 @@
                     this.balanceTimer = setInterval(() => {
                         this.updateBalance();
                         this.updateBetHistory();
-                        this.updateDailyStats();
-                        // 同時更新今日盈虧（從API獲取最新數據）
+                        // 只使用API獲取今日盈虧，移除本地計算避免數字閃現
                         this.updateDailyProfit();
                     }, 10000);
                     
@@ -11245,8 +11246,7 @@
                 // 初始检查登录狀態
                 this.checkLoginStatus();
                 
-                // 更新初始资料
-                this.updateDailyStats();
+                // 更新初始資料（已在checkLoginStatus中呼叫updateDailyProfit）
                 this.updateHistoryRecords();
             },
             beforeDestroy() {
