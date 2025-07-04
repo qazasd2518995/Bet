@@ -2378,10 +2378,8 @@ const app = createApp({
                 if (response.data.success) {
                     const agentName = this.currentManagingAgent.username;
                     const isCurrentUser = this.currentManagingAgent.id === this.user.id;
-                    const message = isCurrentUser ? 
-                        `会员 ${this.newMember.username} 创建成功!` : 
-                        `已為代理 ${agentName} 创建会员 ${this.newMember.username}`;
-                    this.showMessage(message, 'success');
+                    const memberUsername = this.newMember.username;
+                    
                     this.hideCreateMemberModal();
                     // 重置新增会员表單
                     this.newMember = {
@@ -2392,7 +2390,40 @@ const app = createApp({
                         status: 1,
                         notes: ''
                     };
-                    await this.searchMembers(); // 刷新会员列表
+                    
+                    // 如果不是為自己創建會員，跳轉到會員管理並設置層級
+                    if (!isCurrentUser) {
+                        // 切換到會員管理標籤
+                        this.setActiveTab('members');
+                        
+                        // 設置會員管理的當前代理為創建會員的代理
+                        this.currentMemberManagingAgent = {
+                            id: this.currentManagingAgent.id,
+                            username: this.currentManagingAgent.username,
+                            level: this.currentManagingAgent.level
+                        };
+                        
+                        // 設置麵包屑導航到該代理
+                        this.memberBreadcrumb = [{
+                            id: this.currentManagingAgent.id,
+                            username: this.currentManagingAgent.username,
+                            level: this.getLevelName(this.currentManagingAgent.level)
+                        }];
+                        
+                        // 載入該代理的會員列表
+                        await this.loadHierarchicalMembers();
+                        
+                        // 顯示成功訊息和提示
+                        this.showMessage(
+                            `已為代理 ${agentName} 创建会员 ${memberUsername}，請根據需求調整點數及限紅`, 
+                            'success'
+                        );
+                    } else {
+                        // 為自己創建會員，正常刷新列表
+                        const message = `会员 ${memberUsername} 创建成功!`;
+                        this.showMessage(message, 'success');
+                        await this.searchMembers(); // 刷新会员列表
+                    }
                 } else {
                     this.showMessage(response.data.message || '会员创建失败', 'error');
                 }
