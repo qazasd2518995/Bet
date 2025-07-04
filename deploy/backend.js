@@ -5501,10 +5501,10 @@ async function performAutoDetectAnalysis(period, betStats) {
       shouldApplyControl = true;
       reason = `檢測到 ${simulationResults.highRiskOutcomes.length} 個高風險下注組合，啟動風控`;
     }
-    // 正常情況下維持少量平台優勢
-    else if (totalBetAmount > 1000 && platformAdvantage < totalBetAmount * 0.05) {
+    // 正常情況下維持少量平台優勢（移除金額門檻，一律檢查）
+    else if (platformAdvantage < totalBetAmount * 0.05) {
       shouldApplyControl = true;
-      reason = `維持健康的平台收益率，確保長期運營穩定`;
+      reason = `維持健康的平台收益率，確保長期運營穩定 (預期收益: ${platformAdvantage.toFixed(2)}, 目標: ${(totalBetAmount * 0.05).toFixed(2)})`;
     } else {
       reason = `各項指標正常，維持正常機率開獎`;
     }
