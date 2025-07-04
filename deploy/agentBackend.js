@@ -7612,7 +7612,7 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         const memberQuery = `
           SELECT m.id, m.username, m.balance,
                  COUNT(bh.id) as bet_count,
-                 COALESCE(SUM(bh.bet_amount), 0) as total_bet_amount,
+                 COALESCE(SUM(bh.amount), 0) as total_bet_amount,
                  COALESCE(SUM(bh.win_amount), 0) as total_win_amount
           FROM members m
           LEFT JOIN bet_history bh ON bh.username = m.username
