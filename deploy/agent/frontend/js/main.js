@@ -1622,12 +1622,26 @@ const app = createApp({
                 level: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
             });
             
-            // 設定新的管理代理
+            // 設定新的管理代理，確保 level 是數字
+            let agentLevel = agent.level;
+            if (typeof agentLevel === 'string') {
+                agentLevel = this.getLevelFromName(agentLevel);
+            }
+            
+            // 保留完整的代理數據，特別是退水設定相關資訊
             this.currentMemberManagingAgent = {
                 id: agent.id,
                 username: agent.username,
-                level: agent.level
+                level: agentLevel,
+                rebate_percentage: agent.rebate_percentage,
+                max_rebate_percentage: agent.max_rebate_percentage,
+                rebate_mode: agent.rebate_mode,
+                market_type: agent.market_type,
+                balance: agent.balance,
+                status: agent.status
             };
+            
+            console.log('✅ 設定當前會員管理代理:', this.currentMemberManagingAgent);
             
             // 載入新代理的會員
             await this.loadHierarchicalMembers();
@@ -1636,21 +1650,64 @@ const app = createApp({
         async goBackToParentMember() {
             if (this.memberBreadcrumb.length > 0) {
                 const parent = this.memberBreadcrumb.pop();
-                this.currentMemberManagingAgent = {
-                    id: parent.id,
-                    username: parent.username,
-                    level: this.getLevelFromName(parent.level)
-                };
+                
+                // 嘗試從 agents 數組中找到完整的代理資料
+                const fullAgentData = this.agents.find(a => a.id === parent.id);
+                
+                if (fullAgentData) {
+                    // 使用完整的代理資料
+                    this.currentMemberManagingAgent = {
+                        id: fullAgentData.id,
+                        username: fullAgentData.username,
+                        level: fullAgentData.level,
+                        rebate_percentage: fullAgentData.rebate_percentage,
+                        max_rebate_percentage: fullAgentData.max_rebate_percentage,
+                        rebate_mode: fullAgentData.rebate_mode,
+                        market_type: fullAgentData.market_type,
+                        balance: fullAgentData.balance,
+                        status: fullAgentData.status
+                    };
+                } else {
+                    // 如果找不到，使用基本資料（向下兼容）
+                    this.currentMemberManagingAgent = {
+                        id: parent.id,
+                        username: parent.username,
+                        level: this.getLevelFromName(parent.level)
+                    };
+                }
+                
+                console.log('🔙 返回上級代理:', this.currentMemberManagingAgent);
                 await this.loadHierarchicalMembers();
             }
         },
 
         async goBackToMemberLevel(targetItem) {
-            this.currentMemberManagingAgent = {
-                id: targetItem.id,
-                username: targetItem.username,
-                level: this.getLevelFromName(targetItem.level)
-            };
+            // 嘗試從 agents 數組中找到完整的代理資料
+            const fullAgentData = this.agents.find(a => a.id === targetItem.id);
+            
+            if (fullAgentData) {
+                // 使用完整的代理資料
+                this.currentMemberManagingAgent = {
+                    id: fullAgentData.id,
+                    username: fullAgentData.username,
+                    level: fullAgentData.level,
+                    rebate_percentage: fullAgentData.rebate_percentage,
+                    max_rebate_percentage: fullAgentData.max_rebate_percentage,
+                    rebate_mode: fullAgentData.rebate_mode,
+                    market_type: fullAgentData.market_type,
+                    balance: fullAgentData.balance,
+                    status: fullAgentData.status
+                };
+            } else {
+                // 如果找不到，使用基本資料（向下兼容）
+                this.currentMemberManagingAgent = {
+                    id: targetItem.id,
+                    username: targetItem.username,
+                    level: this.getLevelFromName(targetItem.level)
+                };
+            }
+            
+            console.log('🎯 跳轉到指定代理層級:', this.currentMemberManagingAgent);
             await this.loadHierarchicalMembers();
         },
 
@@ -2371,6 +2428,29 @@ const app = createApp({
             if (level === 0) return '總代理';
             return `${level}級`;
         },
+
+        // 獲取下一級級別名稱（用於新增代理）
+        getNextLevelName() {
+            let currentLevel = 0;
+            
+            // 確定當前管理代理的級別
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.level !== undefined) {
+                currentLevel = this.currentMemberManagingAgent.level;
+            } else if (this.currentManagingAgent && this.currentManagingAgent.level !== undefined) {
+                currentLevel = this.currentManagingAgent.level;
+            } else {
+                currentLevel = this.user.level || 0;
+            }
+            
+            // 如果 currentLevel 是字符串，轉換為數字
+            if (typeof currentLevel === 'string') {
+                currentLevel = this.getLevelFromName(currentLevel);
+            }
+            
+            // 返回下一級的級別名稱
+            const nextLevel = parseInt(currentLevel) + 1;
+            return this.getLevelName(nextLevel);
+        },
         
         // 提交余额调整
         async submitBalanceAdjustment() {
@@ -2894,8 +2974,15 @@ const app = createApp({
         
         // 顯示退水设定模態框
         showRebateSettingsModal(agent) {
-            // 修復：從最新的agents陣列中找到該代理，確保使用最新資料
-            const latestAgent = this.agents.find(a => a.id === agent.id) || agent;
+            // 修復：根據當前頁面選擇正確的數據源
+            let latestAgent;
+            if (this.activeTab === 'accounts') {
+                // 帳號管理頁面：從 hierarchicalMembers 中查找
+                latestAgent = this.hierarchicalMembers.find(a => a.id === agent.id) || agent;
+            } else {
+                // 其他頁面：從 agents 中查找
+                latestAgent = this.agents.find(a => a.id === agent.id) || agent;
+            }
             
             // 修復：正確取得上級代理的盤口類型和退水限制
             const marketType = this.currentManagingAgent.market_type || this.user.market_type || 'D';
@@ -2910,16 +2997,21 @@ const app = createApp({
                 max_rebate_percentage: maxRebate // 使用上級代理的退水限制作為最大值
             };
             
+            // 確保正確處理退水比例的格式轉換
+            const agentRebatePercentage = parseFloat(latestAgent.rebate_percentage || 0);
+            
             this.rebateSettings = {
                 rebate_mode: latestAgent.rebate_mode || 'percentage',
-                rebate_percentage: ((latestAgent.rebate_percentage || 0) * 100).toFixed(1)
+                rebate_percentage: (agentRebatePercentage * 100).toFixed(1)
             };
             
             console.log('📋 顯示退水設定 - 使用最新代理資料:', {
+                activeTab: this.activeTab,
                 agentId: latestAgent.id,
                 username: latestAgent.username,
                 rebate_mode: latestAgent.rebate_mode,
                 rebate_percentage: latestAgent.rebate_percentage,
+                parsedRebatePercentage: agentRebatePercentage,
                 displayPercentage: this.rebateSettings.rebate_percentage
             });
             
@@ -2958,7 +3050,36 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('退水设定更新成功', 'success');
                     this.hideRebateSettingsModal();
-                    await this.searchAgents(); // 刷新代理列表
+                    
+                    // 強制刷新所有相關數據
+                    console.log('🔄 強制刷新所有相關數據...');
+                    
+                    // 如果更新的是當前管理代理自己，更新 currentManagingAgent
+                    if (this.rebateAgent.id === this.currentManagingAgent.id) {
+                        console.log('🔄 更新當前管理代理的退水資料...');
+                        this.currentManagingAgent.rebate_mode = response.data.agent.rebate_mode;
+                        this.currentManagingAgent.rebate_percentage = response.data.agent.rebate_percentage;
+                    }
+                    
+                    // 如果更新的是用戶自己，也更新 user 對象
+                    if (this.rebateAgent.id === this.user.id) {
+                        console.log('🔄 更新用戶的退水資料...');
+                        this.user.rebate_mode = response.data.agent.rebate_mode;
+                        this.user.rebate_percentage = response.data.agent.rebate_percentage;
+                    }
+                    
+                    if (this.activeTab === 'accounts') {
+                        // 帳號管理頁面：刷新層級會員數據
+                        await this.loadHierarchicalMembers();
+                    } else {
+                        // 其他頁面：刷新代理數據
+                        await this.searchAgents();
+                    }
+                    
+                    // 強制觸發 Vue 響應性更新
+                    this.$forceUpdate();
+                    
+                    console.log('✅ 數據刷新完成');
                 } else {
                     this.showMessage(response.data.message || '更新退水设定失败', 'error');
                 }
@@ -3369,15 +3490,28 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`代理已设为${actionText}`, 'success');
-                    // 更新本地代理列表中的狀態
+                    
+                    // 立即更新本地代理列表中的狀態
                     const agentInList = this.agents.find(a => a.id === agent.id);
                     if (agentInList) {
                         agentInList.status = newStatus;
                     }
-                    // 根據當前介面決定刷新方式
+                    
+                    // 如果在帳號管理頁面，也更新層級管理中的代理狀態
+                    if (this.activeTab === 'accounts' && this.hierarchicalMembers) {
+                        const hierarchicalAgent = this.hierarchicalMembers.find(a => a.id === agent.id);
+                        if (hierarchicalAgent) {
+                            hierarchicalAgent.status = newStatus;
+                        }
+                    }
+                    
+                    // 根據當前介面決定是否需要重新載入數據
                     if (this.activeTab === 'members') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
+                    } else if (this.activeTab === 'accounts') {
+                        // 在帳號管理頁面時，重新載入當前層級的數據
+                        await this.loadHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
                         await this.searchAgents();
@@ -6373,6 +6507,63 @@ const app = createApp({
             );
             
             return selectedConfig ? selectedConfig.config : {};
+        },
+        
+        // 計算可用的最大退水比例（用於新增代理時的限制）
+        availableMaxRebatePercentage() {
+            // 確定使用的管理代理
+            let managingAgent;
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
+                managingAgent = this.currentMemberManagingAgent;
+            } else {
+                managingAgent = this.currentManagingAgent;
+            }
+            
+            // 如果沒有管理代理，回退到用戶自己
+            if (!managingAgent || !managingAgent.id) {
+                managingAgent = this.user;
+            }
+            
+            // 核心邏輯：優先使用管理代理的 rebate_percentage（實際分配到的退水比例）
+            // 這是該代理能夠分配給下級的最大額度
+            let actualRebatePercentage = managingAgent.rebate_percentage;
+            
+            console.log('🔍 第一步 - 原始 rebate_percentage:', actualRebatePercentage, typeof actualRebatePercentage);
+            
+            // 確保轉換為數字類型
+            if (actualRebatePercentage !== undefined && actualRebatePercentage !== null && actualRebatePercentage !== '') {
+                actualRebatePercentage = parseFloat(actualRebatePercentage);
+                console.log('🔍 第二步 - parseFloat 後:', actualRebatePercentage);
+            } else {
+                actualRebatePercentage = null;
+                console.log('🔍 第二步 - rebate_percentage 為空或undefined');
+            }
+            
+            // 只有在 rebate_percentage 真的不存在或為0時，才考慮使用 max_rebate_percentage
+            if (actualRebatePercentage === null || isNaN(actualRebatePercentage) || actualRebatePercentage <= 0) {
+                console.log('🔍 第三步 - rebate_percentage 無效，嘗試使用 max_rebate_percentage');
+                actualRebatePercentage = parseFloat(managingAgent.max_rebate_percentage) || 0;
+                console.log('🔍 第三步 - 使用 max_rebate_percentage:', actualRebatePercentage);
+            } else {
+                console.log('🔍 第三步 - 使用有效的 rebate_percentage:', actualRebatePercentage);
+            }
+            
+            // 最後的兜底邏輯：如果還是沒有有效值，根據盤口類型使用默認值
+            if (isNaN(actualRebatePercentage) || actualRebatePercentage <= 0) {
+                const marketType = managingAgent.market_type || this.user.market_type || 'D';
+                actualRebatePercentage = marketType === 'A' ? 0.011 : 0.041;
+                console.log('🔍 第四步 - 使用默認值:', actualRebatePercentage);
+            }
+            
+            console.log('💡 計算 availableMaxRebatePercentage 最終結果:', {
+                managingAgent: managingAgent.username,
+                原始_rebate_percentage: managingAgent.rebate_percentage,
+                原始_max_rebate_percentage: managingAgent.max_rebate_percentage,
+                最終使用值: actualRebatePercentage,
+                顯示百分比: (actualRebatePercentage * 100).toFixed(1) + '%'
+            });
+            
+            return actualRebatePercentage;
         }
     },
 
