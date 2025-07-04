@@ -2254,21 +2254,34 @@
                                     <label class="form-label">期数</label>
                                     <input type="text" class="form-control" placeholder="输入期数" v-model="betFilters.period">
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">快捷選項</label>
+                            </div>
+                            
+                            <!-- 第二行：快速選項按鈕 -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label">快速選項</label>
                                     <div class="btn-group w-100" role="group">
-                                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                            期間
+                                        <button type="button" class="btn btn-outline-primary" @click="setBetDateRange('today')">
+                                            <i class="fas fa-calendar-day me-1"></i>今日
                                         </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('today')">今天</a></li>
-                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('yesterday')">昨天</a></li>
-                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('thisWeek')">本週</a></li>
-                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('thisMonth')">本月</a></li>
-                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('lastMonth')">上月</a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item" href="#" @click.prevent="setBetDateRange('clear')">清除</a></li>
-                                        </ul>
+                                        <button type="button" class="btn btn-outline-secondary" @click="setBetDateRange('yesterday')">
+                                            <i class="fas fa-calendar-minus me-1"></i>昨日
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success" @click="setBetDateRange('thisWeek')">
+                                            <i class="fas fa-calendar-week me-1"></i>本週
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning" @click="setBetDateRange('lastWeek')">
+                                            <i class="fas fa-calendar-alt me-1"></i>上週
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info" @click="setBetDateRange('thisMonth')">
+                                            <i class="fas fa-calendar me-1"></i>本月
+                                        </button>
+                                        <button type="button" class="btn btn-outline-dark" @click="setBetDateRange('lastMonth')">
+                                            <i class="fas fa-history me-1"></i>上月
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" @click="setBetDateRange('clear')">
+                                            <i class="fas fa-times me-1"></i>清除
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="col-md-12 d-flex align-items-end">

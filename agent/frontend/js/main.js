@@ -305,8 +305,8 @@ const app = createApp({
             betFilters: {
                 member: '',
                 date: '',
-                startDate: '',
-                endDate: '',
+                startDate: new Date().toISOString().split('T')[0], // 預設今天
+                endDate: new Date().toISOString().split('T')[0],   // 預設今天
                 period: '',
                 viewScope: 'own', // 'own', 'downline', 'specific'
                 specificAgent: ''
@@ -325,6 +325,7 @@ const app = createApp({
             // 代理線管理相关
             allDownlineAgents: [], // 所有下級代理
             availableMembers: [], // 当前可用的会员列表
+            lastMembersLoadTime: null, // 會員列表載入時間（緩存用）
             
             // 会员余额修改相关
             modifyBalanceData: {
@@ -1793,7 +1794,7 @@ const app = createApp({
             return this.getMarketInfo('D'); // 默認D盤
         },
         
-        // 处理查看范围變更
+        // 处理查看范围變更（優化性能）
         async handleViewScopeChange() {
             console.log('🔄 查看范围變更:', this.betFilters.viewScope);
             
@@ -1801,17 +1802,21 @@ const app = createApp({
             this.betFilters.member = '';
             this.betFilters.specificAgent = '';
             
+            // 延遲載入會員列表，只在真正需要時載入
             if (this.betFilters.viewScope === 'own') {
-                // 僅本代理下級会员 - 總是載入直屬會員
-                await this.loadDirectMembersForBets();
+                // 僅本代理下級会员 - 快速載入直屬會員
+                this.loadDirectMembersForBets();
             } else if (this.betFilters.viewScope === 'downline') {
-                // 整條代理線
-                await this.loadDownlineAgentsAndMembers();
+                // 整條代理線 - 使用緩存優化
+                this.loadDownlineAgentsAndMembers();
             } else if (this.betFilters.viewScope === 'specific') {
-                // 指定代理/会员
-                await this.loadAllDownlineAgents();
+                // 指定代理/会员 - 延遲載入
                 this.availableMembers = [];
+                this.loadAllDownlineAgents();
             }
+            
+            // 不自動搜索，等用戶操作後再搜索
+            console.log('✅ 查看範圍已切換，等待用戶進一步操作');
         },
         
         // 載入直屬會員用於下注記錄
@@ -1861,24 +1866,42 @@ const app = createApp({
             }
         },
         
-        // 载入整條代理線的代理和会员
+        // 载入整條代理線的代理和会员（優化緩存版本）
         async loadDownlineAgentsAndMembers() {
             try {
+                // 如果已有緩存且不超過5分鐘，直接使用
+                if (this.availableMembers.length > 0 && 
+                    this.lastMembersLoadTime && 
+                    Date.now() - this.lastMembersLoadTime < 5 * 60 * 1000) {
+                    console.log('🚀 使用緩存的代理線會員數據:', this.availableMembers.length, '個');
+                    return;
+                }
+                
                 console.log('📡 载入整條代理線的会员...');
+                
+                // 顯示加載中狀態
+                if (!this.loading) {
+                    this.showMessage('載入會員列表中...', 'info');
+                }
+                
                 const response = await axios.get(`${API_BASE_URL}/downline-members`, {
                     params: { 
-                        rootAgentId: this.currentManagingAgent.id 
+                        rootAgentId: this.currentManagingAgent.id,
+                        limit: 500  // 限制數量提升性能
                     }
                 });
                 
                 if (response.data.success) {
                     this.availableMembers = response.data.members || [];
+                    this.lastMembersLoadTime = Date.now(); // 記錄載入時間
                     console.log('✅ 载入整條代理線会员成功:', this.availableMembers.length, '個');
                 } else {
                     console.error('❌ 载入整條代理線会员失败:', response.data.message);
+                    this.availableMembers = [];
                 }
             } catch (error) {
                 console.error('❌ 载入整條代理線会员错误:', error);
+                this.availableMembers = [];
                 this.showMessage('载入会员列表失败', 'error');
             }
         },
@@ -5720,6 +5743,14 @@ const app = createApp({
                       startDate = firstDay.toISOString().split('T')[0];
                       endDate = today.toISOString().split('T')[0];
                       break;
+                  case 'lastWeek':
+                      const lastWeekEnd = new Date(today);
+                      lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
+                      const lastWeekStart = new Date(lastWeekEnd);
+                      lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
+                      startDate = lastWeekStart.toISOString().split('T')[0];
+                      endDate = lastWeekEnd.toISOString().split('T')[0];
+                      break;
                   case 'thisMonth':
                       startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
                       endDate = today.toISOString().split('T')[0];
@@ -5744,6 +5775,9 @@ const app = createApp({
               this.betFilters.date = ''; // 清空單日查詢
               
               console.log('📅 設置下注記錄期間查詢:', type, startDate, '至', endDate);
+              
+              // 自動執行搜索
+              this.searchBets();
           },
 
         // 調整會員限紅 - 使用v-if控制顯示
