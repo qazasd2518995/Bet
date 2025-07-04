@@ -1506,14 +1506,29 @@ async function calculateTargetControlWeights(period, control, betStats) {
             
             console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
           } else if (control.loss_control) {
-            // 輸控制：大幅減少該號碼的權重
+            // 輸控制：讓會員下注號碼有較低權重，但不是0
             if (controlPercentage >= 99.9) {
-              weights.positions[position][value] = 0.001; // 100%控制時使用極低權重
+              weights.positions[position][value] = 0.001; // 100%輸控制時使用極低權重
+            } else if (controlPercentage <= 0.1) {
+              weights.positions[position][value] = 1; // 0%輸控制時不調整權重
             } else {
-              const lossWeight = 1 - (controlPercentage / 100) * 0.999;
-              weights.positions[position][value] = Math.max(lossWeight, 0.001);
+              // 輸控制邏輯：會員中獎機率 = (100 - 輸控制百分比)%
+              const samePositionBets = Object.keys(betConflicts).filter(key => 
+                key.startsWith(`number_${bet.position}_`)
+              ).length;
+              
+              const targetCount = samePositionBets; // 該位置的目標號碼數量
+              const nonTargetCount = 10 - targetCount; // 該位置的非目標號碼數量
+              const winPercentage = 100 - controlPercentage; // 會員中獎機率
+              
+              // 計算會員下注號碼的權重：W = (winPercentage * M) / ((100 - winPercentage) * N)
+              const targetWeight = (winPercentage * nonTargetCount) / ((100 - winPercentage) * targetCount);
+              weights.positions[position][value] = Math.max(targetWeight, 0.001);
+              
+              console.log(`📊 [輸控制計算] 位置${position+1}: ${targetCount}個目標號碼, ${nonTargetCount}個非目標號碼, ${controlPercentage}%輸控制 → 權重=${targetWeight.toFixed(3)}`);
             }
-            console.log(`❌ 減少位置${position+1}號碼${value+1}的權重 (輸控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
+            
+            console.log(`❌ 設置位置${position+1}號碼${value+1}的權重 (輸控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
           }
         }
       } else if (bet.bet_type === 'sumValue') {
