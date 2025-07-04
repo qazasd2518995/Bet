@@ -700,32 +700,41 @@ const app = createApp({
         showAgentModal() {
             this.showCreateAgentModal = true;
             
-            // 確定盤口類型和選擇權限：
-            // 1. 如果是總代理且為自己創建代理(level 0 -> level 1)，可自由選擇
-            // 2. 如果是總代理但在代理管理界面為下級代理創建代理，要遵守下級代理的盤口類型
-            // 3. 其他情況都固定繼承
+            // 確定使用的管理代理 - 優先使用當前層級管理代理
+            let managingAgent;
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
+                managingAgent = this.currentMemberManagingAgent;
+            } else {
+                managingAgent = this.currentManagingAgent;
+            }
+            
+            // 確保管理代理有完整信息
+            if (!managingAgent || !managingAgent.id) {
+                managingAgent = this.currentManagingAgent;
+            }
+            
+            // 確定盤口類型和選擇權限
             let marketType = 'D'; // 默認D盤
             let canChooseMarket = false;
             
-            if (this.user.level === 0 && this.currentManagingAgent.id === this.user.id) {
+            if (this.user.level === 0 && managingAgent.id === this.user.id) {
                 // 總代理為自己創建一級代理，可自由選擇
                 canChooseMarket = true;
                 marketType = 'D'; // 預設D盤
             } else {
                 // 其他情況：固定繼承當前管理代理的盤口類型
                 canChooseMarket = false;
-                marketType = this.currentManagingAgent.market_type || 'D';
+                marketType = managingAgent.market_type || this.user.market_type || 'D';
             }
             
-            // 根據当前管理代理级别，设置默認的下級代理级别
             // 根據盤口類型設定合適的默認退水比例
             const defaultRebatePercentage = marketType === 'A' ? 0.5 : 2.0; // A盤用0.5%，D盤用2.0%
             
             this.newAgent = {
                 username: '',
                 password: '',
-                level: (this.currentManagingAgent.level + 1).toString(),
-                parent: this.currentManagingAgent.id,
+                level: (managingAgent.level + 1).toString(),
+                parent: managingAgent.id,
                 market_type: marketType,  // 設置盤口繼承
                 rebate_mode: 'percentage',
                 rebate_percentage: defaultRebatePercentage,
@@ -733,10 +742,11 @@ const app = createApp({
             };
             
             console.log('🔧 創建代理模態框設定:', {
+                activeTab: this.activeTab,
                 currentUserLevel: this.user.level,
-                currentManagingAgentLevel: this.currentManagingAgent.level,
-                currentManagingAgentMarketType: this.currentManagingAgent.market_type,
-                isCreatingForSelf: this.currentManagingAgent.id === this.user.id,
+                managingAgentLevel: managingAgent.level,
+                managingAgentMarketType: managingAgent.market_type,
+                isCreatingForSelf: managingAgent.id === this.user.id,
                 marketType: marketType,
                 canChooseMarket: canChooseMarket
             });
@@ -779,8 +789,8 @@ const app = createApp({
             console.log('🚀 快速新增会员啟動');
             console.log('当前狀態:');
             console.log('- activeTab:', this.activeTab);
+            console.log('- currentMemberManagingAgent:', this.currentMemberManagingAgent);
             console.log('- currentManagingAgent:', this.currentManagingAgent);
-            console.log('- agentBreadcrumbs:', this.agentBreadcrumbs);
             console.log('- user:', this.user);
             
             // 重置表單
@@ -793,23 +803,17 @@ const app = createApp({
                 notes: ''
             };
             
-            // 根據当前頁面和狀態确定管理代理
+            // 確定目標代理 - 優先使用當前層級管理代理
             let targetAgent = null;
             
-            if (this.activeTab === 'agents' && this.agentBreadcrumbs.length > 0) {
-                // 在下級代理管理頁面，為当前查看的代理新增会员
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
+                // 在帳號管理頁面，使用當前層級管理代理
+                targetAgent = this.currentMemberManagingAgent;
+                console.log('📋 帳號管理模式：為當前層級代理', targetAgent.username, '新增會員');
+            } else if (this.currentManagingAgent && this.currentManagingAgent.id) {
+                // 使用當前管理代理
                 targetAgent = this.currentManagingAgent;
-                console.log('📋 下級代理管理模式：為代理', targetAgent?.username, '新增会员');
-            } else if (this.activeTab === 'members') {
-                // 在会员管理頁面，為自己新增会员
-                const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
-                targetAgent = {
-                    id: this.user.id,
-                    username: this.user.username,
-                    level: this.user.level,
-                    max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
-                };
-                console.log('👤 会员管理模式：為自己新增会员');
+                console.log('📋 管理代理模式：為', targetAgent.username, '新增會員');
             } else {
                 // 預設情況：為自己新增会员
                 const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
@@ -2361,6 +2365,12 @@ const app = createApp({
             };
             return levels[level] || `${level}級代理`;
         },
+
+        // 獲取級別簡短名稱（用於帳號管理表格）
+        getLevelShortName(level) {
+            if (level === 0) return '總代理';
+            return `${level}級代理`;
+        },
         
         // 提交余额调整
         async submitBalanceAdjustment() {
@@ -2547,9 +2557,10 @@ const app = createApp({
                             // 驗證退水设定
             if (this.newAgent.rebate_mode === 'percentage') {
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
-                // 修復：使用当前管理代理的實際退水比例作為最大限制，根據盤口類型設定默認值
-                const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
-                const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate) * 100;
+                // 修復：使用当前管理代理的實際退水比例作為最大限制
+                const managingAgent = this.currentMemberManagingAgent || this.currentManagingAgent;
+                const actualRebate = managingAgent.rebate_percentage || managingAgent.max_rebate_percentage || (managingAgent.market_type === 'A' ? 0.011 : 0.041);
+                const maxRebate = actualRebate * 100;
                 
                 if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
                     this.showMessage(`退水比例必須在 0% - ${maxRebate.toFixed(1)}% 之間`, 'error');

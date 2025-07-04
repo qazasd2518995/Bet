@@ -701,7 +701,12 @@ const app = createApp({
             this.showCreateAgentModal = true;
             
             // 確定使用的管理代理 - 優先使用當前層級管理代理
-            let managingAgent = this.currentMemberManagingAgent || this.currentManagingAgent;
+            let managingAgent;
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
+                managingAgent = this.currentMemberManagingAgent;
+            } else {
+                managingAgent = this.currentManagingAgent;
+            }
             
             // 確保管理代理有完整信息
             if (!managingAgent || !managingAgent.id) {
@@ -737,6 +742,7 @@ const app = createApp({
             };
             
             console.log('🔧 創建代理模態框設定:', {
+                activeTab: this.activeTab,
                 currentUserLevel: this.user.level,
                 managingAgentLevel: managingAgent.level,
                 managingAgentMarketType: managingAgent.market_type,
@@ -2551,9 +2557,10 @@ const app = createApp({
                             // 驗證退水设定
             if (this.newAgent.rebate_mode === 'percentage') {
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
-                // 修復：使用当前管理代理的實際退水比例作為最大限制，根據盤口類型設定默認值
-                const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
-                const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate) * 100;
+                // 修復：使用当前管理代理的實際退水比例作為最大限制
+                const managingAgent = this.currentMemberManagingAgent || this.currentManagingAgent;
+                const actualRebate = managingAgent.rebate_percentage || managingAgent.max_rebate_percentage || (managingAgent.market_type === 'A' ? 0.011 : 0.041);
+                const maxRebate = actualRebate * 100;
                 
                 if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
                     this.showMessage(`退水比例必須在 0% - ${maxRebate.toFixed(1)}% 之間`, 'error');
