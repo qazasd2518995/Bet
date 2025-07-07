@@ -56,7 +56,7 @@ const app = createApp({
             // 驗證碼
             currentCaptcha: '',
             
-            // 用戶资讯
+            // 用戶资訊
             user: {
                 id: null,
                 username: '',
@@ -780,9 +780,9 @@ const app = createApp({
         
         // 快速新增会员 - 專為会员管理頁面和下級代理管理設計
         quickCreateMember() {
-            // 安全检查：确保已登录且有用戶资讯
+            // 安全检查：确保已登录且有用戶资訊
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资讯不完整，無法新增会员');
+                console.warn('⚠️ 未登录或用戶资訊不完整，無法新增会员');
                 return;
             }
             
@@ -1542,6 +1542,8 @@ const app = createApp({
                     this.agents = data.data.list || [];
                     this.agentPagination.totalPages = Math.ceil(data.data.total / this.agentPagination.limit);
                     this.agentPagination.currentPage = data.data.page || 1;
+                    
+                    // ✅ 簡化邏輯：後端已返回正確的數字級別，無需額外轉換
                 } else {
                     console.error('代理數據格式错误:', data);
                     this.agents = [];
@@ -1594,6 +1596,45 @@ const app = createApp({
                     this.hierarchicalMembers = response.data.data || [];
                     this.memberHierarchyStats = response.data.stats || { agentCount: 0, memberCount: 0 };
                     
+                    // 🔧 防禦性修復：強制將所有代理的level轉換為數字
+                    this.hierarchicalMembers.forEach(item => {
+                        if (item.userType === 'agent') {
+                            let numLevel = parseInt(item.level);
+                            
+                            // 如果parseInt失敗，嘗試從字符串級別名稱轉換
+                            if (isNaN(numLevel)) {
+                                const levelMap = {
+                                    '總代理': 0,
+                                    '一級代理': 1,
+                                    '二級代理': 2,
+                                    '三級代理': 3,
+                                    '四級代理': 4,
+                                    '五級代理': 5,
+                                    '六級代理': 6,
+                                    '七級代理': 7,
+                                    '八級代理': 8,
+                                    '九級代理': 9,
+                                    '十級代理': 10,
+                                    '十一級代理': 11,
+                                    '十二級代理': 12,
+                                    '十三級代理': 13,
+                                    '十四級代理': 14,
+                                    '十五級代理': 15
+                                };
+                                
+                                numLevel = levelMap[item.level];
+                                if (numLevel === undefined) {
+                                    console.warn('⚠️ 代理 level 無效:', item.level, '使用預設值 0');
+                                    numLevel = 0;
+                                } else {
+                                    console.log('✅ 成功轉換字符串級別:', item.level, '->', numLevel);
+                                }
+                            }
+                            
+                            item.level = numLevel;
+                        }
+                    });
+                    
                     console.log('✅ 層級會員管理數據載入成功:', this.hierarchicalMembers.length, '項');
                     
                     // 調試：輸出代理的退水設定
@@ -1602,6 +1643,7 @@ const app = createApp({
                         console.log('🔍 代理退水設定數據:', agents.map(agent => ({
                             id: agent.id,
                             username: agent.username,
+                            level: agent.level,
                             rebate_mode: agent.rebate_mode,
                             rebate_percentage: agent.rebate_percentage,
                             max_rebate_percentage: agent.max_rebate_percentage
@@ -1632,13 +1674,15 @@ const app = createApp({
             this.memberBreadcrumb.push({
                 id: this.currentMemberManagingAgent.id || this.currentManagingAgent.id,
                 username: this.currentMemberManagingAgent.username || this.currentManagingAgent.username,
-                level: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
+                level: this.currentMemberManagingAgent.level || this.currentManagingAgent.level,
+                levelName: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
             });
             
-            // 設定新的管理代理，確保 level 是數字
-            let agentLevel = agent.level;
-            if (typeof agentLevel === 'string') {
-                agentLevel = this.getLevelFromName(agentLevel);
+            // 確保 level 是數字
+            let agentLevel = parseInt(agent.level, 10);
+            if (isNaN(agentLevel) || agentLevel < 0) {
+                console.warn('⚠️ 代理 level 無效:', agent.level, '使用預設值');
+                agentLevel = 0;
             }
             
             // 保留完整的代理數據，特別是退水設定相關資訊
@@ -1685,7 +1729,7 @@ const app = createApp({
                     this.currentMemberManagingAgent = {
                         id: parent.id,
                         username: parent.username,
-                        level: this.getLevelFromName(parent.level)
+                        level: 0 // 預設為總代理
                     };
                 }
                 
@@ -1716,7 +1760,7 @@ const app = createApp({
                 this.currentMemberManagingAgent = {
                     id: targetItem.id,
                     username: targetItem.username,
-                    level: this.getLevelFromName(targetItem.level)
+                    level: 0 // 預設為總代理
                 };
             }
             
@@ -1724,28 +1768,7 @@ const app = createApp({
             await this.loadHierarchicalMembers();
         },
 
-        getLevelFromName(levelName) {
-            // 將級別名稱轉換回級別數字
-            const levelMap = {
-                '總代理': 0,
-                '一級代理': 1,
-                '二級代理': 2,
-                '三級代理': 3,
-                '四級代理': 4,
-                '五級代理': 5,
-                '六級代理': 6,
-                '七級代理': 7,
-                '八級代理': 8,
-                '九級代理': 9,
-                '十級代理': 10,
-                '十一級代理': 11,
-                '十二級代理': 12,
-                '十三級代理': 13,
-                '十四級代理': 14,
-                '十五級代理': 15
-            };
-            return levelMap[levelName] || 0;
-        },
+
         
         // 载入直屬会员
         async loadDirectMembers() {
@@ -2413,7 +2436,7 @@ const app = createApp({
             }
         },
         
-        // 获取级别名稱
+        // 获取级别名稱 - 簡化邏輯，直接處理數字級別
         getLevelName(level) {
             const levels = {
                 0: '總代理',
@@ -2433,14 +2456,28 @@ const app = createApp({
                 14: '十四級代理',
                 15: '十五級代理'
             };
-            return levels[level] || `${level}級代理`;
+            
+            // 確保 level 是數字
+            const n = parseInt(level, 10);
+            
+            // 如果轉換失敗，返回預設值
+            if (isNaN(n) || n < 0) {
+                console.warn('⚠️ getLevelName 收到無效 level:', level, '使用預設值');
+                return '未知級別';
+            }
+            
+            return levels[n] || `${n}級代理`;
         },
 
         // 獲取級別簡短名稱（用於帳號管理表格）
         getLevelShortName(level) {
-            if (level === 0) return '總代理';
+            // 確保 level 是數字
+            const n = parseInt(level, 10);
+            if (isNaN(n) || n < 0) return '未知';
+            
+            if (n === 0) return '總代理';
             const chinese = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
-            return `${chinese[level] || level}級`;
+            return `${chinese[n] || n}級`;
         },
 
         // 獲取下一級級別名稱（用於新增代理）
@@ -2456,13 +2493,17 @@ const app = createApp({
                 currentLevel = this.user.level || 0;
             }
             
-            // 如果 currentLevel 是字符串，轉換為數字
-            if (typeof currentLevel === 'string') {
-                currentLevel = this.getLevelFromName(currentLevel);
+            // 確保 currentLevel 是數字
+            const n = parseInt(currentLevel, 10);
+            if (isNaN(n) || n < 0) {
+                console.warn('⚠️ getNextLevelName 收到無效 level:', currentLevel, '使用預設值');
+                currentLevel = 0;
+            } else {
+                currentLevel = n;
             }
             
             // 返回下一級的級別名稱
-            const nextLevel = parseInt(currentLevel) + 1;
+            const nextLevel = currentLevel + 1;
             return this.getLevelName(nextLevel);
         },
         
@@ -5248,9 +5289,9 @@ const app = createApp({
         
         // 顯示个人资料模態框
         async showProfileModal() {
-            // 安全检查：确保已登录且有用戶资讯
+            // 安全检查：确保已登录且有用戶资訊
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资讯不完整，無法顯示个人资料');
+                console.warn('⚠️ 未登录或用戶资訊不完整，無法顯示个人资料');
                 return;
             }
             

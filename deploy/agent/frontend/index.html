@@ -732,11 +732,11 @@
                                 class="breadcrumb-item"
                                 :class="{ 'active': index === memberBreadcrumb.length - 1 }">
                                 <span v-if="index === memberBreadcrumb.length - 1" class="fw-bold">
-                                    {{ item.username }} ({{ item.level }})
+                                    {{ item.username }} ({{ item.levelName || getLevelName(item.level) }})
                                 </span>
                                 <button v-else class="btn btn-link p-0 text-decoration-none" 
                                         @click="memberBreadcrumb.splice(index + 1); goBackToMemberLevel(item)">
-                                    {{ item.username }} ({{ item.level }})
+                                    {{ item.username }} ({{ item.levelName || getLevelName(item.level) }})
                                 </button>
                             </li>
                             <li v-if="memberBreadcrumb.length > 0" class="breadcrumb-item ms-auto">
@@ -1347,7 +1347,7 @@
                                             <!-- 級別 -->
                                             <td class="text-center">
                                                 <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.level || '會員' }}
+                                                    {{ item.userType === 'agent' ? (item.level == 0 ? '總代理' : getLevelShortName(item.level) + '代理') : '會員' }}
                                                 </span>
                                             </td>
                                             <!-- 用戶名 -->

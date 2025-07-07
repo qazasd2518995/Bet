@@ -7415,7 +7415,7 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
                     ...agent,
                     userType: 'agent',
                     hasDownline: parseInt(subAgentCount.count) + parseInt(subMemberCount.count) > 0,
-                    level: getLevelName(agent.level)
+                    level: agent.level
                 };
             })
         );
@@ -7576,7 +7576,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ),
         agent_members AS (
           -- 獲取所有代理下的會員
-          SELECT at.id as agent_id, at.username as agent_username, at.level_name, at.balance as agent_balance, 
+          SELECT at.id as agent_id, at.username as agent_username, at.level as agent_level, at.level_name, at.balance as agent_balance, 
                  at.rebate_percentage, at.user_type,
                  m.id as member_id, m.username as member_username, m.balance as member_balance
           FROM agent_tree at
@@ -7584,7 +7584,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ),
         bet_stats AS (
           -- 計算每個代理/會員的下注統計
-          SELECT am.agent_id, am.agent_username, am.level_name, am.agent_balance, am.rebate_percentage, am.user_type,
+          SELECT am.agent_id, am.agent_username, am.agent_level, am.level_name, am.agent_balance, am.rebate_percentage, am.user_type,
                  am.member_id, am.member_username, am.member_balance,
                  COUNT(bh.id) as bet_count,
                  COALESCE(SUM(bh.amount), 0) as bet_amount,
@@ -7593,7 +7593,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
           FROM agent_members am
           LEFT JOIN bet_history bh ON bh.username = am.member_username
           ${whereClause.replace(/\$(\d+)/g, (match, p1) => `$${parseInt(p1) + 1}`)}
-          GROUP BY am.agent_id, am.agent_username, am.level_name, am.agent_balance, am.rebate_percentage, am.user_type,
+          GROUP BY am.agent_id, am.agent_username, am.agent_level, am.level_name, am.agent_balance, am.rebate_percentage, am.user_type,
                    am.member_id, am.member_username, am.member_balance
         )
         SELECT 
@@ -7610,7 +7610,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
             ELSE member_username
           END as username,
           CASE 
-            WHEN user_type = 'agent' THEN level_name
+            WHEN user_type = 'agent' THEN agent_level
             ELSE '會員'
           END as level,
           CASE 
