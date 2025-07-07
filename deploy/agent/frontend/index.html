@@ -821,7 +821,7 @@
                                         <tr v-for="item in hierarchicalMembers" :key="item.id">
                                             <td>
                                                 <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? (item.level == 0 ? '總代理' : getLevelShortName(item.level) + '代理') : '會員' }}
+                                                    {{ item.userType === 'agent' ? (item.level == 0 ? '總代理' : getLevelName(item.level)) : '會員' }}
                                                 </span>
                                             </td>
                                             <td>{{ item.id }}</td>
