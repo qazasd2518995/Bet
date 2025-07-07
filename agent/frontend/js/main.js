@@ -2611,6 +2611,22 @@ const app = createApp({
         },
         async createAgent() {
             console.log('createAgent 方法被調用', this.newAgent);
+            
+            // 檢查15級代理限制
+            let currentLevel = 0;
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.level !== undefined) {
+                currentLevel = this.currentMemberManagingAgent.level;
+            } else if (this.currentManagingAgent && this.currentManagingAgent.level !== undefined) {
+                currentLevel = this.currentManagingAgent.level;
+            } else {
+                currentLevel = this.user.level || 0;
+            }
+            
+            if (currentLevel >= 15) {
+                this.showMessage('15級代理已達最大層級限制，只能創建會員，不能創建下級代理', 'error');
+                return;
+            }
+            
             if (!this.newAgent.username || !this.newAgent.password) {
                 this.showMessage('请填寫所有必填欄位', 'error');
                 return;
@@ -2679,7 +2695,14 @@ const app = createApp({
                         notes: ''
                     };
                     
-                    this.searchAgents(); // 刷新代理列表
+                    // 根據當前標籤頁決定刷新方式
+                    if (this.activeTab === 'accounts') {
+                        // 在帳號管理介面時刷新層級數據
+                        await this.loadHierarchicalMembers();
+                    } else {
+                        // 在其他介面時刷新代理列表
+                        this.searchAgents();
+                    }
                 } else {
                     this.showMessage(response.data.message || '代理创建失败', 'error');
                 }
@@ -3709,7 +3732,7 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('更新代理備註錯誤:', error);
-                this.showMessage(error.response?.data?.message || '更新代理備註失敗，請稍後再試', 'error');
+                this.showMessage(error.response?.data?.message || '更新代理備註失败，请稍後再試', 'error');
             } finally {
                 this.loading = false;
             }

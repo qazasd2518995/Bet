@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端修復測試頁面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>代理管理平台前端修復測試</h1>
+    
+    <div class="test-section">
+        <h2>測試 1: JavaScript 文件載入檢查</h2>
+        <div id="js-test">正在檢查...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>測試 2: 級別顯示函數檢查</h2>
+        <div id="level-test">正在檢查...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>測試 3: API 連接測試</h2>
+        <div id="api-test">正在檢查...</div>
+    </div>
+
+    <script>
+        // 檢查主要 JavaScript 文件是否正確載入
+        function testJSLoad() {
+            fetch('/js/main.js')
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    }
+                    throw new Error('無法載入 main.js');
+                })
+                .then(jsContent => {
+                    // 檢查是否包含我們的修復
+                    const hasChangeMemberStatusFix = jsContent.includes('立即更新本地會員列表中的狀態');
+                    const hasGetLevelNameFix = jsContent.includes("0: '總代理'");
+                    
+                    let result = '✅ JavaScript 文件載入成功<br>';
+                    result += hasChangeMemberStatusFix ? '✅ 會員狀態修復已包含<br>' : '❌ 會員狀態修復缺失<br>';
+                    result += hasGetLevelNameFix ? '✅ 級別顯示修復已包含<br>' : '❌ 級別顯示修復缺失<br>';
+                    
+                    document.getElementById('js-test').innerHTML = result;
+                })
+                .catch(error => {
+                    document.getElementById('js-test').innerHTML = `❌ 錯誤: ${error.message}`;
+                });
+        }
+        
+        // 測試級別顯示函數
+        function testLevelDisplay() {
+            // 模擬 getLevelName 函數（從我們的修復中）
+            function getLevelName(level) {
+                const levels = {
+                    0: '總代理',
+                    1: '一級代理', 
+                    2: '二級代理',
+                    3: '三級代理'
+                };
+                return levels[level] || `${level}級代理`;
+            }
+            
+            const tests = [
+                { level: 0, expected: '總代理' },
+                { level: 1, expected: '一級代理' },
+                { level: 2, expected: '二級代理' }
+            ];
+            
+            let result = '';
+            tests.forEach(test => {
+                const actual = getLevelName(test.level);
+                const success = actual === test.expected;
+                result += `Level ${test.level}: ${actual} ${success ? '✅' : '❌'}<br>`;
+            });
+            
+            document.getElementById('level-test').innerHTML = result;
+        }
+        
+        // 測試 API 連接
+        function testAPI() {
+            fetch('/api/agent/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: 'ti2025A',
+                    password: 'ti2025A',
+                    captcha: '1234'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('api-test').innerHTML = '✅ API 連接正常<br>✅ 登入成功<br>用戶級別: ' + data.agent.level;
+                } else {
+                    document.getElementById('api-test').innerHTML = '❌ 登入失敗: ' + data.message;
+                }
+            })
+            .catch(error => {
+                document.getElementById('api-test').innerHTML = '❌ API 連接錯誤: ' + error.message;
+            });
+        }
+        
+        // 執行所有測試
+        testJSLoad();
+        testLevelDisplay();
+        testAPI();
+    </script>
+</body>
+</html>

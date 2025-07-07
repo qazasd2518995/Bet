@@ -751,7 +751,8 @@
                             <button class="btn btn-primary me-2" @click="quickCreateMember">
                                 <i class="fas fa-user-plus me-1"></i>新增會員
                             </button>
-                            <button class="btn btn-success me-2" @click="showAgentModal">
+                            <button v-if="(currentMemberManagingAgent ? currentMemberManagingAgent.level : (currentManagingAgent ? currentManagingAgent.level : user.level)) < 15" 
+                                    class="btn btn-success me-2" @click="showAgentModal">
                                 <i class="fas fa-plus me-1"></i>新增代理
                             </button>
                             <button class="btn btn-outline-primary" @click="refreshHierarchicalMembers()">
@@ -812,23 +813,26 @@
                                         <tr v-for="item in hierarchicalMembers" :key="item.id">
                                             <td>
                                                 <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? getLevelShortName(item.level) + '代理' : '會員' }}
+                                                    {{ item.userType === 'agent' ? (getLevelShortName(item.level) + '代理') : '會員' }}
                                                 </span>
                                             </td>
                                             <td>{{ item.id }}</td>
                                             <td>
-                                                <!-- 如果是代理且有下級，顯示為可點擊 -->
-                                                <div v-if="item.userType === 'agent' && item.hasDownline" class="d-flex align-items-center">
+                                                <!-- 如果是代理且級別小於15，顯示為可點擊 -->
+                                                <div v-if="item.userType === 'agent' && item.level < 15" class="d-flex align-items-center">
                                                     <button class="btn btn-link p-0 text-decoration-none fw-bold text-primary" 
                                                             @click="enterAgentMemberManagement(item)">
                                                         {{ item.username }}
                                                         <i class="fas fa-chevron-right ms-1 small"></i>
                                                     </button>
                                                 </div>
-                                                <!-- 其他情況顯示為普通文字 -->
+                                                <!-- 15級代理或會員顯示為普通文字 -->
                                                 <div v-else class="d-flex align-items-center">
                                                     <span class="fw-bold" :class="item.userType === 'agent' ? 'text-primary' : 'text-success'">
                                                         {{ item.username }}
+                                                    </span>
+                                                    <span v-if="item.userType === 'agent' && item.level >= 15" class="text-muted small ms-2">
+                                                        (最大層級，只能創建會員)
                                                     </span>
                                                 </div>
                                             </td>
@@ -914,7 +918,8 @@
                                     <button class="btn btn-primary me-2" @click="quickCreateMember">
                                         <i class="fas fa-user-plus me-1"></i>新增會員
                                     </button>
-                                    <button class="btn btn-success" @click="showAgentModal">
+                                    <button v-if="(currentMemberManagingAgent ? currentMemberManagingAgent.level : (currentManagingAgent ? currentManagingAgent.level : user.level)) < 15" 
+                                            class="btn btn-success" @click="showAgentModal">
                                         <i class="fas fa-plus me-1"></i>新增代理
                                     </button>
                                 </div>
@@ -945,7 +950,7 @@
                                 <div class="mb-3">
                                     <label class="form-label">代理级别</label>
                                     <input type="text" class="form-control" 
-                                           :value="getLevelName((currentMemberManagingAgent && currentMemberManagingAgent.level !== undefined ? currentMemberManagingAgent.level : currentManagingAgent.level) + 1)" 
+                                           :value="getNextLevelName()" 
                                            readonly disabled>
                                     <small class="form-text text-muted">您只能创建比目前层级低一級的代理</small>
                                 </div>
@@ -976,9 +981,9 @@
                                                 <div class="mb-3" v-if="newAgent.rebate_mode === 'percentage'">
                                                     <label class="form-label">退水比例 (%)</label>
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
-                                                           step="0.01" min="0" :max="((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100" required>
+                                                           step="0.01" min="0" :max="availableMaxRebatePercentage * 100" required>
                                                     <small class="form-text text-muted">
-                                                        可设定范围：0% - {{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}% (當前代理限制)
+                                                        可设定范围：0% - {{ (availableMaxRebatePercentage * 100).toFixed(1) }}% (直屬上級代理分配額度)
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
@@ -993,7 +998,7 @@
                                                     </div>
                                                     <div class="card-body">
                                                         <ul class="mb-0 small">
-                                                            <li><strong>全拿所有退水：</strong>該代理获得所有可得退水 ({{ (((currentMemberManagingAgent && currentMemberManagingAgent.rebate_percentage !== undefined ? currentMemberManagingAgent.rebate_percentage : currentManagingAgent.rebate_percentage) || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}%)</li>
+                                                            <li><strong>全拿所有退水：</strong>該代理获得所有可得退水 ({{ (availableMaxRebatePercentage * 100).toFixed(1) }}%)</li>
                                                             <li><strong>设定具體比例：</strong>分配給下級代理指定比例的退水</li>
                                                             <li><strong>全退給下級：</strong>該代理不获得退水，全部給下級代理</li>
                                                         </ul>
@@ -1037,9 +1042,9 @@
                                         <div class="mb-3" v-if="rebateSettings.rebate_mode === 'percentage'">
                                             <label class="form-label">退水比例 (%)</label>
                                             <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
-                                                   step="0.01" min="0" :max="(rebateAgent.max_rebate_percentage || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100" required>
+                                                   step="0.01" min="0" :max="availableMaxRebatePercentage * 100" required>
                                             <small class="form-text text-muted">
-                                                可设定范围：0% - {{ ((rebateAgent.max_rebate_percentage || ((currentManagingAgent.market_type || user.market_type) === 'A' ? 0.011 : 0.041)) * 100).toFixed(1) }}%
+                                                可设定范围：0% - {{ (availableMaxRebatePercentage * 100).toFixed(1) }}% (直屬上級代理分配額度)
                                             </small>
                                         </div>
                                         <div class="alert alert-info">

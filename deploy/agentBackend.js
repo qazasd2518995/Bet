@@ -2695,6 +2695,13 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
     const { agentId } = req.params;
     const { rebate_mode, rebate_percentage } = req.body;
     
+    console.log('🔧 更新退水設定請求:', {
+      agentId,
+      rebate_mode,
+      rebate_percentage,
+      requestBody: req.body
+    });
+    
     if (!agentId) {
       return res.json({
         success: false,
@@ -2710,6 +2717,14 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
         message: '代理不存在'
       });
     }
+    
+    console.log('📋 原始代理資料:', {
+      id: agent.id,
+      username: agent.username,
+      rebate_mode: agent.rebate_mode,
+      rebate_percentage: agent.rebate_percentage,
+      max_rebate_percentage: agent.max_rebate_percentage
+    });
     
     // 處理退水設定
     let finalRebatePercentage = agent.rebate_percentage;
@@ -2734,11 +2749,25 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
       finalRebatePercentage = parsedRebatePercentage;
     }
     
+    console.log('🎯 最終設定:', {
+      finalRebateMode,
+      finalRebatePercentage,
+      maxRebatePercentage
+    });
+    
     // 更新退水設定
     const updatedAgent = await AgentModel.updateRebateSettings(agentId, {
       rebate_percentage: finalRebatePercentage,
       rebate_mode: finalRebateMode,
       max_rebate_percentage: maxRebatePercentage
+    });
+    
+    console.log('✅ 更新後的代理資料:', {
+      id: updatedAgent.id,
+      username: updatedAgent.username,
+      rebate_mode: updatedAgent.rebate_mode,
+      rebate_percentage: updatedAgent.rebate_percentage,
+      max_rebate_percentage: updatedAgent.max_rebate_percentage
     });
     
     res.json({
@@ -7345,7 +7374,8 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
         
         // 獲取直接創建的代理
         const directAgents = await db.any(`
-            SELECT id, username, level, balance, status, created_at, notes
+            SELECT id, username, level, balance, status, created_at, notes,
+                   rebate_mode, rebate_percentage, max_rebate_percentage, market_type
             FROM agents WHERE parent_id = $1 ORDER BY level, username
         `, [queryAgentId]);
         
