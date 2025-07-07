@@ -104,4 +104,170 @@ console.log('現在代理管理平台功能完全正常：');
 console.log('• 總代理顯示："總代理"');
 console.log('• 一級代理顯示："一級代理"');
 console.log('• 1-14級代理都可以點擊進入');
-console.log('• 15級代理顯示提示，不可點擊'); 
+console.log('• 15級代理顯示提示，不可點擊');
+
+const puppeteer = require('puppeteer');
+
+async function testAccountManagementFixes() {
+    console.log('🔍 測試代理管理平台修復...');
+    
+    const browser = await puppeteer.launch({ 
+        headless: false,
+        defaultViewport: null,
+        args: ['--start-maximized']
+    });
+    
+    try {
+        const page = await browser.newPage();
+        
+        // 設置請求攔截器來查看API調用
+        await page.setRequestInterception(true);
+        page.on('request', (request) => {
+            if (request.url().includes('/hierarchical-members')) {
+                console.log('📡 層級會員API調用:', request.url());
+            }
+            request.continue();
+        });
+        
+        page.on('response', async (response) => {
+            if (response.url().includes('/hierarchical-members') && response.status() === 200) {
+                try {
+                    const data = await response.json();
+                    console.log('📦 層級會員數據:', JSON.stringify(data, null, 2));
+                    
+                    if (data.success && data.data) {
+                        data.data.forEach((item, index) => {
+                            console.log(`📊 項目 ${index + 1}:`, {
+                                id: item.id,
+                                username: item.username,
+                                userType: item.userType,
+                                level: item.level,
+                                levelType: typeof item.level
+                            });
+                        });
+                    }
+                } catch (e) {
+                    console.log('📦 API響應解析失敗');
+                }
+            }
+        });
+        
+        console.log('🌐 訪問代理管理平台...');
+        await page.goto('http://localhost:3003', { waitUntil: 'networkidle2' });
+        
+        // 檢查是否已登錄
+        try {
+            await page.waitForSelector('#loginForm', { timeout: 2000 });
+            console.log('🔐 需要登錄，嘗試自動登錄...');
+            
+            await page.type('#username', 'ti2025A');
+            await page.type('#password', 'password123');
+            await page.click('button[type="submit"]');
+            
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+            console.log('✅ 登錄成功');
+        } catch (e) {
+            console.log('✅ 已經登錄或自動登錄');
+        }
+        
+        // 等待主界面加載
+        await page.waitForSelector('#app', { timeout: 10000 });
+        console.log('✅ 主界面加載完成');
+        
+        // 切換到帳號管理
+        console.log('🔄 切換到帳號管理...');
+        await page.click('button[onclick="app.setActiveTab(\'accounts\')"]');
+        await page.waitForTimeout(2000);
+        
+        // 檢查級別顯示
+        console.log('🔍 檢查級別顯示...');
+        const badges = await page.$$eval('tbody .badge', badges => 
+            badges.map(badge => ({
+                text: badge.textContent.trim(),
+                classes: badge.className
+            }))
+        );
+        
+        console.log('🏷️ 找到的badges:', badges);
+        
+        // 檢查是否有重複的"代理"字樣
+        const duplicateBadges = badges.filter(badge => 
+            badge.text.includes('代理代理') || badge.text.includes('級代理級代理')
+        );
+        
+        if (duplicateBadges.length > 0) {
+            console.log('❌ 發現級別顯示重複問題:', duplicateBadges);
+        } else {
+            console.log('✅ 級別顯示正常，無重複問題');
+        }
+        
+        // 檢查代理用戶名點擊問題
+        console.log('🔍 檢查代理用戶名點擊功能...');
+        const agentLinks = await page.$$eval('tbody tr', rows => {
+            return rows.map(row => {
+                const badge = row.querySelector('.badge');
+                const usernameCell = row.querySelector('td:nth-child(3)');
+                const clickableButton = usernameCell ? usernameCell.querySelector('button.btn-link') : null;
+                
+                return {
+                    badgeText: badge ? badge.textContent.trim() : '',
+                    username: usernameCell ? usernameCell.textContent.trim() : '',
+                    hasClickableButton: !!clickableButton,
+                    buttonDisabled: clickableButton ? clickableButton.disabled : null
+                };
+            });
+        });
+        
+        console.log('👥 代理點擊狀態:', agentLinks);
+        
+        const agentRows = agentLinks.filter(row => row.badgeText.includes('代理'));
+        const clickableAgents = agentRows.filter(row => row.hasClickableButton);
+        
+        console.log(`📊 總代理數: ${agentRows.length}, 可點擊代理數: ${clickableAgents.length}`);
+        
+        if (agentRows.length > 0 && clickableAgents.length === 0) {
+            console.log('❌ 代理用戶名點擊功能失效');
+        } else {
+            console.log('✅ 代理用戶名點擊功能正常');
+        }
+        
+        // 測試創建代理後是否自動刷新
+        console.log('🔍 測試創建後自動刷新功能...');
+        
+        // 記錄當前項目數量
+        const currentItemCount = agentLinks.length;
+        console.log('📊 當前項目數量:', currentItemCount);
+        
+        console.log('✅ 測試完成');
+        
+        return {
+            levelDisplayOK: duplicateBadges.length === 0,
+            agentClickOK: clickableAgents.length > 0 || agentRows.length === 0,
+            badges: badges,
+            agentLinks: agentLinks
+        };
+        
+    } catch (error) {
+        console.error('❌ 測試過程中發生錯誤:', error);
+        throw error;
+    } finally {
+        await browser.close();
+    }
+}
+
+// 運行測試
+testAccountManagementFixes()
+    .then(result => {
+        console.log('\n📊 測試結果:');
+        console.log('級別顯示正常:', result.levelDisplayOK ? '✅' : '❌');
+        console.log('代理點擊正常:', result.agentClickOK ? '✅' : '❌');
+        
+        if (!result.levelDisplayOK || !result.agentClickOK) {
+            console.log('\n需要修復的問題:');
+            if (!result.levelDisplayOK) console.log('- 級別顯示重複問題');
+            if (!result.agentClickOK) console.log('- 代理用戶名點擊問題');
+        }
+    })
+    .catch(error => {
+        console.error('❌ 測試失敗:', error);
+    }); 

@@ -2426,7 +2426,8 @@ const app = createApp({
         // 獲取級別簡短名稱（用於帳號管理表格）
         getLevelShortName(level) {
             if (level === 0) return '總代理';
-            return `${level}級`;
+            const chinese = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
+            return `${chinese[level] || level}級`;
         },
 
         // 獲取下一級級別名稱（用於新增代理）
@@ -2685,10 +2686,10 @@ const app = createApp({
                     // 根據當前標籤頁決定刷新方式
                     if (this.activeTab === 'accounts') {
                         // 在帳號管理介面時刷新層級數據
-                        await this.loadHierarchicalMembers();
+                        await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新代理列表
-                        this.searchAgents();
+                        await this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || '代理创建失败', 'error');
