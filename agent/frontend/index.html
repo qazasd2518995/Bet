@@ -813,13 +813,13 @@
                                         <tr v-for="item in hierarchicalMembers" :key="item.id">
                                             <td>
                                                 <span class="badge" :class="item.userType === 'agent' ? 'bg-primary' : 'bg-success'">
-                                                    {{ item.userType === 'agent' ? (getLevelShortName(item.level) + '代理') : '會員' }}
+                                                    {{ item.userType === 'agent' ? (item.level == 0 ? '總代理' : getLevelShortName(item.level) + '代理') : '會員' }}
                                                 </span>
                                             </td>
                                             <td>{{ item.id }}</td>
                                             <td>
                                                 <!-- 如果是代理且級別小於15，顯示為可點擊 -->
-                                                <div v-if="item.userType === 'agent' && item.level < 15" class="d-flex align-items-center">
+                                                <div v-if="item.userType === 'agent' && parseInt(item.level) < 15" class="d-flex align-items-center">
                                                     <button class="btn btn-link p-0 text-decoration-none fw-bold text-primary" 
                                                             @click="enterAgentMemberManagement(item)">
                                                         {{ item.username }}
@@ -831,7 +831,7 @@
                                                     <span class="fw-bold" :class="item.userType === 'agent' ? 'text-primary' : 'text-success'">
                                                         {{ item.username }}
                                                     </span>
-                                                    <span v-if="item.userType === 'agent' && item.level >= 15" class="text-muted small ms-2">
+                                                    <span v-if="item.userType === 'agent' && parseInt(item.level) >= 15" class="text-muted small ms-2">
                                                         (最大層級，只能創建會員)
                                                     </span>
                                                 </div>
