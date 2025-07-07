@@ -2552,7 +2552,7 @@ const app = createApp({
                     this.showMessage(message, 'success');
                     
                     // 根據當前標籤頁決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -2874,7 +2874,7 @@ const app = createApp({
                     // 同時更新localStorage中的用戶資訊
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
                     // 需要重新獲取會員列表或更新特定會員的餘額
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3185,7 +3185,7 @@ const app = createApp({
                     }
                     
                     // 重新載入會員列表以確保狀態同步
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else if (this.activeTab === 'accounts') {
@@ -3331,7 +3331,7 @@ const app = createApp({
                     this.showMessage('会员额度修改成功', 'success');
                     this.hideModifyMemberBalanceModal();
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3363,7 +3363,7 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('会员删除成功', 'success');
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3493,7 +3493,7 @@ const app = createApp({
                         agentInList.status = newStatus;
                     }
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3545,7 +3545,7 @@ const app = createApp({
                     }
                     
                     // 根據當前介面決定是否需要重新載入數據
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else if (this.activeTab === 'accounts') {
@@ -3600,7 +3600,7 @@ const app = createApp({
                     }
                     
                     // 根據當前介面決定是否需要重新載入數據
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else if (this.activeTab === 'accounts') {
@@ -3699,7 +3699,7 @@ const app = createApp({
                     
                     this.hideEditAgentNotesModal();
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3807,7 +3807,7 @@ const app = createApp({
                     this.hideEditMemberNotesModal();
                     
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3902,7 +3902,7 @@ const app = createApp({
                     // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3936,7 +3936,7 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('代理删除成功', 'success');
                     // 根據當前介面決定刷新方式
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         // 在層級會員管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -4995,7 +4995,7 @@ const app = createApp({
                     }
                     
                     // 如果当前在会员頁面，刷新会员列表
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         refreshPromises.push(this.searchMembers());
                     }
                     
@@ -6279,7 +6279,7 @@ const app = createApp({
                     this.showBettingLimitModal = false;
                     
                     // 刷新會員列表
-                    if (this.activeTab === 'members') {
+                    if (this.activeTab === 'accounts') {
                         await this.searchMembers();
                     } else if (this.activeTab === 'hierarchical') {
                         await this.refreshHierarchicalMembers();
