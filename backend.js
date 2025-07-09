@@ -997,9 +997,6 @@ async function startGameCycle() {
           } else if (memoryGameState.status === 'drawing') {
             // drawing狀態倒計時結束 -> 執行開獎並切換到下一期
             console.log('🎯 12秒開獎時間到，開始結算...');
-          } else if (memoryGameState.status === 'drawing') {
-            // drawing狀態倒計時結束 -> 執行開獎並切換到下一期
-            console.log('🎯 12秒開獎時間到，開始結算...');
             
             try {
               // 使用預先生成的結果，如果沒有則現場生成
