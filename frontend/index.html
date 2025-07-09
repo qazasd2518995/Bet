@@ -5655,8 +5655,8 @@
                             </button>
                             <div class="countdown-section" :class="gameStatus">
                                 <div class="countdown-inline">
-                                    <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒计时' : '开奖中...' }}</span>
-                                    <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
+                                    <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒计时' : '开奖中' }}</span>
+                                    <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -7276,6 +7276,9 @@
                         
                         // 載入會員限紅設定
                         this.loadMemberBettingLimits();
+                        
+                        // 啟動限紅更新監聽器
+                        this.startBettingLimitsMonitor();
                     } else {
                         // 登录资讯不完整，重定向到登录頁面
                         sessionStorage.clear();
@@ -7444,6 +7447,9 @@
                     this.$forceUpdate();
                 },
                 logout() {
+                    // 停止限紅更新監聽器
+                    this.stopBettingLimitsMonitor();
+                    
                     // 清除所有登录资讯並跳轉到登录頁面
                     sessionStorage.clear();
                     this.username = '';

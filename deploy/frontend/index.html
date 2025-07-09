@@ -5655,8 +5655,8 @@
                             </button>
                             <div class="countdown-section" :class="gameStatus">
                                 <div class="countdown-inline">
-                                    <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒计时' : '开奖中...' }}</span>
-                                    <span class="countdown-time" v-if="gameStatus === 'betting'">{{ formatTime(countdownSeconds) }}</span>
+                                    <span class="countdown-label">{{ gameStatus === 'betting' ? '封盤倒计时' : '开奖中' }}</span>
+                                    <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
                                 </div>
                             </div>
                         </div>
