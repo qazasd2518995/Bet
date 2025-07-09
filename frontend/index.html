@@ -7446,8 +7446,7 @@
                     this.$forceUpdate();
                 },
                 logout() {
-                    // 停止限紅更新監聽器
-                    this.stopBettingLimitsMonitor();
+                    // 限紅監聽器已移除，無需手動停止
                     
                     // 清除所有登录资讯並跳轉到登录頁面
                     sessionStorage.clear();
