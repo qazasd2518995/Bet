@@ -153,17 +153,16 @@
 }
 
 /* 修改顏色與遊戲端實際顯示一致 */
-.ball-1 { background-color: #f8c300; }  /* 黃色 */
-.ball-2 { background-color: #0074d9; }  /* 藍色 */
-.ball-3 { background-color: #2ecc40; }  /* 綠色 */
-.ball-4 { background-color: #ff4136; }  /* 紅色 */
-.ball-5 { background-color: #b10dc9; }  /* 紫色 */
-.ball-6 { background-color: #ff851b; }  /* 橙色 */
-.ball-7 { background-color: #aaaaaa; }  /* 灰色 */
-.ball-8 { background-color: #395144; }  /* 深綠色 */
-.ball-9 { background-color: #3d1766; }  /* 深紫色 */
-.ball-10 { background-color: #000000; } /* 黑色 */
-.ball-0 { background-color: #000000; }  /* 黑色（用於10號球） */
+.ball-1 { background-color: #ffcc00; color: #000; } /* 金黃色 */
+.ball-2 { background-color: #3399ff; color: #fff; } /* 鮮藍色 */
+.ball-3 { background-color: #777777; color: #fff; } /* 深灰色 */
+.ball-4 { background-color: #ff9933; color: #fff; } /* 橙色 */
+.ball-5 { background-color: #00ccff; color: #fff; } /* 天藍色 */
+.ball-6 { background-color: #9966cc; color: #fff; } /* 紫色 */
+.ball-7 { background-color: #aaaaaa; color: #fff; } /* 灰色 */
+.ball-8 { background-color: #ff3333; color: #fff; } /* 紅色 */
+.ball-9 { background-color: #990000; color: #fff; } /* 深紅色 */
+.ball-10 { background-color: #33cc33; color: #fff; } /* 綠色 */
 
 /* 投注類型標籤 */
 .bet-type-badge {

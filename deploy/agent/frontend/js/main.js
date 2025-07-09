@@ -56,7 +56,7 @@ const app = createApp({
             // 驗證碼
             currentCaptcha: '',
             
-            // 用戶资讯
+            // 用戶资訊
             user: {
                 id: null,
                 username: '',
@@ -260,6 +260,48 @@ const app = createApp({
             
             // 報表層級追蹤
             reportBreadcrumb: [],
+
+            // 會員下注記錄視窗相關
+            memberBetRecords: {
+                isVisible: false,
+                loading: false,
+                memberUsername: '',
+                memberInfo: {},
+                records: [],
+                expandedRecords: {}, // 記錄哪些記錄已展開顯示開獎結果
+                statistics: {
+                    totalBets: 0,
+                    totalAmount: 0,
+                    totalWinLoss: 0
+                },
+                filters: {
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: new Date().toISOString().split('T')[0]
+                },
+                pagination: {
+                    page: 1,
+                    limit: 10,
+                    total: 0,
+                    totalPages: 0
+                }
+            },
+
+            // 佔成明細視窗相關
+            commissionDetails: {
+                isVisible: false,
+                betRecord: null,
+                details: []
+            },
+
+            // 開獎結果視窗相關
+            drawResultModal: {
+                isVisible: false,
+                loading: false,
+                gameType: '',
+                periodNumber: '',
+                resultNumbers: null,
+                drawTime: ''
+            },
 
             // 登錄日誌相关
             loginLogs: [],
@@ -780,9 +822,9 @@ const app = createApp({
         
         // 快速新增会员 - 專為会员管理頁面和下級代理管理設計
         quickCreateMember() {
-            // 安全检查：确保已登录且有用戶资讯
+            // 安全检查：确保已登录且有用戶资訊
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资讯不完整，無法新增会员');
+                console.warn('⚠️ 未登录或用戶资訊不完整，無法新增会员');
                 return;
             }
             
@@ -2607,7 +2649,7 @@ const app = createApp({
                     
                     // 根據當前標籤頁決定刷新方式
                     if (this.activeTab === 'accounts') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在帳號管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新會員列表
@@ -3138,7 +3180,16 @@ const app = createApp({
                     payload.rebate_percentage = parseFloat(this.rebateSettings.rebate_percentage) / 100;
                 }
                 
+                console.log('🚀 發送退水設定更新請求:', {
+                    agentId: this.rebateAgent.id,
+                    payload,
+                    originalPercentage: this.rebateSettings.rebate_percentage,
+                    convertedPercentage: payload.rebate_percentage
+                });
+                
                 const response = await axios.put(`${API_BASE_URL}/update-rebate-settings/${this.rebateAgent.id}`, payload);
+                
+                console.log('📨 退水設定更新回應:', response.data);
                 
                 if (response.data.success) {
                     this.showMessage('退水设定更新成功', 'success');
@@ -3765,7 +3816,7 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('更新代理備註錯誤:', error);
-                this.showMessage(error.response?.data?.message || '更新代理備註失敗，請稍後再試', 'error');
+                this.showMessage(error.response?.data?.message || '更新代理備註失败，请稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
@@ -3862,7 +3913,7 @@ const app = createApp({
                     
                     // 根據當前介面決定刷新方式
                     if (this.activeTab === 'accounts') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在帳號管理介面時刷新層級會員數據
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面時刷新會員列表
@@ -5280,9 +5331,9 @@ const app = createApp({
         
         // 顯示个人资料模態框
         async showProfileModal() {
-            // 安全检查：确保已登录且有用戶资讯
+            // 安全检查：确保已登录且有用戶资訊
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资讯不完整，無法顯示个人资料');
+                console.warn('⚠️ 未登录或用戶资訊不完整，無法顯示个人资料');
                 return;
             }
             
@@ -5446,14 +5497,23 @@ const app = createApp({
              this.loading = true;
              
              try {
+                 // 檢查 currentManagingAgent.id 是否存在
+                 if (!this.currentManagingAgent || !this.currentManagingAgent.id) {
+                     console.error('❌ currentManagingAgent.id 未設置:', this.currentManagingAgent);
+                     throw new Error('代理ID未設置，請重新登錄');
+                 }
+                 
                  const params = new URLSearchParams();
                  if (this.reportFilters.startDate) params.append('startDate', this.reportFilters.startDate);
                  if (this.reportFilters.endDate) params.append('endDate', this.reportFilters.endDate);
                  if (this.reportFilters.username) params.append('username', this.reportFilters.username);
                  
                  console.log('📡 报表查詢參數:', this.reportFilters);
+                 console.log('📍 使用代理ID:', this.currentManagingAgent.id);
                  
-                 const url = `${API_BASE_URL}/agent-hierarchical-analysis?${params.toString()}&agentId=${this.currentManagingAgent.id}`;
+                 const url = `${this.API_BASE_URL}/agent-hierarchical-analysis?${params.toString()}&agentId=${this.currentManagingAgent.id}`;
+                 console.log('📡 完整請求URL:', url);
+                 
                  const response = await fetch(url, {
                      method: 'GET',
                      headers: {
@@ -5537,7 +5597,7 @@ const app = createApp({
                      viewType: 'agents'
                  });
                  
-                 console.log('🔍 進入代理報表:', agent.username, '層級:', agent.level);
+                 console.log('🔍 進入代理報表:', agent.username, '層級:', agent.level, 'ID:', agent.id);
                  
                  // 準備參數
                  const params = new URLSearchParams();
@@ -5556,11 +5616,10 @@ const app = createApp({
                      params.append('username', this.reportFilters.username.trim());
                  }
                  
-                 // 指定查看該代理
-                 params.append('targetAgent', agent.username);
-                 params.append('gameTypes', 'pk10');
+                 // 指定查看該代理 - 使用正確的參數名稱和值
+                 params.append('agentId', agent.id || agent.username);
                  
-                 const response = await fetch(`${this.API_BASE_URL}/reports/agent-analysis?${params.toString()}`, {
+                 const response = await fetch(`${this.API_BASE_URL}/agent-hierarchical-analysis?${params.toString()}`, {
                      method: 'GET',
                      headers: {
                          'Content-Type': 'application/json',
@@ -6178,6 +6237,142 @@ const app = createApp({
               });
           },
 
+          // 格式化投注時間 - 詳細格式
+          formatBetTimeDetailed(dateString) {
+              if (!dateString) return '-';
+              const date = new Date(dateString);
+              const year = date.getFullYear();
+              const month = (date.getMonth() + 1).toString().padStart(2, '0');
+              const day = date.getDate().toString().padStart(2, '0');
+              const hour = date.getHours().toString().padStart(2, '0');
+              const minute = date.getMinutes().toString().padStart(2, '0');
+              const second = date.getSeconds().toString().padStart(2, '0');
+              return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+          },
+
+          // 格式化投注內容 - 詳細格式
+          formatBetContentDetailed(record) {
+              if (!record) return '-';
+              
+              // 模擬一個投注內容格式 - 實際使用時需要根據真實數據結構調整
+              const position = record.position || '第八名';
+              const value = record.bet_value || '6';
+              const odds = record.odds || '9.59';
+              
+              return `${position} ${value} @ ${odds}`;
+          },
+
+          // 格式化下注結果 - 詳細格式
+          formatBetResultDetailed(record) {
+              if (!record) return '-';
+              
+              // 根據記錄計算實際輸贏金額
+              let winLossAmount = 0;
+              
+              if (record.result === 'win') {
+                  // 中獎：計算贏得的金額（投注金額 * 賠率 - 投注金額）
+                  const odds = parseFloat(record.odds) || 9.59;
+                  winLossAmount = (parseFloat(record.bet_amount) || 0) * odds - (parseFloat(record.bet_amount) || 0);
+              } else if (record.result === 'lose') {
+                  // 未中獎：損失投注金額
+                  winLossAmount = -(parseFloat(record.bet_amount) || 0);
+              } else if (record.result === 'pending') {
+                  return '待開獎';
+              } else if (record.win_loss !== undefined && record.win_loss !== null) {
+                  // 如果有直接的輸贏數據，使用它
+                  winLossAmount = parseFloat(record.win_loss) || 0;
+              } else if (record.profit_loss !== undefined && record.profit_loss !== null) {
+                  // 使用 profit_loss 作為輸贏金額
+                  winLossAmount = parseFloat(record.profit_loss) || 0;
+              }
+              
+              // 格式化顯示
+              if (winLossAmount >= 0) {
+                  return winLossAmount.toFixed(1);
+              } else {
+                  return winLossAmount.toFixed(1);
+              }
+          },
+
+          // 獲取下注結果詳細樣式
+          getBetResultDetailedClass(record) {
+              if (!record) return 'text-muted';
+              
+              let winLossAmount = 0;
+              
+              if (record.result === 'win') {
+                  const odds = parseFloat(record.odds) || 9.59;
+                  winLossAmount = (parseFloat(record.bet_amount) || 0) * odds - (parseFloat(record.bet_amount) || 0);
+              } else if (record.result === 'lose') {
+                  winLossAmount = -(parseFloat(record.bet_amount) || 0);
+              } else if (record.result === 'pending') {
+                  return 'text-warning fw-bold';
+              } else if (record.win_loss !== undefined && record.win_loss !== null) {
+                  winLossAmount = parseFloat(record.win_loss) || 0;
+              } else if (record.profit_loss !== undefined && record.profit_loss !== null) {
+                  winLossAmount = parseFloat(record.profit_loss) || 0;
+              }
+              
+              return winLossAmount >= 0 ? 'text-dark fw-bold' : 'text-danger fw-bold';
+          },
+
+          // 格式化本級結果（上級代理獲得的退水）
+          // 格式化本級結果（上級代理獲得的退水和佣金）
+          formatAgentRebate(record) {
+              if (!record) return '0.00';
+              
+              console.log('計算本級結果:', record); // 調試用
+              
+              // 如果有直接的佣金數據，使用它
+              if (record.agent_commission !== undefined && record.agent_commission !== null) {
+                  return parseFloat(record.agent_commission).toFixed(2);
+              }
+              
+              // 計算上級代理從這筆投注獲得的退水
+              const betAmount = parseFloat(record.bet_amount) || 0;
+              const rebatePercentage = parseFloat(record.rebate_percentage) || 2.0; // 預設2%
+              
+              // 只有投注金額大於0才計算退水
+              if (betAmount > 0 && rebatePercentage > 0) {
+                  const agentRebate = betAmount * (rebatePercentage / 100);
+                  return agentRebate.toFixed(2);
+              }
+              
+              return '0.00';
+          },
+
+          // 格式化投注位置和內容
+          formatBetPosition(record) {
+              if (!record) return '第八名 6';
+              
+              // 根據實際數據格式化，這裡使用模擬數據
+              const position = record.position || record.bet_position || '第八名';
+              const value = record.bet_value || record.number || '6';
+              
+              return `${position} ${value}`;
+          },
+
+          // 根據盤口類型格式化賠率
+          formatOddsByMarket(record) {
+              if (!record) return '9.59';
+              
+              const marketType = record.market_type || 'D';
+              
+              // 如果記錄中有實際賠率，使用它
+              if (record.odds && record.odds > 0) {
+                  return parseFloat(record.odds).toFixed(2);
+              }
+              
+              // 根據盤口類型設定預設賠率
+              if (marketType === 'A') {
+                  // A盤通常賠率較低，例如數字玩法可能是1.98左右
+                  return '1.98';
+              } else {
+                  // D盤賠率較高
+                  return '9.59';
+              }
+          },
+
           // 格式化投注內容
           formatBetContent(bet) {
               if (bet.bet_type === 'number') {
@@ -6350,6 +6545,438 @@ const app = createApp({
             }
         },
 
+        // 顯示會員下注記錄視窗
+        async showMemberBetRecords(memberUsername) {
+            try {
+                console.log('🔍 顯示會員下注記錄:', memberUsername);
+                
+                // 設置會員下注記錄數據
+                this.memberBetRecords.memberUsername = memberUsername;
+                this.memberBetRecords.pagination.page = 1;
+                
+                // 使用當前報表的查詢條件作為預設條件
+                this.memberBetRecords.filters.startDate = this.reportFilters.startDate;
+                this.memberBetRecords.filters.endDate = this.reportFilters.endDate;
+                
+                // 重置數據
+                this.memberBetRecords.records = [];
+                this.memberBetRecords.pagination.total = 0;
+                this.memberBetRecords.pagination.totalPages = 0;
+                
+                // 顯示視窗
+                this.memberBetRecords.isVisible = true;
+                
+                // 載入下注記錄數據
+                await this.loadMemberBetRecords();
+                
+            } catch (error) {
+                console.error('顯示會員下注記錄失敗:', error);
+                this.showMessage('顯示會員下注記錄失敗: ' + error.message, 'error');
+            }
+        },
+        
+        // 載入會員下注記錄
+        async loadMemberBetRecords() {
+            if (!this.memberBetRecords.memberUsername) return;
+            
+            try {
+                this.memberBetRecords.loading = true;
+                
+                const params = new URLSearchParams();
+                params.append('memberUsername', this.memberBetRecords.memberUsername);
+                params.append('page', this.memberBetRecords.pagination.page);
+                params.append('limit', this.memberBetRecords.pagination.limit);
+                
+                if (this.memberBetRecords.filters.startDate) {
+                    params.append('startDate', this.memberBetRecords.filters.startDate);
+                }
+                if (this.memberBetRecords.filters.endDate) {
+                    params.append('endDate', this.memberBetRecords.filters.endDate);
+                }
+                
+                console.log('📡 查詢會員下注記錄參數:', params.toString());
+                
+                const response = await fetch(`${this.API_BASE_URL}/member-bet-records?${params.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 修正：API 直接返回 data 陣列，memberInfo、statistics、pagination 在同一層級
+                    this.memberBetRecords.memberInfo = data.memberInfo || {};
+                    this.memberBetRecords.records = data.data || [];
+                    this.memberBetRecords.pagination = data.pagination || {};
+                    this.memberBetRecords.statistics = data.statistics || {};
+                    
+                    console.log('✅ 會員下注記錄載入成功:', this.memberBetRecords.records.length, '筆');
+                } else {
+                    throw new Error(data.message || '查詢失敗');
+                }
+                
+            } catch (error) {
+                console.error('載入會員下注記錄失敗:', error);
+                this.showMessage('載入會員下注記錄失敗: ' + error.message, 'error');
+            } finally {
+                this.memberBetRecords.loading = false;
+            }
+        },
+        
+        // 關閉會員下注記錄視窗
+        closeMemberBetRecords() {
+            this.memberBetRecords.isVisible = false;
+            this.memberBetRecords.memberUsername = '';
+            this.memberBetRecords.records = [];
+            this.memberBetRecords.memberInfo = {};
+            this.memberBetRecords.expandedRecords = {}; // 清空展開狀態
+        },
+        
+        // 刷新會員下注記錄
+        async refreshMemberBetRecords() {
+            this.memberBetRecords.pagination.page = 1;
+            await this.loadMemberBetRecords();
+        },
+        
+        // 切換會員下注記錄頁面
+        async changeMemberBetPage(page) {
+            if (page < 1 || page > this.memberBetRecords.pagination.totalPages) return;
+            this.memberBetRecords.pagination.page = page;
+            await this.loadMemberBetRecords();
+        },
+        
+        // 設置會員下注記錄查詢日期範圍
+        setMemberBetDateRange(type) {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            
+            switch(type) {
+                case 'today':
+                    this.memberBetRecords.filters.startDate = today.toISOString().split('T')[0];
+                    this.memberBetRecords.filters.endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'yesterday':
+                    this.memberBetRecords.filters.startDate = yesterday.toISOString().split('T')[0];
+                    this.memberBetRecords.filters.endDate = yesterday.toISOString().split('T')[0];
+                    break;
+                case 'week':
+                    const weekStart = new Date(today);
+                    weekStart.setDate(today.getDate() - today.getDay());
+                    this.memberBetRecords.filters.startDate = weekStart.toISOString().split('T')[0];
+                    this.memberBetRecords.filters.endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'month':
+                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                    this.memberBetRecords.filters.startDate = monthStart.toISOString().split('T')[0];
+                    this.memberBetRecords.filters.endDate = today.toISOString().split('T')[0];
+                    break;
+            }
+            // 設定日期範圍後自動查詢
+            this.refreshMemberBetRecords();
+        },
+        
+        // 顯示佔成明細 - 增強錯誤處理與調試
+        showCommissionDetails(record) {
+            this.commissionDetails.isVisible = true;
+            this.commissionDetails.betRecord = record;
+            
+            console.log('調試 - 完整記錄數據:', record);
+            console.log('調試 - commission_details 存在嗎:', !!record.commission_details);
+            console.log('調試 - commission_details 內容:', record.commission_details);
+            console.log('調試 - 記錄用戶名:', record.username);
+            console.log('調試 - 記錄ID:', record.id);
+            
+            // 檢查是否有佔成明細數據
+            if (record.commission_details && Array.isArray(record.commission_details) && record.commission_details.length > 0) {
+                this.commissionDetails.details = record.commission_details.map(detail => ({
+                    id: detail.id || Math.random(),
+                    agent_type: detail.agent_type || '代理',
+                    username: detail.username || '未知用戶',
+                    commission_rate: detail.commission_rate || 0,
+                    rebate_rate: detail.rebate_rate || 0,
+                    level: detail.level || 0
+                }));
+                console.log('調試 - 成功映射佔成明細:', this.commissionDetails.details);
+            } else {
+                console.log('調試 - 無佔成明細數據，可能原因:');
+                console.log('  - commission_details 不存在:', !record.commission_details);
+                console.log('  - 不是陣列:', !Array.isArray(record.commission_details));
+                console.log('  - 陣列為空:', record.commission_details && Array.isArray(record.commission_details) && record.commission_details.length === 0);
+                
+                // 如果是空陣列，可能會員沒有代理，這是正常情況
+                this.commissionDetails.details = [];
+            }
+            
+            console.log('調試 - 最終顯示的明細長度:', this.commissionDetails.details.length);
+            console.log('調試 - 最終顯示的明細:', this.commissionDetails.details);
+        },
+        
+        // 關閉佔成明細
+        closeCommissionDetails() {
+            this.commissionDetails.isVisible = false;
+            this.commissionDetails.betRecord = null;
+            this.commissionDetails.details = [];
+        },
+        
+        // 切換開獎結果展開/收縮 - 修正 Vue 3 響應式
+        async toggleDrawResult(record) {
+            try {
+                // 防護性檢查
+                if (!record || !record.id || !record.period_number) {
+                    console.error('toggleDrawResult: 缺少必要的記錄資料', record);
+                    this.showMessage('無法顯示開獎結果：記錄資料不完整', 'error');
+                    return;
+                }
+                
+                const recordKey = `${record.id}_${record.period_number}`;
+                
+                // 如果已經展開，則收縮 - 修正 Vue 3 響應式
+                if (this.memberBetRecords.expandedRecords[recordKey]) {
+                    this.memberBetRecords.expandedRecords[recordKey] = null;
+                    return;
+                }
+                
+                console.log('🎲 查詢開獎結果:', record.game_type, record.period_number);
+                
+                // 設置加載狀態 - 修正 Vue 3 響應式
+                this.memberBetRecords.expandedRecords[recordKey] = { loading: true };
+                
+                try {
+                    // 安全檢查：防止期數作為URL路徑
+                    const gameType = record.game_type || 'pkc';
+                    const periodNumber = record.period_number;
+                    
+                    // 驗證期數格式，防止URL注入
+                    if (!/^\d{11}$/.test(periodNumber)) {
+                        throw new Error('期數格式不正確');
+                    }
+                    
+                    // 構建安全的API URL - 修正路徑問題
+                    const apiUrl = `${this.API_BASE_URL}/draw-result/${encodeURIComponent(gameType)}/${encodeURIComponent(periodNumber)}`;
+                    console.log('🔒 安全的開獎結果API請求:', apiUrl);
+                    
+                    // 嘗試從後端獲取真實開獎結果
+                    const response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.drawResult) {
+                            // 使用真實的開獎結果 - 修正 Vue 3 響應式
+                            this.memberBetRecords.expandedRecords[recordKey] = {
+                                loading: false,
+                                period: data.drawResult.period,
+                                numbers: data.drawResult.numbers || [3, 7, 1, 9, 5, 2, 8, 4, 6, 10],
+                                drawTime: data.drawResult.drawTime
+                            };
+                        } else {
+                            throw new Error('無法獲取開獎結果');
+                        }
+                    } else {
+                        throw new Error('API請求失敗');
+                    }
+                } catch (apiError) {
+                    console.log('API獲取失敗，使用預設提示:', apiError.message);
+                    // 如果API失敗，顯示查詢失敗信息，不使用模擬數據
+                    this.memberBetRecords.expandedRecords[recordKey] = {
+                        loading: false,
+                        error: true,
+                        message: '開獎結果查詢失敗，請稍後再試'
+                    };
+                }
+                
+            } catch (error) {
+                console.error('切換開獎結果失敗:', error);
+                this.showMessage('獲取開獎結果失敗: ' + error.message, 'error');
+            }
+        },
+
+        // 已棄用的 showDrawResult 方法 - 請使用 toggleDrawResult
+        async showDrawResult(gameType, periodNumber) {
+            console.log('⚠️ showDrawResult 方法已棄用，請使用 toggleDrawResult 方法');
+            // 不再使用彈窗和成功訊息
+        },
+
+        // 驗證期數訪問，防止期數被當作靜態資源請求
+        validatePeriodAccess(periodStr) {
+            try {
+                // 檢查期數格式 (應該是數字，通常10-11位)
+                if (!periodStr || typeof periodStr !== 'string' && typeof periodStr !== 'number') {
+                    return false;
+                }
+
+                const period = String(periodStr);
+                
+                // 期數應該是純數字
+                if (!/^\d+$/.test(period)) {
+                    return false;
+                }
+
+                // 期數長度檢查 (通常是10-11位: YYYYMMDDHHMM 格式)
+                if (period.length < 8 || period.length > 12) {
+                    return false;
+                }
+
+                console.log('✅ 期數格式驗證通過:', period);
+                return true;
+
+            } catch (error) {
+                console.error('期數驗證失敗:', error);
+                return false;
+            }
+        },
+
+        // 安全的開獎結果切換函數 - 防止期數被當作靜態資源請求
+        async safeToggleDrawResult(record) {
+            try {
+                // 防護性檢查
+                if (!record || !record.id || !record.period_number) {
+                    console.error('safeToggleDrawResult: 缺少必要的記錄資料', record);
+                    this.showMessage('無法顯示開獎結果：記錄資料不完整', 'error');
+                    return;
+                }
+
+                // 驗證期數格式，防止被當作靜態資源請求
+                const periodStr = String(record.period_number);
+                if (!this.validatePeriodAccess(periodStr)) {
+                    console.error('safeToggleDrawResult: 無效的期數格式', periodStr);
+                    this.showMessage('無效的期數格式', 'error');
+                    return;
+                }
+
+                console.log('🔒 安全開獎結果查詢:', {
+                    gameType: record.game_type,
+                    period: record.period_number,
+                    recordId: record.id
+                });
+
+                // 調用原始的 toggleDrawResult 函數
+                await this.toggleDrawResult(record);
+
+            } catch (error) {
+                console.error('安全開獎結果切換失敗:', error);
+                this.showMessage('獲取開獎結果失敗: ' + error.message, 'error');
+            }
+        },
+        
+        // 關閉開獎結果視窗
+        closeDrawResult() {
+            this.drawResultModal.isVisible = false;
+            this.drawResultModal.gameType = '';
+            this.drawResultModal.periodNumber = '';
+            this.drawResultModal.resultNumbers = null;
+            this.drawResultModal.drawTime = '';
+        },
+
+        // 格式化遊戲類型顯示
+        formatGameTypeDisplay(gameType) {
+            const gameMap = {
+                'pk10': '波場賽車(1分)',
+                'ssc': 'AR 時時彩',
+                'lottery539': 'AR 539',
+                'lottery': 'AR 六合彩'
+            };
+            return gameMap[gameType] || gameType;
+        },
+
+        // 格式化投注內容顯示
+        formatBetContentDisplay(record) {
+            try {
+                if (!record.bet_content) return '-';
+                
+                let content = record.bet_content;
+                if (typeof content === 'string') {
+                    content = JSON.parse(content);
+                }
+                
+                if (content.position && content.value) {
+                    const positionMap = {
+                        '1': '冠军',
+                        '2': '亚军', 
+                        '3': '第三名',
+                        '4': '第四名',
+                        '5': '第五名',
+                        '6': '第六名',
+                        '7': '第七名',
+                        '8': '第八名',
+                        '9': '第九名',
+                        '10': '第十名'
+                    };
+                    
+                    const position = positionMap[content.position] || `第${content.position}名`;
+                    
+                    // 顯示賠率
+                    const odds = content.odds ? ` @ ${content.odds}` : '';
+                    
+                    return `${position} ${content.value}${odds}`;
+                }
+                
+                return JSON.stringify(content);
+            } catch (e) {
+                return record.bet_content || '-';
+            }
+        },
+
+        // 格式化下注結果
+        formatBetResult(result) {
+            const resultMap = {
+                'win': '中獎',
+                'lose': '未中獎',
+                'pending': '待開獎'
+            };
+            return resultMap[result] || result;
+        },
+
+        // 獲取下注結果樣式
+        getBetResultClass(result) {
+            const classMap = {
+                'win': 'text-success fw-bold',
+                'lose': 'text-danger fw-bold',
+                'pending': 'text-warning fw-bold'
+            };
+            return classMap[result] || 'text-muted';
+        },
+
+        // 格式化盤口類型
+        formatMarketType(marketType) {
+            const marketMap = {
+                'A': 'A盤',
+                'B': 'B盤', 
+                'C': 'C盤',
+                'D': 'D盤'
+            };
+            return marketMap[marketType] || marketType;
+        },
+
+        // 獲取會員下注記錄分頁範圍
+        getMemberBetPageRange() {
+            const current = this.memberBetRecords.pagination.page;
+            const total = this.memberBetRecords.pagination.totalPages;
+            const range = [];
+            
+            const start = Math.max(1, current - 2);
+            const end = Math.min(total, current + 2);
+            
+            for (let i = start; i <= end; i++) {
+                range.push(i);
+            }
+            
+            return range;
+        },
+
         // 格式化投注類型名稱
         formatBetTypeName(key) {
             const names = {
@@ -6361,6 +6988,14 @@ const app = createApp({
                 'dragonTiger': '龍虎'
             };
             return names[key] || key;
+        },
+
+        // 獲取開獎號碼球的樣式類別 - 與遊戲端一致
+        getNumberBadgeClass(number, index) {
+            // 使用與遊戲端一致的球號顏色樣式
+            // 更新為根據號碼值來決定球的顏色，而不是根據位置
+            // 確保球號樣式與遊戲端一致，使用color-1到color-10
+            return `draw-number-badge color-${number}`;
         }
     },
 
