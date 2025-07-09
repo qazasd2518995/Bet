@@ -1468,64 +1468,65 @@ async function calculateTargetControlWeights(period, control, betStats) {
       const totalAmount = conflict.totalAmount;
       const userCount = conflict.userCount;
       
-      console.log(`📋 處理合併下注: ${betKey}, 類型=${bet.bet_type}, 值=${bet.bet_value}, 位置=${bet.position}, 總金額=${totalAmount}, 用戶數=${userCount}`);
+      // 🎯 計算統一的控制係數，包含衝突處理
+      const baseControlFactor = parseFloat(control.control_percentage) / 100; // 基礎控制係數 (0-1)
+      const conflictMultiplier = Math.min(1.0 + (userCount - 1) * 0.2, 2.0); // 衝突倍數：每多1人增加20%，最高200%
+      const finalControlFactor = Math.min(baseControlFactor * conflictMultiplier, 1.0); // 最終控制係數，不超過100%
       
-      // 計算正確的權重比例 - 支援多號碼下注的情況
-      const controlPercentage = parseFloat(control.control_percentage);
+      console.log(`📋 處理合併下注: ${betKey}, 類型=${bet.bet_type}, 值=${bet.bet_value}, 位置=${bet.position}`);
+      console.log(`💰 總金額=${totalAmount}, 用戶數=${userCount}, 基礎控制=${(baseControlFactor*100).toFixed(1)}%, 衝突倍數=${conflictMultiplier.toFixed(2)}, 最終控制=${(finalControlFactor*100).toFixed(1)}%`);
       
       if (bet.bet_type === 'number') {
         const position = parseInt(bet.position) - 1;
         const value = parseInt(bet.bet_value) - 1;
         if (position >= 0 && position < 10 && value >= 0 && value < 10) {
           if (control.win_control) {
-            if (controlPercentage >= 99.9) {
-              // 100%控制時使用極高權重
-              weights.positions[position][value] = 1000;
-            } else if (controlPercentage <= 0.1) {
-              // 0%控制時不調整權重
-              weights.positions[position][value] = 1;
+            // 贏控制：確保目標下注更容易中獎
+            if (finalControlFactor >= 0.95) {
+              weights.positions[position][value] = 1000; // 95%以上控制時使用極高權重
+            } else if (finalControlFactor <= 0.05) {
+              weights.positions[position][value] = 1; // 5%以下控制時不調整權重
             } else {
-              // 需要先分析這個位置總共有多少個目標號碼
-              // 通過檢查所有同位置的下注來確定目標號碼總數
+              // 精確權重計算：考慮該位置的目標號碼數量
               const samePositionBets = Object.keys(betConflicts).filter(key => 
                 key.startsWith(`number_${bet.position}_`)
               ).length;
               
-              const targetCount = samePositionBets; // 該位置的目標號碼數量
-              const nonTargetCount = 10 - targetCount; // 該位置的非目標號碼數量
+              const targetCount = samePositionBets;
+              const nonTargetCount = 10 - targetCount;
               
-              // 計算精確權重：W = (P * M) / ((1 - P) * N)
-              const targetWeight = (controlPercentage * nonTargetCount) / ((100 - controlPercentage) * targetCount);
+              // 權重公式：W = (P * M) / ((1 - P) * N)，其中P為控制係數，M為非目標數，N為目標數
+              const targetWeight = (finalControlFactor * nonTargetCount) / ((1 - finalControlFactor) * Math.max(targetCount, 1));
               weights.positions[position][value] = Math.max(targetWeight, 0.001);
               
-              console.log(`📊 [權重計算] 位置${position+1}: ${targetCount}個目標號碼, ${nonTargetCount}個非目標號碼, ${controlPercentage}%控制 → 權重=${targetWeight.toFixed(3)}`);
+              console.log(`📊 [贏控制] 位置${position+1}: ${targetCount}個目標號碼, ${nonTargetCount}個非目標號碼 → 權重=${targetWeight.toFixed(3)}`);
             }
             
-            console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
+            console.log(`✅ 增加位置${position+1}號碼${value+1}的權重 (贏控制), 最終權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
           } else if (control.loss_control) {
-            // 輸控制：讓會員下注號碼有較低權重，但不是0
-            if (controlPercentage >= 99.9) {
-              weights.positions[position][value] = 0.001; // 100%輸控制時使用極低權重
-            } else if (controlPercentage <= 0.1) {
-              weights.positions[position][value] = 1; // 0%輸控制時不調整權重
+            // 輸控制：確保目標下注更難中獎
+            if (finalControlFactor >= 0.95) {
+              weights.positions[position][value] = 0.001; // 95%以上控制時使用極低權重
+            } else if (finalControlFactor <= 0.05) {
+              weights.positions[position][value] = 1; // 5%以下控制時不調整權重
             } else {
-              // 輸控制邏輯：會員中獎機率 = (100 - 輸控制百分比)%
+              // 輸控制邏輯：會員中獎機率 = (1 - 控制係數)
               const samePositionBets = Object.keys(betConflicts).filter(key => 
                 key.startsWith(`number_${bet.position}_`)
               ).length;
               
-              const targetCount = samePositionBets; // 該位置的目標號碼數量
-              const nonTargetCount = 10 - targetCount; // 該位置的非目標號碼數量
-              const winPercentage = 100 - controlPercentage; // 會員中獎機率
+              const targetCount = samePositionBets;
+              const nonTargetCount = 10 - targetCount;
+              const winProbability = 1 - finalControlFactor; // 會員實際中獎機率
               
-              // 計算會員下注號碼的權重：W = (winPercentage * M) / ((100 - winPercentage) * N)
-              const targetWeight = (winPercentage * nonTargetCount) / ((100 - winPercentage) * targetCount);
+              // 計算輸控制權重：W = (winP * M) / ((1 - winP) * N)
+              const targetWeight = (winProbability * nonTargetCount) / ((1 - winProbability) * Math.max(targetCount, 1));
               weights.positions[position][value] = Math.max(targetWeight, 0.001);
               
-              console.log(`📊 [輸控制計算] 位置${position+1}: ${targetCount}個目標號碼, ${nonTargetCount}個非目標號碼, ${controlPercentage}%輸控制 → 權重=${targetWeight.toFixed(3)}`);
+              console.log(`📊 [輸控制] 位置${position+1}: ${targetCount}個目標號碼, 中獎機率=${(winProbability*100).toFixed(1)}% → 權重=${targetWeight.toFixed(3)}`);
             }
             
-            console.log(`❌ 設置位置${position+1}號碼${value+1}的權重 (輸控制), 權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
+            console.log(`❌ 設置位置${position+1}號碼${value+1}的權重 (輸控制), 最終權重=${weights.positions[position][value].toFixed(3)}, 用戶數=${userCount}`);
           }
         }
       } else if (bet.bet_type === 'sumValue') {
@@ -1533,21 +1534,21 @@ async function calculateTargetControlWeights(period, control, betStats) {
           const sumIndex = parseInt(bet.bet_value) - 3;
           if (sumIndex >= 0 && sumIndex < 17) {
             if (control.win_control) {
-              // 贏控制：大幅增加該和值的權重，多人下注時效果更強
-              if (adjustedControlFactor >= 0.9) {
-                weights.sumValue[sumIndex] *= 1000; // 100%控制時使用極高權重
+              // 贏控制：增加該和值的權重
+              if (finalControlFactor >= 0.95) {
+                weights.sumValue[sumIndex] = 1000; // 極高控制時使用極高權重
               } else {
-                weights.sumValue[sumIndex] *= (1 + adjustedControlFactor * 10);
+                weights.sumValue[sumIndex] *= (1 + finalControlFactor * 15); // 根據控制係數調整權重
               }
-              console.log(`✅ 增加和值${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+              console.log(`✅ 增加和值${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
             } else if (control.loss_control) {
-              // 輸控制：大幅減少該和值的權重，多人下注時效果更強
-              if (adjustedControlFactor >= 0.9) {
-                weights.sumValue[sumIndex] = 0.001; // 100%控制時使用極低權重
+              // 輸控制：減少該和值的權重
+              if (finalControlFactor >= 0.95) {
+                weights.sumValue[sumIndex] = 0.001; // 極高控制時使用極低權重
               } else {
-                weights.sumValue[sumIndex] *= (1 - adjustedControlFactor * 0.9);
+                weights.sumValue[sumIndex] *= Math.max(1 - finalControlFactor * 0.95, 0.001); // 根據控制係數調整權重
               }
-              console.log(`❌ 減少和值${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+              console.log(`❌ 減少和值${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
             }
           }
         } else if (['big', 'small', 'odd', 'even'].includes(bet.bet_value)) {
@@ -1564,14 +1565,14 @@ async function calculateTargetControlWeights(period, control, betStats) {
               else if (bet.bet_value === 'even' && sumValue % 2 === 0) shouldIncrease = true;
               
               if (shouldIncrease) {
-                if (adjustedControlFactor >= 0.9) {
+                if (finalControlFactor >= 0.95) {
                   weights.sumValue[i] *= 1000;
                 } else {
-                  weights.sumValue[i] *= (1 + adjustedControlFactor * 10);
+                  weights.sumValue[i] *= (1 + finalControlFactor * 15);
                 }
               }
             }
-            console.log(`✅ 增加冠亞和${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`✅ 增加冠亞和${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           } else if (control.loss_control) {
             // 輸控制：調整相應範圍的和值權重
             for (let i = 0; i < 17; i++) {
@@ -1584,14 +1585,14 @@ async function calculateTargetControlWeights(period, control, betStats) {
               else if (bet.bet_value === 'even' && sumValue % 2 === 0) shouldDecrease = true;
               
               if (shouldDecrease) {
-                if (adjustedControlFactor >= 0.9) {
+                if (finalControlFactor >= 0.95) {
                   weights.sumValue[i] = 0.001;
                 } else {
-                  weights.sumValue[i] *= (1 - adjustedControlFactor * 0.9);
+                  weights.sumValue[i] *= Math.max(1 - finalControlFactor * 0.95, 0.001);
                 }
               }
             }
-            console.log(`❌ 減少冠亞和${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`❌ 減少冠亞和${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           }
         }
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(bet.bet_type)) {
@@ -1607,19 +1608,19 @@ async function calculateTargetControlWeights(period, control, betStats) {
           const value = parseInt(bet.bet_value) - 1;
           if (value >= 0 && value < 10) {
             if (control.win_control) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[position][value] *= 1000;
               } else {
-                weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[position][value] *= (1 + finalControlFactor * 15);
               }
-              console.log(`✅ 增加${bet.bet_type}號碼${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+              console.log(`✅ 增加${bet.bet_type}號碼${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
             } else if (control.loss_control) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[position][value] = 0.001;
               } else {
-                weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
+                weights.positions[position][value] *= Math.max(1 - finalControlFactor * 0.95, 0.001);
               }
-              console.log(`❌ 減少${bet.bet_type}號碼${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+              console.log(`❌ 減少${bet.bet_type}號碼${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
             }
           }
         } else if (['big', 'small', 'odd', 'even'].includes(bet.bet_value)) {
@@ -1636,14 +1637,14 @@ async function calculateTargetControlWeights(period, control, betStats) {
               else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldIncrease = true;
               
               if (shouldIncrease) {
-                if (adjustedControlFactor >= 0.9) {
+                if (finalControlFactor >= 0.95) {
                   weights.positions[position][value] *= 1000;
                 } else {
-                  weights.positions[position][value] *= (1 + adjustedControlFactor * 10);
+                  weights.positions[position][value] *= (1 + finalControlFactor * 15);
                 }
               }
             }
-            console.log(`✅ 增加${bet.bet_type}${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`✅ 增加${bet.bet_type}${bet.bet_value}的權重 (贏控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           } else if (control.loss_control) {
             // 輸控制：調整該位置符合條件的號碼權重
             for (let value = 0; value < 10; value++) {
@@ -1656,14 +1657,14 @@ async function calculateTargetControlWeights(period, control, betStats) {
               else if (bet.bet_value === 'even' && actualValue % 2 === 0) shouldDecrease = true;
               
               if (shouldDecrease) {
-                if (adjustedControlFactor >= 0.9) {
+                if (finalControlFactor >= 0.95) {
                   weights.positions[position][value] = 0.001;
                 } else {
-                  weights.positions[position][value] *= (1 - adjustedControlFactor * 0.9);
+                  weights.positions[position][value] *= Math.max(1 - finalControlFactor * 0.95, 0.001);
                 }
               }
             }
-            console.log(`❌ 減少${bet.bet_type}${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`❌ 減少${bet.bet_type}${bet.bet_value}的權重 (輸控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           }
         }
 
@@ -1705,92 +1706,92 @@ async function calculateTargetControlWeights(period, control, betStats) {
           if (dragonTigerType === 'dragon') {
             // 龍贏：pos1 > pos2，增加pos1大號碼權重，減少pos2大號碼權重
             for (let value = 5; value < 10; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos1][value] *= 1000; // pos1大號碼
                 weights.positions[pos2][value] = 0.001; // pos2大號碼
               } else {
-                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
-                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos1][value] *= (1 + finalControlFactor * 15);
+                weights.positions[pos2][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
               }
             }
             // 同時增加pos1小號碼的反向權重，減少pos2小號碼權重
             for (let value = 0; value < 5; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos1][value] = 0.001; // pos1小號碼
                 weights.positions[pos2][value] *= 1000; // pos2小號碼
               } else {
-                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
-                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos1][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
+                weights.positions[pos2][value] *= (1 + finalControlFactor * 15);
               }
             }
-            console.log(`✅ 增加龍的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`✅ 增加龍的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (贏控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           } else if (dragonTigerType === 'tiger') {
             // 虎贏：pos2 > pos1，增加pos2大號碼權重，減少pos1大號碼權重
             for (let value = 5; value < 10; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos2][value] *= 1000; // pos2大號碼
                 weights.positions[pos1][value] = 0.001; // pos1大號碼
               } else {
-                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
-                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos2][value] *= (1 + finalControlFactor * 15);
+                weights.positions[pos1][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
               }
             }
             // 同時處理小號碼
             for (let value = 0; value < 5; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos2][value] = 0.001; // pos2小號碼
                 weights.positions[pos1][value] *= 1000; // pos1小號碼
               } else {
-                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
-                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos2][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
+                weights.positions[pos1][value] *= (1 + finalControlFactor * 15);
               }
             }
-            console.log(`✅ 增加虎的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (贏控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`✅ 增加虎的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (贏控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           }
         } else if (control.loss_control) {
           // 輸控制：反向操作
           if (dragonTigerType === 'dragon') {
             // 龍輸：讓虎贏，增加pos2大號碼權重
             for (let value = 5; value < 10; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos2][value] *= 1000;
                 weights.positions[pos1][value] = 0.001;
               } else {
-                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
-                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos2][value] *= (1 + finalControlFactor * 15);
+                weights.positions[pos1][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
               }
             }
             for (let value = 0; value < 5; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos2][value] = 0.001;
                 weights.positions[pos1][value] *= 1000;
               } else {
-                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
-                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos2][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
+                weights.positions[pos1][value] *= (1 + finalControlFactor * 15);
               }
             }
-            console.log(`❌ 減少龍的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`❌ 減少龍的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (輸控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           } else if (dragonTigerType === 'tiger') {
             // 虎輸：讓龍贏，增加pos1大號碼權重
             for (let value = 5; value < 10; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos1][value] *= 1000;
                 weights.positions[pos2][value] = 0.001;
               } else {
-                weights.positions[pos1][value] *= (1 + adjustedControlFactor * 10);
-                weights.positions[pos2][value] *= (1 - adjustedControlFactor * 0.5);
+                weights.positions[pos1][value] *= (1 + finalControlFactor * 15);
+                weights.positions[pos2][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
               }
             }
             for (let value = 0; value < 5; value++) {
-              if (adjustedControlFactor >= 0.9) {
+              if (finalControlFactor >= 0.95) {
                 weights.positions[pos1][value] = 0.001;
                 weights.positions[pos2][value] *= 1000;
               } else {
-                weights.positions[pos1][value] *= (1 - adjustedControlFactor * 0.5);
-                weights.positions[pos2][value] *= (1 + adjustedControlFactor * 10);
+                weights.positions[pos1][value] *= Math.max(1 - finalControlFactor * 0.8, 0.001);
+                weights.positions[pos2][value] *= (1 + finalControlFactor * 15);
               }
             }
-            console.log(`❌ 減少虎的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (輸控制), 用戶數=${userCount}, 調整係數=${conflictFactor.toFixed(2)}`);
+            console.log(`❌ 減少虎的獲勝權重 (第${pos1+1}名vs第${pos2+1}名) (輸控制), 用戶數=${userCount}, 控制係數=${finalControlFactor.toFixed(3)}`);
           }
         }
       } else {
