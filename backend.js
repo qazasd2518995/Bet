@@ -2703,14 +2703,15 @@ async function settleBets(period, winResult) {
           // 獲取當前餘額用於日誌記錄
           const currentBalance = await getBalance(username);
           
-          // 🔧 修正：計算淨盈虧（獎金 - 下注金額）
+          // 🔧 修正：用戶下注時已扣除本金，中獎時應返還總獎金
           const betAmount = parseFloat(bet.amount);
-          const netProfit = parseFloat(winAmount) - betAmount;
+          const totalWinAmount = parseFloat(winAmount); // 這是總回報（含本金）
+          const netProfit = totalWinAmount - betAmount; // 純獎金部分
           
-          console.log(`🎯 結算詳情: 下注 ${betAmount} 元，獲得獎金 ${winAmount} 元，淨盈虧 ${netProfit} 元`);
+          console.log(`🎯 結算詳情: 下注 ${betAmount} 元，總回報 ${totalWinAmount} 元，純獎金 ${netProfit} 元`);
           
-          // 原子性增加會員餘額（使用淨盈虧，不是總獎金）
-          const newBalance = await UserModel.addBalance(username, netProfit);
+          // 原子性增加會員餘額（增加總回報，因為下注時已扣除本金）
+          const newBalance = await UserModel.addBalance(username, totalWinAmount);
           
           // 只同步餘額到代理系統（不扣代理點數）
           try {
@@ -2722,14 +2723,14 @@ async function settleBets(period, winResult) {
               body: JSON.stringify({
                 username: username,
                 balance: newBalance,
-                reason: `第${period}期中獎 ${bet.bet_type}:${bet.bet_value} (下注${betAmount}元，獎金${winAmount}元，淨盈虧${netProfit}元)`
+                reason: `第${period}期中獎 ${bet.bet_type}:${bet.bet_value} (下注${betAmount}元，總回報${totalWinAmount}元，純獎金${netProfit}元)`
               })
             });
           } catch (syncError) {
             console.warn('同步餘額到代理系統失敗，但會員餘額已更新:', syncError);
           }
           
-          console.log(`用戶 ${username} 中獎結算: 下注${betAmount}元 → 獎金${winAmount}元 → 淨盈虧${netProfit}元，餘額從 ${currentBalance} 更新為 ${newBalance}`);
+          console.log(`用戶 ${username} 中獎結算: 下注${betAmount}元 → 總回報${totalWinAmount}元 → 純獎金${netProfit}元，餘額從 ${currentBalance} 更新為 ${newBalance}`);
         } catch (error) {
           console.error(`更新用戶 ${username} 中獎餘額失敗:`, error);
         }
