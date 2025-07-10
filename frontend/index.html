@@ -568,12 +568,14 @@
             display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
-            overflow-x: hidden;
-            gap: 4px;
+            overflow-x: visible;
+            gap: 2px;
             flex: 1;
             padding: 5px 0;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .no-records {
@@ -2214,6 +2216,43 @@
             flex-shrink: 0 !important;
         }
 
+        /* 歷史開獎彈窗球號樣式 */
+        .draw-history .number-ball {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            max-width: 16px !important;
+            font-size: 8px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: bold !important;
+            color: white !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+            margin: 0 !important;
+            position: relative !important;
+            z-index: 1 !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 確保期號左對齊 */
+        .draw-history .period-time-info {
+            text-align: left !important;
+            min-width: 100px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .draw-history .period {
+            text-align: left !important;
+        }
+
+        .draw-history .time {
+            text-align: left !important;
+        }
+
         /* 響應式調整：小螢幕優化 */
         @media (max-width: 480px) {
             .draw-history-content .number-ball {
@@ -3140,61 +3179,66 @@
 
         /* 历史开奖搜索樣式 - 緊湊佈局 */
         .history-search {
-            padding: 10px 15px;
+            padding: 8px 12px;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }
 
         .search-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: end;
             flex-wrap: nowrap;
-            justify-content: space-between;
+            justify-content: flex-start;
         }
 
         .search-item {
             display: flex;
             flex-direction: column;
-            gap: 3px;
-            flex: 1;
+            gap: 2px;
+            flex: 0 0 auto;
+            min-width: 120px;
         }
 
         .search-item label {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             color: #495057;
         }
 
         .search-item input {
-            padding: 6px 10px;
+            padding: 4px 8px;
             border: 1px solid #dee2e6;
-            border-radius: 4px;
-            font-size: 12px;
-            min-width: 80px;
-            width: 100%;
+            border-radius: 3px;
+            font-size: 11px;
+            width: 110px;
+            height: 28px;
+            box-sizing: border-box;
         }
 
         .search-item input:focus {
             border-color: #007bff;
             outline: none;
-            box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+            box-shadow: 0 0 0 1px rgba(0,123,255,0.1);
         }
 
         .search-actions {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             flex-shrink: 0;
+            margin-left: 8px;
         }
 
         .search-btn, .clear-btn {
-            padding: 6px 12px;
+            padding: 4px 8px;
             border: none;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 3px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
+            height: 28px;
+            line-height: 1;
         }
 
         .search-btn {
