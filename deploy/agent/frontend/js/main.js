@@ -6423,6 +6423,8 @@ const app = createApp({
                       const positionText = positionMap[positionEng] || positionEng;
                       const valueText = valueMap[valueEng] || valueEng;
                       
+                      console.log('空格格式轉換:', { positionEng, valueEng, positionText, valueText });
+                      
                       return `${positionText} ${valueText}`;
                   }
               }
