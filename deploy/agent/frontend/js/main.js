@@ -6413,15 +6413,34 @@ const app = createApp({
                   const positionName = positionNames[position] || `第${position}名`;
                   return `${positionName} ${betContent}`;
               } else if (betType === 'combined') {
-                  const positionNames = {
-                      'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
-                      'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                      'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                  };
-                  const positionName = positionNames[position] || position;
-                  const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
-                  const value = valueMap[betContent] || betContent;
-                  return `${positionName} ${value}`;
+                  // 處理大小單雙投注格式：可能是 "fourth even" 或分離的 position/betContent
+                  if (betContent.includes(' ')) {
+                      // 格式：position_name value (如 "fourth even")
+                      const parts = betContent.split(' ');
+                      if (parts.length === 2) {
+                          const [positionKey, valueKey] = parts;
+                          const positionNames = {
+                              'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
+                              'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                              'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+                          };
+                          const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                          const positionName = positionNames[positionKey] || positionKey;
+                          const value = valueMap[valueKey] || valueKey;
+                          return `${positionName} ${value}`;
+                      }
+                  } else {
+                      // 分離格式：使用 position 和 betContent
+                      const positionNames = {
+                          'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
+                          'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                          'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+                      };
+                      const positionName = positionNames[position] || position;
+                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                      const value = valueMap[betContent] || betContent;
+                      return `${positionName} ${value}`;
+                  }
               } else if (betType === 'dragonTiger') {
                   // 處理龍虎投注格式：dragon_1_10 或 tiger_3_8
                   if (betContent.includes('_')) {
