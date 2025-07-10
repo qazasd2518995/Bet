@@ -2769,8 +2769,9 @@ async function distributeRebate(username, betAmount, period) {
     console.log(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(L${a.level}-${a.rebate_mode}:${(a.rebate_percentage*100).toFixed(1)}%)`));
     console.log(`固定退水池: ${totalRebatePool.toFixed(2)} 元 (${(maxRebatePercentage*100).toFixed(1)}%)`);
     
-    // 🔧 修正：從固定總池中分配，從最下級代理開始
+    // 🔧 修正：按層級順序分配退水，上級只拿差額
     let remainingRebate = totalRebatePool;
+    let distributedPercentage = 0; // 已經分配的退水比例
     
     for (let i = 0; i < agentChain.length; i++) {
       const agent = agentChain[i];
@@ -2789,14 +2790,24 @@ async function distributeRebate(username, betAmount, period) {
         agentRebateAmount = 0;
         console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，不拿任何退水，剩餘 ${remainingRebate.toFixed(2)} 元繼續向上分配`);
       } else {
-        // 🔧 修正：從固定總池中分配，而非從下注金額計算
-        const desiredAmount = parseFloat(betAmount) * rebatePercentage;
-        // 確保不超過剩餘退水池
-        agentRebateAmount = Math.min(desiredAmount, remainingRebate);
-        // 四捨五入到小數點後2位
-        agentRebateAmount = Math.round(agentRebateAmount * 100) / 100;
-        remainingRebate -= agentRebateAmount;
-        console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，從池中獲得 ${agentRebateAmount.toFixed(2)} 元，剩餘池額 ${remainingRebate.toFixed(2)} 元`);
+        // 🔧 修正：計算該代理實際能拿的退水比例（不能超過已分配的）
+        const actualRebatePercentage = Math.max(0, rebatePercentage - distributedPercentage);
+        
+        if (actualRebatePercentage <= 0) {
+          console.log(`代理 ${agent.username} 退水比例 ${(rebatePercentage*100).toFixed(1)}% 已被下級分完，不能再獲得退水`);
+          agentRebateAmount = 0;
+        } else {
+          // 計算該代理實際獲得的退水金額
+          agentRebateAmount = parseFloat(betAmount) * actualRebatePercentage;
+          // 確保不超過剩餘退水池
+          agentRebateAmount = Math.min(agentRebateAmount, remainingRebate);
+          // 四捨五入到小數點後2位
+          agentRebateAmount = Math.round(agentRebateAmount * 100) / 100;
+          remainingRebate -= agentRebateAmount;
+          distributedPercentage += actualRebatePercentage;
+          
+          console.log(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，實際獲得 ${(actualRebatePercentage*100).toFixed(1)}% = ${agentRebateAmount.toFixed(2)} 元，剩餘池額 ${remainingRebate.toFixed(2)} 元`);
+        }
         
         // 如果該代理的比例達到或超過最大值，說明是全拿模式
         if (rebatePercentage >= maxRebatePercentage) {
