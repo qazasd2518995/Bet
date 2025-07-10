@@ -2145,9 +2145,11 @@
 
         .history-item {
             display: flex;
-            align-items: center;
-            padding: 10px 0;
+            align-items: flex-start;
+            padding: 12px 0;
             border-bottom: 1px solid #eee;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .history-item:last-child {
@@ -2157,24 +2159,39 @@
         .history-period {
             color: #666;
             font-size: 12px;
-            margin-right: 15px;
-            min-width: 80px;
             font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        /* 響應式調整：較大螢幕時可以橫向排列 */
+        @media (min-width: 500px) {
+            .history-item {
+                flex-direction: row;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .history-period {
+                min-width: 80px;
+                margin-bottom: 0;
+            }
         }
 
         .history-numbers {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             flex: 1;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             align-items: center;
         }
 
-        /* 🔥 開獎紀錄中的球號樣式 - 確保在白色背景下正確顯示 */
+        /* 🔥 開獎紀錄中的球號樣式 - 響應式設計，確保所有球號都能顯示 */
         .draw-history-content .number-ball {
-            width: 24px !important;
-            height: 24px !important;
-            font-size: 11px !important;
+            min-width: 20px !important;
+            max-width: 28px !important;
+            width: calc((100% - 36px) / 10) !important; /* 動態計算寬度，10個球號 + 9個間隙 */
+            height: 20px !important;
+            font-size: 10px !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
@@ -2186,6 +2203,37 @@
             margin: 0 !important;
             position: relative !important;
             z-index: 1 !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* 響應式調整：小螢幕優化 */
+        @media (max-width: 480px) {
+            .draw-history-content .number-ball {
+                min-width: 18px !important;
+                max-width: 24px !important;
+                width: calc((100% - 27px) / 10) !important; /* 小螢幕調整 */
+                height: 18px !important;
+                font-size: 9px !important;
+            }
+            
+            .history-numbers {
+                gap: 3px;
+            }
+        }
+
+        /* 響應式調整：更小螢幕優化 */
+        @media (max-width: 360px) {
+            .draw-history-content .number-ball {
+                min-width: 16px !important;
+                max-width: 20px !important;
+                width: calc((100% - 18px) / 10) !important; /* 更小螢幕調整 */
+                height: 16px !important;
+                font-size: 8px !important;
+            }
+            
+            .history-numbers {
+                gap: 2px;
+            }
         }
 
         /* 強制確保球號的background顏色正確顯示 */
@@ -2542,14 +2590,6 @@
                 flex-wrap: nowrap !important;
             }
             
-            .draw-history-btn {
-                padding: 4px 8px !important;
-                font-size: 10px !important;
-                min-width: 60px !important;
-                border-radius: 8px !important;
-                box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3) !important;
-            }
-            
             .draw-animation-btn-standalone {
                 padding: 4px 6px !important;
                 font-size: 10px !important;
@@ -2630,18 +2670,12 @@
             .balance-info {
                 font-size: 12px !important;
                 padding: 4px 8px !important;
-                border-radius: 15px !important;
             }
             
             .menu-btn {
-                width: 36px !important;
-                height: 36px !important;
+                width: 36px;
+                height: 36px;
                 padding: 6px !important;
-                border-radius: 9px !important;
-            }
-            
-            .menu-btn i {
-                font-size: 16px !important;
             }
             
             .period-badges {
@@ -2662,27 +2696,9 @@
             }
             
             .countdown-section {
-                min-width: 70px !important;
-                padding: 3px 5px !important;
-                white-space: nowrap !important;
-            }
-            
-            .controls-container {
-                gap: 3px !important;
-            }
-            
-            .draw-history-btn {
-                padding: 3px 6px !important;
-                font-size: 9px !important;
-                min-width: 50px !important;
-                border-radius: 6px !important;
-            }
-            
-            .draw-animation-btn-standalone {
-                padding: 3px 5px !important;
-                font-size: 9px !important;
-                min-width: 50px !important;
-                border-radius: 6px !important;
+                min-width: 90px;
+                padding: 3px 5px;
+                white-space: nowrap;
             }
             
             .countdown-time {
