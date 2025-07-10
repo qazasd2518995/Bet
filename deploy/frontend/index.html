@@ -7306,6 +7306,9 @@
                      dragonTiger: { maxBet: 5000, periodLimit: 5000 }
                  },
                   roadBeadLoading: false, // 加載狀態
+                  
+                  // 日期追蹤，用於檢測新的一天開始
+                  currentDate: new Date().toISOString().split('T')[0]
                 };
             },
             created() {
@@ -8250,7 +8253,10 @@
                 },
                 
                 updateBetHistory(page = 1) {
-                    fetch(`${this.API_BASE_URL}/api/bet-history?username=${this.username}&page=${page}`)
+                    // 取得當日日期 (YYYY-MM-DD 格式)
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    fetch(`${this.API_BASE_URL}/api/bet-history?username=${this.username}&page=${page}&date=${today}`)
                         .then(response => response.json())
                         .then(data => {
                             // 检查是否有新結算的注單
@@ -8311,6 +8317,23 @@
                     
                     return hasNewSettlements;
                 },
+                
+                // 檢查日期變化，新的一天開始時清空注單記錄
+                checkDateChange() {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (this.currentDate !== today) {
+                        console.log('偵測到新的一天，清空注單記錄');
+                        this.currentDate = today;
+                        // 清空注單記錄
+                        this.betHistory = [];
+                        this.betRecords = [];
+                        // 如果用戶已登入，載入當日的注單記錄
+                        if (this.isLoggedIn) {
+                            this.updateBetHistory();
+                        }
+                    }
+                },
+                
                 addCustomChip() {
                     const amount = parseInt(this.customChip);
                     if (isNaN(amount) || amount <= 0) {
@@ -11494,8 +11517,13 @@
                 // 每隔60秒刷新一次注單历史
                 setInterval(() => {
                     if (this.isLoggedIn) {
-                this.updateBetHistory();
+                        this.updateBetHistory();
                     }
+                }, 60000);
+                
+                // 每隔1分鐘檢查日期變化，如果是新的一天則清空注單記錄
+                setInterval(() => {
+                    this.checkDateChange();
                 }, 60000);
                 
                 // 每隔5分鐘刷新一次熱門投注數據
