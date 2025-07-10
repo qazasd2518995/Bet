@@ -6088,12 +6088,12 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
           bh.bet_type as game_type,
           bh.period,
           bh.bet_value as bet_content,
+          bh.position,
           bh.amount as bet_amount,
           bh.odds,
           bh.win,
           bh.win_amount,
           bh.settled,
-          bh.position,
           bh.created_at
         FROM bet_history bh 
         ${whereClause}
@@ -6125,8 +6125,11 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
           bet_id: record.id, // 使用 id 作為 bet_id
           username: record.username,
           game_type: record.game_type,
+          bet_type: record.game_type, // 為前端兼容性添加 bet_type
           period_number: record.period,
           bet_content: record.bet_content,
+          bet_value: record.bet_content, // 為前端兼容性添加 bet_value
+          position: record.position, // 添加位置信息
           bet_amount: parseFloat(record.bet_amount),
           odds: parseFloat(record.odds),
           result: result,

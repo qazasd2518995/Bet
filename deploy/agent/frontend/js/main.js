@@ -6392,38 +6392,59 @@ const app = createApp({
           formatBetPosition(record) {
               if (!record) return '-';
               
+              console.log('格式化投注位置，record數據:', record);
+              
+              // 獲取投注類型和內容（兼容新舊欄位名稱）
+              const betType = record.bet_type || record.game_type;
+              const betContent = record.bet_value || record.bet_content;
+              const position = record.position;
+              
+              if (!betType || !betContent) {
+                  console.warn('投注數據不完整:', { betType, betContent, position });
+                  return '-';
+              }
+              
               // 根據真實數據格式化投注內容
-              if (record.bet_type === 'number') {
+              if (betType === 'number') {
                   const positionNames = {
                       1: '冠軍', 2: '亞軍', 3: '第三名', 4: '第四名', 5: '第五名',
                       6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
                   };
-                  const position = positionNames[record.position] || `第${record.position}名`;
-                  return `${position} ${record.bet_value}`;
-              } else if (record.bet_type === 'combined') {
+                  const positionName = positionNames[position] || `第${position}名`;
+                  return `${positionName} ${betContent}`;
+              } else if (betType === 'combined') {
                   const positionNames = {
                       'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
                       'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
                       'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
                   };
-                  const position = positionNames[record.position] || record.position;
+                  const positionName = positionNames[position] || position;
                   const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
-                  const value = valueMap[record.bet_value] || record.bet_value;
-                  return `${position} ${value}`;
-              } else if (record.bet_type === 'dragonTiger') {
+                  const value = valueMap[betContent] || betContent;
+                  return `${positionName} ${value}`;
+              } else if (betType === 'dragonTiger') {
                   const valueMap = { 'dragon': '龍', 'tiger': '虎' };
-                  const value = valueMap[record.bet_value] || record.bet_value;
+                  const value = valueMap[betContent] || betContent;
                   return `龍虎 ${value}`;
-              } else if (record.bet_type === 'sumValue') {
-                  if (['big', 'small', 'odd', 'even'].includes(record.bet_value)) {
+              } else if (betType === 'sumValue') {
+                  if (['big', 'small', 'odd', 'even'].includes(betContent)) {
                       const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
-                      const value = valueMap[record.bet_value] || record.bet_value;
+                      const value = valueMap[betContent] || betContent;
                       return `冠亞和 ${value}`;
                   } else {
-                      return `冠亞和 ${record.bet_value}`;
+                      return `冠亞和 ${betContent}`;
                   }
               } else {
-                  return `${record.bet_type} ${record.bet_value}`;
+                  // 如果有位置信息，加上位置名稱
+                  if (position && typeof position === 'number') {
+                      const positionNames = {
+                          1: '冠軍', 2: '亞軍', 3: '第三名', 4: '第四名', 5: '第五名',
+                          6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
+                      };
+                      const positionName = positionNames[position] || `第${position}名`;
+                      return `${positionName} ${betContent}`;
+                  }
+                  return `${betType} ${betContent}`;
               }
           },
 
