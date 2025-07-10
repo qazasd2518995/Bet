@@ -7092,6 +7092,8 @@
                 
                                  // 限紅相關
                  betLimitMessage: '', // 限紅提示訊息
+                 lastBetLimitsCheck: 0, // 上次檢查限紅設定的時間戳
+                 currentBetLimitsHash: '', // 當前限紅設定的雜湊值，用於檢測變更
                  betLimits: {
                      number: { maxBet: 2500, periodLimit: 5000 },
                      twoSide: { maxBet: 5000, periodLimit: 5000 },
@@ -7276,6 +7278,8 @@
                         
                         // 載入會員限紅設定
                         this.loadMemberBettingLimits();
+                        
+                        // 限紅設定會通過遊戲數據更新自動同步，無需手動監聽器
                     } else {
                         // 登录资讯不完整，重定向到登录頁面
                         sessionStorage.clear();
@@ -7444,6 +7448,8 @@
                     this.$forceUpdate();
                 },
                 logout() {
+                    // 限紅監聽器已移除，無需手動停止
+                    
                     // 清除所有登录资讯並跳轉到登录頁面
                     sessionStorage.clear();
                     this.username = '';
@@ -7639,6 +7645,13 @@
                             // 🎯 检查是否需要获取預先生成的结果（倒计时最后10秒）
                             if (serverStatus === 'betting' && serverCountdown <= 10 && serverCountdown > 0) {
                                 this.checkAndFetchNextResult();
+                            }
+                            
+                            // 🔄 定期檢查限紅設定更新（每30秒檢查一次，避免過於頻繁）
+                            const now = Date.now();
+                            if (!this.lastBetLimitsCheck || (now - this.lastBetLimitsCheck) > 30000) {
+                                this.checkBetLimitsUpdate();
+                                this.lastBetLimitsCheck = now;
                             }
                             
                             this.updateCountdownDisplay();
@@ -10593,6 +10606,9 @@
                                     }
                                 };
                                 
+                                // 設定初始雜湊值
+                                this.currentBetLimitsHash = this.calculateBetLimitsHash(data.config);
+                                
                                 console.log('✅ 會員限紅設定載入成功:', this.betLimits);
                                 
                                 // 重新檢查當前下注的限紅狀態
@@ -10605,6 +10621,86 @@
                         console.error('載入會員限紅設定出錯:', error);
                         console.warn('使用預設限紅設定');
                     }
+                },
+                
+                // 檢查限紅設定是否有更新（用於即時同步代理平台的調整）
+                async checkBetLimitsUpdate() {
+                    if (!this.username) {
+                        return; // 未登入時不檢查
+                    }
+                    
+                    try {
+                        const response = await fetch(`${this.API_BASE_URL}/api/member-betting-limits?username=${this.username}`);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.config) {
+                                // 計算新限紅設定的雜湊值
+                                const newConfigHash = this.calculateBetLimitsHash(data.config);
+                                
+                                // 檢查是否有變更
+                                if (this.currentBetLimitsHash && this.currentBetLimitsHash !== newConfigHash) {
+                                    console.log('🔄 檢測到限紅設定變更，立即更新...');
+                                    
+                                    // 更新限紅配置
+                                    this.betLimits = {
+                                        number: {
+                                            maxBet: data.config.number.maxBet,
+                                            periodLimit: data.config.number.periodLimit
+                                        },
+                                        twoSide: {
+                                            maxBet: data.config.twoSide.maxBet,
+                                            periodLimit: data.config.twoSide.periodLimit
+                                        },
+                                        sumValueSize: {
+                                            maxBet: data.config.sumValueSize.maxBet,
+                                            periodLimit: data.config.sumValueSize.periodLimit
+                                        },
+                                        sumValueOddEven: {
+                                            maxBet: data.config.sumValueOddEven.maxBet,
+                                            periodLimit: data.config.sumValueOddEven.periodLimit
+                                        },
+                                        sumValue: {
+                                            maxBet: data.config.sumValue.maxBet,
+                                            periodLimit: data.config.sumValue.periodLimit
+                                        },
+                                        dragonTiger: {
+                                            maxBet: data.config.dragonTiger.maxBet,
+                                            periodLimit: data.config.dragonTiger.periodLimit
+                                        }
+                                    };
+                                    
+                                    // 更新雜湊值
+                                    this.currentBetLimitsHash = newConfigHash;
+                                    
+                                    // 重新檢查當前下注的限紅狀態
+                                    this.checkBetLimits();
+                                    
+                                    // 顯示更新通知
+                                    this.showNotification('💰 限紅設定已更新', 'success');
+                                    
+                                    console.log('✅ 限紅設定已即時更新:', this.betLimits);
+                                } else if (!this.currentBetLimitsHash) {
+                                    // 初次設定雜湊值
+                                    this.currentBetLimitsHash = newConfigHash;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('檢查限紅設定更新時出錯:', error);
+                    }
+                },
+                
+                // 計算限紅設定的雜湊值（用於檢測變更）
+                calculateBetLimitsHash(config) {
+                    const str = JSON.stringify(config);
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                        const char = str.charCodeAt(i);
+                        hash = ((hash << 5) - hash) + char;
+                        hash = hash & hash; // Convert to 32bit integer
+                    }
+                    return hash.toString();
                 },
                 
                 // 切換主題
