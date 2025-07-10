@@ -6423,6 +6423,22 @@ const app = createApp({
                   const value = valueMap[betContent] || betContent;
                   return `${positionName} ${value}`;
               } else if (betType === 'dragonTiger') {
+                  // 處理龍虎投注格式：dragon_1_10 或 tiger_3_8
+                  if (betContent.includes('_')) {
+                      const parts = betContent.split('_');
+                      if (parts.length === 3) {
+                          const [dragonTiger, pos1, pos2] = parts;
+                          const positionNames = {
+                              1: '第1名', 2: '第2名', 3: '第3名', 4: '第4名', 5: '第5名',
+                              6: '第6名', 7: '第7名', 8: '第8名', 9: '第9名', 10: '第10名'
+                          };
+                          const position1 = positionNames[parseInt(pos1)] || `第${pos1}名`;
+                          const position2 = positionNames[parseInt(pos2)] || `第${pos2}名`;
+                          const dragonTigerText = dragonTiger === 'dragon' ? '龍' : '虎';
+                          return `${position1}vs${position2} ${dragonTigerText}`;
+                      }
+                  }
+                  // fallback處理
                   const valueMap = { 'dragon': '龍', 'tiger': '虎' };
                   const value = valueMap[betContent] || betContent;
                   return `龍虎 ${value}`;
