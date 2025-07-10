@@ -6404,6 +6404,45 @@ const app = createApp({
                   return '-';
               }
               
+              // 首先處理空格分隔的格式（如 "eighth odd", "champion big"）- 優先處理
+              if (typeof betContent === 'string' && betContent.includes(' ')) {
+                  const parts = betContent.split(' ');
+                  if (parts.length === 2) {
+                      const [positionEng, valueEng] = parts;
+                      
+                      // 位置名稱映射
+                      const positionMap = {
+                          'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名',
+                          'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                          'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+                      };
+                      
+                      // 值映射
+                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                      
+                      const positionText = positionMap[positionEng] || positionEng;
+                      const valueText = valueMap[valueEng] || valueEng;
+                      
+                      return `${positionText} ${valueText}`;
+                  }
+              }
+              
+              // 處理下劃線分隔的龍虎格式（如 "dragon_1_10"）
+              if (typeof betContent === 'string' && betContent.includes('_')) {
+                  const parts = betContent.split('_');
+                  if (parts.length === 3) {
+                      const [dragonTiger, pos1, pos2] = parts;
+                      const positionNames = {
+                          1: '第1名', 2: '第2名', 3: '第3名', 4: '第4名', 5: '第5名',
+                          6: '第6名', 7: '第7名', 8: '第8名', 9: '第9名', 10: '第10名'
+                      };
+                      const position1 = positionNames[parseInt(pos1)] || `第${pos1}名`;
+                      const position2 = positionNames[parseInt(pos2)] || `第${pos2}名`;
+                      const dragonTigerText = dragonTiger === 'dragon' ? '龍' : '虎';
+                      return `${position1}vs${position2} ${dragonTigerText}`;
+                  }
+              }
+              
               // 根據真實數據格式化投注內容
               if (betType === 'number') {
                   const positionNames = {
