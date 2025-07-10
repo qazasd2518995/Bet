@@ -3187,9 +3187,15 @@
 
         .search-actions {
             display: flex;
-            gap: 4px;
+            flex-direction: column;
             flex-shrink: 0;
             margin-left: 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .search-btn, .clear-btn {
@@ -6585,8 +6591,10 @@
                             <input type="text" v-model="historySearchPeriod" placeholder="输入期数" @input="searchHistoryByPeriod">
                         </div>
                         <div class="search-actions">
-                            <button class="search-btn" @click="searchTodayHistory">今日开奖</button>
-                            <button class="clear-btn" @click="clearHistorySearch">清除搜索</button>
+                            <div class="action-buttons">
+                                <button class="search-btn" @click="searchTodayHistory">今日开奖</button>
+                                <button class="clear-btn" @click="clearHistorySearch">清除搜索</button>
+                            </div>
                         </div>
                     </div>
                 </div>
