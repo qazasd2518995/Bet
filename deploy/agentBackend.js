@@ -6047,7 +6047,7 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
       // 檢查會員是否在當前代理的管理範圍內（暫時跳過，用於測試）
       console.log('找到會員:', member);
 
-      // 構建查詢條件
+      // 構建查詢條件，支援結算狀態篩選
       let whereClause = 'WHERE bh.username = $1';
       let params = [memberUsername];
       let paramIndex = 2;
@@ -6063,6 +6063,15 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
         params.push(endDate);
         paramIndex++;
       }
+
+      // 如果有結算狀態篩選
+      const { settlementStatus } = req.query;
+      if (settlementStatus === 'settled') {
+        whereClause += ` AND bh.settled = true`;
+      } else if (settlementStatus === 'unsettled') {
+        whereClause += ` AND bh.settled = false`;
+      }
+      // 如果不指定或指定為空，則顯示全部（已結算和未結算）
 
       // 查詢總數
       const totalQuery = `SELECT COUNT(*) as total FROM bet_history bh ${whereClause}`;
@@ -6097,7 +6106,19 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
       // 格式化記錄，加上必要的欄位和佔成明細
       const formattedRecords = await Promise.all(records.map(async (record) => {
         // 獲取這筆下注的代理鏈佔成明細
-        const commissionDetails = await getCommissionDetailsForBet(record.username, parseFloat(record.amount));
+        const commissionDetails = await getCommissionDetailsForBet(record.username, parseFloat(record.bet_amount));
+        
+        // 判斷結算狀態和結果
+        let result, profitLoss;
+        if (!record.settled) {
+          // 未結算注單
+          result = '未結算';
+          profitLoss = 0; // 未結算時盈虧為0
+        } else {
+          // 已結算注單
+          result = record.win ? '贏' : '輸';
+          profitLoss = record.win ? parseFloat(record.win_amount) - parseFloat(record.bet_amount) : -parseFloat(record.bet_amount);
+        }
         
         return {
           id: record.id,
@@ -6108,8 +6129,9 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
           bet_content: record.bet_content,
           bet_amount: parseFloat(record.bet_amount),
           odds: parseFloat(record.odds),
-          result: record.win ? '贏' : '輸',
-          profit_loss: record.win ? parseFloat(record.win_amount) - parseFloat(record.bet_amount) : -parseFloat(record.bet_amount),
+          result: result,
+          profit_loss: profitLoss,
+          settled: record.settled, // 添加結算狀態欄位
           rebate_percentage: commissionDetails.length > 0 ? commissionDetails[0].rebate_rate * 100 : 2.0, // 轉換為百分比
           market_type: member.market_type || 'A', // 從會員資料取得
           created_at: record.created_at,

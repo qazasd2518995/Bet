@@ -6266,14 +6266,19 @@ const app = createApp({
           formatBetResultDetailed(record) {
               if (!record) return '-';
               
+              // 首先檢查是否為未結算注單
+              if (record.settled === false || record.result === '未結算') {
+                  return '未結算';
+              }
+              
               // 根據記錄計算實際輸贏金額
               let winLossAmount = 0;
               
-              if (record.result === 'win') {
+              if (record.result === 'win' || record.result === '贏') {
                   // 中獎：計算贏得的金額（投注金額 * 賠率 - 投注金額）
                   const odds = parseFloat(record.odds) || 9.59;
                   winLossAmount = (parseFloat(record.bet_amount) || 0) * odds - (parseFloat(record.bet_amount) || 0);
-              } else if (record.result === 'lose') {
+              } else if (record.result === 'lose' || record.result === '輸') {
                   // 未中獎：損失投注金額
                   winLossAmount = -(parseFloat(record.bet_amount) || 0);
               } else if (record.result === 'pending') {
@@ -6298,12 +6303,17 @@ const app = createApp({
           getBetResultDetailedClass(record) {
               if (!record) return 'text-muted';
               
+              // 檢查是否為未結算注單
+              if (record.settled === false || record.result === '未結算') {
+                  return 'text-warning fw-bold';
+              }
+              
               let winLossAmount = 0;
               
-              if (record.result === 'win') {
+              if (record.result === 'win' || record.result === '贏') {
                   const odds = parseFloat(record.odds) || 9.59;
                   winLossAmount = (parseFloat(record.bet_amount) || 0) * odds - (parseFloat(record.bet_amount) || 0);
-              } else if (record.result === 'lose') {
+              } else if (record.result === 'lose' || record.result === '輸') {
                   winLossAmount = -(parseFloat(record.bet_amount) || 0);
               } else if (record.result === 'pending') {
                   return 'text-warning fw-bold';
@@ -6320,6 +6330,11 @@ const app = createApp({
           // 格式化本級結果（上級代理獲得的退水和佣金）
           formatAgentRebate(record) {
               if (!record) return '0.00';
+              
+              // 檢查是否為未結算注單
+              if (record.settled === false || record.result === '未結算') {
+                  return '未結算';
+              }
               
               console.log('計算本級結果:', record); // 調試用
               
@@ -6592,6 +6607,11 @@ const app = createApp({
                 }
                 if (this.memberBetRecords.filters.endDate) {
                     params.append('endDate', this.memberBetRecords.filters.endDate);
+                }
+                
+                // 傳遞結算狀態篩選
+                if (this.reportFilters.settlementStatus) {
+                    params.append('settlementStatus', this.reportFilters.settlementStatus);
                 }
                 
                 console.log('📡 查詢會員下注記錄參數:', params.toString());
