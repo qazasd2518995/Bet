@@ -6814,7 +6814,7 @@ const app = createApp({
                     this.memberBetRecords.expandedRecords[recordKey] = {
                         loading: false,
                         error: true,
-                        message: '開獎結果查詢失敗，請稍後再試'
+                        message: '未開獎，請稍後再試'
                     };
                 }
                 
