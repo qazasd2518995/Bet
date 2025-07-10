@@ -3177,109 +3177,194 @@
             box-shadow: 0 2px 8px rgba(40,167,69,0.3);
         }
 
-        /* 历史开奖搜索樣式 - 重新設計佈局 */
+        /* === 歷史開獎搜索樣式 - 2欄×2列 Grid === */
         .history-search {
-            padding: 8px 12px;
+            padding: 12px;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }
 
-        /* 搜尋區域改為 Grid 佈局，兩列均分 */
-        .search-bar {
+        /* 搜尋面板 - 2×2 Grid 佈局 */
+        .search-panel {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            max-width: 340px;  /* 限制最大寬度避免過寬 */
+            grid-template-columns: repeat(2, 160px);  /* 兩欄同寬 160px */
+            grid-auto-rows: 36px;                     /* 兩列同高 36px */
+            gap: 8px;                                 /* 行列間距 8px */
+            max-width: 336px;                         /* 2×160 + 16 (gap) */
+            margin: 0 auto;                           /* 居中對齊 */
         }
 
-        /* 每個輸入組 (輸入框 + 按鈕) */
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        /* 兩個輸入框的統一樣式 */
-        #dateSearch,
-        #periodSearch {
+        /* 讓四個元件拉滿格子寬度 */
+        #dateInput,
+        #periodInput,
+        #todayBtn,
+        #clearBtn {
             width: 100%;
-            height: 32px;
-            padding: 4px 8px;
+            height: 100%;
             border: 1px solid #dee2e6;
-            border-radius: 3px;
-            font-size: 11px;
+            border-radius: 4px;
+            font-size: 12px;
             box-sizing: border-box;
+            transition: all 0.2s ease;
         }
 
-        #dateSearch:focus,
-        #periodSearch:focus {
+        /* 輸入框樣式 */
+        #dateInput,
+        #periodInput {
+            padding: 6px 8px;
+            background: white;
+        }
+
+        #dateInput:focus,
+        #periodInput:focus {
             border-color: #007bff;
             outline: none;
-            box-shadow: 0 0 0 1px rgba(0,123,255,0.1);
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
         }
 
-        /* 按鈕樣式統一 */
+        /* 按鈕樣式 */
         #todayBtn,
-        #resetBtn {
-            width: 100%;
-            height: 32px;
-            border: none;
-            border-radius: 3px;
-            font-size: 11px;
+        #clearBtn {
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
+            border: none;
         }
 
-        .search-btn {
+        #todayBtn {
             background: #007bff;
             color: white;
         }
 
-        .search-btn:hover {
+        #todayBtn:hover {
             background: #0056b3;
         }
 
-        .clear-btn {
+        #clearBtn {
             background: #6c757d;
             color: white;
         }
 
-        .clear-btn:hover {
+        #clearBtn:hover {
             background: #545b62;
+        }
+
+        /* === 歷史紀錄列表 === */
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 8px 12px;
+        }
+
+        .record {
+            margin-top: 16px;        /* 與上一筆／搜尋區拉開距離 */
+            padding-left: 0;         /* 確保左邊完全對齊 */
+        }
+
+        .record:first-child {
+            margin-top: 8px;         /* 第一筆與搜尋區的距離 */
+        }
+
+        /* 期號＋時間 */
+        .rec-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .period {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .time {
+            margin-left: 8px;        /* 與期號保持間距 */
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* 開獎球號列 */
+        .balls {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;         /* 允許換行 */
+        }
+
+        .ball {
+            width: 22px; 
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.3);
         }
 
         /* 響應式設計 */
         @media (max-width: 768px) {
-            .search-bar {
-                grid-template-columns: 1fr;  /* 小螢幕改為單列 */
-                max-width: 200px;            /* 縮小最大寬度 */
-                gap: 8px;
+            .search-panel {
+                grid-template-columns: repeat(2, 140px);  /* 縮小欄寬 */
+                grid-auto-rows: 32px;                     /* 縮小列高 */
+                gap: 6px;
+                max-width: 286px;                         /* 2×140 + 6 */
             }
             
-            #dateSearch,
-            #periodSearch,
+            #dateInput,
+            #periodInput,
             #todayBtn,
-            #resetBtn {
-                height: 28px;               /* 縮小高度 */
-                font-size: 10px;            /* 縮小字體 */
+            #clearBtn {
+                font-size: 11px;
+            }
+
+            .period {
+                font-size: 13px;
+            }
+
+            .time {
+                font-size: 11px;
+            }
+
+            .ball {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
             }
         }
 
         @media (max-width: 480px) {
-            .search-bar {
-                max-width: 160px;            /* 更小螢幕進一步縮小 */
+            .search-panel {
+                grid-template-columns: 1fr;              /* 改為單欄 */
+                grid-template-rows: repeat(4, 32px);     /* 四列 */
+                max-width: 200px;
                 gap: 6px;
             }
             
-            #dateSearch,
-            #periodSearch,
+            #dateInput,
+            #periodInput,
             #todayBtn,
-            #resetBtn {
-                height: 26px;               /* 進一步縮小高度 */
-                font-size: 9px;             /* 進一步縮小字體 */
-                padding: 2px 6px;           /* 縮小內邊距 */
+            #clearBtn {
+                font-size: 10px;
+            }
+
+            .history-search {
+                padding: 8px;
+            }
+
+            .period {
+                font-size: 12px;
+            }
+
+            .time {
+                font-size: 10px;
+            }
+
+            .ball {
+                width: 18px;
+                height: 18px;
+                font-size: 9px;
             }
         }
         /* 週報表樣式 */
@@ -6623,20 +6708,13 @@
                     <button class="close-btn" @click="showHistory = false">×</button>
                 </div>
                 
-                <!-- 新增日期搜索功能 -->
+                <!-- 搜尋區域 - 2欄×2列 Grid 佈局 -->
                 <div class="history-search">
-                    <div class="search-bar">
-                        <!-- 日期搜尋組 -->
-                        <div class="input-group">
-                            <input id="dateSearch" type="date" v-model="historySearchDate" @change="searchHistoryByDate" placeholder="mm/dd/yyyy">
-                            <button id="todayBtn" class="search-btn" @click="searchTodayHistory">今日開獎</button>
-                        </div>
-                        
-                        <!-- 期號搜尋組 -->
-                        <div class="input-group">
-                            <input id="periodSearch" type="text" v-model="historySearchPeriod" placeholder="輸入期數" @input="searchHistoryByPeriod">
-                            <button id="resetBtn" class="clear-btn" @click="clearHistorySearch">清除搜尋</button>
-                        </div>
+                    <div class="search-panel">
+                        <input id="dateInput" type="date" v-model="historySearchDate" @change="searchHistoryByDate" placeholder="mm/dd/yyyy">
+                        <input id="periodInput" type="text" v-model="historySearchPeriod" placeholder="輸入期號" @input="searchHistoryByPeriod">
+                        <button id="todayBtn" class="search-btn" @click="searchTodayHistory">今日開獎</button>
+                        <button id="clearBtn" class="clear-btn" @click="clearHistorySearch">清除搜尋</button>
                     </div>
                 </div>
                 
@@ -6645,18 +6723,16 @@
                     <div v-if="recentResults.length === 0" class="no-records">
                         暫無开奖记录
                     </div>
-                    <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="history-item">
-                        <div class="history-row">
-                            <div class="period-time-info">
-                                <div class="period">{{ record.period }}期</div>
-                                <div class="time">{{ formatHistoryTime(record.time || record.created_at) }}</div>
-                            </div>
-                            <div class="result-balls">
-                                <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
-                                     :class="['number-ball', 'color-' + number]">
-                                    {{ number }}
-                                </div>
-                            </div>
+                    <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="record">
+                        <div class="rec-header">
+                            <span class="period">{{ record.period }}期</span>
+                            <span class="time">{{ formatHistoryTime(record.time || record.created_at) }}</span>
+                        </div>
+                        <div class="balls">
+                            <span v-for="(number, ballIndex) in record.result" :key="ballIndex" 
+                                  :class="['ball', 'color-' + number]">
+                                {{ number }}
+                            </span>
                         </div>
                     </div>
                 </div>
