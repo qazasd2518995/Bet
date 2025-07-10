@@ -46,12 +46,36 @@ const BetModel = {
   // 更新注單結算結果
   async updateSettlement(id, isWin, winAmount) {
     try {
-      return await db.one(`
-        UPDATE bet_history 
-        SET win = $1, win_amount = $2, settled = true 
-        WHERE id = $3 
-        RETURNING *
-      `, [isWin, winAmount || 0, id]);
+      // 首先檢查該注單是否已經結算，避免重複結算
+      const existingBet = await db.oneOrNone(`
+        SELECT id, settled FROM bet_history WHERE id = $1
+      `, [id]);
+      
+      // 如果注單不存在或已經結算，則跳過
+      if (!existingBet) {
+        console.warn(`⚠️ 警告: 注單ID ${id} 不存在，無法結算`);
+        return null;
+      }
+      
+      if (existingBet.settled) {
+        console.warn(`⚠️ 警告: 注單ID ${id} 已經結算過，避免重複結算`);
+        // 返回現有的注單數據
+        return await db.one(`SELECT * FROM bet_history WHERE id = $1`, [id]);
+      }
+      
+      // 使用事務保證原子性
+      return await db.tx(async t => {
+        // 更新注單為已結算
+        const updatedBet = await t.one(`
+          UPDATE bet_history 
+          SET win = $1, win_amount = $2, settled = true 
+          WHERE id = $3 AND settled = false
+          RETURNING *
+        `, [isWin, winAmount || 0, id]);
+        
+        console.log(`✅ 注單ID ${id} 結算成功，贏錢金額: ${winAmount || 0}`);
+        return updatedBet;
+      });
     } catch (error) {
       console.error('更新注單結算結果出錯:', error);
       throw error;
