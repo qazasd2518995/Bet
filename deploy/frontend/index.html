@@ -2152,6 +2152,8 @@
             border-bottom: 1px solid #eee;
             flex-direction: column;
             gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .history-item:last-child {
@@ -2181,20 +2183,23 @@
 
         .history-numbers {
             display: flex;
-            gap: 4px;
+            gap: 2px;
             flex: 1;
             flex-wrap: nowrap;
             align-items: center;
-            overflow-x: hidden;
+            overflow-x: visible;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* 🔥 開獎紀錄中的球號樣式 - 響應式設計，確保所有球號都能顯示 */
         .draw-history-content .number-ball {
-            min-width: 20px !important;
-            max-width: 28px !important;
-            width: calc((100% - 36px) / 10) !important; /* 動態計算寬度，10個球號 + 9個間隙 */
-            height: 20px !important;
-            font-size: 10px !important;
+            min-width: 16px !important;
+            max-width: 18px !important;
+            width: 16px !important; /* 固定小尺寸確保10個球號都能顯示 */
+            height: 16px !important;
+            font-size: 8px !important;
             border-radius: 50% !important;
             display: flex !important;
             align-items: center !important;
@@ -2212,30 +2217,30 @@
         /* 響應式調整：小螢幕優化 */
         @media (max-width: 480px) {
             .draw-history-content .number-ball {
-                min-width: 18px !important;
-                max-width: 24px !important;
-                width: calc((100% - 27px) / 10) !important; /* 小螢幕調整 */
-                height: 18px !important;
-                font-size: 9px !important;
+                min-width: 15px !important;
+                max-width: 17px !important;
+                width: 15px !important;
+                height: 15px !important;
+                font-size: 7px !important;
             }
             
             .history-numbers {
-                gap: 3px;
+                gap: 2px;
             }
         }
 
         /* 響應式調整：更小螢幕優化 */
         @media (max-width: 360px) {
             .draw-history-content .number-ball {
-                min-width: 16px !important;
-                max-width: 20px !important;
-                width: calc((100% - 18px) / 10) !important; /* 更小螢幕調整 */
-                height: 16px !important;
-                font-size: 8px !important;
+                min-width: 14px !important;
+                max-width: 16px !important;
+                width: 14px !important;
+                height: 14px !important;
+                font-size: 6px !important;
             }
             
             .history-numbers {
-                gap: 2px;
+                gap: 1px;
             }
         }
 
