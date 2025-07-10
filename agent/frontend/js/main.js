@@ -6401,28 +6401,36 @@ const app = createApp({
               
               console.log('🔍 解析欄位:', { betType, betContent, position });
               
-              if (!betType || !betContent) {
+              if (!betType || betContent === undefined || betContent === null) {
                   console.warn('❌ 投注數據不完整:', { betType, betContent, position });
                   return '-';
               }
               
-              // 首先處理空格分隔的格式（如 "eighth odd", "champion big"）- 優先處理
+              // 定義位置名稱映射
+              const positionMap = {
+                  'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名',
+                  'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                  'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+              };
+              
+              // 值映射
+              const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+              
+              // 處理 bet_type 直接是位置名稱的情況（如 bet_type="eighth", bet_content="odd"）
+              if (positionMap[betType] && typeof betContent === 'string') {
+                  const positionText = positionMap[betType];
+                  const valueText = valueMap[betContent] || betContent;
+                  console.log('✅ bet_type是位置名稱，轉換:', { betType, betContent, positionText, valueText });
+                  return `${positionText} ${valueText}`;
+              }
+              
+              // 處理空格分隔的格式（如 "eighth odd", "champion big"）
               if (typeof betContent === 'string' && betContent.includes(' ')) {
                   console.log('✅ 發現空格分隔格式:', betContent);
                   const parts = betContent.split(' ');
                   console.log('✅ 分割結果:', parts);
                   if (parts.length === 2) {
                       const [positionEng, valueEng] = parts;
-                      
-                      // 位置名稱映射
-                      const positionMap = {
-                          'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名',
-                          'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                          'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                      };
-                      
-                      // 值映射
-                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
                       
                       const positionText = positionMap[positionEng] || positionEng;
                       const valueText = valueMap[valueEng] || valueEng;

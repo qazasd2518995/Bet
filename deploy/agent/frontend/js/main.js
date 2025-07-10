@@ -6406,6 +6406,24 @@ const app = createApp({
                   return '-';
               }
               
+              // 定義位置名稱映射
+              const positionMap = {
+                  'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名',
+                  'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                  'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+              };
+              
+              // 值映射
+              const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+              
+              // 處理 bet_type 直接是位置名稱的情況（如 bet_type="eighth", bet_content="odd"）
+              if (positionMap[betType] && typeof betContent === 'string') {
+                  const positionText = positionMap[betType];
+                  const valueText = valueMap[betContent] || betContent;
+                  console.log('✅ bet_type是位置名稱，轉換:', { betType, betContent, positionText, valueText });
+                  return `${positionText} ${valueText}`;
+              }
+              
               // 首先處理空格分隔的格式（如 "eighth odd", "champion big"）- 優先處理
               if (typeof betContent === 'string' && betContent.includes(' ')) {
                   console.log('✅ 發現空格分隔格式:', betContent);
