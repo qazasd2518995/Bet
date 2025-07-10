@@ -6392,21 +6392,25 @@ const app = createApp({
           formatBetPosition(record) {
               if (!record) return '-';
               
-              console.log('格式化投注位置，record數據:', record);
+              console.log('🔍 格式化投注位置，record數據:', record);
               
               // 獲取投注類型和內容（兼容新舊欄位名稱）
               const betType = record.bet_type || record.game_type;
               const betContent = record.bet_value || record.bet_content;
               const position = record.position;
               
+              console.log('🔍 解析欄位:', { betType, betContent, position });
+              
               if (!betType || !betContent) {
-                  console.warn('投注數據不完整:', { betType, betContent, position });
+                  console.warn('❌ 投注數據不完整:', { betType, betContent, position });
                   return '-';
               }
               
               // 首先處理空格分隔的格式（如 "eighth odd", "champion big"）- 優先處理
               if (typeof betContent === 'string' && betContent.includes(' ')) {
+                  console.log('✅ 發現空格分隔格式:', betContent);
                   const parts = betContent.split(' ');
+                  console.log('✅ 分割結果:', parts);
                   if (parts.length === 2) {
                       const [positionEng, valueEng] = parts;
                       
