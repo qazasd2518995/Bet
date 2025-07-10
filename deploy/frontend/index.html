@@ -3147,13 +3147,14 @@
             border-bottom: 1px solid #dee2e6;
         }
 
-        /* 搜尋面板 - 2×2 Grid 佈局 */
+        /* 搜尋面板 - 彈性 2×2 Grid 佈局（方案 A - 固定不收合） */
         .search-panel {
             display: grid;
-            grid-template-columns: repeat(2, 160px);  /* 兩欄同寬 160px */
-            grid-auto-rows: 36px;                     /* 兩列同高 36px */
+            /* 每格最小 120px，寬不夠時自動塞到下一列 */
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-auto-rows: 40px;                     /* 統一列高 40px */
             gap: 8px;                                 /* 行列間距 8px */
-            max-width: 336px;                         /* 2×160 + 16 (gap) */
+            max-width: 400px;                         /* 增加最大寬度 */
             margin: 0 auto;                           /* 居中對齊 */
         }
 
@@ -3266,13 +3267,25 @@
             text-shadow: 0 1px 1px rgba(0,0,0,0.3);
         }
 
-        /* 響應式設計 */
+        /* 為歷史紀錄球號添加顏色樣式 */
+        .ball.color-1 { background: #ffcc00 !important; color: #000 !important; }
+        .ball.color-2 { background: #3399ff !important; color: #fff !important; }
+        .ball.color-3 { background: #777777 !important; color: #fff !important; }
+        .ball.color-4 { background: #ff9933 !important; color: #fff !important; }
+        .ball.color-5 { background: #00ccff !important; color: #fff !important; }
+        .ball.color-6 { background: #9966cc !important; color: #fff !important; }
+        .ball.color-7 { background: #aaaaaa !important; color: #fff !important; }
+        .ball.color-8 { background: #ff3333 !important; color: #fff !important; }
+        .ball.color-9 { background: #990000 !important; color: #fff !important; }
+        .ball.color-10 { background: #33cc33 !important; color: #fff !important; }
+
+        /* 響應式設計 - 移除手機端單欄設定，保持 2×2 */
         @media (max-width: 768px) {
             .search-panel {
-                grid-template-columns: repeat(2, 140px);  /* 縮小欄寬 */
-                grid-auto-rows: 32px;                     /* 縮小列高 */
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));  /* 縮小最小寬度 */
+                grid-auto-rows: 36px;                     /* 縮小列高 */
                 gap: 6px;
-                max-width: 286px;                         /* 2×140 + 6 */
+                max-width: 300px;                         /* 縮小最大寬度 */
             }
             
             #dateInput,
@@ -3297,12 +3310,13 @@
             }
         }
 
-        @media (max-width: 480px) {
+        /* 極小螢幕響應式 - 仍保持 2×2，但進一步縮小 */
+        @media (max-width: 400px) {
             .search-panel {
-                grid-template-columns: 1fr;              /* 改為單欄 */
-                grid-template-rows: repeat(4, 32px);     /* 四列 */
-                max-width: 200px;
-                gap: 6px;
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));  /* 進一步縮小 */
+                grid-auto-rows: 32px;
+                gap: 4px;
+                max-width: 250px;
             }
             
             #dateInput,
