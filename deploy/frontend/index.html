@@ -3140,24 +3140,32 @@
             box-shadow: 0 2px 8px rgba(40,167,69,0.3);
         }
 
-        /* 历史开奖搜索樣式 - 水平排列佈局 */
+        /* 历史开奖搜索樣式 - 重新設計佈局 */
         .history-search {
             padding: 8px 12px;
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
         }
 
-        /* 讓整條列水平排列 */
+        /* 搜尋區域改為 Grid 佈局，兩列均分 */
         .search-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            max-width: 340px;  /* 限制最大寬度避免過寬 */
+        }
+
+        /* 每個輸入組 (輸入框 + 按鈕) */
+        .input-group {
             display: flex;
-            align-items: flex-start;   /* 上緣對齊 */
-            gap: 8px;                  /* 左右間距 */
+            flex-direction: column;
+            gap: 6px;
         }
 
         /* 兩個輸入框的統一樣式 */
         #dateSearch,
         #periodSearch {
-            width: 160px;              /* 固定寬度，與按鈕一致 */
+            width: 100%;
             height: 32px;
             padding: 4px 8px;
             border: 1px solid #dee2e6;
@@ -3173,17 +3181,10 @@
             box-shadow: 0 0 0 1px rgba(0,123,255,0.1);
         }
 
-        /* 垂直放置兩顆按鈕 */
-        .actions {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;                  /* 上下間距 */
-        }
-
-        /* 兩顆按鈕寬度與輸入框相同 */
+        /* 按鈕樣式統一 */
         #todayBtn,
         #resetBtn {
-            width: 160px;
+            width: 100%;
             height: 32px;
             border: none;
             border-radius: 3px;
@@ -3212,14 +3213,36 @@
             background: #545b62;
         }
 
+        /* 響應式設計 */
         @media (max-width: 768px) {
-            .search-row {
-                flex-direction: column;
-                align-items: stretch;
+            .search-bar {
+                grid-template-columns: 1fr;  /* 小螢幕改為單列 */
+                max-width: 200px;            /* 縮小最大寬度 */
+                gap: 8px;
             }
             
-            .search-actions {
-                justify-content: center;
+            #dateSearch,
+            #periodSearch,
+            #todayBtn,
+            #resetBtn {
+                height: 28px;               /* 縮小高度 */
+                font-size: 10px;            /* 縮小字體 */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .search-bar {
+                max-width: 160px;            /* 更小螢幕進一步縮小 */
+                gap: 6px;
+            }
+            
+            #dateSearch,
+            #periodSearch,
+            #todayBtn,
+            #resetBtn {
+                height: 26px;               /* 進一步縮小高度 */
+                font-size: 9px;             /* 進一步縮小字體 */
+                padding: 2px 6px;           /* 縮小內邊距 */
             }
         }
         /* 週報表樣式 */
@@ -6566,15 +6589,15 @@
                 <!-- 新增日期搜索功能 -->
                 <div class="history-search">
                     <div class="search-bar">
-                        <!-- 日期搜尋 -->
-                        <input id="dateSearch" type="date" v-model="historySearchDate" @change="searchHistoryByDate" placeholder="mm/dd/yyyy">
-                        
-                        <!-- 期號搜尋 -->
-                        <input id="periodSearch" type="text" v-model="historySearchPeriod" placeholder="輸入期數" @input="searchHistoryByPeriod">
-                        
-                        <!-- 按鈕垂直容器 -->
-                        <div class="actions">
+                        <!-- 日期搜尋組 -->
+                        <div class="input-group">
+                            <input id="dateSearch" type="date" v-model="historySearchDate" @change="searchHistoryByDate" placeholder="mm/dd/yyyy">
                             <button id="todayBtn" class="search-btn" @click="searchTodayHistory">今日開獎</button>
+                        </div>
+                        
+                        <!-- 期號搜尋組 -->
+                        <div class="input-group">
+                            <input id="periodSearch" type="text" v-model="historySearchPeriod" placeholder="輸入期數" @input="searchHistoryByPeriod">
                             <button id="resetBtn" class="clear-btn" @click="clearHistorySearch">清除搜尋</button>
                         </div>
                     </div>
