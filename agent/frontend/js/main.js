@@ -6254,12 +6254,44 @@ const app = createApp({
           formatBetContentDetailed(record) {
               if (!record) return '-';
               
-              // 模擬一個投注內容格式 - 實際使用時需要根據真實數據結構調整
-              const position = record.position || '第八名';
-              const value = record.bet_value || '6';
-              const odds = record.odds || '9.59';
+              // 使用正確的投注內容格式化邏輯
+              let content = '';
               
-              return `${position} ${value} @ ${odds}`;
+              if (record.bet_type === 'number') {
+                  const positionNames = {
+                      1: '冠軍', 2: '亞軍', 3: '第三名', 4: '第四名', 5: '第五名',
+                      6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
+                  };
+                  const position = positionNames[record.position] || `第${record.position}名`;
+                  content = `${position} ${record.bet_value}`;
+              } else if (record.bet_type === 'combined') {
+                  const positionNames = {
+                      'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
+                      'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                      'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+                  };
+                  const position = positionNames[record.position] || record.position;
+                  const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                  const value = valueMap[record.bet_value] || record.bet_value;
+                  content = `${position} ${value}`;
+              } else if (record.bet_type === 'dragonTiger') {
+                  const valueMap = { 'dragon': '龍', 'tiger': '虎' };
+                  const value = valueMap[record.bet_value] || record.bet_value;
+                  content = `龍虎 ${value}`;
+              } else if (record.bet_type === 'sumValue') {
+                  if (['big', 'small', 'odd', 'even'].includes(record.bet_value)) {
+                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                      const value = valueMap[record.bet_value] || record.bet_value;
+                      content = `冠亞和 ${value}`;
+                  } else {
+                      content = `冠亞和 ${record.bet_value}`;
+                  }
+              } else {
+                  content = `${record.bet_type} ${record.bet_value}`;
+              }
+              
+              const odds = record.odds || '1.98';
+              return `${content} @ ${odds}`;
           },
 
           // 格式化下注結果 - 詳細格式
@@ -6358,13 +6390,41 @@ const app = createApp({
 
           // 格式化投注位置和內容
           formatBetPosition(record) {
-              if (!record) return '第八名 6';
+              if (!record) return '-';
               
-              // 根據實際數據格式化，這裡使用模擬數據
-              const position = record.position || record.bet_position || '第八名';
-              const value = record.bet_value || record.number || '6';
-              
-              return `${position} ${value}`;
+              // 根據真實數據格式化投注內容
+              if (record.bet_type === 'number') {
+                  const positionNames = {
+                      1: '冠軍', 2: '亞軍', 3: '第三名', 4: '第四名', 5: '第五名',
+                      6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
+                  };
+                  const position = positionNames[record.position] || `第${record.position}名`;
+                  return `${position} ${record.bet_value}`;
+              } else if (record.bet_type === 'combined') {
+                  const positionNames = {
+                      'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
+                      'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                      'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+                  };
+                  const position = positionNames[record.position] || record.position;
+                  const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                  const value = valueMap[record.bet_value] || record.bet_value;
+                  return `${position} ${value}`;
+              } else if (record.bet_type === 'dragonTiger') {
+                  const valueMap = { 'dragon': '龍', 'tiger': '虎' };
+                  const value = valueMap[record.bet_value] || record.bet_value;
+                  return `龍虎 ${value}`;
+              } else if (record.bet_type === 'sumValue') {
+                  if (['big', 'small', 'odd', 'even'].includes(record.bet_value)) {
+                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                      const value = valueMap[record.bet_value] || record.bet_value;
+                      return `冠亞和 ${value}`;
+                  } else {
+                      return `冠亞和 ${record.bet_value}`;
+                  }
+              } else {
+                  return `${record.bet_type} ${record.bet_value}`;
+              }
           },
 
           // 根據盤口類型格式化賠率
