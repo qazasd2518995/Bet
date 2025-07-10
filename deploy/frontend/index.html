@@ -2218,6 +2218,43 @@
             flex-shrink: 0 !important;
         }
 
+        /* 歷史開獎彈窗球號樣式 */
+        .draw-history .number-ball {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            max-width: 16px !important;
+            font-size: 8px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: bold !important;
+            color: white !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+            margin: 0 !important;
+            position: relative !important;
+            z-index: 1 !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box !important;
+        }
+
+        /* 確保期號左對齊 */
+        .draw-history .period-time-info {
+            text-align: left !important;
+            min-width: 100px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .draw-history .period {
+            text-align: left !important;
+        }
+
+        .draw-history .time {
+            text-align: left !important;
+        }
+
         /* 響應式調整：小螢幕優化 */
         @media (max-width: 480px) {
             .draw-history-content .number-ball {
@@ -5747,6 +5784,126 @@
                 padding: 12px 8px !important;
             }
         }
+
+        /* 修改密碼彈窗樣式 */
+        .change-password-modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: fadeInScale 0.3s ease-out;
+        }
+        
+        .change-password-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .change-password-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .change-password-content {
+            padding: 25px;
+        }
+        
+        .password-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .password-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .password-form input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .password-form input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+        
+        .cancel-btn, .confirm-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .cancel-btn {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+        
+        .cancel-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .confirm-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            min-width: 100px;
+        }
+        
+        .confirm-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .confirm-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .change-password-modal {
+                width: 95%;
+                max-width: 95%;
+            }
+            
+            .change-password-content {
+                padding: 20px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .cancel-btn, .confirm-btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -5814,6 +5971,9 @@
                             </button>
                             <button class="dropdown-action" @click="showBetLimits">
                                 <span>限紅規定</span>
+                            </button>
+                            <button class="dropdown-action" @click="showChangePassword">
+                                <span>修改密碼</span>
                             </button>
 
                             <div class="dropdown-divider"></div>
@@ -6828,6 +6988,53 @@
             </div>
         </div>
 
+        <!-- 修改密碼彈窗 -->
+        <div class="modal" v-if="showChangePasswordModal">
+            <div class="change-password-modal">
+                <div class="change-password-header">
+                    <h3>修改密碼</h3>
+                    <button class="close-btn" @click="showChangePasswordModal = false">×</button>
+                </div>
+                <div class="change-password-content">
+                    <form @submit.prevent="submitChangePassword" class="password-form">
+                        <div class="form-group">
+                            <label for="currentPassword">當前密碼</label>
+                            <input type="password" 
+                                   id="currentPassword" 
+                                   v-model="changePasswordForm.currentPassword" 
+                                   placeholder="請輸入當前密碼"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">新密碼</label>
+                            <input type="password" 
+                                   id="newPassword" 
+                                   v-model="changePasswordForm.newPassword" 
+                                   placeholder="請輸入新密碼（至少6個字符）"
+                                   minlength="6"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">確認新密碼</label>
+                            <input type="password" 
+                                   id="confirmPassword" 
+                                   v-model="changePasswordForm.confirmPassword" 
+                                   placeholder="請再次輸入新密碼"
+                                   minlength="6"
+                                   required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="cancel-btn" @click="showChangePasswordModal = false">取消</button>
+                            <button type="submit" class="confirm-btn" :disabled="changePasswordLoading">
+                                <span v-if="changePasswordLoading">修改中...</span>
+                                <span v-else>確認修改</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- 長龍排行彈窗 -->
         <div class="modal" v-if="dragonRankingVisible">
             <div class="dragon-ranking">
@@ -7157,6 +7364,7 @@
                     themeSelectorVisible: false, // 控制主題选择器顯示狀態
                     roadBeadVisible: false, // 控制路珠走勢顯示狀態
                     showBetLimitsModal: false, // 控制限紅規定顯示狀態
+                    showChangePasswordModal: false, // 控制修改密碼顯示狀態
                     roadBeadRows: [], // 路珠走勢數據
                     showDrawHistoryPopup: false, // 控制開獎紀錄小視窗顯示狀態
                     recentDrawHistory: [], // 最近10期開獎紀錄
@@ -7220,6 +7428,14 @@
                     // 通知系统
                     notificationText: '',
                     notificationVisible: false,
+                    
+                    // 修改密碼表單
+                    changePasswordForm: {
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    },
+                    changePasswordLoading: false, // 修改密碼loading狀態
                     
                     // 自訂金额
                     customAmount: '',
@@ -7485,6 +7701,11 @@
                         // 載入會員限紅設定
                         this.loadMemberBettingLimits();
                         
+                        // 啟動會話監控
+                        if (typeof window.startSessionMonitoring === 'function') {
+                            window.startSessionMonitoring();
+                        }
+                        
                         // 限紅設定會通過遊戲數據更新自動同步，無需手動監聽器
                     } else {
                         // 登录资讯不完整，重定向到登录頁面
@@ -7654,6 +7875,11 @@
                     this.$forceUpdate();
                 },
                 logout() {
+                    // 停止會話監控
+                    if (typeof window.stopSessionMonitoring === 'function') {
+                        window.stopSessionMonitoring();
+                    }
+                    
                     // 限紅監聽器已移除，無需手動停止
                     
                     // 清除所有登录资讯並跳轉到登录頁面
@@ -10789,6 +11015,83 @@
                 showBetLimits() {
                     this.showBetLimitsModal = true;
                     this.showDropdownMenu = false; // 关闭選單
+                },
+                
+                // 顯示修改密碼Modal
+                showChangePassword() {
+                    this.showChangePasswordModal = true;
+                    this.showDropdownMenu = false; // 关闭選單
+                    // 重置表單
+                    this.changePasswordForm = {
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    };
+                },
+                
+                // 提交修改密碼
+                submitChangePassword() {
+                    // 表單驗證
+                    if (!this.changePasswordForm.currentPassword) {
+                        this.showNotification('請輸入當前密碼');
+                        return;
+                    }
+                    
+                    if (!this.changePasswordForm.newPassword) {
+                        this.showNotification('請輸入新密碼');
+                        return;
+                    }
+                    
+                    if (this.changePasswordForm.newPassword.length < 6) {
+                        this.showNotification('新密碼長度不能少於6個字符');
+                        return;
+                    }
+                    
+                    if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmPassword) {
+                        this.showNotification('兩次輸入的新密碼不一致');
+                        return;
+                    }
+                    
+                    if (this.changePasswordForm.currentPassword === this.changePasswordForm.newPassword) {
+                        this.showNotification('新密碼不能與當前密碼相同');
+                        return;
+                    }
+                    
+                    this.changePasswordLoading = true;
+                    
+                    fetch(`${this.API_BASE_URL}/api/member/change-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: this.username,
+                            currentPassword: this.changePasswordForm.currentPassword,
+                            newPassword: this.changePasswordForm.newPassword
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.showNotification('密碼修改成功！');
+                            this.showChangePasswordModal = false;
+                            // 重置表單
+                            this.changePasswordForm = {
+                                currentPassword: '',
+                                newPassword: '',
+                                confirmPassword: ''
+                            };
+                        } else {
+                            this.showNotification(data.message || '密碼修改失敗');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('修改密碼失敗:', error);
+                        this.showNotification('密碼修改失敗，請稍後再試');
+                    })
+                    .finally(() => {
+                        this.changePasswordLoading = false;
+                    });
                 },
                 
                 // 載入會員限紅設定

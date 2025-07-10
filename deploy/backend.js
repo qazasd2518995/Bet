@@ -499,6 +499,159 @@ app.get('/api/member/profit-loss/:username', async (req, res) => {
   }
 });
 
+// 會員密碼修改API
+app.post('/api/member/change-password', async (req, res) => {
+  try {
+    const { username, currentPassword, newPassword } = req.body;
+    
+    console.log(`收到會員密碼修改請求: ${username}`);
+    
+    if (!username || !currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供完整信息'
+      });
+    }
+    
+    // 密碼驗證
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: '新密碼長度不能少於6個字符'
+      });
+    }
+    
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: '新密碼不能與當前密碼相同'
+      });
+    }
+    
+    // 嘗試連接代理系統修改密碼
+    try {
+      console.log(`🔄 向代理系統發送密碼修改請求: ${AGENT_API_URL}/api/agent/member/change-password`);
+      
+      const response = await fetch(`${AGENT_API_URL}/api/agent/member/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username,
+          currentPassword,
+          newPassword
+        })
+      });
+      
+      if (!response.ok) {
+        console.error(`代理系統密碼修改API回應錯誤: ${response.status}`);
+        throw new Error(`代理系統API錯誤: ${response.status}`);
+      }
+      
+      const agentResponse = await response.json();
+      
+      if (agentResponse.success) {
+        console.log(`✅ 會員 ${username} 密碼修改成功`);
+        res.json({
+          success: true,
+          message: '密碼修改成功'
+        });
+      } else {
+        console.log(`❌ 代理系統密碼修改失敗: ${agentResponse.message}`);
+        res.json({
+          success: false,
+          message: agentResponse.message || '密碼修改失敗'
+        });
+      }
+      
+    } catch (agentError) {
+      console.error('代理系統連接錯誤:', agentError);
+      
+      // 如果代理系統不可用，返回錯誤
+      res.status(503).json({
+        success: false,
+        message: '服務暫時不可用，請稍後再試'
+      });
+    }
+    
+  } catch (error) {
+    console.error('會員密碼修改錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 會話狀態檢查API
+app.post('/api/check-session', async (req, res) => {
+  try {
+    const { username } = req.body;
+    
+    if (!username) {
+      return res.json({
+        success: false,
+        isValid: false,
+        reason: 'no_username'
+      });
+    }
+    
+    // 向代理系統查詢會員狀態
+    try {
+      const response = await fetch(`${AGENT_API_URL}/api/agent/member/check-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: username
+        })
+      });
+      
+      if (!response.ok) {
+        console.error(`代理系統會話檢查API回應錯誤: ${response.status}`);
+        throw new Error(`代理系統API錯誤: ${response.status}`);
+      }
+      
+      const agentResponse = await response.json();
+      
+      if (agentResponse.success) {
+        res.json({
+          success: true,
+          isValid: agentResponse.isValid,
+          reason: agentResponse.reason,
+          sessionId: agentResponse.sessionId
+        });
+      } else {
+        res.json({
+          success: false,
+          isValid: false,
+          reason: agentResponse.reason || 'unknown_error'
+        });
+      }
+      
+    } catch (agentError) {
+      console.error('代理系統連接錯誤:', agentError);
+      
+      // 如果代理系統不可用，假設會話有效（避免誤判）
+      res.json({
+        success: true,
+        isValid: true,
+        reason: 'agent_system_unavailable'
+      });
+    }
+    
+  } catch (error) {
+    console.error('會話檢查錯誤:', error);
+    res.status(500).json({
+      success: false,
+      isValid: false,
+      reason: 'system_error'
+    });
+  }
+});
+
 // 新增重啟遊戲循環端點 - 用於手動重啟遊戲循環
 app.get('/api/restart-game-cycle', async (req, res) => {
   try {

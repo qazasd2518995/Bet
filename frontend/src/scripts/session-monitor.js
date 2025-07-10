@@ -1,10 +1,11 @@
 // frontend/src/scripts/session-monitor.js - 會話監控腳本
 class SessionMonitor {
     constructor() {
-        this.checkInterval = 5 * 60 * 1000; // 5分鐘檢查一次
+        this.checkInterval = 15 * 1000; // 15秒檢查一次，更頻繁
         this.warningDisplayed = false;
         this.intervalId = null;
         this.isChecking = false;
+        this.lastSessionId = null; // 記錄最後的會話ID
     }
     
     /**
@@ -80,6 +81,14 @@ class SessionMonitor {
             } else {
                 // 會話有效，重置警告狀態
                 this.warningDisplayed = false;
+                
+                // 檢查是否有新的登入（會話ID變化）
+                if (result.sessionId && this.lastSessionId && result.sessionId !== this.lastSessionId) {
+                    console.log('⚠️ 檢測到新的登入，強制登出...');
+                    await this.handleSessionInvalid('other_device_login');
+                } else if (result.sessionId) {
+                    this.lastSessionId = result.sessionId;
+                }
             }
             
         } catch (error) {
@@ -104,6 +113,9 @@ class SessionMonitor {
         switch (reason) {
             case 'session_invalid':
                 message = '檢測到您的帳號已在其他裝置登入，當前會話已失效。';
+                break;
+            case 'other_device_login':
+                message = '您的帳號在其他裝置登入，為了安全起見，當前會話已自動登出。';
                 break;
             case 'no_token':
                 message = '登入憑證遺失，請重新登入。';

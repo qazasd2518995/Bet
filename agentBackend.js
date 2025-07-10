@@ -4545,6 +4545,163 @@ app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
   }
 });
 
+// 會員密碼修改端點
+app.post(`${API_PREFIX}/member/change-password`, async (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+  
+  console.log('收到會員密碼修改請求:', { username, currentPassword: '***', newPassword: '***' });
+  
+  try {
+    if (!username || !currentPassword || !newPassword) {
+      return res.json({
+        success: false,
+        message: '請提供完整信息'
+      });
+    }
+    
+    // 密碼驗證
+    if (newPassword.length < 6) {
+      return res.json({
+        success: false,
+        message: '新密碼長度不能少於6個字符'
+      });
+    }
+    
+    if (currentPassword === newPassword) {
+      return res.json({
+        success: false,
+        message: '新密碼不能與當前密碼相同'
+      });
+    }
+    
+    // 查詢會員
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      console.log(`會員 ${username} 不存在`);
+      return res.json({
+        success: false,
+        message: '會員不存在'
+      });
+    }
+    
+    // 檢查當前密碼
+    if (member.password !== currentPassword) {
+      console.log(`會員 ${username} 當前密碼錯誤`);
+      return res.json({
+        success: false,
+        message: '當前密碼錯誤'
+      });
+    }
+    
+    // 更新密碼
+    await db.none('UPDATE members SET password = $1, updated_at = NOW() WHERE username = $2', [newPassword, username]);
+    
+    console.log(`會員 ${username} 密碼修改成功`);
+    
+    res.json({
+      success: true,
+      message: '密碼修改成功'
+    });
+  } catch (error) {
+    console.error('會員密碼修改出錯:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 會員會話檢查端點
+app.post(`${API_PREFIX}/member/check-session`, async (req, res) => {
+  const { username } = req.body;
+  
+  console.log('收到會員會話檢查請求:', { username });
+  
+  try {
+    if (!username) {
+      return res.json({
+        success: false,
+        isValid: false,
+        reason: 'no_username'
+      });
+    }
+    
+    // 查詢會員是否存在且狀態正常
+    const member = await MemberModel.findByUsername(username);
+    
+    if (!member) {
+      console.log(`會員 ${username} 不存在`);
+      return res.json({
+        success: true,
+        isValid: false,
+        reason: 'member_not_found'
+      });
+    }
+    
+    // 檢查會員狀態
+    if (member.status !== 1) {
+      console.log(`會員 ${username} 帳號已被禁用`);
+      return res.json({
+        success: true,
+        isValid: false,
+        reason: 'account_disabled'
+      });
+    }
+    
+    // 檢查會話是否存在且有效
+    try {
+      const sessions = await db.any(`
+        SELECT session_token, last_activity, expires_at
+        FROM user_sessions 
+        WHERE user_type = 'member' 
+        AND user_id = $1 
+        AND is_active = true 
+        AND expires_at > NOW()
+        ORDER BY last_activity DESC
+        LIMIT 1
+      `, [member.id]);
+      
+      if (sessions.length === 0) {
+        // 沒有活躍會話
+        return res.json({
+          success: true,
+          isValid: false,
+          reason: 'no_active_session'
+        });
+      }
+      
+      const latestSession = sessions[0];
+      
+      console.log(`會員 ${username} 會話檢查通過`);
+      
+      res.json({
+        success: true,
+        isValid: true,
+        sessionId: latestSession.session_token.substring(0, 8), // 只返回前8位作為識別
+        lastActivity: latestSession.last_activity
+      });
+      
+    } catch (sessionError) {
+      console.error('查詢會話失敗:', sessionError);
+      // 如果會話表不存在或查詢失敗，假設會話有效
+      res.json({
+        success: true,
+        isValid: true,
+        reason: 'session_check_unavailable'
+      });
+    }
+    
+  } catch (error) {
+    console.error('會員會話檢查出錯:', error);
+    res.status(500).json({
+      success: false,
+      isValid: false,
+      reason: 'system_error'
+    });
+  }
+});
+
 // 新增: 會員餘額查詢API
 app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
   const { username } = req.query;
