@@ -45,6 +45,8 @@ Vue.component('bet-records', {
         'tenth': '第十名',
         'number': `第${bet.position || ''}名号码`,
         'dragonTiger': '龍虎',
+        'dragon_tiger': '龍虎',
+        '龍虎': '龍虎',
         'position': '快速大小單雙'  // 修復position類型顯示
       };
       return typeMap[bet.betType || bet.type] || (bet.betType || bet.type);
@@ -70,7 +72,7 @@ Vue.component('bet-records', {
         return valueMap[value] || `号码 ${value}`;
       } else if (betType === 'number') {
         return `号码 ${value}`;
-      } else if (betType === 'dragonTiger') {
+      } else if (betType === 'dragonTiger' || betType === 'dragon_tiger' || betType === '龍虎') {
         // 处理龍虎投注格式：dragon_1_10 -> 龍(冠军vs第10名)
         if (value && value.includes('_')) {
           const parts = value.split('_');

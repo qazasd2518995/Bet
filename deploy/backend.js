@@ -4246,7 +4246,7 @@ app.get('/api/bet-history', async (req, res) => {
     
     try {
       // 計算總記錄數
-      const countQuery = `SELECT COUNT(*) as total FROM bet_history ${whereClause}`;
+      const countQuery = `SELECT COUNT(*) as total FROM bet_history bh ${whereClause.replace('WHERE', 'WHERE bh.').replace('DATE(created_at)', 'DATE(bh.created_at)')}`;
       console.log('執行計數查詢:', countQuery);
       const countResult = await db.one(countQuery, params);
       const totalRecords = parseInt(countResult.total);
@@ -4256,41 +4256,56 @@ app.get('/api/bet-history', async (req, res) => {
       const offset = (pageNumber - 1) * pageSize;
       const query = `
         SELECT 
-          id, 
-          username, 
-          amount, 
-          bet_type as "betType", 
-          bet_value as "value", 
-          position, 
-          period, 
-          odds,
-          created_at as "time", 
-          win, 
-          win_amount as "winAmount", 
-          settled
-        FROM bet_history 
-        ${whereClause} 
-        ORDER BY created_at DESC 
+          bh.id, 
+          bh.username, 
+          bh.amount, 
+          bh.bet_type as "betType", 
+          bh.bet_value as "value", 
+          bh.position, 
+          bh.period, 
+          bh.odds,
+          bh.created_at as "time", 
+          bh.win, 
+          bh.win_amount as "winAmount", 
+          bh.settled,
+          rh.result as draw_result
+        FROM bet_history bh
+        LEFT JOIN result_history rh ON bh.period = rh.period
+        ${whereClause.replace('WHERE', 'WHERE bh.').replace('DATE(created_at)', 'DATE(bh.created_at)')} 
+        ORDER BY bh.created_at DESC 
         LIMIT ${pageSize} OFFSET ${offset}
       `;
       console.log('執行查詢:', query);
       const results = await db.any(query, params);
       
       // 格式化結果，確保前端可以直接使用
-      const formattedResults = results.map(bet => ({
-        id: bet.id,
-        username: bet.username,
-        amount: bet.amount,
-        betType: bet.betType,
-        value: bet.value,
-        position: bet.position,
-        period: bet.period,
-        odds: parseFloat(bet.odds) || 1.0,
-        time: bet.time,
-        win: bet.win,
-        winAmount: bet.winAmount,
-        settled: bet.settled
-      }));
+      const formattedResults = results.map(bet => {
+        // 解析開獎結果
+        let drawResult = null;
+        if (bet.draw_result) {
+          try {
+            drawResult = JSON.parse(bet.draw_result);
+          } catch (e) {
+            console.warn('無法解析開獎結果:', bet.draw_result);
+          }
+        }
+        
+        return {
+          id: bet.id,
+          username: bet.username,
+          amount: bet.amount,
+          betType: bet.betType,
+          value: bet.value,
+          position: bet.position,
+          period: bet.period,
+          odds: parseFloat(bet.odds) || 1.0,
+          time: bet.time,
+          win: bet.win,
+          winAmount: bet.winAmount,
+          settled: bet.settled,
+          drawResult: drawResult
+        };
+      });
       
       res.json({
         success: true,
@@ -4967,7 +4982,8 @@ function getOdds(betType, value, marketType = 'D') {
     
     // 冠亞和值賠率
     if (betType === 'sumValue') {
-      if (value === 'big' || value === 'small' || value === 'odd' || value === 'even') {
+      if (value === 'big' || value === 'small' || value === 'odd' || value === 'even' || 
+          value === '大' || value === '小' || value === '單' || value === '雙') {
         return config.twoSideOdds;  // 使用盤口配置的兩面賠率
       } else {
         // 和值賠率表 - 使用新的基礎賠率表

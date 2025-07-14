@@ -346,26 +346,32 @@ function getQuickOdds(betType, value, marketType) {
     
     // 冠亞和值投注
     if (betType === 'sumValue' || betType === 'sum' || betType === '冠亞和') {
-        const sumOdds = {
-            '3': parseFloat((45.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '4': parseFloat((23.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '5': parseFloat((15.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '6': parseFloat((11.5 * (1 - rebatePercentage)).toFixed(3)), 
-            '7': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '8': parseFloat((7.5 * (1 - rebatePercentage)).toFixed(3)), 
-            '9': parseFloat((6.5 * (1 - rebatePercentage)).toFixed(3)), 
-            '10': parseFloat((5.7 * (1 - rebatePercentage)).toFixed(3)), 
-            '11': parseFloat((5.7 * (1 - rebatePercentage)).toFixed(3)), 
-            '12': parseFloat((6.5 * (1 - rebatePercentage)).toFixed(3)), 
-            '13': parseFloat((7.5 * (1 - rebatePercentage)).toFixed(3)), 
-            '14': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '15': parseFloat((11.5 * (1 - rebatePercentage)).toFixed(3)), 
-            '16': parseFloat((15.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '17': parseFloat((23.0 * (1 - rebatePercentage)).toFixed(3)),
-            '18': parseFloat((45.0 * (1 - rebatePercentage)).toFixed(3)), 
-            '19': parseFloat((90.0 * (1 - rebatePercentage)).toFixed(3))
-        };
-        odds = sumOdds[value] || 1.0;
+        // 處理冠亞和大小單雙
+        if (['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(value)) {
+            odds = 2.0 * (1 - rebatePercentage);
+        } else {
+            // 處理數字和值
+            const sumOdds = {
+                '3': parseFloat((45.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '4': parseFloat((23.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '5': parseFloat((15.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '6': parseFloat((11.5 * (1 - rebatePercentage)).toFixed(3)), 
+                '7': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '8': parseFloat((7.5 * (1 - rebatePercentage)).toFixed(3)), 
+                '9': parseFloat((6.5 * (1 - rebatePercentage)).toFixed(3)), 
+                '10': parseFloat((5.7 * (1 - rebatePercentage)).toFixed(3)), 
+                '11': parseFloat((5.7 * (1 - rebatePercentage)).toFixed(3)), 
+                '12': parseFloat((6.5 * (1 - rebatePercentage)).toFixed(3)), 
+                '13': parseFloat((7.5 * (1 - rebatePercentage)).toFixed(3)), 
+                '14': parseFloat((9.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '15': parseFloat((11.5 * (1 - rebatePercentage)).toFixed(3)), 
+                '16': parseFloat((15.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '17': parseFloat((23.0 * (1 - rebatePercentage)).toFixed(3)),
+                '18': parseFloat((45.0 * (1 - rebatePercentage)).toFixed(3)), 
+                '19': parseFloat((90.0 * (1 - rebatePercentage)).toFixed(3))
+            };
+            odds = sumOdds[value] || 1.0;
+        }
     }
     // 龍虎投注
     else if (betType === 'dragonTiger' || betType === 'dragon_tiger' || betType === '龍虎') {
