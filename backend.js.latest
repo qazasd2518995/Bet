@@ -1200,8 +1200,8 @@ async function startGameCycle() {
               // 立即同步到代理系統
               await syncToAgentSystem(currentDrawPeriod, newResult);
               
-              // 結算注單（將數組格式轉換為對象格式）
-              await settleBets(currentDrawPeriod, { positions: newResult });
+              // 結算注單
+              await settleBets(currentDrawPeriod, newResult);
               
               // 生成下一期號並更新狀態
               const nextPeriod = getNextPeriod(currentDrawPeriod);
@@ -2839,40 +2839,6 @@ async function calculateRecentProfitLoss(periods = 10) {
 
 // 在遊戲結算邏輯中處理點數發放和退水分配
 async function settleBets(period, winResult) {
-  console.log(`🎯 使用改進的結算系統結算第${period}期注單...`);
-  
-  try {
-    // 使用新的結算系統
-    const result = await improvedSettleBets(period, winResult);
-    
-    if (result.success) {
-      console.log(`✅ 第${period}期結算完成:`);
-      console.log(`  - 結算注單數: ${result.settledCount}`);
-      console.log(`  - 總中獎金額: ${result.totalWinAmount}`);
-      
-      // 同步中獎數據到代理系統
-      // 注意：餘額已經在遊戲系統更新，不需要再同步到代理系統
-      // 這裡只記錄日誌
-      if (result.userWinnings && Object.keys(result.userWinnings).length > 0) {
-        for (const [username, winAmount] of Object.entries(result.userWinnings)) {
-          console.log(`💰 用戶 ${username} 中獎 ${winAmount} 元（期號 ${period}）`);
-          // 不再同步餘額到代理系統，避免重複計算
-        }
-      }
-    } else {
-      console.log(`⚠️ 第${period}期結算跳過: ${result.reason}`);
-    }
-  } catch (error) {
-    console.error(`❌ 結算第${period}期時發生錯誤:`, error);
-    // 可以考慮發送告警通知
-  }
-}
-
-// 保留原有的結算函數作為備份
-// ⚠️ 警告：此函數已停用！請使用 improvedSettleBets
-// 此函數包含會導致重複結算的邏輯，已被註釋
-async function legacySettleBets(period, winResult) {
-  console.warn(`⚠️ 警告：legacySettleBets 被調用了！這個函數已經停用，應該使用 improvedSettleBets`);
   console.log(`結算第${period}期注單...`);
   
   // 獲取系統時間內未結算的注單
@@ -2906,13 +2872,8 @@ async function legacySettleBets(period, winResult) {
       // 標記為已結算
       await BetModel.updateSettlement(bet.id, isWin, winAmount);
       
-      // 如果贏了，記錄日誌（餘額更新已在 improvedSettleBets 中處理）
+      // 如果贏了，直接增加會員餘額（不從代理扣除）
       if (isWin) {
-        console.log(`[legacySettleBets] 用戶 ${username} 中獎，金額 ${winAmount}（注意：此函數已停用，餘額更新應在 improvedSettleBets 中處理）`);
-        
-        // 🚨 重要：以下代碼已被註釋以防止重複結算
-        // 餘額更新現在完全由 improvedSettleBets 處理
-        /*
         try {
           // 獲取當前餘額用於日誌記錄
           const currentBalance = await getBalance(username);
@@ -2948,7 +2909,6 @@ async function legacySettleBets(period, winResult) {
         } catch (error) {
           console.error(`更新用戶 ${username} 中獎餘額失敗:`, error);
         }
-        */
       }
       
       // 在結算時分配退水給代理（不論輸贏，基於下注金額）
@@ -4448,36 +4408,12 @@ app.post('/api/bet', async (req, res) => {
       // 餘額已由代理系統處理，無需重複同步
       
       // 準備下注數據
-      // 處理 position 轉換
-      let positionValue = null;
-      if (position) {
-        // 如果 position 是字串（如 "champion"），轉換為對應的數字
-        const positionMap = {
-          'champion': 1,
-          'runnerup': 2,
-          'third': 3,
-          'fourth': 4,
-          'fifth': 5,
-          'sixth': 6,
-          'seventh': 7,
-          'eighth': 8,
-          'ninth': 9,
-          'tenth': 10
-        };
-        
-        if (typeof position === 'string' && positionMap[position]) {
-          positionValue = positionMap[position];
-        } else if (!isNaN(parseInt(position))) {
-          positionValue = parseInt(position);
-        }
-      }
-      
       const betData = {
         username: username,
         amount: amountNum,
         bet_type: betType,  // 注意: 這裡使用 bet_type 而不是 betType
         bet_value: value,   // 注意: 這裡使用 bet_value 而不是 value
-        position: positionValue,
+        position: position,
         period: period,
         odds: odds
       };
