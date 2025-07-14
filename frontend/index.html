@@ -6803,11 +6803,12 @@
                                 <span class="bet-value">{{ bet.odds ? bet.odds.toFixed(2) : '1.00' }}</span>
                             </div>
                             <!-- 开奖号码顯示 -->
-                            <div v-if="bet.drawResult" class="bet-detail-row draw-result-row">
+                            <div class="bet-detail-row draw-result-row">
                                 <span class="bet-label">开奖号码:</span>
                                 <div class="draw-result-balls">
-                                    <div v-for="(number, index) in bet.drawResult" :key="index" 
-                                         :class="['result-ball', 'color-' + number]">
+                                    <div v-for="(number, index) in bet.drawResult || []" :key="index" 
+                                         :class="['result-ball', 'color-' + number]"
+                                         style="display: inline-flex !important; margin: 2px; width: 20px; height: 20px; font-size: 10px;">
                                         {{ number }}
                                     </div>
                                 </div>
