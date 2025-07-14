@@ -295,7 +295,11 @@ Vue.component('draw-history', {
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      // 轉換為台北時區顯示 - 手動加8小時
+      const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+      const hours = taipeiTime.getHours().toString().padStart(2, '0');
+      const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
     },
     
     // 获取和值的樣式類

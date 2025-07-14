@@ -95,10 +95,12 @@ Vue.component('bet-records', {
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
+      // 轉換為台北時區顯示 - 手動加8小時
+      const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+      const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
+      const day = taipeiTime.getDate().toString().padStart(2, '0');
+      const hours = taipeiTime.getHours().toString().padStart(2, '0');
+      const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
       return `${month}/${day} ${hours}:${minutes}`;
     },
     

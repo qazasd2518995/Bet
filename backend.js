@@ -17,6 +17,9 @@ import BetModel from './db/models/bet.js';
 import GameModel from './db/models/game.js';
 import SessionManager from './security/session-manager.js';
 import { improvedSettleBets, createSettlementTables } from './improved-settlement-system.js';
+import { optimizedBatchBet, optimizedSettlement } from './optimized-betting-system.js';
+import { comprehensiveSettlement, createSettlementTables as createComprehensiveTables } from './comprehensive-settlement-system.js';
+import { enhancedSettlement } from './enhanced-settlement-system.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -2839,28 +2842,48 @@ async function calculateRecentProfitLoss(periods = 10) {
 
 // 在遊戲結算邏輯中處理點數發放和退水分配
 async function settleBets(period, winResult) {
-  console.log(`🎯 使用改進的結算系統結算第${period}期注單...`);
+  console.log(`🎯 使用完整結算系統結算第${period}期注單...`);
   
   try {
-    // 使用新的結算系統
-    const result = await improvedSettleBets(period, winResult);
+    // 使用增強的結算系統支援所有投注類型
+    const result = await enhancedSettlement(period, winResult);
     
     if (result.success) {
       console.log(`✅ 第${period}期結算完成:`);
       console.log(`  - 結算注單數: ${result.settledCount}`);
+      console.log(`  - 中獎注單數: ${result.winCount}`);
       console.log(`  - 總中獎金額: ${result.totalWinAmount}`);
+      console.log(`  - 執行時間: ${result.executionTime}ms`);
       
       // 同步中獎數據到代理系統
       // 注意：餘額已經在遊戲系統更新，不需要再同步到代理系統
       // 這裡只記錄日誌
       if (result.userWinnings && Object.keys(result.userWinnings).length > 0) {
-        for (const [username, winAmount] of Object.entries(result.userWinnings)) {
-          console.log(`💰 用戶 ${username} 中獎 ${winAmount} 元（期號 ${period}）`);
+        for (const [username, data] of Object.entries(result.userWinnings)) {
+          console.log(`💰 用戶 ${username} 中獎 ${data.winAmount} 元（${data.winBets.length}筆）`);
           // 不再同步餘額到代理系統，避免重複計算
         }
       }
     } else {
-      console.log(`⚠️ 第${period}期結算跳過: ${result.reason}`);
+      console.error(`❌ 第${period}期結算失敗:`, result.error || '未知錯誤');
+      
+      // 如果新版失敗，嘗試優化版
+      console.log('嘗試使用優化版結算系統...');
+      try {
+        const fallbackResult = await optimizedSettlement(period, winResult);
+        if (fallbackResult.success) {
+          console.log('✅ 優化版結算系統成功完成結算');
+        } else {
+          // 最後嘗試舊版
+          console.log('嘗試使用舊版結算系統...');
+          const oldResult = await improvedSettleBets(period, winResult);
+          if (oldResult.success) {
+            console.log('✅ 舊版結算系統成功完成結算');
+          }
+        }
+      } catch (fallbackError) {
+        console.error('備用結算系統也失敗了:', fallbackError);
+      }
     }
   } catch (error) {
     console.error(`❌ 結算第${period}期時發生錯誤:`, error);
@@ -4192,7 +4215,7 @@ app.get('/api/bet-history', async (req, res) => {
   try {
     console.log('收到下注記錄查詢請求:', req.query);
     
-    const { username, page = 1, limit = 20, period = '', date = '' } = req.query;
+    const { username, page = 1, limit = 9999, period = '', date = '' } = req.query;
     const pageNumber = parseInt(page);
     const pageSize = parseInt(limit);
     
@@ -4521,6 +4544,51 @@ app.post('/api/bet', async (req, res) => {
   }
 });
 
+// 批量下注處理端點（優化版）
+app.post('/api/batch-bet', async (req, res) => {
+  try {
+    const { username, bets } = req.body;
+    
+    console.log(`收到批量下注請求: 用戶=${username}, 注數=${bets ? bets.length : 0}`);
+    
+    // 驗證參數
+    if (!username || !Array.isArray(bets) || bets.length === 0) {
+      return res.status(400).json({ success: false, message: '請提供用戶名和下注列表' });
+    }
+    
+    // 限制單次批量下注數量
+    const MAX_BATCH_SIZE = 100;
+    if (bets.length > MAX_BATCH_SIZE) {
+      return res.status(400).json({ success: false, message: `單次最多只能下注 ${MAX_BATCH_SIZE} 筆` });
+    }
+    
+    // 獲取當前遊戲狀態
+    const gameState = await getGameData();
+    const { period, status } = gameState;
+    
+    // 檢查遊戲狀態
+    if (status !== 'betting') {
+      console.error('批量下注失敗: 當前不是下注階段');
+      return res.status(400).json({ success: false, message: '當前不是下注階段' });
+    }
+    
+    // 使用優化的批量投注系統
+    const result = await optimizedBatchBet(username, bets, period, AGENT_API_URL);
+    
+    if (result.success) {
+      console.log(`✅ 批量投注成功: ${result.betIds.length}筆, 耗時: ${result.executionTime}ms`);
+    }
+    
+    return res.json(result);
+  } catch (error) {
+    console.error('批量下注處理失敗:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: `系統錯誤: ${error.message}` 
+    });
+  }
+});
+
 // 驗證下注是否有效
 function isValidBet(betType, value, position) {
   // 檢查下注類型
@@ -4668,8 +4736,9 @@ async function startServer() {
       console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
       console.log(`API Base URL: ${AGENT_API_URL}`);
       
-      // 確認熱門投注API端點可用
+      // 確認API端點可用
       console.log('已註冊 API 端點: /api/hot-bets');
+      console.log('已註冊 API 端點: /api/batch-bet');
       
       // 啟動遊戲循環
       startGameCycle();

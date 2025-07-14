@@ -1,185 +1,165 @@
-// test-betting.js - 測試下注功能
+// test-betting.js - 測試下注和結算流程
 import fetch from 'node-fetch';
+import db from './db/config.js';
 
-const API_URL = 'http://localhost:3000';
-const username = 'justin111';
-const password = 'aaaa00';
-
-async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+const GAME_API_URL = 'http://localhost:3000';
 
 async function testBetting() {
-    console.log('🎲 開始測試下注功能...\n');
+    console.log('🎯 測試下注和結算流程...\n');
     
     try {
-        // 1. 登入
-        console.log('1️⃣ 登入用戶:', username);
-        const loginRes = await fetch(`${API_URL}/api/member/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
+        // 1. 獲取當前遊戲狀態
+        console.log('📊 獲取當前遊戲狀態...');
+        const gameStateResponse = await fetch(`${GAME_API_URL}/api/game-state?username=justin111`);
+        const gameState = await gameStateResponse.json();
         
-        const loginData = await loginRes.json();
-        if (!loginData.success) {
-            console.error('❌ 登入失敗:', loginData.message);
+        if (!gameState.success) {
+            console.error('無法獲取遊戲狀態:', gameState.message);
             return;
         }
         
-        const token = loginData.token;
-        console.log('✅ 登入成功');
-        console.log('登入資料:', JSON.stringify(loginData, null, 2));
-        const initialBalance = parseFloat(loginData.balance || loginData.user?.balance || 0);
+        const currentPeriod = gameState.current_period;
+        const countdown = gameState.countdown_seconds;
+        const status = gameState.status;
         
-        // 2. 獲取當前期號
-        console.log('\n2️⃣ 獲取當前期號...');
-        const currentRes = await fetch(`${API_URL}/api/current-game`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        console.log(`當前期號: ${currentPeriod}`);
+        console.log(`當前狀態: ${status}`);
+        console.log(`倒計時: ${countdown}秒`);
         
-        const currentData = await currentRes.json();
-        const period = currentData.current.period;
-        console.log('當前期號:', period);
-        console.log('剩餘時間:', currentData.current.remainingTime, '秒');
-        
-        // 3. 準備下注數據 - 冠軍 1-9 號各 100 元
-        console.log('\n3️⃣ 準備下注：冠軍 1-9 號，每號 100 元');
-        const bets = [];
-        for (let i = 1; i <= 9; i++) {
-            bets.push({
-                position: 'first',
-                bet_type: i.toString(),
-                amount: 100
-            });
+        if (status !== 'betting' || countdown < 15) {
+            console.log('⚠️ 不適合下注時機，等待下一期...');
+            return;
         }
         
-        console.log('下注明細:');
-        bets.forEach(bet => {
-            console.log(`  - 冠軍 ${bet.bet_type} 號: ${bet.amount} 元`);
-        });
-        console.log('總下注金額:', bets.length * 100, '元');
+        // 2. 下注測試
+        console.log('\n🎯 開始下注測試...');
+        const betData = {
+            username: 'justin111',
+            password: 'aaaa00',
+            amount: 100,
+            betType: 'number',
+            value: '5',
+            position: 3, // 第3名
+            period: currentPeriod
+        };
         
-        // 4. 執行下注
-        console.log('\n4️⃣ 執行下注...');
-        const betRes = await fetch(`${API_URL}/api/bet`, {
+        console.log(`投注內容: 期號${currentPeriod} 第3名=5號 $100`);
+        
+        const betResponse = await fetch(`${GAME_API_URL}/api/bet`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                period: period,
-                bets: bets
-            })
+            body: JSON.stringify(betData)
         });
         
-        const betData = await betRes.json();
-        if (!betData.success) {
-            console.error('❌ 下注失敗:', betData.message);
-            return;
-        }
+        const betResult = await betResponse.json();
         
-        console.log('✅ 下注成功');
-        console.log('下注後餘額:', betData.balance);
-        const afterBetBalance = parseFloat(betData.balance);
-        console.log('餘額變化:', afterBetBalance - initialBalance);
-        
-        // 5. 等待開獎
-        console.log('\n5️⃣ 等待開獎...');
-        const waitTime = currentData.current.remainingTime + 5;
-        console.log(`等待 ${waitTime} 秒...`);
-        
-        for (let i = waitTime; i > 0; i--) {
-            process.stdout.write(`\r剩餘 ${i} 秒...`);
-            await sleep(1000);
-        }
-        console.log('\n');
-        
-        // 6. 獲取開獎結果
-        console.log('6️⃣ 獲取開獎結果...');
-        const resultRes = await fetch(`${API_URL}/api/game-result/${period}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        const resultData = await resultRes.json();
-        if (resultData.success) {
-            console.log('開獎結果:', resultData.result);
-            console.log('冠軍號碼:', resultData.result[0]);
-        }
-        
-        // 7. 等待結算完成
-        console.log('\n7️⃣ 等待結算完成...');
-        await sleep(3000);
-        
-        // 8. 獲取最新餘額
-        console.log('\n8️⃣ 獲取結算後餘額...');
-        const finalRes = await fetch(`${API_URL}/api/user-info`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        const finalData = await finalRes.json();
-        const finalBalance = parseFloat(finalData.user.balance);
-        
-        console.log('\n📊 結算結果:');
-        console.log('初始餘額:', initialBalance);
-        console.log('下注後餘額:', afterBetBalance);
-        console.log('結算後餘額:', finalBalance);
-        console.log('總變化:', finalBalance - initialBalance);
-        
-        // 9. 分析結果
-        console.log('\n📈 結果分析:');
-        const totalBet = 900;
-        const winNumber = resultData.result ? resultData.result[0] : null;
-        
-        if (winNumber && winNumber >= 1 && winNumber <= 9) {
-            console.log(`✅ 中獎號碼: ${winNumber}`);
-            console.log('理論計算:');
-            console.log(`  - 下注: -${totalBet}`);
-            console.log(`  - 中獎: +${100 * 9.89} (100 × 9.89倍)`);
-            console.log(`  - 退水: +${totalBet * 0.011} (900 × 1.1%)`);
-            const expectedProfit = (100 * 9.89) - totalBet + (totalBet * 0.011);
-            console.log(`  - 預期淨利: ${expectedProfit.toFixed(2)}`);
-            console.log(`  - 實際淨利: ${(finalBalance - initialBalance).toFixed(2)}`);
-            const difference = (finalBalance - initialBalance) - expectedProfit;
-            console.log(`  - 差異: ${difference.toFixed(2)}`);
+        if (betResult.success) {
+            console.log('✅ 下注成功!');
+            console.log(`投注ID: 可能在數據庫中`);
+            
+            // 查詢剛才的投注記錄
+            const newBet = await db.oneOrNone(`
+                SELECT id, period, bet_type, bet_value, position, amount, odds, settled
+                FROM bet_history
+                WHERE username = 'justin111' 
+                AND period = $1
+                ORDER BY created_at DESC
+                LIMIT 1
+            `, [currentPeriod]);
+            
+            if (newBet) {
+                console.log(`✅ 投注記錄已保存: ID ${newBet.id}`);
+                console.log(`詳情: 期號${newBet.period} 第${newBet.position}名=${newBet.bet_value}號 $${newBet.amount} 賠率${newBet.odds}`);
+                console.log(`結算狀態: ${newBet.settled ? '已結算' : '未結算'}`);
+                
+                // 3. 等待開獎和結算
+                console.log('\n⏰ 等待本期開獎和結算...');
+                console.log(`請等待 ${countdown + 15} 秒後檢查結算結果`);
+                
+                // 設置監控
+                const monitorInterval = setInterval(async () => {
+                    try {
+                        // 檢查投注是否已結算
+                        const updatedBet = await db.oneOrNone(`
+                            SELECT settled, win, win_amount, settled_at
+                            FROM bet_history
+                            WHERE id = $1
+                        `, [newBet.id]);
+                        
+                        if (updatedBet && updatedBet.settled) {
+                            console.log('\n✅ 投注已結算!');
+                            console.log(`結算結果: ${updatedBet.win ? '中獎' : '未中獎'}`);
+                            if (updatedBet.win) {
+                                console.log(`中獎金額: $${updatedBet.win_amount}`);
+                            }
+                            console.log(`結算時間: ${updatedBet.settled_at}`);
+                            
+                            // 檢查開獎結果
+                            const drawResult = await db.oneOrNone(`
+                                SELECT result
+                                FROM result_history
+                                WHERE period = $1
+                            `, [currentPeriod]);
+                            
+                            if (drawResult) {
+                                let positions = [];
+                                if (Array.isArray(drawResult.result)) {
+                                    positions = drawResult.result;
+                                } else if (typeof drawResult.result === 'string') {
+                                    positions = drawResult.result.split(',').map(n => parseInt(n.trim()));
+                                }
+                                
+                                console.log(`開獎結果: [${positions.join(',')}]`);
+                                console.log(`第3名開出: ${positions[2]}號`);
+                                
+                                const shouldWin = positions[2] === 5;
+                                const actualWin = updatedBet.win;
+                                
+                                if (shouldWin === actualWin) {
+                                    console.log('✅ 結算正確!');
+                                } else {
+                                    console.log('❌ 結算錯誤!');
+                                    console.log(`應該: ${shouldWin ? '中獎' : '未中獎'}`);
+                                    console.log(`實際: ${actualWin ? '中獎' : '未中獎'}`);
+                                }
+                            }
+                            
+                            clearInterval(monitorInterval);
+                            await db.$pool.end();
+                        } else {
+                            process.stdout.write('.');
+                        }
+                    } catch (error) {
+                        console.error('\n監控過程出錯:', error);
+                        clearInterval(monitorInterval);
+                        await db.$pool.end();
+                    }
+                }, 3000); // 每3秒檢查一次
+                
+                // 5分鐘後停止監控
+                setTimeout(() => {
+                    console.log('\n⏰ 監控超時，停止檢查');
+                    clearInterval(monitorInterval);
+                    db.$pool.end();
+                }, 300000);
+                
+            } else {
+                console.log('❌ 找不到投注記錄');
+                await db.$pool.end();
+            }
+            
         } else {
-            console.log('❌ 未中獎 (冠軍號碼不在 1-9)');
-            console.log('理論計算:');
-            console.log(`  - 下注: -${totalBet}`);
-            console.log(`  - 退水: +${totalBet * 0.011} (900 × 1.1%)`);
-            const expectedLoss = -totalBet + (totalBet * 0.011);
-            console.log(`  - 預期虧損: ${expectedLoss.toFixed(2)}`);
-            console.log(`  - 實際變化: ${(finalBalance - initialBalance).toFixed(2)}`);
-        }
-        
-        // 10. 查看下注記錄
-        console.log('\n🔍 查看下注記錄...');
-        const historyRes = await fetch(`${API_URL}/api/bet-history?limit=10`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        const historyData = await historyRes.json();
-        if (historyData.success && historyData.history.length > 0) {
-            const recentBets = historyData.history.filter(bet => bet.period === period);
-            console.log(`\n期號 ${period} 的下注記錄:`);
-            recentBets.forEach(bet => {
-                console.log(`  - ${bet.position} ${bet.bet_type}: ${bet.amount} 元, 狀態: ${bet.win ? '中獎' : '未中獎'}, 中獎金額: ${bet.win_amount || 0}`);
-            });
+            console.log('❌ 下注失敗:', betResult.message);
+            await db.$pool.end();
         }
         
     } catch (error) {
-        console.error('❌ 測試過程中發生錯誤:', error);
+        console.error('測試過程中發生錯誤:', error);
+        await db.$pool.end();
     }
 }
 
 // 執行測試
-testBetting()
-    .then(() => {
-        console.log('\n測試完成');
-        process.exit(0);
-    })
-    .catch(error => {
-        console.error('執行失敗:', error);
-        process.exit(1);
-    });
+testBetting();

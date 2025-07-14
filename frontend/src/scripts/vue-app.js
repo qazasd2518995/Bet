@@ -718,7 +718,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!dateStr) return 'NaN:NaN:NaN';
                 const date = new Date(dateStr);
                 if (isNaN(date.getTime())) return 'NaN:NaN:NaN';
-                return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                // Convert to Taipei timezone
+                const taipeiTime = date.toLocaleString('en-US', { 
+                    timeZone: 'Asia/Taipei',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                // Extract HH:mm:ss from the localized string
+                // en-US format with time only: "HH:mm:ss"
+                return taipeiTime;
             },
             
             // 格式化金额

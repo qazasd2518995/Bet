@@ -63,17 +63,16 @@ export async function improvedSettleBets(period, winResult) {
         
         // 2. 使用事務處理整個結算過程
         const result = await db.tx(async t => {
-            // 檢查該期是否已經結算過
-            const alreadySettled = await t.oneOrNone(`
+            // 檢查是否有未結算的投注
+            const unsettledCount = await t.oneOrNone(`
                 SELECT COUNT(*) as count 
                 FROM bet_history 
-                WHERE period = $1 AND settled = true
-                LIMIT 1
+                WHERE period = $1 AND settled = false
             `, [period]);
             
-            if (alreadySettled && parseInt(alreadySettled.count) > 0) {
-                console.log(`⚠️ 期號 ${period} 已經結算過，跳過`);
-                return { success: false, reason: 'already_settled' };
+            if (!unsettledCount || parseInt(unsettledCount.count) === 0) {
+                console.log(`📋 期號 ${period} 沒有未結算的注單`);
+                return { success: true, settledCount: 0 };
             }
             
             // 獲取該期所有未結算的注單
@@ -143,11 +142,9 @@ export async function improvedSettleBets(period, winResult) {
                 // 增加用戶餘額
                 await t.none(`
                     UPDATE members 
-                    SET balance = $1,
-                        total_win = total_win + $2,
-                        updated_at = NOW()
-                    WHERE username = $3
-                `, [balanceAfter, winAmount, username]);
+                    SET balance = $1
+                    WHERE username = $2
+                `, [balanceAfter, username]);
                 
                 // 記錄交易
                 await t.none(`
@@ -199,49 +196,146 @@ export async function improvedSettleBets(period, winResult) {
 function checkWin(bet, winResult) {
     if (!winResult || !winResult.positions) return false;
     
+    // 處理 'number' 類型的投注（包含所有位置的號碼投注）
+    if (bet.bet_type === 'number' && bet.position) {
+        // position 從 1 開始，陣列索引從 0 開始
+        const winningNumber = winResult.positions[bet.position - 1];
+        const betNumber = parseInt(bet.bet_value);
+        return winningNumber === betNumber;
+    }
+    
     switch (bet.bet_type) {
-        case 'number':
-            // 號碼投注：檢查對應位置的號碼
-            return winResult.positions[bet.position - 1] === parseInt(bet.bet_value);
-            
         case 'champion':
-            // 冠軍投注：檢查第一個位置（冠軍）的號碼
-            return winResult.positions[0] === parseInt(bet.bet_value);
+            // 冠軍投注：支援號碼、大小、單雙
+            if (/^\d+$/.test(bet.bet_value)) {
+                // 號碼投注
+                return winResult.positions[0] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                // 大小投注
+                return (bet.bet_value === 'big' && winResult.positions[0] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[0] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                // 單雙投注
+                return (bet.bet_value === 'odd' && winResult.positions[0] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[0] % 2 === 0);
+            }
+            break;
             
         case 'runnerup':
-            // 亞軍投注：檢查第二個位置的號碼
-            return winResult.positions[1] === parseInt(bet.bet_value);
+            // 亞軍投注：支援號碼、大小、單雙
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[1] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[1] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[1] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[1] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[1] % 2 === 0);
+            }
+            break;
             
         case 'third':
-            // 季軍投注：檢查第三個位置的號碼
-            return winResult.positions[2] === parseInt(bet.bet_value);
+            // 第三名投注：支援號碼、大小、單雙
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[2] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[2] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[2] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[2] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[2] % 2 === 0);
+            }
+            break;
             
         case 'fourth':
-            return winResult.positions[3] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[3] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[3] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[3] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[3] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[3] % 2 === 0);
+            }
+            break;
             
         case 'fifth':
-            return winResult.positions[4] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[4] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[4] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[4] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[4] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[4] % 2 === 0);
+            }
+            break;
             
         case 'sixth':
-            return winResult.positions[5] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[5] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[5] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[5] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[5] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[5] % 2 === 0);
+            }
+            break;
             
         case 'seventh':
-            return winResult.positions[6] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[6] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[6] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[6] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[6] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[6] % 2 === 0);
+            }
+            break;
             
         case 'eighth':
-            return winResult.positions[7] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[7] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[7] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[7] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[7] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[7] % 2 === 0);
+            }
+            break;
             
         case 'ninth':
-            return winResult.positions[8] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[8] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[8] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[8] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[8] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[8] % 2 === 0);
+            }
+            break;
             
         case 'tenth':
-            return winResult.positions[9] === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                return winResult.positions[9] === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                return (bet.bet_value === 'big' && winResult.positions[9] >= 6) || 
+                       (bet.bet_value === 'small' && winResult.positions[9] < 6);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                return (bet.bet_value === 'odd' && winResult.positions[9] % 2 === 1) ||
+                       (bet.bet_value === 'even' && winResult.positions[9] % 2 === 0);
+            }
+            break;
             
         case 'big_small':
             // 大小投注：冠亞和值
             const sum = winResult.positions[0] + winResult.positions[1];
-            return (bet.bet_value === 'big' && sum > 11) || 
-                   (bet.bet_value === 'small' && sum <= 11);
+            return (bet.bet_value === 'big' && sum >= 12) || 
+                   (bet.bet_value === 'small' && sum < 12);
                    
         case 'odd_even':
             // 單雙投注：冠亞和值
@@ -251,21 +345,49 @@ function checkWin(bet, winResult) {
                    
         case 'dragon_tiger':
         case 'dragonTiger':
-            // 龍虎投注
-            const positions = bet.bet_value.split('_');
-            const pos1 = parseInt(positions[0]) - 1;
-            const pos2 = parseInt(positions[1]) - 1;
-            return winResult.positions[pos1] > winResult.positions[pos2];
+            // 龍虎投注 - 支援新格式: dragon_1_10, tiger_4_7
+            if (bet.bet_value.startsWith('dragon_')) {
+                const positions = bet.bet_value.replace('dragon_', '').split('_');
+                const pos1 = parseInt(positions[0]) - 1;
+                const pos2 = parseInt(positions[1]) - 1;
+                return winResult.positions[pos1] > winResult.positions[pos2];
+            } else if (bet.bet_value.startsWith('tiger_')) {
+                const positions = bet.bet_value.replace('tiger_', '').split('_');
+                const pos1 = parseInt(positions[0]) - 1;
+                const pos2 = parseInt(positions[1]) - 1;
+                return winResult.positions[pos1] < winResult.positions[pos2];
+            } else {
+                // 舊格式支援
+                const positions = bet.bet_value.split('_');
+                const pos1 = parseInt(positions[0]) - 1;
+                const pos2 = parseInt(positions[1]) - 1;
+                return winResult.positions[pos1] > winResult.positions[pos2];
+            }
             
         case 'sum':
         case 'sumValue':
-            // 冠亞和值投注
+            // 冠亞和投注：支援數值、大小、單雙
             const actualSum = winResult.positions[0] + winResult.positions[1];
-            return actualSum === parseInt(bet.bet_value);
+            if (/^\d+$/.test(bet.bet_value)) {
+                // 和值數字投注
+                return actualSum === parseInt(bet.bet_value);
+            } else if (bet.bet_value === 'big' || bet.bet_value === 'small') {
+                // 冠亞和大小
+                return (bet.bet_value === 'big' && actualSum >= 12) || 
+                       (bet.bet_value === 'small' && actualSum < 12);
+            } else if (bet.bet_value === 'odd' || bet.bet_value === 'even') {
+                // 冠亞和單雙
+                return (bet.bet_value === 'odd' && actualSum % 2 === 1) ||
+                       (bet.bet_value === 'even' && actualSum % 2 === 0);
+            }
+            break;
             
         default:
+            console.warn(`未知的投注類型: ${bet.bet_type} with value: ${bet.bet_value}`);
             return false;
     }
+    
+    return false;
 }
 
 // 計算中獎金額
@@ -277,6 +399,9 @@ function calculateWinAmount(bet, winResult) {
     if (!odds || odds === 0) {
         switch (bet.bet_type) {
             case 'number':
+                odds = 9.89; // A盤號碼賠率
+                break;
+                
             case 'champion':
             case 'runnerup':
             case 'third':
@@ -287,32 +412,43 @@ function calculateWinAmount(bet, winResult) {
             case 'eighth':
             case 'ninth':
             case 'tenth':
-                odds = 9.89; // A盤號碼賠率（已扣除1.1%退水）
+                // 檢查是號碼還是大小單雙投注
+                if (/^\d+$/.test(bet.bet_value)) {
+                    odds = 9.89; // 號碼投注
+                } else {
+                    odds = 1.98; // 大小單雙投注
+                }
                 break;
                 
             case 'big_small':
             case 'odd_even':
-                odds = 1.978; // A盤大小單雙賠率
+                odds = 1.98; // A盤大小單雙賠率
                 break;
                 
             case 'dragon_tiger':
             case 'dragonTiger':
-                odds = 1.978; // A盤龍虎賠率
+                odds = 1.98; // A盤龍虎賠率
                 break;
                 
             case 'sum':
             case 'sumValue':
-                // 和值賠率根據具體數值不同（A盤）
-                const sumOdds = {
-                    3: 44.505, 4: 22.747, 5: 14.835, 6: 11.373, 7: 8.901,
-                    8: 7.417, 9: 6.428, 10: 5.637, 11: 5.637, 12: 6.428,
-                    13: 7.417, 14: 8.901, 15: 11.373, 16: 14.835, 17: 22.747,
-                    18: 44.505, 19: 89.01
-                };
-                odds = sumOdds[parseInt(bet.bet_value)] || 0;
+                if (/^\d+$/.test(bet.bet_value)) {
+                    // 和值數字投注，賠率根據具體數值不同（A盤）
+                    const sumOdds = {
+                        3: 44.51, 4: 22.75, 5: 14.84, 6: 11.37, 7: 8.90,
+                        8: 7.42, 9: 6.43, 10: 5.64, 11: 5.64, 12: 6.43,
+                        13: 7.42, 14: 8.90, 15: 11.37, 16: 14.84, 17: 22.75,
+                        18: 44.51, 19: 89.02
+                    };
+                    odds = sumOdds[parseInt(bet.bet_value)] || 0;
+                } else {
+                    // 冠亞和大小單雙投注
+                    odds = 1.98;
+                }
                 break;
                 
             default:
+                console.warn(`未知的投注類型賠率: ${bet.bet_type} with value: ${bet.bet_value}`);
                 odds = 0;
         }
     }
@@ -385,6 +521,9 @@ export async function createSettlementTables() {
     
     console.log('✅ 結算相關表創建完成');
 }
+
+// 導出函數供測試使用
+export { checkWin, calculateWinAmount };
 
 export default {
     improvedSettleBets,

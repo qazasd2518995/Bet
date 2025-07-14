@@ -143,11 +143,9 @@ export async function improvedSettleBets(period, winResult) {
                 // 增加用戶餘額
                 await t.none(`
                     UPDATE members 
-                    SET balance = $1,
-                        total_win = total_win + $2,
-                        updated_at = NOW()
-                    WHERE username = $3
-                `, [balanceAfter, winAmount, username]);
+                    SET balance = $1
+                    WHERE username = $2
+                `, [balanceAfter, username]);
                 
                 // 記錄交易
                 await t.none(`

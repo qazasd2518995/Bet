@@ -14,8 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- 然後引入組件 -->
-    <script src="./src/components/BetRecords.js?v=2025061901"></script>
-          <script src="./src/components/DrawHistory.js?v=2025061901"></script>
+    <script src="./src/components/BetRecords.js?v=2025071403"></script>
+          <script src="./src/components/DrawHistory.js?v=2025071403"></script>
     <script>
         // 登录检查处理
         document.addEventListener('DOMContentLoaded', async function() {
@@ -7622,7 +7622,12 @@
                     if (!dateStr) return 'NaN:NaN:NaN';
                     const date = new Date(dateStr);
                     if (isNaN(date.getTime())) return 'NaN:NaN:NaN';
-                    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                    // 轉換為台北時區顯示 - 手動加8小時
+                    const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+                    const hours = taipeiTime.getHours().toString().padStart(2, '0');
+                    const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
+                    const seconds = taipeiTime.getSeconds().toString().padStart(2, '0');
+                    return `${hours}:${minutes}:${seconds}`;
                 },
                 formatOdds(odds) {
                     if (odds === undefined || odds === null) {
@@ -8295,14 +8300,17 @@
                         return;
                     }
 
+                    // 立即顯示下注處理中的提示
+                    this.displayNotification('正在處理下注...');
+                    
                     // 顯示加載中提示
                     this.isLoading = true;
                     
                     // 複製選定的注單列表
                     const bets = [...this.selectedBets];
                     
-                    // 建立投注请求
-                    const promises = bets.map(bet => {
+                    // 準備批量下注數據
+                    const batchBets = bets.map(bet => {
                         // 处理不同類型的投注值
                         let value = bet.value;
                         let betType = bet.type;
@@ -8312,54 +8320,64 @@
                             value = bet.property;
                         }
                         
-                        return fetch(`${this.API_BASE_URL}/api/bet`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                username,
-                                amount: bet.amount,
-                                betType: betType,
-                                value: value,
-                                position: bet.position
-                            })
-                        }).then(res => {
-                            if (!res.ok) {
-                                return res.text().then(text => {
-                                    try {
-                                        const errorData = JSON.parse(text);
-                                        throw new Error(`HTTP ${res.status}: ${errorData.message || res.statusText}`);
-                                    } catch (parseError) {
-                                        throw new Error(`HTTP ${res.status}: ${res.statusText} - ${text}`);
-                                    }
-                                });
-                            }
-                            return res.json();
-                        }).then(data => {
-                            if (!data.success) {
-                                throw new Error(data.message || '投注失败');
-                            }
-                            return data;
-                        });
+                        return {
+                            amount: bet.amount,
+                            betType: betType,
+                            value: value,
+                            position: bet.position
+                        };
                     });
-
-                    // 处理所有投注请求
-                    Promise.all(promises)
-                        .then(results => {
+                    
+                    // 使用批量下注API
+                    fetch(`${this.API_BASE_URL}/api/batch-bet`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username,
+                            bets: batchBets
+                        })
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.text().then(text => {
+                                try {
+                                    const errorData = JSON.parse(text);
+                                    throw new Error(`HTTP ${res.status}: ${errorData.message || res.statusText}`);
+                                } catch (parseError) {
+                                    throw new Error(`HTTP ${res.status}: ${res.statusText} - ${text}`);
+                                }
+                            });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message || '投注失败');
+                        }
+                        return data;
+                    })
+                    .then(result => {
                             // 顯示下注成功的提示訊息
-                            this.displayNotification('下注成功！');
+                            let message = result.message || '下注成功！';
+                            if (result.failedCount > 0) {
+                                message = `${result.successCount}筆成功, ${result.failedCount}筆失敗`;
+                            }
+                            this.displayNotification(message);
+                            
+                            // 更新餘額（使用API返回的餘額，避免額外查詢）
+                            if (result.balance !== undefined) {
+                                this.balance = parseFloat(result.balance);
+                            }
                             
                             // 清除所選注單
-                                this.selectedBets = [];
-                            
-                            // 重新获取最新余额
-                            this.getBalance();
+                            this.selectedBets = [];
                             
                             // 更新注單历史
                             this.getBetHistory();
                             
-                            // 更新今日盈虧（使用API確保準確性）
+                            // 更新今日盈虧
                             this.updateDailyProfit();
                             
                             // 关闭加載中提示
@@ -10740,7 +10758,21 @@
                 formatDateTime(dateStr) {
                     const date = new Date(dateStr);
                     if (isNaN(date.getTime())) return dateStr;
-                    return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                    // Convert to Taipei timezone
+                    const taipeiTime = date.toLocaleString('en-US', { 
+                        timeZone: 'Asia/Taipei',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    // Format as YYYY-MM-DD HH:mm:ss
+                    const [datePart, timePart] = taipeiTime.split(', ');
+                    const [month, day, year] = datePart.split('/');
+                    return `${year}-${month}-${day} ${timePart}`;
                 },
                 
                 // 格式化游戏时间
@@ -11474,7 +11506,7 @@
                 formatDateTime(dateString) {
                     if (!dateString) return '';
                     const date = new Date(dateString);
-                    // 转换為台北時區顯示
+                    // 轉換為台北時區顯示 - 手動加8小時
                     const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
                     const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
                     const day = taipeiTime.getDate().toString().padStart(2, '0');

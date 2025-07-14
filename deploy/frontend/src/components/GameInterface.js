@@ -2,6 +2,18 @@
 // 游戏界面主組件 - 根據設備類型提供適當的游戏界面佈局
 
 Vue.component('game-interface', {
+  props: {
+    // 接受父組件傳遞的賠率
+    parentOdds: {
+      type: Object,
+      default: () => ({})
+    },
+    // 接受父組件傳遞的用戶市場類型
+    userMarketType: {
+      type: String,
+      default: 'D'
+    }
+  },
   template: /* html */`
     <div class="game-interface game-container">
       <!-- 比賽结果顯示區 -->
@@ -283,15 +295,15 @@ Vue.component('game-interface', {
     // 获取投注赔率
     getBetOdds(type, value) {
       if (type === 'number') {
-        return this.odds.number[value];
+        return this.parentOdds.number[value] || this.odds.number[value];
       } else if (type === 'bigSmall') {
-        return this.odds.bigSmall[value];
+        return this.parentOdds.bigSmall[value] || this.odds.bigSmall[value];
       } else if (type === 'oddEven') {
-        return this.odds.oddEven[value];
+        return this.parentOdds.oddEven[value] || this.odds.oddEven[value];
       } else if (type === 'sum') {
-        return this.odds.sum[value] || 0;
+        return this.parentOdds.sum[value] || this.odds.sum[value] || 0;
       } else if (type === 'dragonTiger') {
-        return this.odds.dragonTiger[value];
+        return this.parentOdds.dragonTiger[value] || this.odds.dragonTiger[value];
       }
       return 0;
     },
