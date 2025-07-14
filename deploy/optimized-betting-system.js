@@ -367,6 +367,12 @@ function getQuickOdds(betType, value, marketType) {
         };
         odds = sumOdds[value] || 1.0;
     }
+    // 龍虎投注
+    else if (betType === 'dragonTiger' || betType === 'dragon_tiger' || betType === '龍虎') {
+        // 龍虎投注賠率：A盤 1.978，D盤 1.918
+        const dragonTigerBaseOdds = 2.0;
+        odds = dragonTigerBaseOdds * (1 - rebatePercentage);
+    }
     // 兩面投注
     else if (['big', 'small', 'odd', 'even'].includes(value)) {
         odds = 2.0 * (1 - rebatePercentage);
