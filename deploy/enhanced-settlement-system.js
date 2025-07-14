@@ -1,5 +1,6 @@
 // enhanced-settlement-system.js - Enhanced settlement system with ALL bet types support
 import db from './db/config.js';
+import fetch from 'node-fetch';
 
 const settlementLog = {
     info: (msg, data) => console.log(`[SETTLEMENT INFO] ${msg}`, data || ''),
@@ -163,6 +164,18 @@ export async function enhancedSettlement(period, drawResult) {
         });
         
         settlementLog.info(`結算完成: ${result.settledCount}筆投注, ${result.winCount}筆中獎, 總派彩${result.totalWinAmount}`);
+        
+        // Process rebates if settlement was successful
+        if (result.success && result.settledCount > 0) {
+            try {
+                await processRebates(period);
+                settlementLog.info(`退水處理完成: 期號 ${period}`);
+            } catch (rebateError) {
+                settlementLog.error(`退水處理失敗: 期號 ${period}`, rebateError);
+                // Don't fail the entire settlement if rebate processing fails
+            }
+        }
+        
         return result;
         
     } catch (error) {
@@ -421,6 +434,198 @@ function getSumOdds(sum) {
         18: 43.00, 19: 86.00
     };
     return sumOdds[sum] || 0;
+}
+
+// 代理系統API URL
+const AGENT_API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://bet-agent.onrender.com' 
+  : 'http://localhost:3003';
+
+// 處理退水
+async function processRebates(period) {
+    try {
+        settlementLog.info(`💰 開始處理期號 ${period} 的退水`);
+        
+        // 獲取該期所有已結算的注單
+        const settledBets = await db.manyOrNone(`
+            SELECT DISTINCT username, SUM(amount) as total_amount
+            FROM bet_history
+            WHERE period = $1 AND settled = true
+            GROUP BY username
+        `, [period]);
+        
+        settlementLog.info(`💰 找到 ${settledBets.length} 位會員需要處理退水`);
+        
+        for (const record of settledBets) {
+            try {
+                // 調用退水分配邏輯
+                await distributeRebate(record.username, parseFloat(record.total_amount), period);
+                settlementLog.info(`✅ 已為會員 ${record.username} 分配退水，下注金額: ${record.total_amount}`);
+            } catch (rebateError) {
+                settlementLog.error(`❌ 為會員 ${record.username} 分配退水失敗:`, rebateError);
+            }
+        }
+        
+    } catch (error) {
+        settlementLog.error(`處理退水時發生錯誤:`, error);
+        throw error;
+    }
+}
+
+// 退水分配函數
+async function distributeRebate(username, betAmount, period) {
+    try {
+        settlementLog.info(`開始為會員 ${username} 分配退水，下注金額: ${betAmount}`);
+        
+        // 獲取會員的代理鏈來確定最大退水比例
+        const agentChain = await getAgentChain(username);
+        if (!agentChain || agentChain.length === 0) {
+            settlementLog.info(`會員 ${username} 沒有代理鏈，退水歸平台所有`);
+            return;
+        }
+        
+        // 計算固定的總退水池（根據盤口類型）
+        const directAgent = agentChain[0]; // 第一個是直屬代理
+        const maxRebatePercentage = directAgent.market_type === 'A' ? 0.011 : 0.041; // A盤1.1%, D盤4.1%
+        const totalRebatePool = parseFloat(betAmount) * maxRebatePercentage; // 固定總池
+        
+        settlementLog.info(`會員 ${username} 的代理鏈:`, agentChain.map(a => `${a.username}(L${a.level}-${a.rebate_mode}:${(a.rebate_percentage*100).toFixed(1)}%)`));
+        settlementLog.info(`固定退水池: ${totalRebatePool.toFixed(2)} 元 (${(maxRebatePercentage*100).toFixed(1)}%)`);
+        
+        // 按層級順序分配退水，上級只拿差額
+        let remainingRebate = totalRebatePool;
+        let distributedPercentage = 0; // 已經分配的退水比例
+        
+        for (let i = 0; i < agentChain.length; i++) {
+            const agent = agentChain[i];
+            let agentRebateAmount = 0;
+            
+            // 如果沒有剩餘退水，結束分配
+            if (remainingRebate <= 0.01) {
+                settlementLog.info(`退水池已全部分配完畢`);
+                break;
+            }
+            
+            const rebatePercentage = parseFloat(agent.rebate_percentage);
+            
+            if (isNaN(rebatePercentage) || rebatePercentage <= 0) {
+                // 退水比例為0，該代理不拿退水，全部給上級
+                agentRebateAmount = 0;
+                settlementLog.info(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，不拿任何退水，剩餘 ${remainingRebate.toFixed(2)} 元繼續向上分配`);
+            } else {
+                // 計算該代理實際能拿的退水比例（不能超過已分配的）
+                const actualRebatePercentage = Math.max(0, rebatePercentage - distributedPercentage);
+                
+                if (actualRebatePercentage <= 0) {
+                    settlementLog.info(`代理 ${agent.username} 退水比例 ${(rebatePercentage*100).toFixed(1)}% 已被下級分完，不能再獲得退水`);
+                    agentRebateAmount = 0;
+                } else {
+                    // 計算該代理實際獲得的退水金額
+                    agentRebateAmount = parseFloat(betAmount) * actualRebatePercentage;
+                    // 確保不超過剩餘退水池
+                    agentRebateAmount = Math.min(agentRebateAmount, remainingRebate);
+                    // 四捨五入到小數點後2位
+                    agentRebateAmount = Math.round(agentRebateAmount * 100) / 100;
+                    remainingRebate -= agentRebateAmount;
+                    distributedPercentage += actualRebatePercentage;
+                    
+                    settlementLog.info(`代理 ${agent.username} 退水比例為 ${(rebatePercentage*100).toFixed(1)}%，實際獲得 ${(actualRebatePercentage*100).toFixed(1)}% = ${agentRebateAmount.toFixed(2)} 元，剩餘池額 ${remainingRebate.toFixed(2)} 元`);
+                }
+                
+                // 如果該代理的比例達到或超過最大值，說明是全拿模式
+                if (rebatePercentage >= maxRebatePercentage) {
+                    settlementLog.info(`代理 ${agent.username} 拿了全部退水池，結束分配`);
+                    remainingRebate = 0;
+                }
+            }
+            
+            if (agentRebateAmount > 0) {
+                // 分配退水給代理
+                await allocateRebateToAgent(agent.id, agent.username, agentRebateAmount, username, betAmount, period);
+                settlementLog.info(`✅ 分配退水 ${agentRebateAmount.toFixed(2)} 給代理 ${agent.username} (比例: ${(parseFloat(agent.rebate_percentage)*100).toFixed(1)}%, 剩餘: ${remainingRebate.toFixed(2)})`);
+                
+                // 如果沒有剩餘退水了，結束分配
+                if (remainingRebate <= 0.01) {
+                    break;
+                }
+            }
+        }
+        
+        // 剩餘退水歸平台所有
+        if (remainingRebate > 0.01) { // 考慮浮點數精度問題
+            settlementLog.info(`剩餘退水池 ${remainingRebate.toFixed(2)} 元歸平台所有`);
+        }
+        
+        settlementLog.info(`✅ 退水分配完成，總池: ${totalRebatePool.toFixed(2)}元，已分配: ${(totalRebatePool - remainingRebate).toFixed(2)}元，平台保留: ${remainingRebate.toFixed(2)}元`);
+        
+    } catch (error) {
+        settlementLog.error('分配退水時發生錯誤:', error);
+        throw error;
+    }
+}
+
+// 獲取會員的代理鏈
+async function getAgentChain(username) {
+    try {
+        const response = await fetch(`${AGENT_API_URL}/api/agent/internal/get-agent-chain?username=${username}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            settlementLog.error(`獲取代理鏈失敗: ${response.status}`);
+            return [];
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+            return data.agentChain || [];
+        } else {
+            settlementLog.error('獲取代理鏈失敗:', data.message);
+            return [];
+        }
+    } catch (error) {
+        settlementLog.error('獲取代理鏈時發生錯誤:', error);
+        return [];
+    }
+}
+
+// 分配退水給代理
+async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, memberUsername, betAmount, period) {
+    try {
+        // 調用代理系統的退水分配API
+        const response = await fetch(`${AGENT_API_URL}/api/agent/allocate-rebate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                agentId: agentId,
+                agentUsername: agentUsername,
+                rebateAmount: rebateAmount,
+                memberUsername: memberUsername,
+                betAmount: betAmount,
+                reason: `期號 ${period} 退水分配`
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`代理系統API返回錯誤: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(`退水分配失敗: ${result.message}`);
+        }
+        
+        settlementLog.info(`成功分配退水 ${rebateAmount} 給代理 ${agentUsername}`);
+        
+    } catch (error) {
+        settlementLog.error(`分配退水給代理 ${agentUsername} 失敗:`, error);
+        throw error;
+    }
 }
 
 export {
