@@ -2875,7 +2875,7 @@ app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
 // 分配退水給代理
 app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
   try {
-    const { agentId, agentUsername, rebateAmount, memberUsername, betAmount, reason } = req.body;
+    const { agentId, agentUsername, rebateAmount, memberUsername, betAmount, reason, period } = req.body;
     
     console.log(`收到退水分配請求: 代理=${agentUsername}(${agentId}), 退水金額=${rebateAmount}, 會員=${memberUsername}, 下注=${betAmount}`);
     
@@ -2935,7 +2935,7 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       memberUsername || null,
       parseFloat(betAmount) || 0,
       rebatePercentage,
-      reason || null
+      period || null
     ]);
     
     // 獲取更新後的代理資訊

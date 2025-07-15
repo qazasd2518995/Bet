@@ -1,68 +1,84 @@
-require('dotenv').config();
-const { Client } = require('pg');
+const { Pool } = require('pg');
 
+// 直接使用資料庫配置
 const dbConfig = {
     host: 'dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com',
     port: 5432,
     database: 'bet_game',
     user: 'bet_game_user',
     password: 'Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy',
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false }
 };
 
-async function checkTableStructures() {
-    const client = new Client(dbConfig);
+const pool = new Pool(dbConfig);
+
+async function checkTableStructure() {
+    console.log('===== 檢查資料表結構 =====\n');
     
     try {
-        await client.connect();
-        console.log('✅ 連接到 Render PostgreSQL 成功');
-        
-        // 檢查 game_state 表結構
-        const gameStateColumns = await client.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'game_state'
-            ORDER BY ordinal_position
-        `);
-        
-        console.log('\n=== game_state 表結構 ===');
-        gameStateColumns.rows.forEach(row => {
-            console.log(`${row.column_name}: ${row.data_type}`);
-        });
-        
         // 檢查 bet_history 表結構
-        const betHistoryColumns = await client.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
+        console.log('1. bet_history 表結構：');
+        const betHistoryQuery = `
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default
+            FROM information_schema.columns
             WHERE table_name = 'bet_history'
             ORDER BY ordinal_position
-        `);
+        `;
         
-        console.log('\n=== bet_history 表結構 ===');
-        betHistoryColumns.rows.forEach(row => {
-            console.log(`${row.column_name}: ${row.data_type}`);
+        const betHistoryResult = await pool.query(betHistoryQuery);
+        console.log('欄位列表：');
+        betHistoryResult.rows.forEach(col => {
+            console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`);
         });
         
-        // 檢查 draw_records 表結構
-        const drawRecordsColumns = await client.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'draw_records'
+        // 檢查 result_history 表結構
+        console.log('\n2. result_history 表結構：');
+        const resultHistoryQuery = `
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default
+            FROM information_schema.columns
+            WHERE table_name = 'result_history'
             ORDER BY ordinal_position
-        `);
+        `;
         
-        console.log('\n=== draw_records 表結構 ===');
-        drawRecordsColumns.rows.forEach(row => {
-            console.log(`${row.column_name}: ${row.data_type}`);
+        const resultHistoryResult = await pool.query(resultHistoryQuery);
+        console.log('欄位列表：');
+        resultHistoryResult.rows.forEach(col => {
+            console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`);
+        });
+        
+        // 檢查 transaction_records 表結構
+        console.log('\n3. transaction_records 表結構：');
+        const transactionQuery = `
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default
+            FROM information_schema.columns
+            WHERE table_name = 'transaction_records'
+            ORDER BY ordinal_position
+        `;
+        
+        const transactionResult = await pool.query(transactionQuery);
+        console.log('欄位列表：');
+        transactionResult.rows.forEach(col => {
+            console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`);
         });
         
     } catch (error) {
-        console.error('檢查表結構時發生錯誤:', error.message);
+        console.error('檢查過程中發生錯誤:', error);
     } finally {
-        await client.end();
+        await pool.end();
     }
 }
 
-checkTableStructures();
+// 執行檢查
+checkTableStructure();
