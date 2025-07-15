@@ -176,19 +176,19 @@ export async function enhancedSettlement(period, drawResult) {
                 `, [period]);
                 
                 if (hasSettledBets && parseInt(hasSettledBets.count) > 0) {
-                    // Check if rebates have already been processed
+                    // Check if rebates have already been processed for this period
                     const hasRebates = await db.oneOrNone(`
                         SELECT COUNT(*) as count FROM transaction_records
                         WHERE transaction_type = 'rebate' 
-                        AND description LIKE $1
-                    `, [`%${period}%`]);
+                        AND period = $1
+                    `, [period]);
                     
                     if (!hasRebates || parseInt(hasRebates.count) === 0) {
                         settlementLog.info(`發現已結算但未處理退水的注單，開始處理退水`);
                         await processRebates(period);
                         settlementLog.info(`退水處理完成: 期號 ${period}`);
                     } else {
-                        settlementLog.info(`期號 ${period} 的退水已經處理過`);
+                        settlementLog.info(`期號 ${period} 的退水已經處理過 (${hasRebates.count} 筆記錄)`);
                     }
                 }
             } catch (rebateError) {
@@ -628,6 +628,7 @@ async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, membe
                 rebateAmount: rebateAmount,
                 memberUsername: memberUsername,
                 betAmount: betAmount,
+                period: period,
                 reason: `期號 ${period} 退水分配`
             })
         });
