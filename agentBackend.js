@@ -3045,7 +3045,7 @@ async function getAgentChainForMember(agentId) {
     
     while (currentAgentId) {
       const agent = await db.oneOrNone(`
-        SELECT id, username, level, rebate_mode, rebate_percentage, max_rebate_percentage, parent_id
+        SELECT id, username, level, rebate_mode, rebate_percentage, max_rebate_percentage, parent_id, market_type
         FROM agents 
         WHERE id = $1 AND status = 1
       `, [currentAgentId]);
@@ -3058,7 +3058,8 @@ async function getAgentChainForMember(agentId) {
         level: agent.level,
         rebate_mode: agent.rebate_mode || 'percentage',
         rebate_percentage: agent.rebate_percentage || 0.041,
-        max_rebate_percentage: agent.max_rebate_percentage || 0.041
+        max_rebate_percentage: agent.max_rebate_percentage || 0.041,
+        market_type: agent.market_type || 'D'  // 添加 market_type，預設為 D 盤
       });
       
       // 移動到上級代理
