@@ -567,7 +567,7 @@ async function distributeRebate(username, betAmount, period) {
 // 獲取會員的代理鏈
 async function getAgentChain(username) {
     try {
-        const response = await fetch(`${AGENT_API_URL}/api/agent/internal/get-agent-chain?username=${username}`, {
+        const response = await fetch(`${AGENT_API_URL}/api/agent/member-agent-chain?username=${username}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
