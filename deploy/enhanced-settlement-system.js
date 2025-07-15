@@ -166,10 +166,31 @@ export async function enhancedSettlement(period, drawResult) {
         settlementLog.info(`結算完成: ${result.settledCount}筆投注, ${result.winCount}筆中獎, 總派彩${result.totalWinAmount}`);
         
         // Process rebates if settlement was successful
-        if (result.success && result.settledCount > 0) {
+        // Also check if there are any settled bets that need rebate processing
+        if (result.success) {
             try {
-                await processRebates(period);
-                settlementLog.info(`退水處理完成: 期號 ${period}`);
+                // Check if there are any settled bets for this period
+                const hasSettledBets = await db.oneOrNone(`
+                    SELECT COUNT(*) as count FROM bet_history 
+                    WHERE period = $1 AND settled = true
+                `, [period]);
+                
+                if (hasSettledBets && parseInt(hasSettledBets.count) > 0) {
+                    // Check if rebates have already been processed
+                    const hasRebates = await db.oneOrNone(`
+                        SELECT COUNT(*) as count FROM transaction_records
+                        WHERE transaction_type = 'rebate' 
+                        AND description LIKE $1
+                    `, [`%${period}%`]);
+                    
+                    if (!hasRebates || parseInt(hasRebates.count) === 0) {
+                        settlementLog.info(`發現已結算但未處理退水的注單，開始處理退水`);
+                        await processRebates(period);
+                        settlementLog.info(`退水處理完成: 期號 ${period}`);
+                    } else {
+                        settlementLog.info(`期號 ${period} 的退水已經處理過`);
+                    }
+                }
             } catch (rebateError) {
                 settlementLog.error(`退水處理失敗: 期號 ${period}`, rebateError);
                 // Don't fail the entire settlement if rebate processing fails
@@ -567,7 +588,7 @@ async function distributeRebate(username, betAmount, period) {
 // 獲取會員的代理鏈
 async function getAgentChain(username) {
     try {
-        const response = await fetch(`${AGENT_API_URL}/api/agent/internal/get-agent-chain?username=${username}`, {
+        const response = await fetch(`${AGENT_API_URL}/api/agent/member-agent-chain?username=${username}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
