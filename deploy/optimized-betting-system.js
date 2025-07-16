@@ -29,9 +29,15 @@ export async function optimizedBatchBet(username, bets, period, AGENT_API_URL) {
             return { success: false, message: '帳號已被凍結，只能觀看遊戲無法下注' };
         }
         
-        // 2. 批量驗證和準備投注數據
+        // 2. 批量驗證限紅和準備投注數據
         const totalAmount = bets.reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
         const memberMarketType = memberInfo.market_type || 'D';
+        
+        // 批量驗證每筆下注的限紅
+        const limitValidationResult = await validateBatchBettingLimits(username, bets, period, AGENT_API_URL);
+        if (!limitValidationResult.success) {
+            return { success: false, message: limitValidationResult.message };
+        }
         
         // 3. 單次扣款
         const balanceResult = await deductBalance(username, totalAmount, AGENT_API_URL);
@@ -472,12 +478,163 @@ async function refundBalance(username, amount, AGENT_API_URL) {
 
 // 異步處理退水
 async function processRebatesAsync(period) {
-    // 退水邏輯（不阻塞主流程）
-    console.log(`開始處理期號 ${period} 的退水...`);
-    // 實際退水邏輯
+    try {
+        console.log(`開始處理期號 ${period} 的退水...`);
+        // 引入 enhanced-settlement-system 的退水處理邏輯
+        const { processRebates } = await import('./enhanced-settlement-system.js');
+        await processRebates(period);
+        console.log(`✅ 期號 ${period} 的退水處理完成`);
+    } catch (error) {
+        console.error(`❌ 退水處理失敗 (期號 ${period}):`, error.message);
+        // 記錄錯誤但不阻塞主流程
+    }
+}
+
+// 批量下注限紅驗證函數
+async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL) {
+    try {
+        console.log(`🔍 驗證用戶 ${username} 的批量下注限紅...`);
+        
+        // 1. 獲取用戶的限紅配置
+        let userLimits = null;
+        try {
+            const response = await fetch(`${AGENT_API_URL}/api/agent/member-betting-limit-by-username?username=${username}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 5000
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.config) {
+                    userLimits = data.config;
+                    console.log(`✅ 獲取到用戶 ${username} 的限紅配置`);
+                }
+            }
+        } catch (apiError) {
+            console.warn('獲取會員限紅設定失敗，使用預設限紅:', apiError.message);
+        }
+        
+        // 2. 如果無法獲取用戶限紅，使用預設限紅
+        if (!userLimits) {
+            userLimits = {
+                number: { maxBet: 2500, minBet: 1, periodLimit: 5000 },
+                twoSide: { maxBet: 5000, minBet: 1, periodLimit: 5000 },
+                sumValue: { maxBet: 1000, minBet: 1, periodLimit: 2000 },
+                dragonTiger: { maxBet: 5000, minBet: 1, periodLimit: 5000 },
+                sumValueSize: { maxBet: 5000, minBet: 1, periodLimit: 5000 },
+                sumValueOddEven: { maxBet: 5000, minBet: 1, periodLimit: 5000 }
+            };
+            console.log(`⚠️ 使用預設限紅配置`);
+        }
+        
+        // 3. 獲取用戶在當前期號已有的下注
+        const existingBets = await db.any(`
+            SELECT bet_type, bet_value, amount, position
+            FROM bet_history 
+            WHERE username = $1 AND period = $2 AND settled = false
+        `, [username, period]);
+        
+        // 4. 按下注類型分組計算
+        const periodTotals = {};
+        
+        // 先計算已有下注
+        existingBets.forEach(bet => {
+            const betCategory = getBetCategory(bet.bet_type, bet.bet_value, bet.position);
+            if (!periodTotals[betCategory]) {
+                periodTotals[betCategory] = 0;
+            }
+            periodTotals[betCategory] += parseFloat(bet.amount);
+        });
+        
+        // 5. 驗證新的批量下注
+        for (const bet of bets) {
+            const amount = parseFloat(bet.amount);
+            const betCategory = getBetCategory(bet.betType, bet.value, bet.position);
+            const limits = userLimits[betCategory];
+            
+            if (!limits) {
+                return {
+                    success: false,
+                    message: `未知的下注類型: ${bet.betType}/${bet.value}`
+                };
+            }
+            
+            // 檢查單注最高限制
+            if (amount > limits.maxBet) {
+                return {
+                    success: false,
+                    message: `${betCategory} 單注金額不能超過 ${limits.maxBet} 元，當前: ${amount} 元`
+                };
+            }
+            
+            // 檢查最小下注限制
+            if (amount < limits.minBet) {
+                return {
+                    success: false,
+                    message: `${betCategory} 單注金額不能少於 ${limits.minBet} 元，當前: ${amount} 元`
+                };
+            }
+            
+            // 累加到期號總額中
+            if (!periodTotals[betCategory]) {
+                periodTotals[betCategory] = 0;
+            }
+            periodTotals[betCategory] += amount;
+            
+            // 檢查單期限額
+            if (periodTotals[betCategory] > limits.periodLimit) {
+                const existingAmount = periodTotals[betCategory] - amount;
+                return {
+                    success: false,
+                    message: `${betCategory} 單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
+                };
+            }
+        }
+        
+        console.log(`✅ 批量下注限紅驗證通過`);
+        return { success: true };
+        
+    } catch (error) {
+        console.error('批量下注限紅驗證失敗:', error);
+        return {
+            success: false,
+            message: `限紅驗證失敗: ${error.message}`
+        };
+    }
+}
+
+// 獲取下注類型分類
+function getBetCategory(betType, betValue, position) {
+    // 總和相關下注 - 統一歸類為 sumValue
+    if (betType === 'sumValue') {
+        return 'sumValue';
+    }
+    
+    // 數字下注
+    if (betType === 'number' || (position && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(betValue))) {
+        return 'number';
+    }
+    
+    // 龍虎下注
+    if (betType === 'dragonTiger' || betType.includes('dragon') || betType.includes('tiger')) {
+        return 'dragonTiger';
+    }
+    
+    // 雙面下注 (大小單雙等) - 位置相關的下注
+    if (['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) ||
+        (['big', 'small', 'odd', 'even'].includes(betValue) && betType !== 'sumValue')) {
+        return 'twoSide';
+    }
+    
+    // 預設為雙面下注
+    return 'twoSide';
 }
 
 export default {
     optimizedBatchBet,
     optimizedSettlement
 };
+
+// Export for testing
+export { getQuickOdds };

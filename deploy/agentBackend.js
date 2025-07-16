@@ -2935,7 +2935,7 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       memberUsername || null,
       parseFloat(betAmount) || 0,
       rebatePercentage,
-      period || null
+      period ? String(period) : null
     ]);
     
     // 獲取更新後的代理資訊

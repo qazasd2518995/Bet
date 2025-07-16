@@ -45,6 +45,35 @@ export async function enhancedSettlement(period, drawResult) {
             
             if (!unsettledBets || unsettledBets.length === 0) {
                 settlementLog.info('沒有未結算的投注');
+                
+                // 即使沒有未結算投注，也要檢查是否需要處理退水
+                try {
+                    const hasSettledBets = await t.oneOrNone(`
+                        SELECT COUNT(*) as count 
+                        FROM bet_history 
+                        WHERE period = $1 AND settled = true
+                    `, [period]);
+                    
+                    if (hasSettledBets && parseInt(hasSettledBets.count) > 0) {
+                        const hasRebates = await t.oneOrNone(`
+                            SELECT COUNT(*) as count 
+                            FROM transaction_records
+                            WHERE period = $1 AND transaction_type = 'rebate'
+                        `, [period]);
+                        
+                        if (!hasRebates || parseInt(hasRebates.count) === 0) {
+                            settlementLog.info(`發現已結算但未處理退水的注單，開始處理退水`);
+                            await processRebates(period);
+                            settlementLog.info(`退水處理完成: 期號 ${period}`);
+                        } else {
+                            settlementLog.info(`期號 ${period} 的退水已經處理過 (${hasRebates.count} 筆記錄)`);
+                        }
+                    }
+                } catch (rebateError) {
+                    settlementLog.error(`退水處理失敗: 期號 ${period}`, rebateError);
+                    // Don't fail the entire settlement if rebate processing fails
+                }
+                
                 return { success: true, settledCount: 0, winCount: 0, totalWinAmount: 0 };
             }
             
@@ -462,30 +491,53 @@ const AGENT_API_URL = process.env.NODE_ENV === 'production'
   ? 'https://bet-agent.onrender.com' 
   : 'http://localhost:3003';
 
-// 處理退水
+// 處理退水 - 修復版本，防止重複處理
 async function processRebates(period) {
     try {
         settlementLog.info(`💰 開始處理期號 ${period} 的退水`);
         
-        // 獲取該期所有已結算的注單
-        const settledBets = await db.manyOrNone(`
-            SELECT DISTINCT username, SUM(amount) as total_amount
-            FROM bet_history
-            WHERE period = $1 AND settled = true
-            GROUP BY username
-        `, [period]);
-        
-        settlementLog.info(`💰 找到 ${settledBets.length} 位會員需要處理退水`);
-        
-        for (const record of settledBets) {
-            try {
-                // 調用退水分配邏輯
-                await distributeRebate(record.username, parseFloat(record.total_amount), period);
-                settlementLog.info(`✅ 已為會員 ${record.username} 分配退水，下注金額: ${record.total_amount}`);
-            } catch (rebateError) {
-                settlementLog.error(`❌ 為會員 ${record.username} 分配退水失敗:`, rebateError);
+        // 使用事務和鎖來防止重複處理
+        await db.tx(async t => {
+            // 先檢查是否已經處理過該期的退水
+            const existingRebates = await t.oneOrNone(`
+                SELECT COUNT(*) as count 
+                FROM transaction_records 
+                WHERE period = $1 
+                AND transaction_type = 'rebate'
+                LIMIT 1
+            `, [period]);
+            
+            if (existingRebates && parseInt(existingRebates.count) > 0) {
+                settlementLog.info(`期號 ${period} 的退水已經處理過，跳過`);
+                return;
             }
-        }
+            
+            // 獲取該期所有已結算的注單
+            const settledBets = await t.manyOrNone(`
+                SELECT username, SUM(amount) as total_amount
+                FROM bet_history
+                WHERE period = $1 AND settled = true
+                GROUP BY username
+            `, [period]);
+            
+            settlementLog.info(`💰 找到 ${settledBets.length} 位會員需要處理退水`);
+            
+            for (const record of settledBets) {
+                try {
+                    // 調用退水分配邏輯，傳入事務對象
+                    await distributeRebateInTransaction(record.username, parseFloat(record.total_amount), period, t);
+                    settlementLog.info(`✅ 已為會員 ${record.username} 分配退水，下注金額: ${record.total_amount}`);
+                } catch (rebateError) {
+                    settlementLog.error(`❌ 為會員 ${record.username} 分配退水失敗:`, rebateError);
+                    // 如果是唯一約束衝突錯誤，說明已經處理過了，跳過
+                    if (rebateError.code === '23505') {
+                        settlementLog.info(`會員 ${record.username} 的退水已經處理過，跳過`);
+                    } else {
+                        throw rebateError;
+                    }
+                }
+            }
+        });
         
     } catch (error) {
         settlementLog.error(`處理退水時發生錯誤:`, error);
@@ -493,8 +545,9 @@ async function processRebates(period) {
     }
 }
 
-// 退水分配函數
-async function distributeRebate(username, betAmount, period) {
+// 支援事務的退水分配函數
+async function distributeRebateInTransaction(username, betAmount, period, transaction) {
+    const t = transaction || db;
     try {
         settlementLog.info(`開始為會員 ${username} 分配退水，下注金額: ${betAmount}`);
         
@@ -585,6 +638,11 @@ async function distributeRebate(username, betAmount, period) {
     }
 }
 
+// 原有的退水分配函數（保留以支援向後兼容）
+async function distributeRebate(username, betAmount, period) {
+    return distributeRebateInTransaction(username, betAmount, period, null);
+}
+
 // 獲取會員的代理鏈
 async function getAgentChain(username) {
     try {
@@ -653,7 +711,8 @@ async function allocateRebateToAgent(agentId, agentUsername, rebateAmount, membe
 export {
     checkBetWinEnhanced,
     calculateWinAmount,
-    getSumOdds
+    getSumOdds,
+    processRebates
 };
 
 export default {
@@ -661,5 +720,6 @@ export default {
     normalizeDrawResult,
     checkBetWinEnhanced,
     calculateWinAmount,
-    getSumOdds
+    getSumOdds,
+    processRebates
 };
