@@ -1,6 +1,7 @@
 // fixed-draw-system.js - 修正後的開獎系統
 import db from './db/config.js';
 import fetch from 'node-fetch';
+import { generateBlockchainData } from './utils/blockchain.js';
 
 /**
  * 修正後的統一開獎流程管理器
@@ -545,17 +546,21 @@ class FixedDrawSystemManager {
      */
     async saveDrawResult(period, result) {
         try {
+            // 生成區塊鏈資料
+            const blockchainData = generateBlockchainData(period, result);
+            
             await db.none(`
-                INSERT INTO result_history (period, result, position_1, position_2, position_3, position_4, position_5, position_6, position_7, position_8, position_9, position_10, draw_time)
-                VALUES ($1, $2::json, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+                INSERT INTO result_history (period, result, position_1, position_2, position_3, position_4, position_5, position_6, position_7, position_8, position_9, position_10, draw_time, block_height, block_hash)
+                VALUES ($1, $2::json, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13, $14)
                 ON CONFLICT (period) DO UPDATE SET
                 result = $2::json,
                 position_1 = $3, position_2 = $4, position_3 = $5, position_4 = $6, position_5 = $7,
                 position_6 = $8, position_7 = $9, position_8 = $10, position_9 = $11, position_10 = $12,
-                draw_time = NOW()
-            `, [period, JSON.stringify(result), ...result]);
+                draw_time = NOW(),
+                block_height = $13, block_hash = $14
+            `, [period, JSON.stringify(result), ...result, blockchainData.blockHeight, blockchainData.blockHash]);
             
-            console.log(`✅ [結果保存] 期號 ${period} 結果已保存: [${result.join(', ')}]`);
+            console.log(`✅ [結果保存] 期號 ${period} 結果已保存: [${result.join(', ')}] 區塊高度: ${blockchainData.blockHeight}`);
             
             // 驗證保存的結果
             const savedResult = await db.oneOrNone(`

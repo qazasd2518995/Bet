@@ -11,6 +11,7 @@ import db from './db/config.js';
 // 導入基本數據庫初始化函數
 import initDatabaseBase from './db/init.js';
 import SessionManager from './security/session-manager.js';
+import { generateBlockchainData } from './utils/blockchain.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -490,13 +491,18 @@ app.post(`${API_PREFIX}/sync-draw-record`, async (req, res) => {
     
     console.log(`📨 收到即時開獎同步請求: 期數=${period}`);
     
-    // 直接插入/更新到draw_records表
+    // 生成區塊鏈資料
+    const blockchainData = generateBlockchainData(period, result);
+    
+    // 直接插入/更新到draw_records表，包含區塊鏈資料
     await db.none(`
-      INSERT INTO draw_records (period, result, draw_time, created_at)
-      VALUES ($1, $2::jsonb, $3, $4)
+      INSERT INTO draw_records (period, result, draw_time, created_at, block_height, block_hash)
+      VALUES ($1, $2::jsonb, $3, $4, $5, $6)
       ON CONFLICT (period) DO UPDATE 
-      SET result = $2::jsonb, draw_time = $3, created_at = $4
-    `, [period, JSON.stringify(result), draw_time || new Date(), new Date()]);
+      SET result = $2::jsonb, draw_time = $3, created_at = $4, 
+          block_height = $5, block_hash = $6
+    `, [period, JSON.stringify(result), draw_time || new Date(), new Date(), 
+        blockchainData.blockHeight, blockchainData.blockHash]);
     
     console.log(`✅ 即時開獎同步成功: 期數=${period}`);
     

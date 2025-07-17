@@ -21,6 +21,7 @@ import { optimizedBatchBet, optimizedSettlement } from './optimized-betting-syst
 import { comprehensiveSettlement, createSettlementTables as createComprehensiveTables } from './comprehensive-settlement-system.js';
 import { enhancedSettlement } from './enhanced-settlement-system.js';
 import drawSystemManager from './fixed-draw-system.js';
+import { generateBlockchainData } from './utils/blockchain.js';
 
 // 初始化環境變量
 dotenv.config();
@@ -1287,13 +1288,18 @@ async function startGameCycle() {
                       // 更新最後開獎結果
                       memoryGameState.last_result = drawResult.result;
                       
-                      // 更新到數據庫
+                      // 生成區塊鏈資料
+                      const blockchainData = generateBlockchainData(currentDrawPeriod, drawResult.result);
+                      
+                      // 更新到數據庫，包含區塊鏈資料
                       await db.none(`
                         UPDATE game_state 
                         SET last_result = $1, 
+                            current_block_height = $2,
+                            current_block_hash = $3,
                             updated_at = CURRENT_TIMESTAMP 
                         WHERE id = 1
-                      `, [JSON.stringify(drawResult.result)]);
+                      `, [JSON.stringify(drawResult.result), blockchainData.blockHeight, blockchainData.blockHash]);
                     }
                   } catch (error) {
                     console.error('❌ [緊急開獎] 開獎過程出錯:', error);

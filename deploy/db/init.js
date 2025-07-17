@@ -43,6 +43,16 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         period BIGINT NOT NULL UNIQUE,
         result JSON NOT NULL,
+        position_1 INTEGER,
+        position_2 INTEGER,
+        position_3 INTEGER,
+        position_4 INTEGER,
+        position_5 INTEGER,
+        position_6 INTEGER,
+        position_7 INTEGER,
+        position_8 INTEGER,
+        position_9 INTEGER,
+        position_10 INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
