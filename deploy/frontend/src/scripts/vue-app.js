@@ -227,18 +227,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 檢查投注金額
                 if (this.betAmount < 1) return true;
                 
-                // 檢查限紅 (這裡做簡單的同步檢查)
-                if (this.userLimits) {
-                    for (const bet of this.selectedBets) {
-                        const amount = parseFloat(bet.amount || this.betAmount);
-                        const betCategory = this.getBetCategory(bet.betType, bet.value, bet.position);
-                        const limits = this.userLimits[betCategory];
-                        
-                        if (limits && amount > limits.maxBet) {
-                            return true; // 超過單注限制
-                        }
-                    }
-                }
+                // 暫時先不檢查限紅，避免循環引用問題
+                // 限紅檢查會在 showBetConfirmation 中進行
                 
                 return false;
             }
