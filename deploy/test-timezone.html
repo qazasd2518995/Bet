@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>時區測試</title>
+</head>
+<body>
+    <h1>時區測試</h1>
+    <div id="results"></div>
+    
+    <script>
+        const testDate = '2025-07-16T18:01:35.725Z';
+        const date = new Date(testDate);
+        
+        const results = document.getElementById('results');
+        
+        // 測試不同的格式化方法
+        results.innerHTML = `
+            <h2>原始時間: ${testDate}</h2>
+            <h3>不同格式化方法的結果：</h3>
+            <ol>
+                <li>toLocaleString('zh-CN'): ${date.toLocaleString('zh-CN')}</li>
+                <li>toLocaleString('zh-TW'): ${date.toLocaleString('zh-TW')}</li>
+                <li>toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'}): ${date.toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'})}</li>
+                <li>完整格式: ${date.toLocaleString('zh-TW', {
+                    timeZone: 'Asia/Taipei',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                })}</li>
+                <li>您的瀏覽器時區: ${Intl.DateTimeFormat().resolvedOptions().timeZone}</li>
+            </ol>
+        `;
+        
+        // 測試 formatDateTime 函數
+        function formatDateTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-TW', {
+                timeZone: 'Asia/Taipei',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+        
+        results.innerHTML += `
+            <h3>formatDateTime 函數測試：</h3>
+            <p>結果: ${formatDateTime(testDate)}</p>
+            <p>預期: 2025/07/17 02:01:35 (台北時間)</p>
+        `;
+    </script>
+</body>
+</html>
