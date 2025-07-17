@@ -433,6 +433,7 @@ class FixedDrawSystemManager {
      */
     generateLosingResultFixed(targetBets, positionBets) {
         console.log(`🎯 [輸控制] 生成讓目標用戶輸的結果`);
+        console.log(`目標用戶下注:`, targetBets.map(b => `${b.betType} ${b.betValue}`).join(', '));
         
         // 先生成一個隨機結果
         const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -441,8 +442,10 @@ class FixedDrawSystemManager {
             [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
         }
         
-        // 收集目標用戶在各位置的下注號碼
+        // 收集目標用戶的下注
         const userBetsByPosition = {};
+        const twoSidesBets = {}; // 收集大小單雙的下注
+        
         targetBets.forEach(bet => {
             if (bet.betType === 'number' && bet.position) {
                 const pos = parseInt(bet.position);
@@ -450,10 +453,84 @@ class FixedDrawSystemManager {
                     userBetsByPosition[pos] = new Set();
                 }
                 userBetsByPosition[pos].add(parseInt(bet.betValue));
+            } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 
+                        'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+                        '冠軍', '亞軍', '季軍', '第三名', '第四名', 
+                        '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'].includes(bet.betType)) {
+                // 處理位置相關的大小單雙投注
+                const positionMap = {
+                    'champion': 1, '冠軍': 1,
+                    'runnerup': 2, '亞軍': 2,
+                    'third': 3, '季軍': 3, '第三名': 3,
+                    'fourth': 4, '第四名': 4,
+                    'fifth': 5, '第五名': 5,
+                    'sixth': 6, '第六名': 6,
+                    'seventh': 7, '第七名': 7,
+                    'eighth': 8, '第八名': 8,
+                    'ninth': 9, '第九名': 9,
+                    'tenth': 10, '第十名': 10
+                };
+                
+                const position = positionMap[bet.betType];
+                if (position && ['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(bet.betValue)) {
+                    if (!twoSidesBets[position]) {
+                        twoSidesBets[position] = [];
+                    }
+                    twoSidesBets[position].push({
+                        type: bet.betValue,
+                        amount: bet.amount
+                    });
+                }
             }
         });
         
-        // 對每個有下注的位置，嘗試調整結果讓用戶輸
+        // 先處理大小單雙的輸控制
+        for (const [position, bets] of Object.entries(twoSidesBets)) {
+            const pos = parseInt(position) - 1;
+            const currentNumber = numbers[pos];
+            
+            // 檢查當前號碼是否會讓用戶贏
+            const willWin = bets.some(bet => {
+                if (bet.type === 'big' || bet.type === '大') return currentNumber >= 6;
+                if (bet.type === 'small' || bet.type === '小') return currentNumber <= 5;
+                if (bet.type === 'odd' || bet.type === '單') return currentNumber % 2 === 1;
+                if (bet.type === 'even' || bet.type === '雙') return currentNumber % 2 === 0;
+                return false;
+            });
+            
+            if (willWin) {
+                // 找一個會讓用戶輸的號碼來交換
+                let swapped = false;
+                for (let i = 0; i < 10; i++) {
+                    if (i !== pos) {
+                        const candidateNumber = numbers[i];
+                        // 檢查這個號碼是否會讓用戶輸
+                        const willLose = bets.every(bet => {
+                            if (bet.type === 'big' || bet.type === '大') return candidateNumber < 6;
+                            if (bet.type === 'small' || bet.type === '小') return candidateNumber > 5;
+                            if (bet.type === 'odd' || bet.type === '單') return candidateNumber % 2 === 0;
+                            if (bet.type === 'even' || bet.type === '雙') return candidateNumber % 2 === 1;
+                            return true;
+                        });
+                        
+                        if (willLose) {
+                            // 交換號碼
+                            [numbers[pos], numbers[i]] = [numbers[i], numbers[pos]];
+                            adjustmentsMade++;
+                            console.log(`  位置${position}: 將號碼${currentNumber}換成${numbers[pos]}（讓用戶輸）`);
+                            swapped = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!swapped) {
+                    console.log(`  位置${position}: 無法找到合適的號碼讓用戶輸`);
+                }
+            }
+        }
+        
+        // 再處理號碼投注的輸控制
         let adjustmentsMade = 0;
         for (const [position, userNumbers] of Object.entries(userBetsByPosition)) {
             const pos = parseInt(position) - 1;
@@ -491,9 +568,12 @@ class FixedDrawSystemManager {
      */
     generateWinningResultFixed(targetBets, positionBets) {
         console.log(`🎯 [贏控制] 生成讓目標用戶贏的結果`);
+        console.log(`目標用戶下注:`, targetBets.map(b => `${b.betType} ${b.betValue}`).join(', '));
         
         // 收集目標用戶的下注
         const userBetsByPosition = {};
+        const twoSidesBets = {}; // 收集大小單雙的下注
+        
         targetBets.forEach(bet => {
             if (bet.betType === 'number' && bet.position) {
                 const pos = parseInt(bet.position);
@@ -504,6 +584,35 @@ class FixedDrawSystemManager {
                     number: parseInt(bet.betValue),
                     amount: bet.amount
                 });
+            } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 
+                        'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+                        '冠軍', '亞軍', '季軍', '第三名', '第四名', 
+                        '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'].includes(bet.betType)) {
+                // 處理位置相關的大小單雙投注
+                const positionMap = {
+                    'champion': 1, '冠軍': 1,
+                    'runnerup': 2, '亞軍': 2,
+                    'third': 3, '季軍': 3, '第三名': 3,
+                    'fourth': 4, '第四名': 4,
+                    'fifth': 5, '第五名': 5,
+                    'sixth': 6, '第六名': 6,
+                    'seventh': 7, '第七名': 7,
+                    'eighth': 8, '第八名': 8,
+                    'ninth': 9, '第九名': 9,
+                    'tenth': 10, '第十名': 10
+                };
+                
+                const position = positionMap[bet.betType];
+                if (position && ['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(bet.betValue)) {
+                    if (!twoSidesBets[position]) {
+                        twoSidesBets[position] = [];
+                    }
+                    twoSidesBets[position].push({
+                        type: bet.betValue,
+                        amount: bet.amount
+                    });
+                    console.log(`  收集到兩面投注: 第${position}名 ${bet.betValue}`);
+                }
             }
         });
         
@@ -511,11 +620,37 @@ class FixedDrawSystemManager {
         const result = Array(10).fill(0);
         const usedNumbers = new Set();
         
-        // 對每個位置，如果用戶有下注，優先選擇其下注的號碼
+        // 先處理大小單雙投注
+        for (let position = 1; position <= 10; position++) {
+            const posTwoSides = twoSidesBets[position] || [];
+            
+            if (posTwoSides.length > 0 && result[position - 1] === 0) {
+                // 找出符合所有條件的號碼
+                const availableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(n => !usedNumbers.has(n));
+                const validNumbers = availableNumbers.filter(num => {
+                    return posTwoSides.every(bet => {
+                        if (bet.type === 'big' || bet.type === '大') return num >= 6;
+                        if (bet.type === 'small' || bet.type === '小') return num <= 5;
+                        if (bet.type === 'odd' || bet.type === '單') return num % 2 === 1;
+                        if (bet.type === 'even' || bet.type === '雙') return num % 2 === 0;
+                        return true;
+                    });
+                });
+                
+                if (validNumbers.length > 0) {
+                    const selected = validNumbers[Math.floor(Math.random() * validNumbers.length)];
+                    result[position - 1] = selected;
+                    usedNumbers.add(selected);
+                    console.log(`  位置${position}: 選擇符合條件的號碼${selected} (條件: ${posTwoSides.map(b => b.type).join(', ')})`);
+                }
+            }
+        }
+        
+        // 再處理號碼投注
         for (let position = 1; position <= 10; position++) {
             const userBets = userBetsByPosition[position] || [];
             
-            if (userBets.length > 0) {
+            if (userBets.length > 0 && result[position - 1] === 0) {
                 // 隨機選擇用戶下注的一個號碼
                 const selectedBet = userBets[Math.floor(Math.random() * userBets.length)];
                 if (!usedNumbers.has(selectedBet.number)) {
