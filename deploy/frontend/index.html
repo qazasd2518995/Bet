@@ -6577,7 +6577,7 @@
                 </div>
                 
                 <!-- 右側：下注按鈕 -->
-                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="!selectedBets.length || !betAmount || betAmount < 1 || gameStatus !== 'betting'">
+                <button class="compact-bet-btn" @click="showBetConfirmation" :disabled="isBetDisabled">
                     {{ gameStatus === 'betting' ? '下注' : '已封盤' }}
                 </button>
             </div>

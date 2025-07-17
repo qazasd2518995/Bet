@@ -4613,6 +4613,39 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
+// 獲取指定期號的下注記錄API (用於限紅檢查)
+app.get('/api/period-bets', async (req, res) => {
+  try {
+    const { username, period } = req.query;
+    
+    if (!username || !period) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數：username 和 period'
+      });
+    }
+    
+    const bets = await db.manyOrNone(`
+      SELECT bet_type, bet_value, amount, position
+      FROM bet_history 
+      WHERE username = $1 AND period = $2 AND settled = false
+    `, [username, period]);
+    
+    res.json({
+      success: true,
+      bets: bets || []
+    });
+    
+  } catch (error) {
+    console.error('獲取期號下注記錄失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取期號下注記錄失敗',
+      error: error.message
+    });
+  }
+});
+
 // 獲取下注記錄API
 app.get('/api/bet-history', async (req, res) => {
   try {
