@@ -553,6 +553,9 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
             const betCategory = getBetCategory(bet.betType, bet.value, bet.position);
             const limits = userLimits[betCategory];
             
+            console.log(`🎲 檢查下注: betType=${bet.betType}, value=${bet.value}, amount=${amount}, category=${betCategory}`);
+            console.log(`📊 限紅配置:`, limits);
+            
             if (!limits) {
                 return {
                     success: false,
@@ -562,6 +565,7 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
             
             // 檢查單注最高限制
             if (amount > limits.maxBet) {
+                console.log(`❌ 單注超限: ${amount} > ${limits.maxBet}`);
                 return {
                     success: false,
                     message: `${betCategory} 單注金額不能超過 ${limits.maxBet} 元，當前: ${amount} 元`
