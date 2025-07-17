@@ -1,4 +1,5 @@
-const { Pool } = require('pg');
+import pg from 'pg';
+const { Pool } = pg;
 
 // 資料庫連接
 const db = new Pool({
@@ -61,6 +62,7 @@ async function checkRebateSettings() {
     }
     
     await db.end();
+    process.exit(0);
     
   } catch (error) {
     console.error('錯誤:', error);

@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>極速賽車 - 簡潔設計版 v2025.01.03</title>
+    <title>FS赛车</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <!-- <link rel="stylesheet" href="./src/styles/main.css?v=1.5"> 已移除，避免Vuetify衝突 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -5914,7 +5914,7 @@
             <div class="navbar-container">
                 <!-- 左側：Logo和標題 -->
                 <div class="navbar-brand">
-                    <h1 class="brand-title">極速赛车</h1>
+                    <h1 class="brand-title">FS赛车</h1>
                 </div>
                 
                 <!-- 中間：用戶信息 -->
@@ -6042,8 +6042,8 @@
                 <div class="results-container-new">
                     <div v-for="(number, index) in lastResults" :key="index" 
                          class="result-slot-new">
-                        <div :class="['number-ball', `color-${number}`]">
-                            {{ number }}
+                        <div :class="['number-ball', showWashingAnimation ? 'washing-ball' : `color-${number}`]">
+                            {{ showWashingAnimation ? '?' : number }}
                         </div>
                         <div class="position-label-new">{{ getPositionName(index + 1) }}</div>
                     </div>
@@ -7321,6 +7321,7 @@
                     countdownSeconds: 60,
                     drawingAnimationPlayed: false, // 追蹤开奖動畫是否已播放
                 isDrawingInProgress: false, // 追蹤开奖流程是否进行中
+                drawingResultProcessed: false, // 防止重複處理開獎結果
                 drawingTimeout: null, // 开奖超時计时器
                 raceOverlay: null, // 赛车竞赛覆蓋層引用
                 racingCars: null, // 竞赛中的赛车數據
@@ -7328,10 +7329,8 @@
                     lastResult: [],
                     lastResults: [],
                     isRacing: false,
+                    showWashingAnimation: false, // 控制是否顯示洗球動畫
                     
-                    // 🎯 預先开奖结果相关
-                    nextResult: null, // 存儲預先生成的开奖结果
-                    nextResultFetched: false, // 標記是否已获取預先结果
                     
                     // 投注相关
                     defaultBetAmount: 1, // 默認投注金额
@@ -7555,13 +7554,8 @@
                 formattedCurrentPeriod() {
                     // 格式化期号顯示，确保顯示完整期号
                     if (!this.currentPeriod) return '';
-                    const period = this.currentPeriod.toString();
-                    // 如果期号以數字日期開頭且長度大於11位，可能是错误格式，只取後8位
-                    if (period.length > 11 && /^\d{8}/.test(period)) {
-                        return period.slice(-8);
-                    }
-                    // 否則顯示完整期号
-                    return period;
+                    // 直接返回完整期號，不截取
+                    return this.currentPeriod.toString();
                 }
             },
             methods: {
@@ -8010,10 +8004,36 @@
                                 this.countdownSeconds = serverCountdown;
                                 this.gameStatus = serverStatus;
                                 
-                                // 清除舊的结果，确保顯示最新期号
+                                // 新期開始時的處理
+                                
                                 if (serverStatus === 'betting') {
-                                    // 新一期开始，清除上一期结果避免混亂
                                     console.log(`新一期开始: ${serverPeriod}`);
+                                    // 強制停止洗球動畫，確保顯示數字而非問號
+                                    if (this.showWashingAnimation) {
+                                        console.log('⚠️ 新期開始時發現洗球動畫仍在播放，強制停止');
+                                        this.stopWashingAnimation();
+                                    }
+                                    // 只重置必要的標誌，不影響結果顯示
+                                    this.drawingResultProcessed = false;
+                                    this.isDrawingInProgress = false;
+                                    // 不要在這裡停止洗球動畫，讓 completeDrawingProcess 處理
+                                    // this.showWashingAnimation = false; // 移除這行
+                                    // 不重置 drawingAnimationPlayed，避免重複觸發動畫
+                                    
+                                    // 確保結果球顯示正確的數字而不是問號
+                                    // 使用 Vue 的方式更新，觸發響應式更新
+                                    if (this.lastResults && this.lastResults.length === 10) {
+                                        this.lastResults = [...this.lastResults];
+                                        
+                                        // 確保 DOM 更新後清除動畫樣式
+                                        this.$nextTick(() => {
+                                            const balls = document.querySelectorAll('.results-display-new .number-ball');
+                                            balls.forEach(ball => {
+                                                ball.classList.remove('washing-ball');
+                                                ball.style = ''; // 清除所有內聯樣式
+                                            });
+                                        });
+                                    }
                                 }
                                 
                                 this.updateBalance();
@@ -8033,6 +8053,16 @@
                                                             } else if (serverStatus === 'betting' && previousStatus === 'drawing') {
                                 console.log('✅ 开奖完成，停止所有動畫並更新结果');
                                 this.completeDrawingProcess();
+                                
+                                // 延遲更新歷史記錄，確保數據庫已完成更新
+                                setTimeout(() => {
+                                    this.updateHistoryRecords();
+                                    // 同時更新開獎紀錄彈窗內容（如果已打開）
+                                    if (this.showDrawHistoryPopup) {
+                                        this.loadRecentDrawHistory();
+                                    }
+                                }, 1500);
+                                
                                 // 开奖完成後立即更新路珠走勢數據
                                 if (this.roadBeadVisible) {
                                     console.log('📊 开奖完成，立即更新路珠走勢數據');
@@ -8053,37 +8083,32 @@
                                     this.startDrawingProcess();
                                 }
                             }
-                            // 如果都是drawing狀態，确保動畫已播放
-                            else if (serverStatus === 'drawing' && this.gameStatus === 'drawing' && !this.drawingAnimationPlayed && !this.isDrawingInProgress) {
-                                console.log('🎯 确保开奖動畫已播放');
-                                this.startDrawingProcess();
-                            }
+                            // 移除重複觸發動畫的邏輯
                             // 如果倒计时差異太大（超過5秒），进行同步
                             else if (Math.abs(this.countdownSeconds - serverCountdown) > 5) {
                                 console.log(`🔄 倒计时差異過大，同步: 本地=${this.countdownSeconds}, 服務器=${serverCountdown}`);
                                 this.countdownSeconds = serverCountdown;
                             }
                             
-                            // 重置動畫標記（當进入新的betting狀態時）
-                            if (serverStatus === 'betting' && this.gameStatus === 'betting') {
-                                this.drawingAnimationPlayed = false;
-                                // 重置預先结果標記
-                                this.nextResult = null;
-                                this.nextResultFetched = false;
-                            }
+                            // 不在這裡重置動畫標記，避免重複觸發
                             
                             // 更新其他數據 - 确保動畫使用最新结果
+                            // 總是更新 lastResult，但只在非開獎狀態時更新顯示結果
                             if (data.gameData.lastResult && data.gameData.lastResult.length > 0) {
+                                // 總是保存最新的結果數據
                                 this.lastResult = data.gameData.lastResult;
-                                this.lastResults = data.gameData.lastResult;
-                                console.log(`🎯 更新开奖结果: 期号=${serverPeriod}`);
+                                console.log(`📋 保存最新开奖结果到 lastResult: 期号=${serverPeriod}`, this.lastResult);
+                                
+                                // 只有在非開獎狀態時才更新顯示結果
+                                if (!this.isDrawingInProgress) {
+                                    this.lastResults = data.gameData.lastResult;
+                                    console.log(`🎯 更新顯示结果: 期号=${serverPeriod}`);
+                                } else {
+                                    console.log(`⚠️ 開獎進行中，跳過更新顯示結果，但已保存到 lastResult`);
+                                }
                             }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
                             
-                            // 🎯 检查是否需要获取預先生成的结果（倒计时最后10秒）
-                            if (serverStatus === 'betting' && serverCountdown <= 10 && serverCountdown > 0) {
-                                this.checkAndFetchNextResult();
-                            }
                             
                             // 🔄 定期檢查限紅設定更新（每30秒檢查一次，避免過於頻繁）
                             const now = Date.now();
@@ -8100,75 +8125,9 @@
                         });
                 },
                 
-                // 🎯 检查並获取預先生成的结果（倒计时最后10秒時）
-                checkAndFetchNextResult() {
-                    if (!this.nextResultFetched) {
-                        console.log('🎲 倒计时最后10秒，开始获取預先生成的结果...');
-                        this.fetchNextResult();
-                        this.nextResultFetched = true; // 避免重複获取
-                    }
-                },
                 
-                // 🎯 获取預先生成的开奖结果
-                fetchNextResult() {
-                    return fetch(`${this.API_BASE_URL}/api/next-result`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.hasNextResult) {
-                                console.log('✅ 成功获取預先生成的结果');
-                                this.nextResult = data.nextResult;
-                                
-                                // 如果正在开奖中，更新動畫顯示
-                                if (this.isDrawingInProgress) {
-                                    console.log('🎬 开奖中，使用預先结果更新動畫');
-                                    this.updateAnimationWithNextResult();
-                                }
-                            } else {
-                                console.log('⚠️ 沒有可用的預先结果');
-                                this.nextResult = null;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('获取預先结果失败:', error);
-                            this.nextResult = null;
-                        });
-                },
                 
-                // 🎬 使用預先结果更新動畫顯示
-                updateAnimationWithNextResult() {
-                    if (!this.nextResult || !Array.isArray(this.nextResult)) {
-                        return;
-                    }
-                    
-                                            console.log('🎬 使用預先结果更新赛车竞赛');
-                    
-                    // 更新赛车竞赛以使用新结果
-                    if (this.racingCars && this.raceOverlay) {
-                        // 讓赛车按照預先结果进行竞赛
-                        this.updateRaceProgressWithResult(this.nextResult);
-                    }
-                },
                 
-                // 🏁 根據預先结果更新赛车進度
-                updateRaceProgressWithResult(result) {
-                    if (!this.racingCars || !result) return;
-                    
-                    console.log('🏁 根據預先结果调整赛车竞赛進度');
-                    
-                    // 根據开奖结果，讓對應名次的車輛逐漸領先
-                    const containerWidth = this.raceOverlay?.querySelector('.race-track-container')?.offsetWidth || 1200;
-                    const targetPosition = containerWidth * 0.8; // 80%位置准备衝刺
-                    
-                    result.forEach((carNumber, finalRank) => {
-                        const car = this.racingCars.find(c => c.number === carNumber);
-                        if (car) {
-                            // 根據最终排名，逐漸调整車輛速度和位置
-                            const speedBonus = (10 - finalRank) * 0.5; // 名次越前，速度加成越大
-                            car.targetSpeed = 6 + speedBonus;
-                            car.finalRank = finalRank;
-                        }
-                    });
-                },
                 updateBalance() {
                     console.log('开始刷新余额...');
                     const username = sessionStorage.getItem('username');
@@ -8717,11 +8676,18 @@
                 },
                 
                 // 新的下注确认流程方法
-                showBetConfirmation() {
+                async showBetConfirmation() {
                     // 為每個選定的投注设置金额（總是使用最新的betAmount）
                     this.selectedBets.forEach(bet => {
                         bet.amount = this.betAmount;
                     });
+                    
+                    // 簡單的限紅檢查（暫時只檢查單注最高）
+                    if (this.betAmount > 5000) {
+                        this.showNotification('單注金額不能超過 5000 元');
+                        return;
+                    }
+                    
                     this.showBetModal = true;
                 },
                 
@@ -9203,35 +9169,69 @@
                         });
                 },
                 updateHistoryRecords(page = 1, date = '', period = '') {
-                    // 構建查询參數
-                    const params = new URLSearchParams();
-                    params.append('page', page);
-                    if (date) params.append('date', date);
-                    if (period) params.append('period', period);
-                    
-                    fetch(`${this.API_BASE_URL}/api/history?${params.toString()}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('开奖历史API返回數據:', JSON.stringify(data).substring(0, 200) + '...');
-                            // 更新历史记录 - 修正數據結構处理
-                            if (data.success && Array.isArray(data.records)) {
-                                this.recentResults = data.records;
-                                console.log('开奖历史更新成功，记录數量:', data.records.length);
-                            } else {
-                                // 當 API 返回格式不正确或為空時的处理
-                                console.error('开奖历史API返回异常數據格式:', data);
+                    // 如果不需要篩選，使用優化的 recent-results API
+                    if (!date && !period && page === 1) {
+                        fetch(`${this.API_BASE_URL}/api/recent-results`)
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('获取最近10期开奖记录:', data);
+                                if (data.success && Array.isArray(data.data)) {
+                                    // 過濾掉未來期數（期號大於當前期號的）
+                                    const currentPeriodNum = parseInt(this.currentPeriod);
+                                    const filteredRecords = data.data.filter(record => {
+                                        const recordPeriodNum = parseInt(record.period);
+                                        return recordPeriodNum < currentPeriodNum;
+                                    });
+                                    
+                                    this.recentResults = filteredRecords;
+                                    console.log('近期开奖记录更新成功，记录數量:', filteredRecords.length);
+                                } else {
+                                    console.error('近期开奖API返回异常數據格式:', data);
+                                    this.recentResults = [];
+                                }
+                            })
+                            .catch(error => {
+                                console.error('获取近期开奖记录失败:', error);
                                 this.recentResults = [];
-                            }
-                            
-                            // 生成结果標籤（1-10名）
-                            if (this.resultLabels.length === 0) {
-                                this.resultLabels = Array.from({ length: 10 }, (_, i) => `${i + 1}名`);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('获取开奖历史记录失败:', error);
-                            this.recentResults = []; // 确保出錯時也设置為空數組
-                        });
+                            });
+                    } else {
+                        // 需要篩選時使用原有的 history API
+                        const params = new URLSearchParams();
+                        params.append('page', page);
+                        if (date) params.append('date', date);
+                        if (period) params.append('period', period);
+                        
+                        fetch(`${this.API_BASE_URL}/api/history?${params.toString()}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('开奖历史API返回數據:', JSON.stringify(data).substring(0, 200) + '...');
+                                // 更新历史记录 - 修正數據結構处理
+                                if (data.success && Array.isArray(data.records)) {
+                                    // 過濾掉未來期數（期號大於當前期號的）
+                                    const currentPeriodNum = parseInt(this.currentPeriod);
+                                    const filteredRecords = data.records.filter(record => {
+                                        const recordPeriodNum = parseInt(record.period);
+                                        return recordPeriodNum < currentPeriodNum;
+                                    });
+                                    
+                                    this.recentResults = filteredRecords;
+                                    console.log('开奖历史更新成功，记录數量:', filteredRecords.length);
+                                } else {
+                                    // 當 API 返回格式不正确或為空時的处理
+                                    console.error('开奖历史API返回异常數據格式:', data);
+                                    this.recentResults = [];
+                                }
+                            })
+                            .catch(error => {
+                                console.error('获取开奖历史记录失败:', error);
+                                this.recentResults = []; // 确保出錯時也设置為空數組
+                            });
+                    }
+                    
+                    // 生成结果標籤（1-10名）
+                    if (this.resultLabels.length === 0) {
+                        this.resultLabels = Array.from({ length: 10 }, (_, i) => `${i + 1}名`);
+                    }
                 },
                 updateCountdownDisplay() {
                     const countdownDisplay = document.querySelector('.countdown-section .period-countdown .bet-countdown');
@@ -9251,12 +9251,7 @@
                                     // 每5秒更新游戏數據（避免太頻繁覆蓋本地倒计时）
                 this.gameDataTimer = setInterval(() => {
                     this.updateGameData();
-                    // 每次更新游戏數據時也更新历史记录
-                    this.updateHistoryRecords();
-                    // 同時更新開獎紀錄彈窗內容（如果已打開）
-                    if (this.showDrawHistoryPopup) {
-                        this.loadRecentDrawHistory();
-                    }
+                    // 不要自動更新歷史記錄，只在開獎完成後更新
                 }, 5000);
                     
                     // 每10秒更新余額和下注记录
@@ -9267,20 +9262,12 @@
                         this.updateDailyProfit();
                     }, 10000);
                     
-                    // 每5秒更新历史记录以确保即时性
-                    this.historyTimer = setInterval(() => {
-                        this.updateHistoryRecords();
-                        // 同時更新開獎紀錄彈窗內容（如果已打開）
-                        if (this.showDrawHistoryPopup) {
-                            this.loadRecentDrawHistory();
-                        }
-                    }, 5000);
+                    // 移除自動更新歷史記錄的定時器，改為在開獎完成後手動更新
                 },
                 stopUpdateTimers() {
                     clearInterval(this.countdownTimer);
                     clearInterval(this.gameDataTimer);
                     clearInterval(this.balanceTimer);
-                    clearInterval(this.historyTimer);
                 },
                 playSound(sound) {
                     try {
@@ -9333,7 +9320,14 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success && Array.isArray(data.records)) {
-                                this.recentDrawHistory = data.records.map(record => ({
+                                // 過濾掉未來期數（期號大於當前期號的）
+                                const currentPeriodNum = parseInt(this.currentPeriod);
+                                const filteredRecords = data.records.filter(record => {
+                                    const recordPeriodNum = parseInt(record.period);
+                                    return recordPeriodNum < currentPeriodNum;
+                                });
+                                
+                                this.recentDrawHistory = filteredRecords.map(record => ({
                                     period: this.formatPeriodDisplay(record.period),
                                     results: record.result || []  // 修正：使用 result 而不是 results
                                 }));
@@ -9367,11 +9361,10 @@
                 toggleAnimation() {
                     console.log(`点击赛车按鈕 - 游戏狀態: ${this.gameStatus}, 倒计时: ${this.countdownSeconds}, 期号: ${this.currentPeriod}, 开奖中: ${this.isDrawingInProgress}`);
                     
-                    // 如果正在开奖中，使用預先获取的结果立即播放動畫
-                    if (this.isDrawingInProgress && this.nextResult && this.nextResult.length === 10) {
-                        console.log('🏁 开奖中点击赛车按鈕，使用預先结果播放動畫');
-                        this.lastResults = this.nextResult;
-                        this.playRaceAnimation();
+                    // 如果正在开奖中，提示等待
+                    if (this.isDrawingInProgress) {
+                        console.log('🏁 正在開獎中，請稍候...');
+                        this.displayNotification('正在開獎中，請稍候...');
                         return;
                     }
                     
@@ -9489,40 +9482,8 @@
                     // 设置動畫已播放標記
                     this.drawingAnimationPlayed = true;
                     
-                    // 找到主畫面的结果球 - 使用正确的选择器
-                    const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
-                    if (resultBalls.length === 0) {
-                        console.log('⚠️ 找不到结果球，跳過洗球動畫');
-                        return;
-                    }
-                    
-                    // 播放洗球音效
-                    this.playSound('draw');
-                    
-                    // 將所有球設為洗球狀態，不顯示具體數字
-                    resultBalls.forEach((ball, index) => {
-                        // 隱藏原始數字，顯示問号
-                        ball.setAttribute('data-original-text', ball.textContent);
-                        ball.textContent = '?';
-                        ball.classList.add('washing-ball');
-                        
-                        // 添加持續的洗球動畫
-                        ball.style.animation = 'ballWashing 0.6s ease-in-out infinite';
-                        ball.style.transform = 'scale(1.1)';
-                        ball.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.8)';
-                        ball.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7)';
-                        ball.style.backgroundSize = '300% 300%';
-                        ball.style.animation += ', gradientWashing 1s ease-in-out infinite';
-                    });
-                    
-                    // 添加整體閃爍效果 - 持續到开奖结束
-                    const resultContainer = document.querySelector('.results-display-new');
-                    if (resultContainer) {
-                        resultContainer.classList.add('washing-container');
-                        resultContainer.style.animation = 'containerWashing 1.5s ease-in-out infinite';
-                    }
-                    
-                    console.log('🎲 洗球動畫开始播放（持續到开奖结束）');
+                    // 使用 playWashingAnimation 統一處理
+                    this.playWashingAnimation();
                 },
                 
                 // 🎯 停止洗球動畫並顯示最新结果
@@ -9537,49 +9498,22 @@
                         this.lastResults = latestResult;
                     }
                     
-                    const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
-                    const resultContainer = document.querySelector('.results-display-new');
+                    // 使用 Vue 的方式停止動畫
+                    this.showWashingAnimation = false;
                     
-                    // 停止球的洗球動畫
-                    resultBalls.forEach((ball, index) => {
-                        ball.classList.remove('washing-ball');
-                        ball.style.animation = '';
-                        ball.style.transform = '';
-                        ball.style.boxShadow = '';
-                        ball.style.background = '';
-                        ball.style.backgroundSize = '';
+                    // 清除容器動畫樣式
+                    this.$nextTick(() => {
+                        const resultContainer = document.querySelector('.results-display-new');
+                        if (resultContainer) {
+                            resultContainer.classList.remove('washing-container');
+                            resultContainer.style.animation = '';
+                        }
                         
-                        // 延遲顯示新结果，创造揭曉效果
-                        setTimeout(() => {
-                            // 使用最新获取的结果
-                            if (this.lastResults && this.lastResults.length > index) {
-                                const number = this.lastResults[index];
-                                ball.textContent = number;
-                                ball.className = `number-ball color-${number}`;
-                                console.log(`🎯 顯示第${index+1}位结果`);
-                            } else {
-                                // 恢恢复始數字（如果沒有新结果）
-                                const originalText = ball.getAttribute('data-original-text');
-                                if (originalText) {
-                                    ball.textContent = originalText;
-                                    ball.className = `number-ball color-${originalText}`;
-                                    console.log(`⚠️ 使用原始數字: ${originalText}`);
-                                }
-                            }
-                            
-                            // 添加揭曉動畫
-                            ball.style.animation = 'ballReveal 0.5s ease-out';
-                            setTimeout(() => {
-                                ball.style.animation = '';
-                            }, 500);
-                        }, index * 150); // 每個球延遲150ms揭曉
+                        const balls = document.querySelectorAll('.results-display-new .number-ball');
+                        balls.forEach(ball => {
+                            ball.style = ''; // 清除所有內聯樣式
+                        });
                     });
-                    
-                    // 停止容器動畫
-                    if (resultContainer) {
-                        resultContainer.classList.remove('washing-container');
-                        resultContainer.style.animation = '';
-                    }
                     
                     console.log('✅ 洗球動畫停止，最新结果已顯示');
                 },
@@ -9588,101 +9522,96 @@
                 forceStopDrawEffect() {
                     console.log('🚨 強制停止洗球動畫（同步模式）');
                     
-                    const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
-                    const resultContainer = document.querySelector('.results-display-new');
+                    // 立即停止洗球動畫
+                    this.showWashingAnimation = false;
                     
-                    // 立即停止所有球的動畫
-                    resultBalls.forEach((ball, index) => {
-                        ball.classList.remove('washing-ball');
-                        ball.style.animation = '';
-                        ball.style.transform = '';
-                        ball.style.boxShadow = '';
-                        ball.style.background = '';
-                        ball.style.backgroundSize = '';
-                        
-                        // 恢恢复始數字或使用当前结果
-                        const originalText = ball.getAttribute('data-original-text');
-                        if (originalText && originalText !== '?') {
-                            ball.textContent = originalText;
-                            // 🎨 重新設置正確的顏色CSS class
-                            ball.className = `number-ball color-${originalText}`;
-                        } else if (this.lastResults && this.lastResults.length > index) {
-                            const number = this.lastResults[index];
-                            ball.textContent = number;
-                            // 🎨 重新設置正確的顏色CSS class
-                            ball.className = `number-ball color-${number}`;
-                        }
-                    });
-                    
-                    // 停止容器動畫
-                    if (resultContainer) {
-                        resultContainer.classList.remove('washing-container');
-                        resultContainer.style.animation = '';
+                    // 確保結果顯示正確
+                    if (this.lastResults && this.lastResults.length === 10) {
+                        // 觸發 Vue 響應式更新
+                        this.lastResults = [...this.lastResults];
                     }
+                    
+                    // 清除容器動畫樣式
+                    this.$nextTick(() => {
+                        const resultContainer = document.querySelector('.results-display-new');
+                        if (resultContainer) {
+                            resultContainer.classList.remove('washing-container');
+                            resultContainer.style.animation = '';
+                        }
+                        
+                        const balls = document.querySelectorAll('.results-display-new .number-ball');
+                        balls.forEach(ball => {
+                            ball.style = ''; // 清除所有內聯樣式
+                        });
+                    });
                     
                     console.log('🚨 強制停止完成');
                 },
                 
                 // 🎲 开始开奖流程（统一管理整個开奖動畫過程）
                 startDrawingProcess() {
-                    console.log('🎲 开始开奖流程：封盤→开奖中→12秒洗球動畫');
+                    console.log('🎲 开始开奖流程：封盤→开奖中→15秒洗球動畫');
                     
                     // 重置動畫狀態
                     this.drawingAnimationPlayed = false;
                     this.isDrawingInProgress = true;
-                    
-                    // 立即嘗試获取預先生成的结果
-                    this.fetchNextResult();
+                    this.drawingResultProcessed = false; // 重置結果處理標記
                     
                     // 只开始洗球動畫，赛车動畫等待用戶点击按鈕
                     console.log('🎪 开始洗球動畫，赛车動畫等待用戶点击');
                     this.playWashingAnimation();
                     
-                    // 12秒後自動停止（對應後端12秒开奖时间）
+                    // 15秒後自動停止（對應後端15秒开奖时间）
                     this.drawingTimeout = setTimeout(() => {
                         if (this.isDrawingInProgress) {
-                            console.log('⏰ 12秒开奖时间到，自動完成开奖');
+                            console.log('⏰ 15秒开奖时间到，自動完成开奖');
                             this.forceCompleteDrawing();
                         }
-                    }, 12000);
+                    }, 15000);
                 },
                 
                 // 🎪 开始播放洗球動畫（僅洗球，不顯示结果）
                 playWashingAnimation() {
                     console.log('🎪 开始播放洗球動畫');
                     
-                    const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
-                    const resultContainer = document.querySelector('.results-display-new');
-                    
-                    if (resultBalls.length === 0) {
-                        console.error('❌ 找不到球元素，無法播放洗球動畫');
-                        return;
-                    }
-                    
                     // 播放音效
                     this.playSound('draw');
                     
-                    // 开始洗球動畫
-                    resultBalls.forEach((ball, index) => {
-                        // 保存原始文字
-                        ball.setAttribute('data-original-text', ball.textContent);
-                        // 顯示問号
-                        ball.textContent = '?';
-                        // 添加洗球動畫類
-                        ball.classList.add('washing-ball');
+                    // 使用 Vue 的方式控制洗球動畫
+                    this.showWashingAnimation = true;
+                    
+                    // 為容器添加動畫樣式
+                    this.$nextTick(() => {
+                        const resultContainer = document.querySelector('.results-display-new');
+                        if (resultContainer) {
+                            resultContainer.classList.add('washing-container');
+                            resultContainer.style.animation = 'containerWashing 1.5s ease-in-out infinite';
+                        }
+                        
+                        // 為每個球添加動畫
+                        const balls = document.querySelectorAll('.results-display-new .number-ball');
+                        balls.forEach(ball => {
+                            ball.style.animation = 'ballWashing 0.6s ease-in-out infinite';
+                            ball.style.transform = 'scale(1.1)';
+                            ball.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.8)';
+                            ball.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7)';
+                            ball.style.backgroundSize = '300% 300%';
+                            ball.style.animation += ', gradientWashing 1s ease-in-out infinite';
+                        });
                     });
                     
-                    // 容器添加動畫效果
-                    if (resultContainer) {
-                        resultContainer.classList.add('washing-container');
-                    }
-                    
-                    console.log('🎪 洗球動畫已开始，持續8秒');
+                    console.log('🎪 洗球動畫已开始，持續15秒');
                 },
                 
                 // ✅ 完成开奖流程（停止動畫並更新结果）
                 completeDrawingProcess() {
-                    console.log('✅ 开始完成开奖流程 - 12秒开奖时间结束');
+                    console.log('✅ 开始完成开奖流程 - 15秒开奖时间结束');
+                    
+                    // 檢查是否已經處理過開獎結果，防止重複執行
+                    if (this.drawingResultProcessed) {
+                        console.log('⚠️ 開獎結果已處理，跳過重複執行');
+                        return;
+                    }
                     
                     // 清除自動停止计时器
                     if (this.drawingTimeout) {
@@ -9690,46 +9619,90 @@
                         this.drawingTimeout = null;
                     }
                     
-                    // 標記开奖流程结束
+                    // 標記开奖流程结束和結果已處理
                     this.isDrawingInProgress = false;
+                    this.drawingResultProcessed = true; // 標記已處理
                     
-                    // 优先使用預先获取的结果，如果沒有則從历史记录获取
-                    let finalResult = null;
+                    // 設置超時保護，確保動畫不會無限播放
+                    this.animationTimeout = setTimeout(() => {
+                        if (this.showWashingAnimation) {
+                            console.error('⚠️ 開獎結果獲取超時，強制停止動畫');
+                            this.stopWashingAnimation();
+                            // 如果有緩存的結果，使用它
+                            if (this.lastResult && this.lastResult.length === 10) {
+                                this.lastResults = [...this.lastResult];
+                                this.$set(this, 'lastResults', [...this.lastResult]);
+                            }
+                        }
+                    }, 5000); // 5秒超時保護
                     
-                    if (this.nextResult && this.nextResult.length === 10) {
-                                                    console.log('✅ 使用預先获取的开奖结果');
-                        finalResult = this.nextResult;
-                        
-                        // 立即停止洗球動畫並顯示结果
-                        this.lastResults = finalResult;
-                        this.stopWashingAnimation();
-                        this.finishRaceCompetition(finalResult);
-                        
-                        // 重置標記
-                        this.nextResult = null;
-                        this.nextResultFetched = false;
-                    } else {
-                        console.log('⚠️ 沒有預先结果，從數據庫获取最新结果...');
-                        // 延遲1秒後获取數據庫中的最新结果
-                        setTimeout(() => {
-                            this.getLatestResultFromHistory().then((latestResult) => {
-                                if (latestResult && latestResult.length === 10) {
-                                    console.log('📊 從數據庫获取到最新开奖结果');
-                                    this.lastResults = latestResult;
-                                    this.stopWashingAnimation();
-                                    this.finishRaceCompetition(latestResult);
-                                } else {
-                                    console.error('❌ 無法获取开奖结果，強制停止所有動畫');
-                                    this.stopWashingAnimation();
-                                    this.stopRaceCompetition();
-                                }
-                            }).catch((error) => {
-                                console.error('❌ 获取结果時出錯:', error);
-                                this.stopWashingAnimation();
-                                this.stopRaceCompetition();
-                            });
-                        }, 1000);
-                    }
+                    // 繼續播放洗球動畫，直到獲取到新結果
+                    console.log('📊 繼續洗球動畫，同時獲取最新開獎結果...');
+                    
+                    // 從API獲取最新結果，但不立即停止動畫
+                    this.getLatestResultFromHistory().then((latestResult) => {
+                        if (latestResult && latestResult.length === 10) {
+                            console.log('📊 從API獲取到最新開獎結果', latestResult);
+                            // 更新所有結果數據
+                            this.lastResult = [...latestResult];
+                            this.lastResults = [...latestResult];
+                            // 現在才停止動畫並顯示新結果
+                            
+                            // 清除超時保護計時器
+                            if (this.animationTimeout) {
+                                clearTimeout(this.animationTimeout);
+                                this.animationTimeout = null;
+                            }
+                            this.stopWashingAnimation();
+                            // 稍後執行賽車動畫
+                            setTimeout(() => {
+                                this.finishRaceCompetition(latestResult);
+                            }, 100);
+                        } else if (this.lastResult && this.lastResult.length === 10) {
+                            // 如果API沒有返回結果，但有緩存的結果，使用緩存
+                            console.log('⚠️ API無結果，使用緩存的開獎結果', this.lastResult);
+                            this.lastResults = [...this.lastResult];
+                            
+                            // 清除超時保護計時器
+                            if (this.animationTimeout) {
+                                clearTimeout(this.animationTimeout);
+                                this.animationTimeout = null;
+                            }
+                            this.stopWashingAnimation();
+                            setTimeout(() => {
+                                this.finishRaceCompetition(this.lastResult);
+                            }, 100);
+                        } else {
+                            // 如果真的沒有結果，繼續嘗試獲取
+                            console.log('⚠️ 暫時無法获取结果，1秒後重試...');
+                            setTimeout(() => {
+                                this.retryGetResult();
+                            }, 1000);
+                        }
+                    }).catch((error) => {
+                        console.error('❌ 获取結果時出錯:', error);
+                        // 如果出錯但有緩存結果，使用緩存
+                        if (this.lastResult && this.lastResult.length === 10) {
+                            console.log('⚠️ API出錯，使用緩存的開獎結果', this.lastResult);
+                            this.lastResults = [...this.lastResult];
+                            
+                            // 清除超時保護計時器
+                            if (this.animationTimeout) {
+                                clearTimeout(this.animationTimeout);
+                                this.animationTimeout = null;
+                            }
+                            this.stopWashingAnimation();
+                            setTimeout(() => {
+                                this.finishRaceCompetition(this.lastResult);
+                            }, 100);
+                        } else {
+                            // 繼續嘗試獲取結果
+                            console.log('⚠️ API出錯，1秒後重試...');
+                            setTimeout(() => {
+                                this.retryGetResult();
+                            }, 1000);
+                        }
+                    });
                     
                     // 更新數據（可以立即执行）
                     this.updateBalance();
@@ -9739,69 +9712,124 @@
                     console.log('✅ 开奖完成流程已啟動');
                 },
                 
+                // 🔄 重試獲取開獎結果
+                retryGetResult() {
+                    console.log('🔄 重試獲取開獎結果...');
+                    
+                    // 最多重試10次，每次間隔1秒
+                    if (!this.retryCount) {
+                        this.retryCount = 0;
+                    }
+                    
+                    this.retryCount++;
+                    
+                    if (this.retryCount > 10) {
+                        console.error('❌ 重試次數過多，強制停止動畫');
+                        
+                            // 清除超時保護計時器
+                            if (this.animationTimeout) {
+                                clearTimeout(this.animationTimeout);
+                                this.animationTimeout = null;
+                            }
+                            this.stopWashingAnimation();
+                        this.stopRaceCompetition();
+                        this.retryCount = 0;
+                        return;
+                    }
+                    
+                    // 繼續嘗試獲取結果
+                    this.getLatestResultFromHistory().then((latestResult) => {
+                        if (latestResult && latestResult.length === 10) {
+                            console.log('✅ 重試成功，獲取到最新開獎結果', latestResult);
+                            this.retryCount = 0;
+                            // 更新所有結果數據
+                            this.lastResult = [...latestResult];
+                            this.lastResults = [...latestResult];
+                            // 停止動畫並顯示新結果
+                            
+                            // 清除超時保護計時器
+                            if (this.animationTimeout) {
+                                clearTimeout(this.animationTimeout);
+                                this.animationTimeout = null;
+                            }
+                            this.stopWashingAnimation();
+                            // 稍後執行賽車動畫
+                            setTimeout(() => {
+                                this.finishRaceCompetition(latestResult);
+                            }, 100);
+                        } else {
+                            // 繼續重試
+                            console.log(`⚠️ 第${this.retryCount}次重試失敗，1秒後繼續...`);
+                            setTimeout(() => {
+                                this.retryGetResult();
+                            }, 1000);
+                        }
+                    }).catch((error) => {
+                        console.error(`❌ 第${this.retryCount}次重試出錯:`, error);
+                        setTimeout(() => {
+                            this.retryGetResult();
+                        }, 1000);
+                    });
+                },
+                
                 // 🛑 停止洗球動畫並顯示最新结果
                 stopWashingAnimation() {
                     console.log('🛑 停止洗球動畫並更新最新结果');
                     
-                    const resultBalls = document.querySelectorAll('.results-display-new .number-ball');
-                    const resultContainer = document.querySelector('.results-display-new');
-                    
-                    // 停止所有球的動畫
-                    resultBalls.forEach((ball, index) => {
-                        ball.classList.remove('washing-ball');
-                        ball.style.animation = '';
-                        ball.style.transform = '';
-                        ball.style.boxShadow = '';
-                        ball.style.background = '';
-                        ball.style.backgroundSize = '';
-                    });
-                    
-                    // 停止容器動畫
-                    if (resultContainer) {
-                        resultContainer.classList.remove('washing-container');
-                        resultContainer.style.animation = '';
+                    // 清除超時保護計時器
+                    if (this.animationTimeout) {
+                        clearTimeout(this.animationTimeout);
+                        this.animationTimeout = null;
                     }
                     
-                    // 获取並顯示最新结果
-                    this.getLatestResultFromHistory().then((latestResult) => {
-                        if (latestResult && latestResult.length > 0) {
-                            console.log('📊 获取到最新开奖结果');
-                            this.lastResults = latestResult;
-                            
-                            // 逐個顯示结果球（揭曉動畫）
-                            resultBalls.forEach((ball, index) => {
-                                setTimeout(() => {
-                                    if (latestResult.length > index) {
-                                        const number = latestResult[index];
-                                        ball.textContent = number;
-                                        ball.setAttribute('data-original-text', number);
-                                        // 🎨 重新設置正確的顏色CSS class
-                                        ball.className = `number-ball color-${number}`;
-                                        ball.style.animation = 'ballReveal 0.5s ease-out';
-                                    }
-                                }, index * 150);
-                            });
-                        } else {
-                            console.error('❌ 無法获取最新开奖结果');
-                            // 使用当前存儲的结果作為備用
-                            resultBalls.forEach((ball, index) => {
-                                const originalText = ball.getAttribute('data-original-text');
-                                if (originalText && originalText !== '?') {
-                                    ball.textContent = originalText;
-                                    // 🎨 重新設置正確的顏色CSS class
-                                    ball.className = `number-ball color-${originalText}`;
+                    // 停止洗球動畫標記
+                    this.showWashingAnimation = false;
+                    
+                    // 重置重試計數
+                    this.retryCount = 0;
+                    
+                    // 確保使用最新的結果，觸發 Vue 響應式更新
+                    if (this.lastResults && this.lastResults.length === 10) {
+                        console.log('📊 使用已設定的開獎結果', this.lastResults);
+                        // 使用 Vue.set 或數組擴展來確保響應式更新
+                        this.$set(this, 'lastResults', [...this.lastResults]);
+                        
+                        // 強制更新 DOM 確保顯示正確
+                        this.$nextTick(() => {
+                            const balls = document.querySelectorAll('.results-display-new .number-ball');
+                            balls.forEach((ball, index) => {
+                                ball.classList.remove('washing-ball');
+                                const numberSpan = ball.querySelector('span') || ball;
+                                if (this.lastResults[index]) {
+                                    numberSpan.textContent = this.lastResults[index];
                                 }
                             });
+                        });
+                    }
+                    
+                    // 清除動畫樣式
+                    this.$nextTick(() => {
+                        const resultContainer = document.querySelector('.results-display-new');
+                        if (resultContainer) {
+                            resultContainer.classList.remove('washing-container');
+                            resultContainer.style.animation = '';
                         }
+                        
+                        const balls = document.querySelectorAll('.results-display-new .number-ball');
+                        balls.forEach(ball => {
+                            ball.style = ''; // 清除所有內聯樣式
+                        });
                     });
                 },
                 
                 // 🚨 強制完成开奖（超時保護）
                 forceCompleteDrawing() {
                     console.log('🚨 強制完成开奖流程（超時保護）');
-                    this.isDrawingInProgress = false;
-                    this.stopWashingAnimation();
-                    this.stopRaceCompetition();
+                    
+                    // 不要立即停止，而是調用正常的完成流程
+                    if (!this.drawingResultProcessed) {
+                        this.completeDrawingProcess();
+                    }
                 },
                 
                 // 🏁 开始赛车竞赛（真實竞赛過程，不預知结果）
@@ -9857,7 +9885,7 @@
                         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
                         z-index: 10001;
                     `;
-                    title.textContent = '🏁 極速赛车开奖中 🏁';
+                    title.textContent = '🏁 FS赛车开奖中 🏁';
                     trackContainer.appendChild(title);
                     
                     // 创建终点線
@@ -9990,11 +10018,6 @@
                             car.speed += randomFactor + car.momentum + momentumChange;
                             car.speed = Math.max(2, Math.min(10, car.speed)); // 速度范围2-10，更快更激烈
                             
-                            // 🎯 如果有預先结果，根據最终排名调整速度
-                            if (car.targetSpeed && car.finalRank !== undefined) {
-                                const targetDiff = car.targetSpeed - car.speed;
-                                car.speed += targetDiff * 0.1; // 逐漸调整到目標速度
-                            }
                             
                             // 根據位置调整競爭策略（後面的車更容易加速追趕）
                             const averagePosition = this.racingCars.reduce((sum, c) => sum + c.position, 0) / this.racingCars.length;

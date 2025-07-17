@@ -1270,10 +1270,10 @@
                                     <div class="d-flex flex-wrap gap-2">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" id="gamePK10" v-model="reportFilters.gameTypes.pk10" checked disabled>
-                                            <label class="form-check-label fw-bold" for="gamePK10">極速賽車</label>
+                                            <label class="form-check-label fw-bold" for="gamePK10">FS赛车</label>
                                         </div>
                                     </div>
-                                    <small class="text-muted">目前僅支援極速賽車遊戲</small>
+                                    <small class="text-muted">目前僅支援FS赛车遊戲</small>
                                 </div>
                             </div>
 
@@ -1569,7 +1569,7 @@
                                                 <tr>
                                                     <td>{{ record.bet_id || record.id || 'BET' + new Date().getTime() }}</td>
                                                     <td>{{ formatBetTimeDetailed(record.created_at) }}</td>
-                                                    <td>極速賽車<br><small class="text-muted">{{ record.period_number || record.period || '20250708001' }}期</small></td>
+                                                    <td>FS赛车<br><small class="text-muted">{{ record.period_number || record.period || '20250708001' }}期</small></td>
                                                     <td>{{ record.username }}<br><small class="text-muted">{{ formatMarketType(record.market_type) }}</small></td>
                                                     <td>
                                                         <div>

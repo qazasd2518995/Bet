@@ -46,4 +46,7 @@ console.log(`🔥 強制使用 Render PostgreSQL 資料庫，不允許本地 fal
 const db = pgInstance(databaseConfig);
 
 // 導出數據庫實例
-export default db; 
+export default db;
+
+// 也導出原始配置供 pg Client 使用
+export { databaseConfig }; 

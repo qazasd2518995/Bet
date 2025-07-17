@@ -224,7 +224,7 @@ const app = createApp({
                 startDate: new Date().toISOString().split('T')[0], // 今日
                 endDate: new Date().toISOString().split('T')[0],   // 今日
                 gameTypes: {
-                    pk10: true  // 只支援極速賽車
+                    pk10: true  // 只支援FS赛车
                 },
                 settlementStatus: '', // 'settled', 'unsettled', ''(全部)
                 username: ''
@@ -5076,7 +5076,7 @@ const app = createApp({
                      params.append('username', this.reportFilters.username.trim());
                  }
                  
-                 // 遊戲類型：只支援極速賽車
+                 // 遊戲類型：只支援FS赛车
                  params.append('gameTypes', 'pk10');
 
                  console.log('📊 前端: 調用代理層級分析API');
@@ -5412,7 +5412,7 @@ const app = createApp({
                  'ssc': 'AR 時時彩',
                  'lottery539': 'AR 539',
                  'lottery': 'AR 六合彩',
-                 'racing': '極速賽車'
+                 'racing': 'FS赛车'
              };
              return gameTypeMap[gameType] || '其他遊戲';
          },

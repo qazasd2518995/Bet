@@ -228,7 +228,7 @@ const app = createApp({
                 startDate: new Date().toISOString().split('T')[0], // 今日
                 endDate: new Date().toISOString().split('T')[0],   // 今日
                 gameTypes: {
-                    pk10: true  // 只支援極速賽車
+                    pk10: true  // 只支援FS赛车
                 },
                 settlementStatus: '', // 'settled', 'unsettled', ''(全部)
                 username: ''
@@ -1329,32 +1329,34 @@ const app = createApp({
             });
         },
         
-        // 格式化日期顯示
+        // 格式化日期顯示 - 使用台北時間 (UTC+8)
         formatDate(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            // 轉換為台北時區顯示 - 手動加8小時
+            const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+            const year = taipeiTime.getFullYear();
+            const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
+            const day = taipeiTime.getDate().toString().padStart(2, '0');
+            const hours = taipeiTime.getHours().toString().padStart(2, '0');
+            const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
+            const seconds = taipeiTime.getSeconds().toString().padStart(2, '0');
+            return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
         },
         
         // 格式化日期时间（與 formatDate 相同，為了模板兼容性）
         formatDateTime(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            // 轉換為台北時區顯示 - 手動加8小時
+            const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+            const year = taipeiTime.getFullYear();
+            const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
+            const day = taipeiTime.getDate().toString().padStart(2, '0');
+            const hours = taipeiTime.getHours().toString().padStart(2, '0');
+            const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
+            const seconds = taipeiTime.getSeconds().toString().padStart(2, '0');
+            return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
         },
         
         // 客服交易记录分頁 - 上一頁
@@ -4417,7 +4419,12 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('創建輸贏控制錯誤:', error);
-                this.showMessage('設定時發生錯誤', 'error');
+                // 顯示具體的錯誤訊息
+                if (error.response && error.response.data && error.response.data.message) {
+                    this.showMessage(error.response.data.message, 'error');
+                } else {
+                    this.showMessage('設定時發生錯誤', 'error');
+                }
             } finally {
                 this.loading = false;
             }
@@ -5851,7 +5858,7 @@ const app = createApp({
                  'ssc': 'AR 時時彩',
                  'lottery539': 'AR 539',
                  'lottery': 'AR 六合彩',
-                 'racing': '極速賽車'
+                 'racing': 'FS赛车'
              };
              return gameTypeMap[gameType] || '其他遊戲';
          },
@@ -6401,7 +6408,7 @@ const app = createApp({
               
               console.log('🔍 解析欄位:', { betType, betContent, position });
               
-              if (!betType || !betContent) {
+              if (!betType || betContent === undefined || betContent === null) {
                   console.warn('❌ 投注數據不完整:', { betType, betContent, position });
                   return '-';
               }
@@ -6424,23 +6431,13 @@ const app = createApp({
                   return `${positionText} ${valueText}`;
               }
               
-              // 首先處理空格分隔的格式（如 "eighth odd", "champion big"）- 優先處理
+              // 處理空格分隔的格式（如 "eighth odd", "champion big"）
               if (typeof betContent === 'string' && betContent.includes(' ')) {
                   console.log('✅ 發現空格分隔格式:', betContent);
                   const parts = betContent.split(' ');
                   console.log('✅ 分割結果:', parts);
                   if (parts.length === 2) {
                       const [positionEng, valueEng] = parts;
-                      
-                      // 位置名稱映射
-                      const positionMap = {
-                          'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名',
-                          'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                          'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                      };
-                      
-                      // 值映射
-                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
                       
                       const positionText = positionMap[positionEng] || positionEng;
                       const valueText = valueMap[valueEng] || valueEng;
@@ -6569,16 +6566,49 @@ const app = createApp({
 
           // 格式化投注內容
           formatBetContent(bet) {
-              if (bet.bet_type === 'number') {
-                  return `第${bet.position}名 ${bet.bet_value}`;
-              } else if (bet.bet_type === 'size') {
-                  return `第${bet.position}名 ${bet.bet_value === 'big' ? '大' : '小'}`;
-              } else if (bet.bet_type === 'odd_even') {
-                  return `第${bet.position}名 ${bet.bet_value === 'odd' ? '單' : '雙'}`;
-              } else if (bet.bet_type === 'dragon_tiger') {
-                  return `龍虎 ${bet.bet_value === 'dragon' ? '龍' : '虎'}`;
+              // 支援兩種數據結構：bet_type/bet_value 和 game_type/bet_content
+              const betType = bet.bet_type || bet.game_type;
+              const betValue = bet.bet_value || bet.bet_content;
+              const position = bet.position;
+              
+              if (!betType || betValue === undefined) {
+                  console.warn('投注內容數據不完整:', bet);
+                  return '數據不完整';
               }
-              return `${bet.bet_type} ${bet.bet_value}`;
+              
+              if (betType === 'number') {
+                  const positionNames = {
+                      1: '冠軍', 2: '亞軍', 3: '第三名', 4: '第四名', 5: '第五名',
+                      6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
+                  };
+                  const positionName = positionNames[position] || `第${position}名`;
+                  return `${positionName} ${betValue}`;
+              } else if (betType === 'combined') {
+                  const positionNames = {
+                      'champion': '冠軍', 'runnerup': '亞軍', 'third': '第三名', 
+                      'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
+                      'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
+                  };
+                  const positionName = positionNames[position] || position;
+                  const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                  const value = valueMap[betValue] || betValue;
+                  return `${positionName} ${value}`;
+              } else if (betType === 'dragonTiger') {
+                  const valueMap = { 'dragon': '龍', 'tiger': '虎' };
+                  const value = valueMap[betValue] || betValue;
+                  return `龍虎 ${value}`;
+              } else if (betType === 'sumValue') {
+                  if (['big', 'small', 'odd', 'even'].includes(betValue)) {
+                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '雙' };
+                      const value = valueMap[betValue] || betValue;
+                      return `冠亞和 ${value}`;
+                  } else {
+                      return `冠亞和 ${betValue}`;
+                  }
+              }
+              
+              // 如果都不匹配，返回原始值
+              return `${betType} ${betValue}`;
           },
 
           // 獲取位置名稱

@@ -2935,7 +2935,7 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       memberUsername || null,
       parseFloat(betAmount) || 0,
       rebatePercentage,
-      period || null
+      period ? String(period) : null
     ]);
     
     // 獲取更新後的代理資訊
@@ -3404,13 +3404,13 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       });
     }
 
-    const { 
+    let { 
       control_mode, 
       target_type, 
       target_username, 
       control_percentage = 50,
-      win_control = false,
-      loss_control = false,
+      win_control,
+      loss_control,
       start_period = null
     } = req.body;
 
@@ -3423,6 +3423,29 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
     // 驗證必要參數
     if (!control_mode || !['normal', 'agent_line', 'single_member', 'auto_detect'].includes(control_mode)) {
       return res.status(400).json({ success: false, message: '無效的控制模式' });
+    }
+
+    // 驗證控制類型 - 必須選擇贏控制或輸控制其中一種（除了正常機率和自動偵測模式）
+    if (control_mode !== 'normal' && control_mode !== 'auto_detect') {
+      if (win_control === undefined || loss_control === undefined) {
+        return res.status(400).json({ 
+          success: false, 
+          message: '請選擇控制類型（贏控制或輸控制）' 
+        });
+      }
+      
+      if (win_control === loss_control) {
+        return res.status(400).json({ 
+          success: false, 
+          message: win_control ? '不能同時選擇贏控制和輸控制' : '必須選擇贏控制或輸控制其中一種' 
+        });
+      }
+    }
+    
+    // 自動偵測模式不需要設定贏控制或輸控制
+    if (control_mode === 'auto_detect') {
+      win_control = false;
+      loss_control = false;
     }
 
     let target_id = null;
@@ -3452,8 +3475,21 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       }
     }
 
-    // 先停用所有現有的控制
-    await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP');
+    // 如果是正常機率模式或自動偵測模式，需要停用所有其他控制設定
+    if (control_mode === 'normal' || control_mode === 'auto_detect') {
+      await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP');
+      console.log(`✅ ${control_mode === 'normal' ? '正常機率模式' : '自動偵測模式'}：已停用所有其他控制設定`);
+    }
+    
+    // 如果是代理線控制或單會員控制，需要停用正常機率和自動偵測控制
+    if (control_mode === 'agent_line' || control_mode === 'single_member') {
+      await db.none(`
+        UPDATE win_loss_control 
+        SET is_active = false, updated_at = CURRENT_TIMESTAMP 
+        WHERE control_mode IN ('normal', 'auto_detect') AND is_active = true
+      `);
+      console.log(`✅ ${control_mode === 'agent_line' ? '代理線控制' : '單會員控制'}：已停用正常機率和自動偵測控制`);
+    }
 
     // 創建新的控制設定
     const newControl = await db.one(`
@@ -3532,8 +3568,8 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
 
     const { 
       control_percentage = 50,
-      win_control = false,
-      loss_control = false,
+      win_control,
+      loss_control,
       is_active = true
     } = req.body;
 
@@ -3543,18 +3579,35 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
       return res.status(404).json({ success: false, message: '找不到指定的控制設定' });
     }
 
+    // 驗證控制類型 - 必須選擇贏控制或輸控制其中一種（除了正常機率和自動偵測模式）
+    if (oldControl.control_mode !== 'normal' && oldControl.control_mode !== 'auto_detect') {
+      const finalWinControl = win_control !== undefined ? win_control : oldControl.win_control;
+      const finalLossControl = loss_control !== undefined ? loss_control : oldControl.loss_control;
+      
+      if (finalWinControl === finalLossControl) {
+        return res.status(400).json({ 
+          success: false, 
+          message: finalWinControl ? '不能同時選擇贏控制和輸控制' : '必須選擇贏控制或輸控制其中一種' 
+        });
+      }
+    }
+
     // 如果要啟用此控制，先停用其他所有控制
     if (is_active) {
       await db.none('UPDATE win_loss_control SET is_active = false WHERE id != $1', [id]);
     }
 
+    // 使用實際值或保留原值
+    const finalWinControl = win_control !== undefined ? win_control : oldControl.win_control;
+    const finalLossControl = loss_control !== undefined ? loss_control : oldControl.loss_control;
+    
     // 更新控制設定
     const updatedControl = await db.one(`
       UPDATE win_loss_control 
       SET control_percentage = $1, win_control = $2, loss_control = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
       WHERE id = $5
       RETURNING *
-    `, [control_percentage, win_control, loss_control, is_active, id]);
+    `, [control_percentage, finalWinControl, finalLossControl, is_active, id]);
 
     // 記錄操作日誌
     await safeLogWinLossControl(id, 'update', oldControl, updatedControl, agent.id, agent.username);
@@ -3658,7 +3711,8 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
 // 內部API - 獲取當前活躍的輸贏控制設定 (遊戲後端專用，無需認證)
 app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
   try {
-    const activeControl = await db.oneOrNone(`
+    // 獲取所有活躍的控制設定
+    const activeControls = await db.manyOrNone(`
       SELECT wlc.*,
         CASE 
           WHEN wlc.target_type = 'agent' THEN a.username
@@ -3669,14 +3723,29 @@ app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
       LEFT JOIN agents a ON wlc.target_type = 'agent' AND wlc.target_id IS NOT NULL AND wlc.target_id = a.id
       LEFT JOIN members m ON wlc.target_type = 'member' AND wlc.target_id IS NOT NULL AND wlc.target_id = m.id
       WHERE wlc.is_active = true
-      ORDER BY wlc.updated_at DESC
-      LIMIT 1
+      ORDER BY wlc.control_mode, wlc.updated_at DESC
     `);
 
-    res.json({
-      success: true,
-      data: activeControl || { control_mode: 'normal', is_active: false }
-    });
+    // 如果有多個控制設定，返回數組；為了向後兼容，如果只有一個或沒有，返回單個對象
+    if (activeControls && activeControls.length > 1) {
+      res.json({
+        success: true,
+        data: activeControls,
+        multiple: true
+      });
+    } else if (activeControls && activeControls.length === 1) {
+      res.json({
+        success: true,
+        data: activeControls[0],
+        multiple: false
+      });
+    } else {
+      res.json({
+        success: true,
+        data: { control_mode: 'normal', is_active: false },
+        multiple: false
+      });
+    }
   } catch (error) {
     console.error('獲取活躍輸贏控制錯誤:', error);
     res.status(500).json({ success: false, message: '伺服器錯誤' });
@@ -3912,15 +3981,33 @@ app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
       });
     }
 
-    // 獲取當前最新期數，從draw_records表中查詢
-    const latestDraw = await db.oneOrNone(`
-      SELECT period 
-      FROM draw_records 
-      ORDER BY period DESC 
-      LIMIT 1
-    `);
-
-    const currentPeriod = latestDraw ? latestDraw.period : 20250101001;
+    // 從資料庫獲取當前期數（優先使用資料庫，因為遊戲系統可能未運行）
+    let currentPeriod;
+    try {
+      // 從result_history表中查詢最新期數（這是實際開獎記錄表）
+      const latestDraw = await db.oneOrNone(`
+        SELECT period 
+        FROM result_history 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `);
+      
+      if (latestDraw && latestDraw.period) {
+        currentPeriod = parseInt(latestDraw.period);
+        console.log('從資料庫獲取當前期數:', currentPeriod);
+      } else {
+        // 如果沒有記錄，使用當天的第一期
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+        currentPeriod = parseInt(todayStr + '001');
+      }
+    } catch (error) {
+      console.error('查詢期數錯誤:', error);
+      // 使用當天的第一期作為預設值
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+      currentPeriod = parseInt(todayStr + '001');
+    }
     
     // 使用正確的期數遞增邏輯
     function getNextPeriod(currentPeriod) {
@@ -3998,11 +4085,40 @@ app.put(`${API_PREFIX}/win-loss-control/:id/activate`, async (req, res) => {
       return res.status(404).json({ success: false, message: '控制設定不存在' });
     }
 
-    // 先停用所有其他控制
-    await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP');
+    // 如果啟用的是正常機率模式或自動偵測模式，需要先停用所有其他控制
+    if (control.control_mode === 'normal' || control.control_mode === 'auto_detect') {
+      await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id != $1', [id]);
+      console.log(`✅ 啟用${control.control_mode === 'normal' ? '正常機率模式' : '自動偵測模式'}：已停用所有其他控制設定`);
+    }
     
+    // 如果啟用的是代理線控制或單會員控制，需要停用正常機率和自動偵測控制
+    if (control.control_mode === 'agent_line' || control.control_mode === 'single_member') {
+      await db.none(`
+        UPDATE win_loss_control 
+        SET is_active = false, updated_at = CURRENT_TIMESTAMP 
+        WHERE control_mode IN ('normal', 'auto_detect') AND is_active = true AND id != $1
+      `, [id]);
+      console.log(`✅ 啟用${control.control_mode === 'agent_line' ? '代理線控制' : '單會員控制'}：已停用正常機率和自動偵測控制`);
+    }
+
     // 激活指定控制
     await db.none('UPDATE win_loss_control SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+    
+    // 如果不是正常機率模式，檢查是否有相同目標的其他活躍控制
+    if (control.control_mode !== 'normal' && control.target_type && control.target_id) {
+      const otherControls = await db.manyOrNone(`
+        SELECT id, control_mode, win_control, loss_control 
+        FROM win_loss_control 
+        WHERE target_type = $1 
+        AND target_id = $2 
+        AND id != $3 
+        AND is_active = true
+      `, [control.target_type, control.target_id, id]);
+
+      if (otherControls && otherControls.length > 0) {
+        console.log(`⚠️ 目標 ${control.target_username} 現在有 ${otherControls.length + 1} 個活躍的控制設定`);
+      }
+    }
 
     // 記錄操作日誌
     await safeLogWinLossControl(id, 'activate', null, null, agent.id, agent.username);

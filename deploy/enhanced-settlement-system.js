@@ -15,6 +15,12 @@ const settlementLog = {
  * @returns {Object} Settlement result
  */
 export async function enhancedSettlement(period, drawResult) {
+    // 檢查是否有輸贏控制影響
+    const controlCheck = await checkWinLossControlStatus(period);
+    if (controlCheck.enabled) {
+        settlementLog.warn(`⚠️ 注意：期號 ${period} 有輸贏控制設定 - 模式: ${controlCheck.mode}, 目標: ${controlCheck.target}`);
+        settlementLog.warn(`輸贏控制不應影響結算判定，僅影響開獎結果生成`);
+    }
     const startTime = Date.now();
     settlementLog.info(`開始增強結算期號 ${period}`);
     settlementLog.info(`開獎結果:`, JSON.stringify(drawResult));
@@ -87,7 +93,7 @@ export async function enhancedSettlement(period, drawResult) {
             
             for (const bet of unsettledBets) {
                 try {
-                    const winCheck = checkBetWinEnhanced(bet, winResult);
+                    const winCheck = await checkBetWinEnhanced(bet, winResult);
                     let winAmount = 0;
                     
                     if (winCheck.isWin) {
@@ -270,24 +276,71 @@ function normalizeDrawResult(drawResult) {
 /**
  * Enhanced bet win checking with comprehensive bet type support
  */
-function checkBetWinEnhanced(bet, winResult) {
+async function checkBetWinEnhanced(bet, winResult) {
     const positions = winResult.positions;
     const betType = bet.bet_type;
     const betValue = String(bet.bet_value);
     
     settlementLog.info(`檢查投注: id=${bet.id}, type=${betType}, value=${betValue}, position=${bet.position}`);
+    if (betType === 'number' && bet.position) {
+        settlementLog.info(`號碼投注詳情: 位置=${bet.position}, 下注號碼=${betValue}, 開獎號碼=${positions[parseInt(bet.position) - 1]}`);
+    }
     
     // 1. 號碼投注 (position-based number betting)
     if (betType === 'number' && bet.position) {
         const position = parseInt(bet.position);
         const betNumber = parseInt(betValue);
         
+        // 添加詳細驗證日誌
+        settlementLog.info(`號碼投注詳細驗證: 投注ID=${bet.id}, 原始position="${bet.position}", 原始betValue="${betValue}"`);
+        settlementLog.info(`轉換後: position=${position}, betNumber=${betNumber}`);
+        settlementLog.info(`完整開獎陣列: ${JSON.stringify(positions)}`);
+        
         if (position < 1 || position > 10 || isNaN(betNumber)) {
+            settlementLog.warn(`無效投注數據: position=${position}, betNumber=${betNumber}, 原始值: position="${bet.position}", betValue="${betValue}"`);
             return { isWin: false, reason: '無效的位置或號碼' };
         }
         
         const winningNumber = positions[position - 1];
-        const isWin = winningNumber === betNumber;
+        
+        // 確保開獎號碼有效
+        if (!winningNumber || winningNumber < 1 || winningNumber > 10) {
+            settlementLog.error(`異常開獎號碼: 第${position}名開出${winningNumber}, 完整陣列: ${JSON.stringify(positions)}`);
+            throw new Error(`異常開獎號碼: 第${position}名開出${winningNumber}`);
+        }
+        
+        // 使用多重驗證確保比較正確
+        const winNum = parseInt(winningNumber);
+        const betNum = parseInt(betNumber);
+        const isWin = winNum === betNum;
+        
+        // 詳細記錄比較結果
+        settlementLog.info(`號碼比較結果: 第${position}名開獎=${winNum}, 投注=${betNum}, 中獎=${isWin}`);
+        
+        // 額外的安全檢查：如果中獎，再次驗證
+        if (isWin) {
+            settlementLog.warn(`⚠️ 中獎驗證: 投注ID=${bet.id}, 期號=${bet.period}, 位置${position}, 投注${betNum}=開獎${winNum}`);
+            // 直接從數據庫再次查詢驗證
+            const verifyResult = await db.oneOrNone(`
+                SELECT position_${position} as winning_number
+                FROM result_history
+                WHERE period = $1
+            `, [bet.period]);
+            
+            if (verifyResult && parseInt(verifyResult.winning_number) !== betNum) {
+                settlementLog.error(`❌ 中獎驗證失敗！數據庫中第${position}名是${verifyResult.winning_number}，不是${betNum}`);
+                return {
+                    isWin: false,
+                    reason: `驗證失敗：第${position}名實際開出${verifyResult.winning_number}`,
+                    odds: bet.odds || 9.85
+                };
+            }
+        }
+        
+        // 額外警告：如果類型轉換後數值改變
+        if (String(winNum) !== String(winningNumber).trim() || String(betNum) !== String(betNumber).trim()) {
+            settlementLog.warn(`類型轉換警告: 原始開獎="${winningNumber}", 轉換後=${winNum}; 原始投注="${betNumber}", 轉換後=${betNum}`);
+        }
         
         return {
             isWin: isWin,
@@ -714,6 +767,27 @@ export {
     getSumOdds,
     processRebates
 };
+
+
+// 檢查輸贏控制狀態（僅用於日誌記錄）
+async function checkWinLossControlStatus(period) {
+    try {
+        const response = await fetch(`${AGENT_API_URL}/api/agent/internal/win-loss-control/active`);
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+                return {
+                    enabled: true,
+                    mode: result.data.control_mode,
+                    target: result.data.target_username
+                };
+            }
+        }
+    } catch (error) {
+        // 忽略錯誤
+    }
+    return { enabled: false };
+}
 
 export default {
     enhancedSettlement,

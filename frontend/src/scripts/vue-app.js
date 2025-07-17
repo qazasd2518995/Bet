@@ -95,6 +95,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 自訂金额
                 customAmount: '',
                 
+                // 限紅相關
+                userLimits: null, // 用戶限紅配置
+                limitCheckCache: new Map(), // 限紅檢查緩存
+                
                 // 赔率数据 - 包含退水0.41，與後端一致
                 odds: {
                     sumValue: {
@@ -212,6 +216,21 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             isMobile() {
                 return /Mobi|Android/i.test(navigator.userAgent);
+            },
+            isBetDisabled() {
+                // 檢查是否有選擇的投注
+                if (this.selectedBets.length === 0) return true;
+                
+                // 檢查遊戲狀態
+                if (this.gameStatus !== 'betting') return true;
+                
+                // 檢查投注金額
+                if (this.betAmount < 1) return true;
+                
+                // 暫時先不檢查限紅，避免循環引用問題
+                // 限紅檢查會在 showBetConfirmation 中進行
+                
+                return false;
             }
         },
         methods: {
@@ -284,6 +303,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         // 如果沒有保存的市場類型，獲取用戶盤口類型
                         this.getUserMarketType();
                     }
+                    
+                    // 載入用戶限紅配置
+                    this.loadUserLimits();
                 } else {
                     console.log('❌ 登录状态无效，显示登录表单');
                     this.isLoggedIn = false;
@@ -686,6 +708,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.balance = data.member.balance;
                         this.isLoggedIn = true;  // 確保設定登錄狀態
                         this.checkLoginStatus();  // 這會調用getUserMarketType()
+                        
+                        // 載入用戶限紅配置
+                        this.loadUserLimits();
+                        
                         this.showNotification('登录成功！');
                     } else {
                         this.showNotification('登录失败，请检查用戶名和密码。');
@@ -755,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             
             // 选择投注
-            selectBet(betType, value) {
+            async selectBet(betType, value) {
                 const existingIndex = this.selectedBets.findIndex(bet => 
                     bet.betType === betType && bet.value === value
                 );
@@ -771,6 +797,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         odds: this.getOddsForBet(betType, value),
                         amount: this.betAmount
                     });
+                    
+                    // 檢查新添加的投注是否超限
+                    const limitCheck = await this.checkSingleBetLimit(betType, value, this.betAmount);
+                    if (!limitCheck.valid) {
+                        this.showNotification(limitCheck.message);
+                    }
                 }
             },
             
@@ -824,7 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             
             // 设置投注金额
-            setBetAmount(amount) {
+            async setBetAmount(amount) {
                 this.betAmount = amount;
                 this.customAmount = '';
                 
@@ -832,6 +864,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.selectedBets.forEach(bet => {
                     bet.amount = amount;
                 });
+                
+                // 檢查當前選擇的投注是否超限
+                await this.checkCurrentBetsLimits();
+            },
+            
+            // 檢查當前選擇的投注是否超限（用於實時提示）
+            async checkCurrentBetsLimits() {
+                if (this.selectedBets.length === 0) return;
+                
+                for (const bet of this.selectedBets) {
+                    const amount = parseFloat(bet.amount || this.betAmount);
+                    const limitCheck = await this.checkSingleBetLimit(bet.betType, bet.value, amount, bet.position);
+                    
+                    if (!limitCheck.valid) {
+                        this.showNotification(limitCheck.message);
+                        break; // 只顯示第一個錯誤
+                    }
+                }
             },
             
             // 清除投注
@@ -849,7 +899,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             
             // 显示投注确认彈窗
-            showBetConfirmation() {
+            async showBetConfirmation() {
                 if (this.selectedBets.length === 0) {
                     this.showNotification('请选择投注項目');
                     return;
@@ -858,6 +908,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.showNotification('投注金额不能少于1元');
                     return;
                 }
+                
+                // 先檢查限紅
+                const limitCheck = await this.validateBettingLimits();
+                if (!limitCheck.success) {
+                    this.showNotification(limitCheck.message);
+                    return;
+                }
+                
                 this.showBetModal = true;
             },
             
@@ -932,6 +990,189 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (warningEl) {
                     warningEl.style.display = 'block';
                 }
+            },
+            
+            // 獲取用戶限紅配置
+            async loadUserLimits() {
+                if (!this.isLoggedIn || !this.username) return;
+                
+                try {
+                    const agentApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                        ? 'http://localhost:3003' 
+                        : '';
+                    
+                    const response = await fetch(`${agentApiUrl}/api/agent/member-betting-limit-by-username?username=${this.username}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.config) {
+                        this.userLimits = data.config;
+                        console.log('✅ 獲取用戶限紅配置成功:', this.userLimits);
+                    } else {
+                        console.warn('獲取用戶限紅配置失敗，使用預設值');
+                        this.userLimits = this.getDefaultLimits();
+                    }
+                } catch (error) {
+                    console.error('載入用戶限紅配置失敗:', error);
+                    this.userLimits = this.getDefaultLimits();
+                }
+            },
+            
+            // 獲取預設限紅配置
+            getDefaultLimits() {
+                return {
+                    number: { maxBet: 2500, minBet: 1, periodLimit: 5000 },
+                    twoSide: { maxBet: 5000, minBet: 1, periodLimit: 5000 },
+                    sumValue: { maxBet: 1000, minBet: 1, periodLimit: 2000 },
+                    dragonTiger: { maxBet: 5000, minBet: 1, periodLimit: 5000 },
+                    sumValueSize: { maxBet: 5000, minBet: 1, periodLimit: 5000 },
+                    sumValueOddEven: { maxBet: 5000, minBet: 1, periodLimit: 5000 }
+                };
+            },
+            
+            // 獲取下注類型分類
+            getBetCategory(betType, betValue, position) {
+                // 總和相關下注
+                if (betType === 'sumValue') {
+                    return 'sumValue';
+                }
+                
+                // 數字下注
+                if (betType === 'number' || (position && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(betValue))) {
+                    return 'number';
+                }
+                
+                // 龍虎下注
+                if (betType === 'dragonTiger' || betType.includes('dragon') || betType.includes('tiger')) {
+                    return 'dragonTiger';
+                }
+                
+                // 雙面下注 (大小單雙等)
+                if (['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) ||
+                    (['big', 'small', 'odd', 'even'].includes(betValue) && betType !== 'sumValue')) {
+                    return 'twoSide';
+                }
+                
+                // 預設為雙面下注
+                return 'twoSide';
+            },
+            
+            // 獲取當前期號已有下注
+            async getCurrentPeriodBets() {
+                if (!this.isLoggedIn || !this.currentPeriod) return [];
+                
+                try {
+                    const response = await fetch(`${this.API_BASE_URL}/api/period-bets?username=${this.username}&period=${this.currentPeriod}`);
+                    const data = await response.json();
+                    return data.success ? (data.bets || []) : [];
+                } catch (error) {
+                    console.error('獲取當前期號下注失敗:', error);
+                    return [];
+                }
+            },
+            
+            // 驗證投注限紅
+            async validateBettingLimits() {
+                if (!this.userLimits) {
+                    await this.loadUserLimits();
+                }
+                
+                if (!this.userLimits) {
+                    return { success: false, message: '無法獲取限紅配置，請稍後再試' };
+                }
+                
+                // 獲取當前期號已有下注
+                const existingBets = await this.getCurrentPeriodBets();
+                
+                // 按下注類型分組計算已有下注金額
+                const periodTotals = {};
+                existingBets.forEach(bet => {
+                    const betCategory = this.getBetCategory(bet.bet_type, bet.bet_value, bet.position);
+                    if (!periodTotals[betCategory]) {
+                        periodTotals[betCategory] = 0;
+                    }
+                    periodTotals[betCategory] += parseFloat(bet.amount);
+                });
+                
+                // 驗證新的下注
+                for (const bet of this.selectedBets) {
+                    const amount = parseFloat(bet.amount || this.betAmount);
+                    const betCategory = this.getBetCategory(bet.betType, bet.value, bet.position);
+                    const limits = this.userLimits[betCategory];
+                    
+                    if (!limits) {
+                        return {
+                            success: false,
+                            message: `未知的下注類型: ${bet.betType}/${bet.value}`
+                        };
+                    }
+                    
+                    // 檢查單注最高限制
+                    if (amount > limits.maxBet) {
+                        return {
+                            success: false,
+                            message: `${betCategory} 單注金額不能超過 ${limits.maxBet} 元，當前: ${amount} 元`
+                        };
+                    }
+                    
+                    // 檢查最小下注限制
+                    if (amount < limits.minBet) {
+                        return {
+                            success: false,
+                            message: `${betCategory} 單注金額不能少於 ${limits.minBet} 元，當前: ${amount} 元`
+                        };
+                    }
+                    
+                    // 累加到期號總額中
+                    if (!periodTotals[betCategory]) {
+                        periodTotals[betCategory] = 0;
+                    }
+                    periodTotals[betCategory] += amount;
+                    
+                    // 檢查單期限額
+                    if (periodTotals[betCategory] > limits.periodLimit) {
+                        const existingAmount = periodTotals[betCategory] - amount;
+                        return {
+                            success: false,
+                            message: `${betCategory} 單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
+                        };
+                    }
+                }
+                
+                return { success: true };
+            },
+            
+            // 檢查單個投注項目是否超限 (用於實時顯示警告)
+            async checkSingleBetLimit(betType, betValue, amount, position = null) {
+                if (!this.userLimits) {
+                    await this.loadUserLimits();
+                }
+                
+                if (!this.userLimits) return { valid: true };
+                
+                const betCategory = this.getBetCategory(betType, betValue, position);
+                const limits = this.userLimits[betCategory];
+                
+                if (!limits) return { valid: true };
+                
+                // 檢查單注最高
+                if (amount > limits.maxBet) {
+                    return {
+                        valid: false,
+                        message: `${betCategory} 單注最高 ${limits.maxBet} 元`,
+                        type: 'single_limit'
+                    };
+                }
+                
+                // 檢查單期限額 (這裡簡化處理，只做基本檢查)
+                if (amount > limits.periodLimit) {
+                    return {
+                        valid: false,
+                        message: `${betCategory} 單期限額 ${limits.periodLimit} 元`,
+                        type: 'period_limit'
+                    };
+                }
+                
+                return { valid: true };
             },
             
             // 切換盈亏时间范围

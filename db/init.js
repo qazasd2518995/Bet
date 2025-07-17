@@ -43,6 +43,16 @@ async function initDatabase() {
         id SERIAL PRIMARY KEY,
         period BIGINT NOT NULL UNIQUE,
         result JSON NOT NULL,
+        position_1 INTEGER,
+        position_2 INTEGER,
+        position_3 INTEGER,
+        position_4 INTEGER,
+        position_5 INTEGER,
+        position_6 INTEGER,
+        position_7 INTEGER,
+        position_8 INTEGER,
+        position_9 INTEGER,
+        position_10 INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -157,6 +167,21 @@ async function initDatabase() {
     await db.none(`CREATE INDEX IF NOT EXISTS idx_transaction_records_user ON transaction_records(user_type, user_id)`);
     await db.none(`CREATE INDEX IF NOT EXISTS idx_draw_records_period ON draw_records(period)`);
 
+    // 檢查並添加 result_history 表的 position 列
+    console.log('檢查 result_history 表的 position 列...');
+    for (let i = 1; i <= 10; i++) {
+      await db.none(`
+        ALTER TABLE result_history 
+        ADD COLUMN IF NOT EXISTS position_${i} INTEGER
+      `);
+    }
+    
+    // 添加 draw_time 列
+    await db.none(`
+      ALTER TABLE result_history 
+      ADD COLUMN IF NOT EXISTS draw_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `);
+    
     console.log('✅ 數據庫初始化完成');
   } catch (error) {
     console.error('❌ 初始化數據庫時出錯:', error);

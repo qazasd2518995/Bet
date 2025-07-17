@@ -566,17 +566,19 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
             // 檢查單注最高限制
             if (amount > limits.maxBet) {
                 console.log(`❌ 單注超限: ${amount} > ${limits.maxBet}`);
+                const categoryName = getBetCategoryDisplayName(betCategory);
                 return {
                     success: false,
-                    message: `${betCategory} 單注金額不能超過 ${limits.maxBet} 元，當前: ${amount} 元`
+                    message: `${categoryName}單注金額不能超過 ${limits.maxBet} 元，當前: ${amount} 元，請重新輸入金額後再下注`
                 };
             }
             
             // 檢查最小下注限制
             if (amount < limits.minBet) {
+                const categoryName = getBetCategoryDisplayName(betCategory);
                 return {
                     success: false,
-                    message: `${betCategory} 單注金額不能少於 ${limits.minBet} 元，當前: ${amount} 元`
+                    message: `${categoryName}單注金額不能少於 ${limits.minBet} 元，當前: ${amount} 元`
                 };
             }
             
@@ -589,9 +591,10 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
             // 檢查單期限額
             if (periodTotals[betCategory] > limits.periodLimit) {
                 const existingAmount = periodTotals[betCategory] - amount;
+                const categoryName = getBetCategoryDisplayName(betCategory);
                 return {
                     success: false,
-                    message: `${betCategory} 單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
+                    message: `${categoryName}單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
                 };
             }
         }
@@ -633,6 +636,19 @@ function getBetCategory(betType, betValue, position) {
     
     // 預設為雙面下注
     return 'twoSide';
+}
+
+// 獲取下注類型的中文名稱
+function getBetCategoryDisplayName(category) {
+    const displayNames = {
+        'twoSide': '兩面',
+        'number': '號碼',
+        'sumValue': '冠亞和',
+        'dragonTiger': '龍虎',
+        'sumValueSize': '冠亞和大小',
+        'sumValueOddEven': '冠亞和單雙'
+    };
+    return displayNames[category] || category;
 }
 
 export default {
