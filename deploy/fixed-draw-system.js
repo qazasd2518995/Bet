@@ -445,9 +445,12 @@ class FixedDrawSystemManager {
         // 收集目標用戶的下注
         const userBetsByPosition = {};
         const twoSidesBets = {}; // 收集大小單雙的下注
+        const sumBets = []; // 收集冠亞和的下注
+        const dragonTigerBets = []; // 收集龍虎下注
         
         targetBets.forEach(bet => {
             if (bet.betType === 'number' && bet.position) {
+                // 1. 號碼投注
                 const pos = parseInt(bet.position);
                 if (!userBetsByPosition[pos]) {
                     userBetsByPosition[pos] = new Set();
@@ -457,7 +460,7 @@ class FixedDrawSystemManager {
                         'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
                         '冠軍', '亞軍', '季軍', '第三名', '第四名', 
                         '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'].includes(bet.betType)) {
-                // 處理位置相關的大小單雙投注
+                // 2. 位置大小單雙投注
                 const positionMap = {
                     'champion': 1, '冠軍': 1,
                     'runnerup': 2, '亞軍': 2,
@@ -481,10 +484,90 @@ class FixedDrawSystemManager {
                         amount: bet.amount
                     });
                 }
+            } else if (bet.betType === 'sum' || bet.betType === 'sumValue' || bet.betType === '冠亞和') {
+                // 3. 冠亞和投注
+                sumBets.push({
+                    value: bet.betValue,
+                    amount: bet.amount
+                });
+            } else if (bet.betType === 'dragon_tiger' || bet.betType === 'dragonTiger' || bet.betType === '龍虎') {
+                // 4. 龍虎投注
+                dragonTigerBets.push({
+                    value: bet.betValue,
+                    amount: bet.amount
+                });
             }
         });
         
-        // 先處理大小單雙的輸控制
+        let adjustmentsMade = 0;
+        
+        // 1. 處理冠亞和的輸控制
+        if (sumBets.length > 0) {
+            const currentSum = numbers[0] + numbers[1];
+            console.log(`  當前冠亞和: ${currentSum}`);
+            
+            for (const sumBet of sumBets) {
+                let needAdjust = false;
+                
+                if (/^\d+$/.test(sumBet.value)) {
+                    // 和值投注
+                    const betSum = parseInt(sumBet.value);
+                    needAdjust = currentSum === betSum;
+                } else if (['big', '大'].includes(sumBet.value)) {
+                    needAdjust = currentSum >= 12;
+                } else if (['small', '小'].includes(sumBet.value)) {
+                    needAdjust = currentSum <= 11;
+                } else if (['odd', '單'].includes(sumBet.value)) {
+                    needAdjust = currentSum % 2 === 1;
+                } else if (['even', '雙'].includes(sumBet.value)) {
+                    needAdjust = currentSum % 2 === 0;
+                }
+                
+                if (needAdjust) {
+                    // 嘗試交換冠軍或亞軍的號碼
+                    for (let i = 2; i < 10; i++) {
+                        const newSum1 = numbers[i] + numbers[1];
+                        const newSum2 = numbers[0] + numbers[i];
+                        
+                        // 檢查交換後是否會讓用戶輸
+                        if (this.checkSumLose(newSum1, sumBet.value)) {
+                            [numbers[0], numbers[i]] = [numbers[i], numbers[0]];
+                            adjustmentsMade++;
+                            console.log(`  冠亞和控制: 交換冠軍${numbers[i]}與第${i+1}名${numbers[0]}`);
+                            break;
+                        } else if (this.checkSumLose(newSum2, sumBet.value)) {
+                            [numbers[1], numbers[i]] = [numbers[i], numbers[1]];
+                            adjustmentsMade++;
+                            console.log(`  冠亞和控制: 交換亞軍${numbers[i]}與第${i+1}名${numbers[1]}`);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 2. 處理龍虎的輸控制
+        if (dragonTigerBets.length > 0) {
+            for (const dtBet of dragonTigerBets) {
+                const parts = dtBet.value.split('_');
+                if (parts.length >= 3) {
+                    const pos1 = parseInt(parts[1]) - 1;
+                    const pos2 = parseInt(parts[2]) - 1;
+                    const betSide = parts[0]; // dragon or tiger
+                    
+                    const currentWinner = numbers[pos1] > numbers[pos2] ? 'dragon' : 'tiger';
+                    
+                    if (currentWinner === betSide) {
+                        // 需要讓用戶輸，交換其中一個位置
+                        [numbers[pos1], numbers[pos2]] = [numbers[pos2], numbers[pos1]];
+                        adjustmentsMade++;
+                        console.log(`  龍虎控制: 交換位置${pos1+1}與位置${pos2+1}`);
+                    }
+                }
+            }
+        }
+        
+        // 3. 處理大小單雙的輸控制
         for (const [position, bets] of Object.entries(twoSidesBets)) {
             const pos = parseInt(position) - 1;
             const currentNumber = numbers[pos];
@@ -530,8 +613,7 @@ class FixedDrawSystemManager {
             }
         }
         
-        // 再處理號碼投注的輸控制
-        let adjustmentsMade = 0;
+        // 4. 處理號碼投注的輸控制
         for (const [position, userNumbers] of Object.entries(userBetsByPosition)) {
             const pos = parseInt(position) - 1;
             const currentNumber = numbers[pos];
@@ -573,9 +655,12 @@ class FixedDrawSystemManager {
         // 收集目標用戶的下注
         const userBetsByPosition = {};
         const twoSidesBets = {}; // 收集大小單雙的下注
+        const sumBets = []; // 收集冠亞和的下注
+        const dragonTigerBets = []; // 收集龍虎下注
         
         targetBets.forEach(bet => {
             if (bet.betType === 'number' && bet.position) {
+                // 1. 號碼投注
                 const pos = parseInt(bet.position);
                 if (!userBetsByPosition[pos]) {
                     userBetsByPosition[pos] = [];
@@ -588,7 +673,7 @@ class FixedDrawSystemManager {
                         'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
                         '冠軍', '亞軍', '季軍', '第三名', '第四名', 
                         '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'].includes(bet.betType)) {
-                // 處理位置相關的大小單雙投注
+                // 2. 位置大小單雙投注
                 const positionMap = {
                     'champion': 1, '冠軍': 1,
                     'runnerup': 2, '亞軍': 2,
@@ -613,6 +698,20 @@ class FixedDrawSystemManager {
                     });
                     console.log(`  收集到兩面投注: 第${position}名 ${bet.betValue}`);
                 }
+            } else if (bet.betType === 'sum' || bet.betType === 'sumValue' || bet.betType === '冠亞和') {
+                // 3. 冠亞和投注
+                sumBets.push({
+                    value: bet.betValue,
+                    amount: bet.amount
+                });
+                console.log(`  收集到冠亞和投注: ${bet.betValue}`);
+            } else if (bet.betType === 'dragon_tiger' || bet.betType === 'dragonTiger' || bet.betType === '龍虎') {
+                // 4. 龍虎投注
+                dragonTigerBets.push({
+                    value: bet.betValue,
+                    amount: bet.amount
+                });
+                console.log(`  收集到龍虎投注: ${bet.betValue}`);
             }
         });
         
@@ -620,7 +719,121 @@ class FixedDrawSystemManager {
         const result = Array(10).fill(0);
         const usedNumbers = new Set();
         
-        // 先處理大小單雙投注
+        // 1. 處理冠亞和投注 - 優先處理，因為會影響前兩個位置
+        if (sumBets.length > 0) {
+            // 同時考慮前兩個位置的其他投注條件
+            const championConditions = twoSidesBets[1] || [];
+            const runnerupConditions = twoSidesBets[2] || [];
+            const championNumber = userBetsByPosition[1] ? userBetsByPosition[1][0]?.number : null;
+            const runnerupNumber = userBetsByPosition[2] ? userBetsByPosition[2][0]?.number : null;
+            
+            // 找出所有可能的冠亞組合
+            const possiblePairs = [];
+            for (let i = 1; i <= 10; i++) {
+                for (let j = 1; j <= 10; j++) {
+                    if (i !== j) {
+                        const sum = i + j;
+                        let isValid = true;
+                        
+                        // 檢查是否符合所有冠亞和投注
+                        for (const sumBet of sumBets) {
+                            if (!this.checkSumWin(sum, sumBet.value)) {
+                                isValid = false;
+                                break;
+                            }
+                        }
+                        
+                        // 檢查是否符合冠軍的其他條件
+                        if (isValid && championConditions.length > 0) {
+                            for (const condition of championConditions) {
+                                if (condition.type === 'big' || condition.type === '大') {
+                                    if (i < 6) { isValid = false; break; }
+                                } else if (condition.type === 'small' || condition.type === '小') {
+                                    if (i > 5) { isValid = false; break; }
+                                } else if (condition.type === 'odd' || condition.type === '單') {
+                                    if (i % 2 === 0) { isValid = false; break; }
+                                } else if (condition.type === 'even' || condition.type === '雙') {
+                                    if (i % 2 === 1) { isValid = false; break; }
+                                }
+                            }
+                        }
+                        
+                        // 檢查是否符合亞軍的其他條件
+                        if (isValid && runnerupConditions.length > 0) {
+                            for (const condition of runnerupConditions) {
+                                if (condition.type === 'big' || condition.type === '大') {
+                                    if (j < 6) { isValid = false; break; }
+                                } else if (condition.type === 'small' || condition.type === '小') {
+                                    if (j > 5) { isValid = false; break; }
+                                } else if (condition.type === 'odd' || condition.type === '單') {
+                                    if (j % 2 === 0) { isValid = false; break; }
+                                } else if (condition.type === 'even' || condition.type === '雙') {
+                                    if (j % 2 === 1) { isValid = false; break; }
+                                }
+                            }
+                        }
+                        
+                        // 優先選擇符合號碼投注的組合
+                        if (isValid) {
+                            const priority = (championNumber === i ? 10 : 0) + (runnerupNumber === j ? 10 : 0);
+                            possiblePairs.push([i, j, priority]);
+                        }
+                    }
+                }
+            }
+            
+            if (possiblePairs.length > 0) {
+                // 優先選擇高優先級的組合
+                possiblePairs.sort((a, b) => b[2] - a[2]);
+                const selectedPair = possiblePairs[0];
+                result[0] = selectedPair[0];
+                result[1] = selectedPair[1];
+                usedNumbers.add(selectedPair[0]);
+                usedNumbers.add(selectedPair[1]);
+                console.log(`  冠亞和控制: 選擇冠軍${selectedPair[0]}，亞軍${selectedPair[1]}，和值${selectedPair[0] + selectedPair[1]}`);
+            }
+        }
+        
+        // 2. 處理龍虎投注
+        if (dragonTigerBets.length > 0) {
+            for (const dtBet of dragonTigerBets) {
+                const parts = dtBet.value.split('_');
+                if (parts.length >= 3) {
+                    const pos1 = parseInt(parts[1]);
+                    const pos2 = parseInt(parts[2]);
+                    const betSide = parts[0]; // dragon or tiger
+                    
+                    // 如果這兩個位置還沒有設定
+                    if (result[pos1 - 1] === 0 && result[pos2 - 1] === 0) {
+                        const availableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(n => !usedNumbers.has(n));
+                        if (availableNumbers.length >= 2) {
+                            // 隨機選擇兩個數字
+                            const idx1 = Math.floor(Math.random() * availableNumbers.length);
+                            const num1 = availableNumbers[idx1];
+                            availableNumbers.splice(idx1, 1);
+                            
+                            const idx2 = Math.floor(Math.random() * availableNumbers.length);
+                            const num2 = availableNumbers[idx2];
+                            
+                            // 根據投注設定大小
+                            if (betSide === 'dragon') {
+                                result[pos1 - 1] = Math.max(num1, num2);
+                                result[pos2 - 1] = Math.min(num1, num2);
+                            } else {
+                                result[pos1 - 1] = Math.min(num1, num2);
+                                result[pos2 - 1] = Math.max(num1, num2);
+                            }
+                            
+                            usedNumbers.add(result[pos1 - 1]);
+                            usedNumbers.add(result[pos2 - 1]);
+                            console.log(`  龍虎控制: 位置${pos1}=${result[pos1 - 1]}，位置${pos2}=${result[pos2 - 1]}，${betSide}贏`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 3. 處理大小單雙投注
         for (let position = 1; position <= 10; position++) {
             const posTwoSides = twoSidesBets[position] || [];
             
@@ -646,7 +859,7 @@ class FixedDrawSystemManager {
             }
         }
         
-        // 再處理號碼投注
+        // 4. 處理號碼投注
         for (let position = 1; position <= 10; position++) {
             const userBets = userBetsByPosition[position] || [];
             
@@ -676,6 +889,42 @@ class FixedDrawSystemManager {
         
         console.log(`✅ [贏控制] 最終結果: ${result.join(', ')}`);
         return result;
+    }
+
+    /**
+     * 檢查和值是否會讓用戶輸
+     */
+    checkSumLose(sum, betValue) {
+        if (/^\d+$/.test(betValue)) {
+            return sum !== parseInt(betValue);
+        } else if (['big', '大'].includes(betValue)) {
+            return sum < 12;
+        } else if (['small', '小'].includes(betValue)) {
+            return sum > 11;
+        } else if (['odd', '單'].includes(betValue)) {
+            return sum % 2 === 0;
+        } else if (['even', '雙'].includes(betValue)) {
+            return sum % 2 === 1;
+        }
+        return true;
+    }
+
+    /**
+     * 檢查和值是否會讓用戶贏
+     */
+    checkSumWin(sum, betValue) {
+        if (/^\d+$/.test(betValue)) {
+            return sum === parseInt(betValue);
+        } else if (['big', '大'].includes(betValue)) {
+            return sum >= 12;
+        } else if (['small', '小'].includes(betValue)) {
+            return sum <= 11;
+        } else if (['odd', '單'].includes(betValue)) {
+            return sum % 2 === 1;
+        } else if (['even', '雙'].includes(betValue)) {
+            return sum % 2 === 0;
+        }
+        return false;
     }
 
     /**
