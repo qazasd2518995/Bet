@@ -116,13 +116,15 @@ class FixedDrawSystemManager {
      */
     async analyzePeriodBets(period) {
         try {
+            console.log(`📊 [下注分析] 開始分析期號 ${period} 的下注情況`);
             const allBets = await db.manyOrNone(`
                 SELECT bet_type, bet_value, position, amount, username
                 FROM bet_history 
-                WHERE period = $1 AND settled = false
+                WHERE period = $1
             `, [period]);
             
             if (!allBets || allBets.length === 0) {
+                console.log(`📊 [下注分析] 期號 ${period} 沒有找到任何下注記錄`);
                 return {
                     totalAmount: 0,
                     betCount: 0,
