@@ -283,8 +283,8 @@ function quickCheckWin(bet, winResult) {
         const positionIndex = getPositionIndex(betType, bet.position);
         
         // Debug logging for position bets
-        if (bet.period === '20250714396' || bet.period === 20250714396) {
-            console.log(`[DEBUG] Position bet check: betType=${betType}, positionIndex=${positionIndex}`);
+        if (bet.period === '20250714396' || bet.period === 20250714396 || bet.period === '20250717720' || bet.period === 20250717720) {
+            console.log(`[DEBUG] Position bet check: betType=${betType}, positionIndex=${positionIndex}, betValue=${betValue}`);
         }
         
         if (positionIndex === -1) return false;
@@ -292,8 +292,9 @@ function quickCheckWin(bet, winResult) {
         const number = positions[positionIndex];
         
         // Debug logging for position result
-        if (bet.period === '20250714396' || bet.period === 20250714396) {
+        if (bet.period === '20250714396' || bet.period === 20250714396 || bet.period === '20250717720' || bet.period === 20250717720) {
             console.log(`[DEBUG] Position ${positionIndex + 1} has number ${number}, betting on ${betValue}`);
+            console.log(`[DEBUG] Positions array:`, positions);
         }
         
         switch (betValue) {
