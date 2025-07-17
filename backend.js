@@ -4835,7 +4835,9 @@ app.get('/api/history', async (req, res) => {
       // 獲取分頁數據
       const offset = (pageNumber - 1) * pageSize;
       const query = `
-        SELECT period, result, created_at 
+        SELECT period, result, created_at,
+               position_1, position_2, position_3, position_4, position_5,
+               position_6, position_7, position_8, position_9, position_10
         FROM result_history 
         ${fullWhereClause} 
         ORDER BY created_at DESC 
@@ -4846,11 +4848,15 @@ app.get('/api/history', async (req, res) => {
     
     // 轉換格式使其與前端相容
     const formattedResults = results.map(record => {
-      const result = parseDrawResult(record.result);
+      // 使用位置欄位來建立正確的結果陣列
+      const positionArray = [];
+      for (let i = 1; i <= 10; i++) {
+        positionArray.push(record[`position_${i}`]);
+      }
       
       return {
         period: record.period,
-        result,
+        result: positionArray, // 使用正確的位置順序
         time: record.created_at
       };
     });
