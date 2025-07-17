@@ -9438,8 +9438,11 @@
                         if (data.success && data.result) {
                             let resultArray = [];
                             
-                            // 处理不同格式的结果數據
-                            if (data.result.result_numbers) {
+                            // 優先使用 result_array（已經是正確位置順序的陣列）
+                            if (data.result.result_array && Array.isArray(data.result.result_array)) {
+                                resultArray = data.result.result_array.map(num => parseInt(num));
+                            } else if (data.result.result_numbers) {
+                                // 退回處理舊格式
                                 if (typeof data.result.result_numbers === 'string') {
                                     resultArray = data.result.result_numbers.split(',').map(num => parseInt(num.trim()));
                                 } else if (Array.isArray(data.result.result_numbers)) {

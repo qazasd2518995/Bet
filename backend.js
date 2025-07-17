@@ -6150,7 +6150,9 @@ app.get('/api/results/latest', async (req, res) => {
     console.log('收到獲取最新開獎結果請求');
     
     const result = await db.oneOrNone(`
-      SELECT period, result, created_at 
+      SELECT period, result, created_at,
+             position_1, position_2, position_3, position_4, position_5,
+             position_6, position_7, position_8, position_9, position_10
       FROM result_history 
       ORDER BY created_at DESC 
       LIMIT 1
@@ -6158,11 +6160,19 @@ app.get('/api/results/latest', async (req, res) => {
     
     if (result) {
       console.log(`返回最新開獎結果: 期號=${result.period}`);
+      
+      // 構建正確的位置陣列
+      const positionArray = [];
+      for (let i = 1; i <= 10; i++) {
+        positionArray.push(result[`position_${i}`]);
+      }
+      
       res.json({
         success: true,
         result: {
           period: result.period,
-          result_numbers: Array.isArray(result.result) ? result.result.join(',') : result.result,
+          result_numbers: positionArray.join(','),
+          result_array: positionArray, // 直接返回陣列格式
           created_at: result.created_at
         }
       });
