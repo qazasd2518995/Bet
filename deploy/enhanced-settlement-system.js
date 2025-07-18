@@ -434,16 +434,33 @@ function checkTwoSidesBet(betType, betValue, winningNumber, odds) {
     let isWin = false;
     let description = '';
     
+    // 判斷是否為冠亞和投注
+    const isSumBet = betType === '冠亞和' || betType === 'sum' || betType === 'sumValue';
+    
     switch (betValue) {
         case 'big':
         case '大':
-            isWin = winningNumber >= 6;
-            description = winningNumber >= 6 ? '大' : '小';
+            if (isSumBet) {
+                // 冠亞和大小：12-19為大，3-11為小
+                isWin = winningNumber >= 12;
+                description = winningNumber >= 12 ? '大' : '小';
+            } else {
+                // 位置大小：6-10為大，1-5為小
+                isWin = winningNumber >= 6;
+                description = winningNumber >= 6 ? '大' : '小';
+            }
             break;
         case 'small':
         case '小':
-            isWin = winningNumber <= 5;
-            description = winningNumber <= 5 ? '小' : '大';
+            if (isSumBet) {
+                // 冠亞和大小：12-19為大，3-11為小
+                isWin = winningNumber <= 11;
+                description = winningNumber <= 11 ? '小' : '大';
+            } else {
+                // 位置大小：6-10為大，1-5為小
+                isWin = winningNumber <= 5;
+                description = winningNumber <= 5 ? '小' : '大';
+            }
             break;
         case 'odd':
         case '單':
