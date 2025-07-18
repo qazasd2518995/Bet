@@ -5193,7 +5193,7 @@ app.post('/api/bet', async (req, res) => {
       }
       
              // 限紅驗證
-       const limitCheck = await validateBetLimits(betType, value, amountNum, userCurrentBets, username);
+       const limitCheck = await validateBetLimits(betType, value, amountNum, userCurrentBets, username, position);
        if (!limitCheck.valid) {
          console.error(`限紅驗證失敗: ${limitCheck.message}`);
          return res.status(400).json({ success: false, message: limitCheck.message });
@@ -5542,7 +5542,7 @@ async function startServer() {
 startServer();
 
 // 限紅驗證函數 - 支援動態限紅配置
-async function validateBetLimits(betType, value, amount, userBets = [], username = null) {
+async function validateBetLimits(betType, value, amount, userBets = [], username = null, position = null) {
   let limits;
   
   // 如果提供了用戶名，嘗試從代理系統獲取會員的限紅設定
@@ -5642,38 +5642,47 @@ async function validateBetLimits(betType, value, amount, userBets = [], username
     };
   }
   
-  // 檢查單期限額（計算當前期已投注金額）
-  const sameTypeBets = userBets.filter(bet => {
-    if (betType === 'number' || (
-      ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
-      !['big', 'small', 'odd', 'even'].includes(value)
-    )) {
-      return bet.betType === 'number' || (
-        ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(bet.betType) && 
-        !['big', 'small', 'odd', 'even'].includes(bet.value)
-      );
-    } else if (betType === 'dragonTiger') {
-      return bet.betType === 'dragonTiger';
-    } else if (betType === 'sumValue') {
-      if (['big', 'small'].includes(value)) {
-        return bet.betType === 'sumValue' && ['big', 'small'].includes(bet.value);
-      } else if (['odd', 'even'].includes(value)) {
-        return bet.betType === 'sumValue' && ['odd', 'even'].includes(bet.value);
-      } else {
-        return bet.betType === 'sumValue' && !['big', 'small', 'odd', 'even'].includes(bet.value);
-      }
-    } else {
-      return ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'position'].includes(bet.betType) && 
-             ['big', 'small', 'odd', 'even'].includes(bet.value);
+  // 檢查單期限額（按每個具體下注選項計算，而非類型總和）
+  const sameOptionBets = userBets.filter(bet => {
+    // 號碼投注：檢查相同位置和號碼
+    if (betType === 'number') {
+      return bet.betType === 'number' && 
+             bet.position === position && 
+             bet.value === value;
     }
+    
+    // 位置大小單雙：檢查相同位置和選項
+    if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) &&
+        ['big', 'small', 'odd', 'even'].includes(value)) {
+      return bet.betType === betType && bet.value === value;
+    }
+    
+    // 位置號碼：檢查相同位置和號碼
+    if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) &&
+        !['big', 'small', 'odd', 'even'].includes(value)) {
+      return bet.betType === betType && bet.value === value;
+    }
+    
+    // 龍虎：檢查相同的龍虎對戰選項
+    if (betType === 'dragonTiger') {
+      return bet.betType === 'dragonTiger' && bet.value === value;
+    }
+    
+    // 冠亞和值：檢查相同的和值選項
+    if (betType === 'sumValue') {
+      return bet.betType === 'sumValue' && bet.value === value;
+    }
+    
+    // 其他情況：完全匹配
+    return bet.betType === betType && bet.value === value && bet.position === position;
   });
   
-  const currentPeriodAmount = sameTypeBets.reduce((sum, bet) => sum + bet.amount, 0);
+  const currentOptionAmount = sameOptionBets.reduce((sum, bet) => sum + bet.amount, 0);
   
-  if (currentPeriodAmount + amount > limits.periodLimit) {
+  if (currentOptionAmount + amount > limits.periodLimit) {
     return {
       valid: false,
-      message: `單期限額為 ${limits.periodLimit} 元，已投注 ${currentPeriodAmount} 元，無法再投注 ${amount} 元`
+      message: `該選項單期限額為 ${limits.periodLimit} 元，已投注 ${currentOptionAmount} 元，無法再投注 ${amount} 元`
     };
   }
   
