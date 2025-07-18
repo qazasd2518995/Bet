@@ -536,16 +536,17 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
             WHERE username = $1 AND period = $2 AND settled = false
         `, [username, period]);
         
-        // 4. 按下注類型分組計算
-        const periodTotals = {};
+        // 4. 按每個具體下注選項分組計算（新邏輯）
+        const optionTotals = {};
         
         // 先計算已有下注
         existingBets.forEach(bet => {
-            const betCategory = getBetCategory(bet.bet_type, bet.bet_value, bet.position);
-            if (!periodTotals[betCategory]) {
-                periodTotals[betCategory] = 0;
+            // 使用具體的選項鍵，而不是類別
+            const optionKey = `${bet.bet_type}-${bet.bet_value}${bet.position ? `-${bet.position}` : ''}`;
+            if (!optionTotals[optionKey]) {
+                optionTotals[optionKey] = 0;
             }
-            periodTotals[betCategory] += parseFloat(bet.amount);
+            optionTotals[optionKey] += parseFloat(bet.amount);
         });
         
         // 5. 驗證新的批量下注
@@ -554,7 +555,10 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
             const betCategory = getBetCategory(bet.betType, bet.value, bet.position);
             const limits = userLimits[betCategory];
             
-            console.log(`🎲 檢查下注: betType=${bet.betType}, value=${bet.value}, amount=${amount}, category=${betCategory}`);
+            // 建立具體的選項鍵
+            const optionKey = `${bet.betType}-${bet.value}${bet.position ? `-${bet.position}` : ''}`;
+            
+            console.log(`🎲 檢查下注: betType=${bet.betType}, value=${bet.value}, amount=${amount}, optionKey=${optionKey}`);
             console.log(`📊 限紅配置:`, limits);
             
             if (!limits) {
@@ -583,21 +587,24 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
                 };
             }
             
-            // 累加到期號總額中
-            if (!periodTotals[betCategory]) {
-                periodTotals[betCategory] = 0;
+            // 累加到具體選項總額中（新邏輯）
+            if (!optionTotals[optionKey]) {
+                optionTotals[optionKey] = 0;
             }
-            periodTotals[betCategory] += amount;
+            const newTotal = optionTotals[optionKey] + amount;
             
-            // 檢查單期限額
-            if (periodTotals[betCategory] > limits.periodLimit) {
-                const existingAmount = periodTotals[betCategory] - amount;
+            // 檢查單期限額（每個選項獨立計算）
+            if (newTotal > limits.periodLimit) {
+                const existingAmount = optionTotals[optionKey];
                 const categoryName = getBetCategoryDisplayName(betCategory);
                 return {
                     success: false,
-                    message: `${categoryName}單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
+                    message: `該選項單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
                 };
             }
+            
+            // 更新選項總額
+            optionTotals[optionKey] = newTotal;
         }
         
         console.log(`✅ 批量下注限紅驗證通過`);
@@ -614,28 +621,37 @@ async function validateBatchBettingLimits(username, bets, period, AGENT_API_URL)
 
 // 獲取下注類型分類
 function getBetCategory(betType, betValue, position) {
-    // 總和相關下注 - 統一歸類為 sumValue
-    if (betType === 'sumValue') {
-        return 'sumValue';
-    }
-    
-    // 數字下注
-    if (betType === 'number' || (position && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(betValue))) {
-        return 'number';
-    }
-    
     // 龍虎下注
     if (betType === 'dragonTiger' || betType.includes('dragon') || betType.includes('tiger')) {
         return 'dragonTiger';
     }
     
-    // 雙面下注 (大小單雙等) - 位置相關的下注
-    if (['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) ||
-        (['big', 'small', 'odd', 'even'].includes(betValue) && betType !== 'sumValue')) {
+    // 冠亞和值下注
+    if (betType === 'sumValue' || betType === 'sum' || betType === '冠亞和') {
+        if (['big', 'small', '大', '小'].includes(betValue)) {
+            return 'sumValueSize';
+        } else if (['odd', 'even', '單', '雙'].includes(betValue)) {
+            return 'sumValueOddEven';
+        } else {
+            return 'sumValue';  // 具體數值
+        }
+    }
+    
+    // 號碼下注（包括位置號碼）
+    if (betType === 'number' || (
+        ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) && 
+        !['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(betValue)
+    )) {
+        return 'number';
+    }
+    
+    // 兩面下注（位置大小單雙）
+    if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'position'].includes(betType) && 
+        ['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(betValue)) {
         return 'twoSide';
     }
     
-    // 預設為雙面下注
+    // 預設為兩面下注
     return 'twoSide';
 }
 
