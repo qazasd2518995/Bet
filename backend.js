@@ -5643,43 +5643,58 @@ async function validateBetLimits(betType, value, amount, userBets = [], username
   }
   
   // 檢查單期限額（按每個具體下注選項計算，而非類型總和）
+  console.log(`[限紅檢查] 開始檢查: ${betType} ${value} ${amount}元, position=${position}`);
+  console.log(`[限紅檢查] 當前用戶已有 ${userBets.length} 筆投注`);
+  
   const sameOptionBets = userBets.filter(bet => {
+    // 確保 bet 物件存在
+    if (!bet) return false;
+    
+    // 處理可能的欄位名稱差異（betType 或 bet_type）
+    const betTypeField = bet.betType || bet.bet_type;
+    const betValueField = bet.value || bet.bet_value;
+    const betPositionField = bet.position;
+    
     // 號碼投注：檢查相同位置和號碼
     if (betType === 'number') {
-      return bet.betType === 'number' && 
-             bet.position === position && 
-             bet.value === value;
+      return betTypeField === 'number' && 
+             betPositionField === position && 
+             betValueField === value;
     }
     
     // 位置大小單雙：檢查相同位置和選項
     if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) &&
-        ['big', 'small', 'odd', 'even'].includes(value)) {
-      return bet.betType === betType && bet.value === value;
+        ['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(value)) {
+      return betTypeField === betType && betValueField === value;
     }
     
     // 位置號碼：檢查相同位置和號碼
     if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) &&
-        !['big', 'small', 'odd', 'even'].includes(value)) {
-      return bet.betType === betType && bet.value === value;
+        !['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(value)) {
+      return betTypeField === betType && betValueField === value;
     }
     
     // 龍虎：檢查相同的龍虎對戰選項
     if (betType === 'dragonTiger') {
-      return bet.betType === 'dragonTiger' && bet.value === value;
+      return betTypeField === 'dragonTiger' && betValueField === value;
     }
     
     // 冠亞和值：檢查相同的和值選項
     if (betType === 'sumValue') {
-      return bet.betType === 'sumValue' && bet.value === value;
+      return betTypeField === 'sumValue' && betValueField === value;
     }
     
     // 其他情況：完全匹配
-    return bet.betType === betType && bet.value === value && bet.position === position;
+    return betTypeField === betType && betValueField === value && betPositionField === position;
   });
   
   const currentOptionAmount = sameOptionBets.reduce((sum, bet) => sum + bet.amount, 0);
   
+  console.log(`[限紅檢查] 相同選項的投注: ${sameOptionBets.length} 筆，累計金額: ${currentOptionAmount}`);
+  console.log(`[限紅檢查] 限額配置: 單注最高${limits.maxBet}，單期限額${limits.periodLimit}`);
+  
   if (currentOptionAmount + amount > limits.periodLimit) {
+    console.log(`[限紅檢查] ❌ 超過單期限額！ ${currentOptionAmount} + ${amount} > ${limits.periodLimit}`);
     return {
       valid: false,
       message: `該選項單期限額為 ${limits.periodLimit} 元，已投注 ${currentOptionAmount} 元，無法再投注 ${amount} 元`
