@@ -8025,13 +8025,16 @@
                                     if (this.lastResults && this.lastResults.length === 10) {
                                         this.lastResults = [...this.lastResults];
                                         
-                                        // 確保 DOM 更新後清除動畫樣式
+                                        // 確保 DOM 更新後清除動畫樣式並刷新球色
                                         this.$nextTick(() => {
                                             const balls = document.querySelectorAll('.results-display-new .number-ball');
                                             balls.forEach(ball => {
                                                 ball.classList.remove('washing-ball');
                                                 ball.style = ''; // 清除所有內聯樣式
                                             });
+                                            
+                                            // 刷新球色
+                                            this.refreshBallColors();
                                         });
                                     }
                                 }
@@ -8103,6 +8106,11 @@
                                 if (!this.isDrawingInProgress) {
                                     this.lastResults = data.gameData.lastResult;
                                     console.log(`🎯 更新顯示结果: 期号=${serverPeriod}`);
+                                    
+                                    // 刷新球色顯示
+                                    this.$nextTick(() => {
+                                        this.refreshBallColors();
+                                    });
                                 } else {
                                     console.log(`⚠️ 開獎進行中，跳過更新顯示結果，但已保存到 lastResult`);
                                 }
@@ -11853,6 +11861,100 @@
                 showBetSlip(betType, choice, odds) {
                     // Implement the logic to show the bet slip for the selected bet
                     console.log(`Showing bet slip for ${betType}: ${choice} with odds: ${odds}`);
+                },
+                
+                // 🛑 停止洗球動畫並更新球色
+                stopWashingAnimation() {
+                    console.log('🛑 停止洗球動畫並更新最新结果');
+                    
+                    // 停止洗球動畫標記
+                    this.showWashingAnimation = false;
+                    
+                    // 清除超時保護
+                    if (this.animationTimeout) {
+                        clearTimeout(this.animationTimeout);
+                        this.animationTimeout = null;
+                    }
+                    
+                    // 重置重試計數
+                    this.retryCount = 0;
+                    
+                    // 確保使用最新的結果，觸發 Vue 響應式更新
+                    if (this.lastResults && this.lastResults.length === 10) {
+                        console.log('📊 使用已設定的開獎結果', this.lastResults);
+                        // 使用 Vue.set 或數組擴展來確保響應式更新
+                        this.$set(this, 'lastResults', [...this.lastResults]);
+                        
+                        // 強制更新 DOM 確保顯示正確
+                        this.$nextTick(() => {
+                            this.refreshBallColors();
+                        });
+                    }
+                },
+                
+                // 🎨 刷新球色顯示
+                refreshBallColors() {
+                    console.log('🎨 刷新球色顯示...');
+                    const balls = document.querySelectorAll('.results-display-new .number-ball');
+                    
+                    balls.forEach((ball, index) => {
+                        // 移除所有顏色類別
+                        for (let i = 1; i <= 10; i++) {
+                            ball.classList.remove(`color-${i}`);
+                        }
+                        ball.classList.remove('washing-ball');
+                        
+                        // 獲取當前號碼
+                        const number = this.lastResults[index];
+                        if (number) {
+                            // 添加正確的顏色類別
+                            ball.classList.add(`color-${number}`);
+                            ball.textContent = number;
+                            
+                            // 清除所有內聯樣式
+                            ball.style = '';
+                            
+                            console.log(`球${index + 1}: 號碼${number}, 顏色class=color-${number}`);
+                        }
+                    });
+                    
+                    // 也更新歷史記錄中的球色
+                    this.$nextTick(() => {
+                        this.refreshHistoryBallColors();
+                    });
+                    
+                    console.log('✅ 球色刷新完成');
+                },
+                
+                // 🎨 刷新歷史記錄球色
+                refreshHistoryBallColors() {
+                    // 刷新開獎紀錄彈窗中的球色
+                    const historyBalls = document.querySelectorAll('.draw-result-number .ball');
+                    historyBalls.forEach(ball => {
+                        const number = parseInt(ball.textContent);
+                        if (!isNaN(number)) {
+                            // 移除所有顏色類別
+                            for (let i = 1; i <= 10; i++) {
+                                ball.classList.remove(`color-${i}`);
+                            }
+                            // 添加正確的顏色類別
+                            ball.classList.add(`color-${number}`);
+                        }
+                    });
+                    
+                    // 刷新投注記錄中的球色
+                    const betHistoryBalls = document.querySelectorAll('.draw-numbers .number-ball');
+                    betHistoryBalls.forEach(ball => {
+                        const number = parseInt(ball.textContent);
+                        if (!isNaN(number)) {
+                            // 移除所有顏色類別
+                            for (let i = 1; i <= 10; i++) {
+                                ball.classList.remove(`color-${i}`);
+                            }
+                            // 添加正確的顏色類別
+                            ball.classList.add(`color-${number}`);
+                        }
+                    });
                 },
             },
             mounted() {
