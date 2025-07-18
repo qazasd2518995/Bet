@@ -9365,24 +9365,40 @@
                     }
                     return periodStr;
                 },
-                // 動畫開關控制 - 确保获取到最新开奖结果或开奖中使用預先结果
+                // 動畫開關控制 - 在開獎階段播放即時競爭動畫
                 toggleAnimation() {
-                    console.log(`点击赛车按鈕 - 游戏狀態: ${this.gameStatus}, 倒计时: ${this.countdownSeconds}, 期号: ${this.currentPeriod}, 开奖中: ${this.isDrawingInProgress}`);
+                    console.log(`🏎️ 點擊賽車按鈕 - 遊戲狀態: ${this.gameStatus}, 倒計時: ${this.countdownSeconds}, 期號: ${this.currentPeriod}`);
                     
-                    // 如果正在开奖中，提示等待
-                    if (this.isDrawingInProgress) {
-                        console.log('🏁 正在開獎中，請稍候...');
-                        this.displayNotification('正在開獎中，請稍候...');
+                    // 如果有動畫正在播放，先關閉
+                    const existingOverlay = document.querySelector('.race-animation-overlay, .race-competition-overlay');
+                    if (existingOverlay) {
+                        existingOverlay.remove();
                         return;
                     }
                     
-                    // 如果正在下注期间（倒计时大於0），顯示提示
-                    if (this.gameStatus === 'betting' && this.countdownSeconds > 0) {
-                        this.displayNotification('尚未开奖，请等待开奖後再播放動畫！');
+                    // 在開獎階段（drawing）播放當期競爭動畫
+                    if (this.gameStatus === 'drawing') {
+                        console.log('🏁 開獎中 - 開始賽車競爭動畫');
+                        // 清除任何可能存在的舊結果，確保不會播放上一期
+                        this.lastResults = null;
+                        this.startRaceCompetition();
                         return;
                     }
                     
-                    // 顯示加載提示
+                    // 如果正在下注期间但有上期結果，播放上期動畫
+                    if (this.gameStatus === 'betting' && this.lastResults && this.lastResults.length === 10) {
+                        console.log('🎬 播放上期賽車結果動畫');
+                        this.playRaceAnimation();
+                        return;
+                    }
+                    
+                    // 其他情況下注期間不允許播放
+                    if (this.gameStatus === 'betting') {
+                        this.displayNotification('請等待開獎階段開始');
+                        return;
+                    }
+                    
+                    // 只有在非開獎狀態時才嘗試獲取最新結果
                     this.displayNotification('正在获取最新开奖结果...');
                     
                     // 多重嘗試获取最新结果
@@ -9843,19 +9859,19 @@
                     }
                 },
                 
-                // 🏁 开始赛车竞赛（真實竞赛過程，不預知结果）
+                // 🏁 开始赛车竞赛（真實竞赛過程，等待開獎結果）
                 startRaceCompetition() {
-                    console.log('🏁 开始赛车竞赛 - 10輛車开始角逐');
+                    console.log('🏁 开始赛车竞赛 - 當期賽車競爭動畫');
                     
-                    // 移除已存在的赛车覆蓋層
-                    const existingOverlay = document.querySelector('.race-competition-overlay');
+                    // 移除已存在的覆蓋層
+                    const existingOverlay = document.querySelector('.race-animation-overlay, .race-competition-overlay');
                     if (existingOverlay) {
                         existingOverlay.remove();
                     }
                     
-                    // 创建赛车竞赛覆蓋層
+                    // 创建赛车動畫覆蓋層
                     const raceContainer = document.createElement('div');
-                    raceContainer.className = 'race-competition-overlay';
+                    raceContainer.className = 'race-animation-overlay';
                     raceContainer.style.cssText = `
                         position: fixed;
                         top: 0;
@@ -9869,13 +9885,13 @@
                         justify-content: center;
                     `;
                     
-                    // 创建賽道容器
-                    const trackContainer = document.createElement('div');
-                    trackContainer.className = 'race-track-container';
-                    trackContainer.style.cssText = `
-                        width: 95%;
-                        max-width: 1200px;
-                        height: 500px;
+                    // 创建動畫容器
+                    const animationContainer = document.createElement('div');
+                    animationContainer.className = 'race-animation-container';
+                    animationContainer.style.cssText = `
+                        width: 90%;
+                        max-width: 1000px;
+                        height: 600px;
                         background: linear-gradient(135deg, #0f0f23, #1a1a2e);
                         border-radius: 15px;
                         position: relative;
@@ -9896,15 +9912,30 @@
                         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
                         z-index: 10001;
                     `;
-                    title.textContent = '🏁 FS赛车开奖中 🏁';
-                    trackContainer.appendChild(title);
+                    title.textContent = `🏁 第${this.formattedCurrentPeriod}期 开奖中 🏁`;
+                    animationContainer.appendChild(title);
+                    
+                    // 创建赛道容器
+                    const trackContainer = document.createElement('div');
+                    trackContainer.style.cssText = `
+                        position: absolute;
+                        top: 60px;
+                        left: 20px;
+                        right: 20px;
+                        bottom: 20px;
+                        background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 100%);
+                        border-radius: 10px;
+                        padding: 20px 20px 40px 20px;
+                        overflow: visible;
+                    `;
+                    animationContainer.appendChild(trackContainer);
                     
                     // 创建终点線
                     const finishLine = document.createElement('div');
                     finishLine.className = 'finish-line';
                     finishLine.style.cssText = `
                         position: absolute;
-                        right: 30px;
+                        right: 80px;
                         top: 60px;
                         bottom: 30px;
                         width: 6px;
@@ -9921,22 +9952,242 @@
                     `;
                     trackContainer.appendChild(finishLine);
                     
+                    raceContainer.appendChild(animationContainer);
+                    document.body.appendChild(raceContainer);
+                    
+                    // 储存覆蓋層引用以便後續控制 - 必須在創建賽車之前設置
+                    this.raceOverlay = raceContainer;
+                    
                     // 创建10輛赛车並开始竞赛
                     this.createCompetingCars(trackContainer);
                     
-                    raceContainer.appendChild(trackContainer);
-                    document.body.appendChild(raceContainer);
-                    
-                    // 储存覆蓋層引用以便後續控制
-                    this.raceOverlay = raceContainer;
-                    
                     // 播放音效
                     this.playSound('draw');
+                    
+                    // 開始監聽開獎結果
+                    this.waitForRaceResults();
+                },
+                
+                // 🎯 等待開獎結果並結束競賽
+                waitForRaceResults() {
+                    console.log('🎯 等待開獎結果...');
+                    
+                    // 記錄當前期號，確保等待的是當期結果
+                    const targetPeriod = this.currentPeriod;
+                    console.log(`📍 等待期號 ${targetPeriod} 的開獎結果`);
+                    
+                    const checkForResults = () => {
+                        // 檢查遊戲狀態是否仍在開獎中
+                        if (this.gameStatus !== 'drawing') {
+                            console.log('✅ 開獎階段已結束');
+                            
+                            // 嘗試從 API 獲取最新結果
+                            this.getLatestResultFromHistory().then((results) => {
+                                if (results && results.length === 10) {
+                                    console.log('✅ 獲取到開獎結果:', results);
+                                    this.lastResults = results;
+                                    
+                                    // 清理等待狀態
+                                    if (this.shakeInterval) {
+                                        clearInterval(this.shakeInterval);
+                                        this.shakeInterval = null;
+                                    }
+                                    
+                                    // 移除等待訊息
+                                    const waitingMessage = this.raceOverlay?.querySelector('[style*="pulse"]');
+                                    if (waitingMessage) {
+                                        waitingMessage.remove();
+                                    }
+                                    
+                                    // 重置所有賽車位置
+                                    if (this.racingCars) {
+                                        this.racingCars.forEach(car => {
+                                            car.element.style.transform = '';
+                                        });
+                                    }
+                                    
+                                    // 直接開始賽跑到終點
+                                    this.startRaceToFinish(results);
+                                } else {
+                                    console.log('⚠️ 無法獲取開獎結果');
+                                    // 關閉動畫
+                                    if (this.raceOverlay) {
+                                        this.raceOverlay.remove();
+                                        this.raceOverlay = null;
+                                    }
+                                }
+                            });
+                        } else if (this.racingCars) {
+                            // 繼續等待
+                            setTimeout(checkForResults, 500);
+                        }
+                    };
+                    
+                    // 開始檢查
+                    setTimeout(checkForResults, 1000);
+                },
+                
+                // 🏁 開始賽跑到終點（根據開獎結果）
+                startRaceToFinish(results) {
+                    console.log('🏁 開獎結果已出，開始賽跑！', results);
+                    
+                    if (!this.racingCars || !this.raceOverlay) {
+                        return;
+                    }
+                    
+                    const containerWidth = this.raceOverlay.querySelector('.race-animation-container')?.offsetWidth || 1200;
+                    const finishLinePosition = containerWidth - 120;
+                    
+                    // 更新標題
+                    const title = this.raceOverlay.querySelector('.race-animation-container > div');
+                    if (title && title.style.zIndex === '10001') {
+                        title.textContent = '🏁 比賽開始！ 🏁';
+                        title.style.color = '#00ff00';
+                    }
+                    
+                    // 根據開獎結果設置每輛車的到達時間和最終位置
+                    results.forEach((carNumber, rank) => {
+                        const car = this.racingCars.find(c => c.number === carNumber);
+                        if (car) {
+                            // 第一名在终点線前80px，後面每名拉開30px
+                            const finalPos = finishLinePosition - 80 - (rank * 30);
+                            
+                            // 根據名次決定到達時間
+                            const baseTime = 1000; // 基礎時間1秒
+                            const arrivalTime = baseTime + (rank * 300); // 每個名次差300ms
+                            
+                            // 設置動畫
+                            setTimeout(() => {
+                                car.element.style.transition = `left ${2000 + rank * 100}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                                car.element.style.left = `${finalPos}px`;
+                                
+                                // 前三名添加特效
+                                if (rank < 3) {
+                                    setTimeout(() => {
+                                        car.element.style.filter = 'drop-shadow(0 0 25px gold)';
+                                        car.element.style.transform = 'scale(1.15)';
+                                        
+                                        // 為號碼球添加特殊顏色
+                                        const numberBall = car.element.querySelector('span:last-child');
+                                        if (numberBall) {
+                                            if (rank === 0) {
+                                                numberBall.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)';
+                                                numberBall.style.border = '2px solid #FFD700';
+                                            } else if (rank === 1) {
+                                                numberBall.style.background = 'linear-gradient(135deg, #C0C0C0, #E5E5E5)';
+                                                numberBall.style.border = '2px solid #C0C0C0';
+                                            } else if (rank === 2) {
+                                                numberBall.style.background = 'linear-gradient(135deg, #CD7F32, #D2691E)';
+                                                numberBall.style.border = '2px solid #CD7F32';
+                                            }
+                                        }
+                                    }, 2000 + rank * 100);
+                                }
+                            }, arrivalTime);
+                        }
+                    });
+                    
+                    // 播放音效
+                    this.playSound('win');
+                    
+                    // 顯示結果面板
+                    setTimeout(() => {
+                        this.showResultPanel(results);
+                    }, 4000);
+                    
+                    // 添加關閉按鈕
+                    setTimeout(() => {
+                        const closeButton = document.createElement('button');
+                        closeButton.innerText = '✕ 關閉';
+                        closeButton.style.cssText = `
+                            position: absolute;
+                            top: 20px;
+                            right: 20px;
+                            background: rgba(255, 0, 0, 0.6);
+                            border: none;
+                            color: white;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            font-weight: bold;
+                            z-index: 10001;
+                            transition: all 0.3s ease;
+                        `;
+                        
+                        closeButton.onmouseover = () => {
+                            closeButton.style.background = 'rgba(255, 0, 0, 0.8)';
+                            closeButton.style.transform = 'scale(1.1)';
+                        };
+                        
+                        closeButton.onmouseout = () => {
+                            closeButton.style.background = 'rgba(255, 0, 0, 0.6)';
+                            closeButton.style.transform = 'scale(1)';
+                        };
+                        
+                        closeButton.onclick = () => {
+                            if (this.raceOverlay) {
+                                this.raceOverlay.remove();
+                                this.raceOverlay = null;
+                            }
+                        };
+                        
+                        this.raceOverlay.querySelector('.race-animation-container').appendChild(closeButton);
+                    }, 5000);
+                },
+                
+                // 🏆 顯示結果面板
+                showResultPanel(results) {
+                    const resultPanel = document.createElement('div');
+                    resultPanel.style.cssText = `
+                        position: absolute;
+                        bottom: 30px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: rgba(0, 0, 0, 0.9);
+                        padding: 20px;
+                        border-radius: 10px;
+                        color: white;
+                        text-align: center;
+                        font-size: 18px;
+                        border: 2px solid #ffd700;
+                        z-index: 1000;
+                    `;
+                    
+                    resultPanel.innerHTML = `
+                        <div style="margin-bottom: 10px; font-weight: bold; color: #ffd700;">
+                            🎊 第${this.formattedCurrentPeriod}期開獎結果 🎊
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            ${results.map((num, i) => `
+                                <div style="
+                                    width: 40px;
+                                    height: 40px;
+                                    border-radius: 50%;
+                                    background-color: ${this.getColorForNumber(num)};
+                                    color: white;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-weight: bold;
+                                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                                    border: 2px solid rgba(255,255,255,0.3);
+                                ">
+                                    ${num}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    const container = this.raceOverlay?.querySelector('.race-animation-container');
+                    if (container) {
+                        container.appendChild(resultPanel);
+                    }
                 },
                 
                 // 🏎️ 创建竞赛中的赛车
                 createCompetingCars(container) {
-                    const trackHeight = 400;
+                    const trackHeight = 480;
                     const carCount = 10;
                     const spacing = trackHeight / carCount;
                     const containerWidth = container.offsetWidth || 1200;
@@ -9950,7 +10201,7 @@
                         car.style.cssText = `
                             position: absolute;
                             left: 50px;
-                            top: ${60 + (i-1) * spacing}px;
+                            top: ${40 + (i-1) * spacing}px;
                             font-size: 28px;
                             z-index: 1000;
                             transition: left 0.3s ease-out;
@@ -9991,17 +10242,78 @@
                         });
                     }
                     
-                    // 开始隨機竞赛動畫
-                    this.startRandomRacing();
+                    // 不開始競爭，只顯示等待狀態
+                    this.showWaitingState();
+                },
+                
+                // 🏁 顯示等待狀態
+                showWaitingState() {
+                    console.log('🏁 賽車在起點等待開獎結果...');
+                    
+                    // 添加等待中的提示
+                    const waitingMessage = document.createElement('div');
+                    waitingMessage.style.cssText = `
+                        position: absolute;
+                        bottom: 50px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: rgba(0, 0, 0, 0.8);
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        color: #ffff00;
+                        font-size: 20px;
+                        font-weight: bold;
+                        text-align: center;
+                        z-index: 1000;
+                        animation: pulse 2s infinite;
+                    `;
+                    waitingMessage.innerHTML = `
+                        <div>⏳ 等待開獎中...</div>
+                        <div style="font-size: 14px; margin-top: 5px; color: #ffffff;">賽車已就位，即將開始比賽</div>
+                    `;
+                    
+                    const container = this.raceOverlay.querySelector('.race-animation-container');
+                    if (container) {
+                        container.appendChild(waitingMessage);
+                    }
+                    
+                    // 添加脈衝動畫
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes pulse {
+                            0% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+                            50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+                            100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    // 讓所有賽車稍微震動，表示引擎已啟動
+                    if (this.racingCars) {
+                        let shakeInterval = setInterval(() => {
+                            if (!this.racingCars || !this.raceOverlay) {
+                                clearInterval(shakeInterval);
+                                return;
+                            }
+                            
+                            this.racingCars.forEach(car => {
+                                const shake = (Math.random() - 0.5) * 2;
+                                car.element.style.transform = `translateX(${shake}px)`;
+                            });
+                        }, 100);
+                        
+                        // 儲存震動間隔以便清理
+                        this.shakeInterval = shakeInterval;
+                    }
                 },
                 
                 // 🎯 开始隨機竞赛動畫（真實角逐過程）
                 startRandomRacing() {
                     console.log('🎯 开始真實赛车竞赛，車輛激烈前後角逐');
                     
-                    // 給每輛車一個初始基礎速度
+                    // 給每輛車一個較慢的初始基礎速度
                     this.racingCars.forEach(car => {
-                        car.speed = 3 + Math.random() * 4; // 初始速度3-7
+                        car.speed = 2 + Math.random() * 3; // 初始速度2-5（降低速度）
                         car.acceleration = 0; // 加速度
                         car.momentum = 0; // 動量
                     });
@@ -10013,47 +10325,50 @@
                         
                         // 每輛車激烈競爭移動
                         this.racingCars.forEach((car, index) => {
-                            // 更複雜的速度變化邏輯
-                            const randomFactor = Math.random() * 6 - 3; // -3 到 +3 的隨機變化
-                            const momentumChange = Math.random() * 2 - 1; // 動量變化
+                            // 更平緩的速度變化邏輯
+                            const randomFactor = Math.random() * 3 - 1.5; // -1.5 到 +1.5 的隨機變化（大幅降低）
+                            const momentumChange = Math.random() * 0.8 - 0.4; // 動量變化（大幅降低）
                             
                             // 加速度影響速度
-                            car.acceleration += (Math.random() - 0.5) * 0.5;
-                            car.acceleration = Math.max(-1, Math.min(1, car.acceleration)); // 限制加速度
+                            car.acceleration += (Math.random() - 0.5) * 0.2; // 降低加速度變化
+                            car.acceleration = Math.max(-0.5, Math.min(0.5, car.acceleration)); // 限制加速度
                             
                             // 動量系统讓車輛移動更自然
                             car.momentum += car.acceleration;
-                            car.momentum *= 0.95; // 動量衰減
+                            car.momentum *= 0.9; // 動量衰減
                             
                             // 计算最终速度
                             car.speed += randomFactor + car.momentum + momentumChange;
-                            car.speed = Math.max(2, Math.min(10, car.speed)); // 速度范围2-10，更快更激烈
+                            car.speed = Math.max(1, Math.min(6, car.speed)); // 速度范围1-6（大幅降低）
                             
                             
                             // 根據位置调整競爭策略（後面的車更容易加速追趕）
                             const averagePosition = this.racingCars.reduce((sum, c) => sum + c.position, 0) / this.racingCars.length;
                             if (car.position < averagePosition * 0.8) {
-                                car.speed += Math.random() * 2; // 落後的車获得追趕加成
+                                car.speed += Math.random() * 1; // 落後的車获得追趕加成（降低）
                             }
                             
                             // 根據速度移動位置
                             car.position += car.speed;
                             
-                            // 限制不要超過终点線太多
-                            const maxPosition = (this.raceOverlay?.querySelector('.race-track-container')?.offsetWidth || 1200) - 120;
-                            if (car.position > maxPosition * 0.95) {
-                                car.position = maxPosition * 0.95;
-                                car.speed *= 0.3; // 大幅減速，不讓車輛到達终点
+                            // 限制賽車在終點線前較遠的位置，確保不會到達終點
+                            const maxPosition = (this.raceOverlay?.querySelector('.race-animation-container')?.offsetWidth || 1200) - 120;
+                            const competitionLimit = maxPosition * 0.7; // 只能到達賽道的 70%
+                            
+                            if (car.position > competitionLimit) {
+                                // 到達限制位置後，讓賽車在這個區域內來回競爭
+                                car.position = competitionLimit - Math.random() * 50; // 後退一些
+                                car.speed = Math.random() * 3 + 1; // 大幅降低速度
                             }
                             
                             // 更新視覺位置，添加運動模糊效果
                             car.element.style.left = `${car.position}px`;
                             
                             // 根據速度添加動態效果
-                            if (car.speed > 7) {
+                            if (car.speed > 5) {
                                 car.element.style.filter = 'drop-shadow(0 0 12px rgba(255, 100, 0, 0.9))';
                                 car.element.style.transform = 'scale(1.05)';
-                            } else if (car.speed > 5) {
+                            } else if (car.speed > 3.5) {
                                 car.element.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))';
                                 car.element.style.transform = 'scale(1.02)';
                             } else {
@@ -10089,11 +10404,11 @@
                         return;
                     }
                     
-                    const containerWidth = this.raceOverlay.querySelector('.race-track-container')?.offsetWidth || 1200;
-                    const finishLinePosition = containerWidth - 100;
+                    const containerWidth = this.raceOverlay.querySelector('.race-animation-container')?.offsetWidth || 1200;
+                    const finishLinePosition = containerWidth - 120; // 調整為與終點線實際位置一致
                     
                     // 更新標題顯示竞赛结束
-                    const title = this.raceOverlay.querySelector('.race-track-container div');
+                    const title = this.raceOverlay.querySelector('.race-animation-container div');
                     if (title) {
                         title.textContent = '🏁 竞赛结束 - 最新开奖结果 🏁';
                         title.style.color = '#00ff00';
@@ -10103,63 +10418,33 @@
                     results.forEach((carNumber, rank) => {
                         const car = this.racingCars.find(c => c.number === carNumber);
                         if (car) {
-                            // 第一名在终点線，後面車子每名拉開30px距離，更清楚看出名次差距
-                            const finalPos = finishLinePosition - (rank * 30);
+                            // 第一名在终点線前80px（確保號碼球不超出），後面車子每名拉開30px距離
+                            const finalPos = finishLinePosition - 80 - (rank * 30);
                             
                             // 動畫移動到最终位置
                             setTimeout(() => {
                                 car.element.style.transition = 'left 2s ease-out, filter 0.5s ease, transform 0.5s ease';
                                 car.element.style.left = `${finalPos}px`;
                                 
-                                // 前三名添加特效和排名顯示
+                                // 前三名添加特效
                                 if (rank < 3) {
                                     car.element.style.filter = 'drop-shadow(0 0 25px gold)';
                                     car.element.style.transform = 'scale(1.15)';
                                     
-                                    // 添加金銀銅牌排名顯示
-                                    const rankBadge = document.createElement('div');
-                                    rankBadge.style.cssText = `
-                                        position: absolute;
-                                        top: -20px;
-                                        right: -15px;
-                                        background: ${rank === 0 ? '#FFD700' : rank === 1 ? '#C0C0C0' : '#CD7F32'};
-                                        color: #333;
-                                        border-radius: 50%;
-                                        width: 30px;
-                                        height: 30px;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        z-index: 1001;
-                                        border: 2px solid #fff;
-                                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                                    `;
-                                    rankBadge.textContent = rank + 1;
-                                    car.element.appendChild(rankBadge);
-                                } else {
-                                    // 其他名次也添加排名，但樣式不同
-                                    const rankBadge = document.createElement('div');
-                                    rankBadge.style.cssText = `
-                                        position: absolute;
-                                        top: -15px;
-                                        right: -10px;
-                                        background: rgba(255, 255, 255, 0.8);
-                                        color: #333;
-                                        border-radius: 50%;
-                                        width: 25px;
-                                        height: 25px;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        font-size: 12px;
-                                        font-weight: bold;
-                                        z-index: 1001;
-                                        border: 1px solid #ccc;
-                                    `;
-                                    rankBadge.textContent = rank + 1;
-                                    car.element.appendChild(rankBadge);
+                                    // 為號碼球添加特殊顏色
+                                    const numberBall = car.element.querySelector('span:last-child');
+                                    if (numberBall) {
+                                        if (rank === 0) {
+                                            numberBall.style.background = 'linear-gradient(135deg, #FFD700, #FFA500)'; // 金色
+                                            numberBall.style.border = '2px solid #FFD700';
+                                        } else if (rank === 1) {
+                                            numberBall.style.background = 'linear-gradient(135deg, #C0C0C0, #E5E5E5)'; // 銀色
+                                            numberBall.style.border = '2px solid #C0C0C0';
+                                        } else if (rank === 2) {
+                                            numberBall.style.background = 'linear-gradient(135deg, #CD7F32, #D2691E)'; // 銅色
+                                            numberBall.style.border = '2px solid #CD7F32';
+                                        }
+                                    }
                                 }
                             }, rank * 400); // 增加到達間隔时间到400ms，讓用戶清楚看到每輛車的到達顺序
                         }
@@ -10195,7 +10480,7 @@
                             closeButton.style.transform = 'scale(1)';
                         };
                         
-                        this.raceOverlay.querySelector('.race-track-container').appendChild(closeButton);
+                        this.raceOverlay.querySelector('.race-animation-container').appendChild(closeButton);
                     }, 4000); // 4秒後顯示关闭按鈕，給更多时间观看结果
                 },
                 
@@ -10757,6 +11042,132 @@
                     return colors[index] || '#808080';
                 },
                 
+                // 📱 向下兼容的结果球顯示（舊函數保留）
+                showNumberBalls(container) {
+                    // 直接調用增強版函數
+                    this.showEnhancedNumberBalls(container);
+                },
+                
+                // 根據數字获取顏色
+                getColorForNumber(number) {
+                    const colors = [
+                        '#f44336', // 0 紅色
+                        '#1976d2', // 1 藍色
+                        '#388e3c', // 2 綠色
+                        '#ffa000', // 3 橙色
+                        '#7b1fa2', // 4 紫色
+                        '#c2185b', // 5 桃紅色
+                        '#0097a7', // 6 藍綠色
+                        '#689f38', // 7 淺綠色
+                        '#5d4037', // 8 棕色
+                        '#455a64'  // 9 深灰藍色
+                    ];
+                    return colors[number % colors.length];
+                },
+                
+                // 顯示通知方法
+                displayNotification(message, duration = 3000) {
+                    this.notificationText = message;
+                    this.notificationVisible = true;
+                    
+                    setTimeout(() => {
+                        this.notificationVisible = false;
+                    }, duration);
+                },
+                
+                // 格式化日期时间
+                formatDateTime(dateStr) {
+                    const date = new Date(dateStr);
+                    if (isNaN(date.getTime())) return dateStr;
+                    // Convert to Taipei timezone
+                    const taipeiTime = date.toLocaleString('en-US', { 
+                        timeZone: 'Asia/Taipei',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    // Format as YYYY-MM-DD HH:mm:ss
+                    const [datePart, timePart] = taipeiTime.split(', ');
+                    const [month, day, year] = datePart.split('/');
+                    return `${year}-${month}-${day} ${timePart}`;
+                },
+                
+                // 格式化游戏时间
+                formatTime(seconds) {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                },
+                
+                // 获取熱門投注數據
+                fetchHotBets() {
+                    fetch(`${this.API_BASE_URL}/api/hot-bets`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.hotBets = (data.hotBets || []).map(bet => ({
+                                    betType: bet.type,
+                                    betValue: bet.value,
+                                    position: bet.position,
+                                    count: bet.count,
+                                    label: bet.label,
+                                    isHot: true
+                                }));
+                                console.log('熱門投注數據获取成功，共有', this.hotBets.length, '個熱門投注');
+                            } else {
+                                console.error('获取熱門投注數據失败:', data ? data.message : '無數據');
+                                this.hotBets = [];
+                                this.displayNotification(data.message || '無法获取熱門投注數據');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('获取熱門投注數據出錯:', error);
+                            this.hotBets = [];
+                            this.displayNotification('获取熱門投注數據出錯，请稍後再試');
+                            
+                            // 可以考慮移除或调整自動重試邏輯，避免在持續 404 的情況下頻繁请求
+                            // setTimeout(() => {
+                            //     console.log('嘗試重新获取熱門投注數據...');
+                            //     this.fetchHotBets();
+                            // }, 30000);
+                        });
+                },
+                
+                // 选择熱門投注項目
+                selectHotBet(bet) {
+                    console.log('选择熱門投注:', bet);
+                    // 根據熱門投注的類型和值，添加到选择的投注列表
+                    if (bet && bet.betType) {
+                        // 先设置金额為預設投注金额
+                        this.betAmount = this.defaultBetAmount;
+                        
+                        // 根據投注類型选择
+                        this.selectBet(
+                            bet.betType,
+                            bet.betValue,
+                            bet.position || null
+                        );
+                        
+                        // 顯示通知
+                        this.showNotification(`已添加熱門投注: ${bet.label}`);
+                    }
+                },
+                
+                // 顯示通知訊息
+                showNotification(message, duration = 3000) {
+                    this.notificationText = message;
+                    this.notificationVisible = true;
+                    
+                    // 设置定时器，自動隱藏通知
+                    setTimeout(() => {
+                        this.notificationVisible = false;
+                    }, duration);
+                },
+
                 // 📱 向下兼容的结果球顯示（舊函數保留）
                 showNumberBalls(container) {
                     // 直接調用增強版函數

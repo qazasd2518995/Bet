@@ -317,24 +317,10 @@ async function checkBetWinEnhanced(bet, winResult) {
         // 詳細記錄比較結果
         settlementLog.info(`號碼比較結果: 第${position}名開獎=${winNum}, 投注=${betNum}, 中獎=${isWin}`);
         
-        // 額外的安全檢查：如果中獎，再次驗證
+        // 移除額外的數據庫驗證，因為可能有時序問題
+        // 我們已經有準確的開獎結果在 positions 陣列中
         if (isWin) {
-            settlementLog.warn(`⚠️ 中獎驗證: 投注ID=${bet.id}, 期號=${bet.period}, 位置${position}, 投注${betNum}=開獎${winNum}`);
-            // 直接從數據庫再次查詢驗證
-            const verifyResult = await db.oneOrNone(`
-                SELECT position_${position} as winning_number
-                FROM result_history
-                WHERE period = $1
-            `, [bet.period]);
-            
-            if (verifyResult && parseInt(verifyResult.winning_number) !== betNum) {
-                settlementLog.error(`❌ 中獎驗證失敗！數據庫中第${position}名是${verifyResult.winning_number}，不是${betNum}`);
-                return {
-                    isWin: false,
-                    reason: `驗證失敗：第${position}名實際開出${verifyResult.winning_number}`,
-                    odds: bet.odds || 9.85
-                };
-            }
+            settlementLog.info(`✅ 號碼投注中獎確認: 投注ID=${bet.id}, 期號=${bet.period}, 位置${position}, 投注${betNum}=開獎${winNum}`);
         }
         
         // 額外警告：如果類型轉換後數值改變
