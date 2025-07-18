@@ -82,10 +82,13 @@ const GameModel = {
           
           const updatedResult = await db.one(`
             UPDATE result_history 
-            SET result = $1, created_at = CURRENT_TIMESTAMP 
+            SET result = $1,
+                position_1 = $3, position_2 = $4, position_3 = $5, position_4 = $6, position_5 = $7,
+                position_6 = $8, position_7 = $9, position_8 = $10, position_9 = $11, position_10 = $12,
+                created_at = CURRENT_TIMESTAMP 
             WHERE period = $2 
             RETURNING *
-          `, [JSON.stringify(result), period]);
+          `, [JSON.stringify(result), period, ...result]);
           
           console.log(`✅ 成功更新期號 ${period} 的開獎結果`);
           return {
@@ -104,13 +107,22 @@ const GameModel = {
       // 嘗試使用INSERT ... ON CONFLICT來處理併發情況
       try {
         const insertedResult = await db.one(`
-          INSERT INTO result_history (period, result) 
-          VALUES ($1, $2) 
+          INSERT INTO result_history (
+            period, result,
+            position_1, position_2, position_3, position_4, position_5,
+            position_6, position_7, position_8, position_9, position_10
+          ) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
           ON CONFLICT (period) DO UPDATE SET
             result = EXCLUDED.result,
+            position_1 = EXCLUDED.position_1, position_2 = EXCLUDED.position_2,
+            position_3 = EXCLUDED.position_3, position_4 = EXCLUDED.position_4,
+            position_5 = EXCLUDED.position_5, position_6 = EXCLUDED.position_6,
+            position_7 = EXCLUDED.position_7, position_8 = EXCLUDED.position_8,
+            position_9 = EXCLUDED.position_9, position_10 = EXCLUDED.position_10,
             created_at = EXCLUDED.created_at
           RETURNING *
-        `, [period, JSON.stringify(result)]);
+        `, [period, JSON.stringify(result), ...result]);
         
         console.log(`✅ 成功添加期號 ${period} 的開獎結果`);
         return insertedResult;
@@ -119,10 +131,14 @@ const GameModel = {
         if (onConflictError.code === '42P10') {
           console.log(`⚠️ 約束不存在，使用普通INSERT插入期號 ${period}`);
           const insertedResult = await db.one(`
-            INSERT INTO result_history (period, result) 
-            VALUES ($1, $2) 
+            INSERT INTO result_history (
+              period, result,
+              position_1, position_2, position_3, position_4, position_5,
+              position_6, position_7, position_8, position_9, position_10
+            ) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
             RETURNING *
-          `, [period, JSON.stringify(result)]);
+          `, [period, JSON.stringify(result), ...result]);
           
           console.log(`✅ 成功添加期號 ${period} 的開獎結果（普通INSERT）`);
           return insertedResult;
@@ -147,10 +163,13 @@ const GameModel = {
             
             const updatedResult = await db.one(`
               UPDATE result_history 
-              SET result = $1, created_at = CURRENT_TIMESTAMP 
+              SET result = $1,
+                  position_1 = $3, position_2 = $4, position_3 = $5, position_4 = $6, position_5 = $7,
+                  position_6 = $8, position_7 = $9, position_8 = $10, position_9 = $11, position_10 = $12,
+                  created_at = CURRENT_TIMESTAMP 
               WHERE period = $2 
               RETURNING *
-            `, [JSON.stringify(result), period]);
+            `, [JSON.stringify(result), period, ...result]);
             
             console.log(`✅ 成功更新期號 ${period} 的開獎結果（併發情況）`);
             return {
