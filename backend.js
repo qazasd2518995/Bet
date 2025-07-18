@@ -135,7 +135,15 @@ app.options('*', cors());
 app.use(express.json());
 
 // 提供靜態文件 - 這使得前端文件可以被訪問
-app.use(express.static(path.join(__dirname, 'frontend')));
+// 修復 RangeNotSatisfiableError - 禁用範圍請求
+app.use(express.static(path.join(__dirname, 'frontend'), {
+    acceptRanges: false,
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, path, stat) => {
+        res.set('Cache-Control', 'no-store');
+    }
+}));
 
 // 所有路由都導向 index.html (SPA 設置)
 app.get('/', (req, res) => {
@@ -5496,6 +5504,21 @@ async function startServer() {
         console.error('定時更新熱門投注數據時出錯:', error);
       }
     }, 10 * 60 * 1000);
+    
+    // 錯誤處理中間件 - 必須放在所有路由之後
+    app.use((err, req, res, next) => {
+      if (err.status === 416 || err.message === 'Range Not Satisfiable') {
+        console.log('處理 Range Not Satisfiable 錯誤:', req.url);
+        // 返回200狀態，讓瀏覽器重新請求完整文件
+        res.status(200).sendFile(path.join(__dirname, 'frontend', req.path));
+      } else {
+        console.error('伺服器錯誤:', err);
+        res.status(err.status || 500).json({
+          success: false,
+          message: err.message || '伺服器內部錯誤'
+        });
+      }
+    });
     
     // 啟動服務器
     app.listen(port, () => {

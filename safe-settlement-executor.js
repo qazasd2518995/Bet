@@ -62,11 +62,25 @@ export async function safeExecuteSettlement(period) {
             
             if (!unsettled || parseInt(unsettled.count) === 0) {
                 console.log(`✅ [安全結算] 期號 ${period} 所有投注都已結算`);
+                
+                // 查詢已結算的統計數據
+                const stats = await db.oneOrNone(`
+                    SELECT 
+                        COUNT(*) as settled_count,
+                        COUNT(CASE WHEN win = true THEN 1 END) as win_count,
+                        COALESCE(SUM(win_amount), 0) as total_win_amount
+                    FROM bet_history
+                    WHERE period = $1
+                `, [period]);
+                
                 return {
                     success: true,
                     period: period,
                     message: '所有投注都已結算',
-                    alreadySettled: parseInt(alreadySettled.count)
+                    alreadySettled: parseInt(alreadySettled.count),
+                    settledCount: parseInt(stats.settled_count),
+                    winCount: parseInt(stats.win_count),
+                    totalWinAmount: parseFloat(stats.total_win_amount)
                 };
             }
         }
