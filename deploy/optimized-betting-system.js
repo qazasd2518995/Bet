@@ -279,23 +279,13 @@ function quickCheckWin(bet, winResult) {
     const positionTypes = ['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
                           '冠軍', '亞軍', '季軍', '第三名', '第四名', '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'];
     
-    if (betType === 'position' || positionTypes.includes(betType)) {
+    // 處理位置大小單雙投注
+    if (positionTypes.includes(betType) && ['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(betValue)) {
         const positionIndex = getPositionIndex(betType, bet.position);
-        
-        // Debug logging for position bets
-        if (bet.period === '20250714396' || bet.period === 20250714396 || bet.period === '20250717720' || bet.period === 20250717720) {
-            console.log(`[DEBUG] Position bet check: betType=${betType}, positionIndex=${positionIndex}, betValue=${betValue}`);
-        }
         
         if (positionIndex === -1) return false;
         
         const number = positions[positionIndex];
-        
-        // Debug logging for position result
-        if (bet.period === '20250714396' || bet.period === 20250714396 || bet.period === '20250717720' || bet.period === 20250717720) {
-            console.log(`[DEBUG] Position ${positionIndex + 1} has number ${number}, betting on ${betValue}`);
-            console.log(`[DEBUG] Positions array:`, positions);
-        }
         
         switch (betValue) {
             case 'big':
@@ -310,8 +300,89 @@ function quickCheckWin(bet, winResult) {
             case 'even':
             case '雙':
                 return number % 2 === 0;
-            default: 
-                return number === parseInt(betValue);
+        }
+    }
+    
+    // 處理位置號碼投注
+    if (positionTypes.includes(betType) && !['big', 'small', 'odd', 'even', '大', '小', '單', '雙'].includes(betValue)) {
+        const positionIndex = getPositionIndex(betType, bet.position);
+        if (positionIndex === -1) return false;
+        
+        const number = positions[positionIndex];
+        return number === parseInt(betValue);
+    }
+    
+    // 處理龍虎投注
+    if (betType === 'dragonTiger' || betType === 'dragon_tiger' || betType === '龍虎') {
+        // 解析投注值，格式可能是 "dragon_1_10" 或 "3_8_dragon" 等
+        let pos1, pos2, betSide;
+        
+        if (betValue.includes('dragon_') || betValue.includes('tiger_')) {
+            // 格式: dragon_1_10 或 tiger_1_10
+            const parts = betValue.split('_');
+            betSide = parts[0];
+            pos1 = parseInt(parts[1]);
+            pos2 = parseInt(parts[2]);
+        } else if (betValue.includes('_dragon') || betValue.includes('_tiger')) {
+            // 格式: 3_8_dragon 或 3_8_tiger
+            const parts = betValue.split('_');
+            pos1 = parseInt(parts[0]);
+            pos2 = parseInt(parts[1]);
+            betSide = parts[2];
+        } else {
+            // 其他格式，嘗試解析
+            const parts = betValue.split('_');
+            if (parts.length >= 2) {
+                pos1 = parseInt(parts[0]);
+                pos2 = parseInt(parts[1]);
+                betSide = parts[2] || 'dragon';
+            } else {
+                return false;
+            }
+        }
+        
+        // 檢查位置是否有效
+        if (isNaN(pos1) || isNaN(pos2) || pos1 < 1 || pos1 > 10 || pos2 < 1 || pos2 > 10 || pos1 === pos2) {
+            return false;
+        }
+        
+        // 獲取對應位置的號碼
+        const num1 = positions[pos1 - 1];
+        const num2 = positions[pos2 - 1];
+        
+        // 判斷輸贏
+        if (betSide === 'dragon' || betSide === '龍') {
+            return num1 > num2;
+        } else if (betSide === 'tiger' || betSide === '虎') {
+            return num1 < num2;
+        }
+        
+        return false;
+    }
+    
+    // 處理冠亞和投注
+    if (betType === 'sumValue' || betType === 'sum' || betType === '冠亞和') {
+        const sum = positions[0] + positions[1];
+        
+        // 和值數字投注
+        if (/^\d+$/.test(betValue)) {
+            return sum === parseInt(betValue);
+        }
+        
+        // 和值大小單雙
+        switch (betValue) {
+            case 'big':
+            case '大':
+                return sum >= 12;
+            case 'small':
+            case '小':
+                return sum <= 11;
+            case 'odd':
+            case '單':
+                return sum % 2 === 1;
+            case 'even':
+            case '雙':
+                return sum % 2 === 0;
         }
     }
     
