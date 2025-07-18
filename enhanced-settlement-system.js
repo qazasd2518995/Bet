@@ -368,6 +368,18 @@ async function checkBetWinEnhanced(bet, winResult) {
         const winningNumber = positions[positionIndex - 1];
         settlementLog.info(`位置投注檢查: betType=${betType}, positionIndex=${positionIndex}, winningNumber=${winningNumber}, betValue=${betValue}`);
         
+        // 檢查是否為號碼投注（1-10）
+        if (/^[1-9]$|^10$/.test(betValue)) {
+            const betNumber = parseInt(betValue);
+            const isWin = winningNumber === betNumber;
+            return {
+                isWin: isWin,
+                reason: `${betType}開出${winningNumber}號，投注${betNumber}號${isWin ? '中獎' : '未中'}`,
+                odds: bet.odds || 9.85
+            };
+        }
+        
+        // 否則為大小單雙投注
         return checkTwoSidesBet(betType, betValue, winningNumber, bet.odds);
     }
     
@@ -515,8 +527,8 @@ function checkDragonTigerBet(betValue, positions, odds) {
         const num1 = positions[pos1 - 1];
         const num2 = positions[pos2 - 1];
         
-        const isWin = (betSide === 'dragon' && num1 > num2) || 
-                     (betSide === 'tiger' && num1 < num2);
+        const isWin = ((betSide === 'dragon' || betSide === '龍') && num1 > num2) || 
+                     ((betSide === 'tiger' || betSide === '虎') && num1 < num2);
         
         return {
             isWin: isWin,
