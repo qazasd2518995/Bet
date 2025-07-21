@@ -130,7 +130,8 @@ const app = createApp({
                 id: null,
                 username: '',
                 level: 0,
-                max_rebate_percentage: 0.041
+                max_rebate_percentage: 0.041,
+                betting_limit_level: 'level3'
             },
             
             // 退水设定相关
@@ -164,6 +165,7 @@ const app = createApp({
             
             // 顯示限紅調整模態框
             showBettingLimitModal: false,
+            showAgentBettingLimitModal: false,
             editNotesData: {
                 id: null,
                 username: '',
@@ -194,7 +196,8 @@ const app = createApp({
             currentMemberManagingAgent: {
                 id: null,
                 username: '',
-                level: 0
+                level: 0,
+                betting_limit_level: 'level3'
             },
             
             // 新增会员相关
@@ -480,6 +483,23 @@ const app = createApp({
                 reason: ''
             },
             
+            // 代理限紅數據
+            agentBettingLimitData: {
+                loading: false,
+                submitting: false,
+                agent: {
+                    id: null,
+                    username: '',
+                    bettingLimitLevel: '',
+                    levelDisplayName: '',
+                    description: ''
+                },
+                configs: [],
+                availableConfigs: [],
+                newLimitLevel: '',
+                reason: ''
+            },
+            
             // 个人资料數據
             profileData: {
                 realName: '',
@@ -540,6 +560,9 @@ const app = createApp({
                 period: '',
                 numbers: []
             },
+            
+            // 可用的限紅配置（用於新增代理）
+            availableBettingLimitConfigs: [],
         };
     },
     
@@ -780,6 +803,7 @@ const app = createApp({
                 market_type: marketType,  // 設置盤口繼承
                 rebate_mode: 'percentage',
                 rebate_percentage: defaultRebatePercentage,
+                betting_limit_level: '',  // 限紅等級
                 notes: ''
             };
             
@@ -792,6 +816,9 @@ const app = createApp({
                 marketType: marketType,
                 canChooseMarket: canChooseMarket
             });
+            
+            // 載入限紅配置
+            this.loadAvailableBettingLimitConfigs();
             
             this.$nextTick(() => {
                 // 确保模態框元素已经被渲染到DOM後再初始化和顯示
@@ -812,6 +839,57 @@ const app = createApp({
                 this.agentModal.hide();
             }
             this.showCreateAgentModal = false;
+        },
+        
+        // 載入可用的限紅配置（用於新增代理）
+        async loadAvailableBettingLimitConfigs() {
+            try {
+                // 獲取所有限紅配置
+                const response = await axios.get(`${API_BASE_URL}/betting-limit-configs`);
+                
+                if (response.data.success) {
+                    const allConfigs = response.data.configs;
+                    
+                    // 確定當前管理代理
+                    let managingAgent;
+                    if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
+                        managingAgent = this.currentMemberManagingAgent;
+                    } else {
+                        managingAgent = this.currentManagingAgent;
+                    }
+                    
+                    // 獲取管理代理的限紅等級（創建代理時需要參考父代理的限紅等級）
+                    const managingAgentBettingLevel = managingAgent.betting_limit_level || 'level3';
+                    
+                    // 限紅等級排序
+                    const levelOrder = {
+                        'level1': 1,
+                        'level2': 2,
+                        'level3': 3,
+                        'level4': 4,
+                        'level5': 5,
+                        'level6': 6
+                    };
+                    
+                    const managingLevel = levelOrder[managingAgentBettingLevel] || 3;
+                    
+                    // 過濾出不高於管理代理等級的配置
+                    this.availableBettingLimitConfigs = allConfigs.filter(config => {
+                        const configLevel = levelOrder[config.level_name] || 0;
+                        return configLevel <= managingLevel;
+                    });
+                    
+                    console.log('✅ 載入限紅配置成功:', {
+                        managingAgent: managingAgent.username,
+                        managingAgentLevel: managingAgentBettingLevel,
+                        availableConfigs: this.availableBettingLimitConfigs.length,
+                        configs: this.availableBettingLimitConfigs.map(c => c.level_name)
+                    });
+                }
+            } catch (error) {
+                console.error('載入限紅配置失敗:', error);
+                this.showMessage('載入限紅配置失敗', 'error');
+            }
         },
         
         // 顯示新增会员模態框 - 重定向到统一函數
@@ -934,7 +1012,8 @@ const app = createApp({
                         level: this.user.level,
                         market_type: this.user.market_type,
                         rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
-                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
+                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate,
+                        betting_limit_level: this.user.betting_limit_level || 'level3'
                     };
                     
                     // 清空代理導航面包屑
@@ -1043,7 +1122,8 @@ const app = createApp({
                         level: this.user.level,
                         market_type: this.user.market_type,
                         rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                        max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
+                        max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
+                        betting_limit_level: this.user.betting_limit_level || 'level3'
                     };
                     
                     // 检查是否為客服（總代理）
@@ -1123,7 +1203,8 @@ const app = createApp({
                         level: agent.level,
                         market_type: agent.market_type,
                         rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041),
-                        max_rebate_percentage: agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041)
+                        max_rebate_percentage: agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041),
+                        betting_limit_level: agent.betting_limit_level || 'level3'
                     };
                     
                     console.log('✅ 登錄成功，設置當前管理代理:', this.currentManagingAgent);
@@ -1729,18 +1810,58 @@ const app = createApp({
                 agentLevel = 0;
             }
             
-            // 保留完整的代理數據，特別是退水設定相關資訊
-            this.currentMemberManagingAgent = {
-                id: agent.id,
-                username: agent.username,
-                level: agentLevel,
-                rebate_percentage: agent.rebate_percentage,
-                max_rebate_percentage: agent.max_rebate_percentage,
-                rebate_mode: agent.rebate_mode,
-                market_type: agent.market_type,
-                balance: agent.balance,
-                status: agent.status
-            };
+            // 從後端獲取代理的最新資料，確保限紅等級是最新的
+            try {
+                const response = await axios.get(`${API_BASE_URL}/agents/${agent.id}`);
+                if (response.data.success && response.data.agent) {
+                    const latestAgent = response.data.agent;
+                    
+                    // 保留完整的代理數據，特別是退水設定和限紅等級相關資訊
+                    this.currentMemberManagingAgent = {
+                        id: latestAgent.id,
+                        username: latestAgent.username,
+                        level: parseInt(latestAgent.level, 10) || agentLevel,
+                        rebate_percentage: latestAgent.rebate_percentage,
+                        max_rebate_percentage: latestAgent.max_rebate_percentage,
+                        rebate_mode: latestAgent.rebate_mode,
+                        market_type: latestAgent.market_type,
+                        balance: latestAgent.balance,
+                        status: latestAgent.status,
+                        betting_limit_level: latestAgent.betting_limit_level || 'level3'
+                    };
+                    
+                    console.log('✅ 從後端獲取最新代理資料:', this.currentMemberManagingAgent);
+                } else {
+                    // 如果獲取失敗，使用傳入的資料
+                    this.currentMemberManagingAgent = {
+                        id: agent.id,
+                        username: agent.username,
+                        level: agentLevel,
+                        rebate_percentage: agent.rebate_percentage,
+                        max_rebate_percentage: agent.max_rebate_percentage,
+                        rebate_mode: agent.rebate_mode,
+                        market_type: agent.market_type,
+                        balance: agent.balance,
+                        status: agent.status,
+                        betting_limit_level: agent.betting_limit_level || 'level3'
+                    };
+                }
+            } catch (error) {
+                console.error('❌ 獲取代理最新資料失敗:', error);
+                // 使用傳入的資料作為後備
+                this.currentMemberManagingAgent = {
+                    id: agent.id,
+                    username: agent.username,
+                    level: agentLevel,
+                    rebate_percentage: agent.rebate_percentage,
+                    max_rebate_percentage: agent.max_rebate_percentage,
+                    rebate_mode: agent.rebate_mode,
+                    market_type: agent.market_type,
+                    balance: agent.balance,
+                    status: agent.status,
+                    betting_limit_level: agent.betting_limit_level || 'level3'
+                };
+            }
             
             console.log('✅ 設定當前會員管理代理:', this.currentMemberManagingAgent);
             
@@ -2745,6 +2866,12 @@ const app = createApp({
                 }
             }
             
+            // 驗證限紅等級
+            if (!this.newAgent.betting_limit_level) {
+                this.showMessage('請選擇限紅等級', 'error');
+                return;
+            }
+            
             this.loading = true;
             try {
                 const payload = {
@@ -2754,6 +2881,7 @@ const app = createApp({
                     parent: this.newAgent.parent,
                     market_type: this.newAgent.market_type,
                     rebate_mode: this.newAgent.rebate_mode,
+                    betting_limit_level: this.newAgent.betting_limit_level,
                     notes: this.newAgent.notes || ''
                 };
                 
@@ -6715,7 +6843,35 @@ const app = createApp({
                 }
                 
                 if (configsResponse.data.success) {
-                    this.bettingLimitData.configs = configsResponse.data.configs;
+                    const allConfigs = configsResponse.data.configs;
+                    
+                    // 獲取會員所屬代理的限紅等級（從後端返回的數據中獲取）
+                    const agentBettingLevel = memberResponse.data.member.agentBettingLimitLevel || 'level3';
+                    
+                    // 限紅等級排序
+                    const levelOrder = {
+                        'level1': 1,
+                        'level2': 2,
+                        'level3': 3,
+                        'level4': 4,
+                        'level5': 5,
+                        'level6': 6
+                    };
+                    
+                    const agentLevel = levelOrder[agentBettingLevel] || 3;
+                    
+                    // 過濾出不高於會員所屬代理等級的配置
+                    this.bettingLimitData.configs = allConfigs.filter(config => {
+                        const configLevel = levelOrder[config.level_name] || 0;
+                        return configLevel <= agentLevel;
+                    });
+                    
+                    console.log('✅ 會員限紅配置過濾完成:', {
+                        memberAgentLevel: agentBettingLevel,
+                        memberAgentUsername: memberResponse.data.member.agentUsername,
+                        availableConfigs: this.bettingLimitData.configs.length,
+                        configs: this.bettingLimitData.configs.map(c => c.level_name)
+                    });
                 }
                 
                 this.bettingLimitData.loading = false;
@@ -6766,6 +6922,178 @@ const app = createApp({
                 this.showMessage('調整限紅失敗，請稍後再試', 'error');
             } finally {
                 this.bettingLimitData.submitting = false;
+            }
+        },
+        
+        // 調整代理限紅設定
+        async adjustAgentBettingLimit(agent) {
+            try {
+                console.log('🔧 調整代理限紅設定:', agent);
+                
+                // 初始化資料
+                this.agentBettingLimitData = {
+                    loading: true,
+                    submitting: false,
+                    agent: {
+                        id: agent.id,
+                        username: agent.username,
+                        bettingLimitLevel: '',
+                        levelDisplayName: '',
+                        description: ''
+                    },
+                    configs: [],
+                    availableConfigs: [],
+                    newLimitLevel: '',
+                    reason: ''
+                };
+                
+                // 顯示Modal
+                this.showAgentBettingLimitModal = true;
+                console.log('✅ 代理限紅調整Modal已顯示！');
+                
+                // 並行載入數據
+                const [agentResponse, configsResponse] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/agent-betting-limit/${agent.id}`),
+                    axios.get(`${API_BASE_URL}/betting-limit-configs`)
+                ]);
+                
+                if (agentResponse.data.success) {
+                    this.agentBettingLimitData.agent = {
+                        ...this.agentBettingLimitData.agent,
+                        bettingLimitLevel: agentResponse.data.agent.bettingLimitLevel,
+                        levelDisplayName: agentResponse.data.agent.levelDisplayName,
+                        description: agentResponse.data.agent.description
+                    };
+                }
+                
+                if (configsResponse.data.success) {
+                    this.agentBettingLimitData.configs = configsResponse.data.configs;
+                    
+                    // 根據代理的父代理限紅等級，過濾可用的配置
+                    const operatorLevelOrder = {
+                        'level1': 1,
+                        'level2': 2,
+                        'level3': 3,
+                        'level4': 4,
+                        'level5': 5,
+                        'level6': 6
+                    };
+                    
+                    // 獲取目標代理的父代理限紅等級
+                    // 如果是在層級會員管理中，使用當前管理代理的限紅等級
+                    let parentBettingLevel = 'level6';
+                    if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.betting_limit_level) {
+                        parentBettingLevel = this.currentMemberManagingAgent.betting_limit_level;
+                        console.log('使用當前管理代理的限紅等級:', parentBettingLevel);
+                    } else {
+                        // 否則使用操作者的限紅等級
+                        parentBettingLevel = this.user.betting_limit_level || 'level6';
+                        console.log('使用操作者的限紅等級:', parentBettingLevel);
+                    }
+                    
+                    const parentLevel = operatorLevelOrder[parentBettingLevel] || 6;
+                    
+                    // 過濾出不高於父代理等級的配置
+                    this.agentBettingLimitData.availableConfigs = configsResponse.data.configs.filter(config => {
+                        const configLevel = operatorLevelOrder[config.level_name] || 0;
+                        return configLevel <= parentLevel;
+                    });
+                    
+                    console.log('可用的限紅配置:', this.agentBettingLimitData.availableConfigs.map(c => c.level_name));
+                }
+                
+                this.agentBettingLimitData.loading = false;
+                
+            } catch (error) {
+                console.error('載入代理限紅設定失敗:', error);
+                this.showMessage('載入代理限紅設定失敗，請稍後再試', 'error');
+                this.agentBettingLimitData.loading = false;
+                this.showAgentBettingLimitModal = false;
+            }
+        },
+        
+        // 隱藏代理限紅調整Modal
+        hideAgentBettingLimitModal() {
+            this.showAgentBettingLimitModal = false;
+        },
+
+        // 提交代理限紅調整
+        async submitAgentBettingLimitAdjustment() {
+            try {
+                // 檢查是否為調降操作
+                const levelOrder = {
+                    'level1': 1, 'level2': 2, 'level3': 3,
+                    'level4': 4, 'level5': 5, 'level6': 6
+                };
+                
+                const currentLevel = levelOrder[this.agentBettingLimitData.agent.betting_limit_level] || 3;
+                const newLevel = levelOrder[this.agentBettingLimitData.newLimitLevel] || 3;
+                
+                // 如果是調降，顯示確認對話框
+                if (newLevel < currentLevel) {
+                    const confirmMessage = `⚠️ 注意：調降限紅等級將會連鎖調整所有下級代理和會員的限紅等級。\n\n` +
+                        `所有超過新限制 (${this.agentBettingLimitData.configs.find(c => c.level_name === this.agentBettingLimitData.newLimitLevel)?.level_display_name}) 的下級都會被自動調整。\n\n` +
+                        `確定要繼續嗎？`;
+                    
+                    if (!confirm(confirmMessage)) {
+                        return;
+                    }
+                }
+                
+                this.agentBettingLimitData.submitting = true;
+                
+                const response = await axios.post(`${API_BASE_URL}/update-agent-betting-limit`, {
+                    operatorId: this.user.id,
+                    agentId: this.agentBettingLimitData.agent.id,
+                    newLimitLevel: this.agentBettingLimitData.newLimitLevel,
+                    reason: this.agentBettingLimitData.reason
+                });
+                
+                if (response.data.success) {
+                    this.showMessage('代理限紅設定調整成功', 'success');
+                    
+                    // 關閉Modal
+                    this.showAgentBettingLimitModal = false;
+                    
+                    // 更新被調整代理的限紅等級
+                    const updatedAgent = response.data.updatedAgent;
+                    if (updatedAgent) {
+                        // 如果這個代理是當前的會員管理代理，更新其限紅等級
+                        if (this.currentMemberManagingAgent && this.currentMemberManagingAgent.id === updatedAgent.id) {
+                            this.currentMemberManagingAgent.betting_limit_level = updatedAgent.betting_limit_level;
+                            console.log('✅ 更新當前會員管理代理的限紅等級:', this.currentMemberManagingAgent);
+                        }
+                        
+                        // 更新代理列表中的資料
+                        const agentIndex = this.agents.findIndex(a => a.id === updatedAgent.id);
+                        if (agentIndex > -1) {
+                            this.agents[agentIndex].betting_limit_level = updatedAgent.betting_limit_level;
+                        }
+                        
+                        // 更新層級會員列表中的資料
+                        if (this.hierarchicalMembers && this.hierarchicalMembers.agents) {
+                            const hierAgentIndex = this.hierarchicalMembers.agents.findIndex(a => a.id === updatedAgent.id);
+                            if (hierAgentIndex > -1) {
+                                this.hierarchicalMembers.agents[hierAgentIndex].betting_limit_level = updatedAgent.betting_limit_level;
+                            }
+                        }
+                    }
+                    
+                    // 刷新代理列表
+                    if (this.activeTab === 'accounts') {
+                        await this.searchAgents();
+                    } else if (this.activeTab === 'hierarchical') {
+                        await this.refreshHierarchicalMembers();
+                    }
+                } else {
+                    this.showMessage(response.data.message || '調整代理限紅失敗', 'error');
+                }
+                
+            } catch (error) {
+                console.error('調整代理限紅失敗:', error);
+                this.showMessage('調整代理限紅失敗，請稍後再試', 'error');
+            } finally {
+                this.agentBettingLimitData.submitting = false;
             }
         },
 
@@ -7461,6 +7789,19 @@ const app = createApp({
             
             const selectedConfig = this.bettingLimitData.configs.find(
                 config => config.level_name === this.bettingLimitData.newLimitLevel
+            );
+            
+            return selectedConfig ? selectedConfig.config : {};
+        },
+        
+        // 計算選中的代理限紅配置
+        selectedAgentLimitConfig() {
+            if (!this.agentBettingLimitData.newLimitLevel || !this.agentBettingLimitData.configs.length) {
+                return {};
+            }
+            
+            const selectedConfig = this.agentBettingLimitData.configs.find(
+                config => config.level_name === this.agentBettingLimitData.newLimitLevel
             );
             
             return selectedConfig ? selectedConfig.config : {};

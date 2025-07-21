@@ -1282,14 +1282,14 @@ const AgentModel = {
   
   // 創建代理
   async create(agentData) {
-    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type } = agentData;
+    const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type, betting_limit_level } = agentData;
     
     try {
       return await db.one(`
-        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        INSERT INTO agents (username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type, betting_limit_level) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
         RETURNING *
-      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041, notes || '', market_type || 'D']);
+      `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041, notes || '', market_type || 'D', betting_limit_level || 'level3']);
     } catch (error) {
       console.error('創建代理出錯:', error);
       throw error;
@@ -1604,14 +1604,43 @@ const MemberModel = {
   
   // 創建會員
   async create(memberData) {
-    const { username, password, agent_id, balance = 0, notes, market_type } = memberData;
+    const { username, password, agent_id, balance = 0, notes, market_type, betting_limit_level } = memberData;
     
     try {
-      // 如果沒有指定盤口類型，從代理繼承
+      // 如果沒有指定盤口類型或限紅等級，從代理繼承
       let finalMarketType = market_type;
-      if (!finalMarketType && agent_id) {
+      let finalBettingLimitLevel = betting_limit_level || 'level1';
+      
+      if ((!finalMarketType || !betting_limit_level) && agent_id) {
         const agent = await AgentModel.findById(agent_id);
-        finalMarketType = agent ? agent.market_type : 'D';
+        if (agent) {
+          finalMarketType = finalMarketType || agent.market_type || 'D';
+          
+          // 如果有指定限紅等級，需要檢查是否不超過代理的限紅等級
+          if (betting_limit_level) {
+            const levelOrder = {
+              'level1': 1,  // 新手
+              'level2': 2,  // 一般
+              'level3': 3,  // 標準
+              'level4': 4,  // 高級
+              'level5': 5,  // VIP
+              'level6': 6   // VVIP
+            };
+            
+            const agentLevel = levelOrder[agent.betting_limit_level || 'level3'] || 3;
+            const requestedLevel = levelOrder[betting_limit_level] || 1;
+            
+            // 如果請求的等級超過代理的等級，使用代理的等級
+            if (requestedLevel > agentLevel) {
+              finalBettingLimitLevel = agent.betting_limit_level || 'level3';
+            } else {
+              finalBettingLimitLevel = betting_limit_level;
+            }
+          } else {
+            // 如果沒有指定限紅等級，使用代理的限紅等級或預設值
+            finalBettingLimitLevel = agent.betting_limit_level || 'level1';
+          }
+        }
       }
       finalMarketType = finalMarketType || 'D';
       
@@ -1619,7 +1648,7 @@ const MemberModel = {
         INSERT INTO members (username, password, agent_id, balance, notes, market_type, betting_limit_level) 
         VALUES ($1, $2, $3, $4, $5, $6, $7) 
         RETURNING *
-      `, [username, password, agent_id, balance, notes || '', finalMarketType, 'level1']);
+      `, [username, password, agent_id, balance, notes || '', finalMarketType, finalBettingLimitLevel]);
     } catch (error) {
       console.error('創建會員出錯:', error);
       throw error;
@@ -2480,7 +2509,8 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
         rebate_percentage: agent.rebate_percentage,
         max_rebate_percentage: agent.max_rebate_percentage,
         rebate_mode: agent.rebate_mode,
-        market_type: agent.market_type || 'D' // 添加盤口類型
+        market_type: agent.market_type || 'D', // 添加盤口類型
+        betting_limit_level: agent.betting_limit_level || 'level3' // 添加限紅等級
       },
       token: legacyToken,
       sessionToken: sessionToken // 新的會話token
@@ -2658,6 +2688,29 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
 
       // 設定最大退水比例（不能超過上級代理的退水比例）
       maxRebatePercentage = parentAgent.rebate_percentage || 0.041;
+      
+      // 驗證限紅等級
+      if (req.body.betting_limit_level) {
+        const parentBettingLevel = parentAgent.betting_limit_level || 'level6';
+        const levelOrder = {
+          'level1': 1,
+          'level2': 2,
+          'level3': 3,
+          'level4': 4,
+          'level5': 5,
+          'level6': 6
+        };
+        
+        const parentLevel = levelOrder[parentBettingLevel] || 6;
+        const newLevel = levelOrder[req.body.betting_limit_level] || 0;
+        
+        if (newLevel > parentLevel) {
+          return res.json({
+            success: false,
+            message: `不能設定高於上級代理限紅等級(${parentBettingLevel})的限紅等級`
+          });
+        }
+      }
     } else {
          // 如果沒有指定上級，檢查是否正在創建總代理
          if (parsedLevel !== 0) {
@@ -2705,7 +2758,30 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       });
     }
     
-    // 創建代理
+    // 創建代理 - 限紅等級需要參考父代理的限紅等級
+    let finalBettingLimitLevel = req.body.betting_limit_level || 'level3';
+    
+    // 如果有父代理，限紅等級不能超過父代理
+    if (parentAgent) {
+      const levelOrder = {
+        'level1': 1,  // 新手
+        'level2': 2,  // 一般
+        'level3': 3,  // 標準
+        'level4': 4,  // 高級
+        'level5': 5,  // VIP
+        'level6': 6   // VVIP
+      };
+      
+      const parentLevel = levelOrder[parentAgent.betting_limit_level || 'level3'] || 3;
+      const requestedLevel = levelOrder[req.body.betting_limit_level] || 3;
+      
+      // 如果請求的等級超過父代理的等級，使用父代理的等級
+      if (requestedLevel > parentLevel) {
+        finalBettingLimitLevel = parentAgent.betting_limit_level || 'level3';
+        console.log(`⚠️ 代理 ${username} 請求的限紅等級 ${req.body.betting_limit_level} 超過父代理 ${parentAgent.username} 的限紅等級 ${parentAgent.betting_limit_level}，已調整為 ${finalBettingLimitLevel}`);
+      }
+    }
+    
     const newAgent = await AgentModel.create({
       username,
       password,
@@ -2716,7 +2792,8 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       rebate_mode: finalRebateMode,
       max_rebate_percentage: maxRebatePercentage,
       notes: notes || '',
-      market_type: finalMarketType
+      market_type: finalMarketType,
+      betting_limit_level: finalBettingLimitLevel
     });
     
     res.json({
@@ -4294,6 +4371,45 @@ app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
   } catch (error) {
     console.error('獲取下級代理API: 處理錯誤', error);
     return res.status(500).json({ success: false, message: '伺服器錯誤' });
+  }
+});
+
+// 獲取單個代理詳細資料
+app.get(`${API_PREFIX}/agents/:id`, async (req, res) => {
+  try {
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
+    }
+
+    const { id } = req.params;
+    
+    const agent = await db.oneOrNone(`
+      SELECT 
+        a.*,
+        p.username as parent_username
+      FROM agents a
+      LEFT JOIN agents p ON a.parent_id = p.id
+      WHERE a.id = $1
+    `, [id]);
+    
+    if (!agent) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      agent
+    });
+  } catch (error) {
+    console.error('獲取代理詳細資料失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
   }
 });
 
@@ -7975,7 +8091,7 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
         // 獲取直接創建的代理
         const directAgents = await db.any(`
             SELECT id, username, level, balance, status, created_at, notes,
-                   rebate_mode, rebate_percentage, max_rebate_percentage, market_type
+                   rebate_mode, rebate_percentage, max_rebate_percentage, market_type, betting_limit_level
             FROM agents WHERE parent_id = $1 ORDER BY level, username
         `, [queryAgentId]);
         
@@ -8598,12 +8714,14 @@ app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
   try {
     console.log(`獲取會員 ${memberId} 的限紅設定`);
     
-    // 獲取會員資料和限紅配置
+    // 獲取會員資料、限紅配置和所屬代理的限紅等級
     const memberData = await db.oneOrNone(`
-      SELECT m.id, m.username, m.betting_limit_level,
-             blc.level_display_name, blc.config, blc.description
+      SELECT m.id, m.username, m.betting_limit_level, m.agent_id,
+             blc.level_display_name, blc.config, blc.description,
+             a.username as agent_username, a.betting_limit_level as agent_betting_limit_level
       FROM members m
       LEFT JOIN betting_limit_configs blc ON m.betting_limit_level = blc.level_name
+      LEFT JOIN agents a ON m.agent_id = a.id
       WHERE m.id = $1
     `, [memberId]);
     
@@ -8615,6 +8733,7 @@ app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
     }
     
     console.log(`會員 ${memberData.username} 當前限紅等級: ${memberData.betting_limit_level}`);
+    console.log(`所屬代理 ${memberData.agent_username} 限紅等級: ${memberData.agent_betting_limit_level}`);
     
     res.json({
       success: true,
@@ -8624,7 +8743,10 @@ app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
         bettingLimitLevel: memberData.betting_limit_level,
         levelDisplayName: memberData.level_display_name,
         config: memberData.config,
-        description: memberData.description
+        description: memberData.description,
+        agentId: memberData.agent_id,
+        agentUsername: memberData.agent_username,
+        agentBettingLimitLevel: memberData.agent_betting_limit_level
       }
     });
     
@@ -8729,6 +8851,35 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
       });
     }
     
+    // 獲取會員所屬代理的限紅等級
+    const memberAgent = await AgentModel.findById(member.agent_id);
+    if (!memberAgent) {
+      return res.json({
+        success: false,
+        message: '找不到會員所屬代理'
+      });
+    }
+    
+    // 檢查新限紅等級是否超過代理的限紅等級
+    const levelOrder = {
+      'level1': 1,  // 新手
+      'level2': 2,  // 一般
+      'level3': 3,  // 標準
+      'level4': 4,  // 高級
+      'level5': 5,  // VIP
+      'level6': 6   // VVIP
+    };
+    
+    const agentLevel = levelOrder[memberAgent.betting_limit_level || 'level3'] || 3;
+    const newLevel = levelOrder[newLimitLevel] || 1;
+    
+    if (newLevel > agentLevel) {
+      return res.json({
+        success: false,
+        message: `不能設定高於代理限紅等級的限紅 (代理限紅: ${memberAgent.betting_limit_level || 'level3'})`
+      });
+    }
+    
     const oldLimitLevel = member.betting_limit_level;
     
     // 更新會員限紅等級
@@ -8769,6 +8920,267 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
     
   } catch (error) {
     console.error('更新會員限紅設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 代理限紅設定相關 API
+
+// 獲取代理的限紅設定
+app.get(`${API_PREFIX}/agent-betting-limit/:agentId`, async (req, res) => {
+  const { agentId } = req.params;
+  
+  try {
+    console.log(`獲取代理 ${agentId} 的限紅設定`);
+    
+    // 獲取代理資料和限紅配置
+    const agentData = await db.oneOrNone(`
+      SELECT a.id, a.username, a.betting_limit_level,
+             blc.level_display_name, blc.config, blc.description
+      FROM agents a
+      LEFT JOIN betting_limit_configs blc ON a.betting_limit_level = blc.level_name
+      WHERE a.id = $1
+    `, [agentId]);
+    
+    if (!agentData) {
+      return res.json({
+        success: false,
+        message: '代理不存在'
+      });
+    }
+    
+    console.log(`代理 ${agentData.username} 當前限紅等級: ${agentData.betting_limit_level}`);
+    
+    res.json({
+      success: true,
+      agent: {
+        id: agentData.id,
+        username: agentData.username,
+        bettingLimitLevel: agentData.betting_limit_level,
+        levelDisplayName: agentData.level_display_name,
+        config: agentData.config,
+        description: agentData.description
+      }
+    });
+    
+  } catch (error) {
+    console.error('獲取代理限紅設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '系統錯誤，請稍後再試'
+    });
+  }
+});
+
+// 更新代理的限紅設定
+app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
+  const { operatorId, agentId, newLimitLevel, reason } = req.body;
+  
+  try {
+    console.log(`更新代理 ${agentId} 的限紅設定: ${newLimitLevel}`);
+    
+    // 檢查操作者權限
+    const operator = await AgentModel.findById(operatorId);
+    if (!operator) {
+      return res.json({
+        success: false,
+        message: '操作者不存在'
+      });
+    }
+    
+    // 獲取目標代理資訊
+    const targetAgent = await AgentModel.findById(agentId);
+    if (!targetAgent) {
+      return res.json({
+        success: false,
+        message: '目標代理不存在'
+      });
+    }
+    
+    // 檢查是否有權限修改（只能修改自己的下級代理）
+    if (targetAgent.parent_id !== operatorId && operator.level !== 0) {
+      return res.json({
+        success: false,
+        message: '無權限修改此代理的限紅設定'
+      });
+    }
+    
+    // 檢查限紅等級是否存在
+    const limitConfig = await db.oneOrNone(`
+      SELECT * FROM betting_limit_configs 
+      WHERE level_name = $1
+    `, [newLimitLevel]);
+    
+    if (!limitConfig) {
+      return res.json({
+        success: false,
+        message: '無效的限紅等級'
+      });
+    }
+    
+    // 獲取操作者的限紅等級，確保不能設定高於自己的等級
+    const operatorLimit = await db.oneOrNone(`
+      SELECT betting_limit_level FROM agents WHERE id = $1
+    `, [operatorId]);
+    
+    // 比較限紅等級（level1 < level2 < level3 < level4 < level5 < level6）
+    const levelOrder = {
+      'level1': 1,
+      'level2': 2,
+      'level3': 3,
+      'level4': 4,
+      'level5': 5,
+      'level6': 6
+    };
+    
+    if (levelOrder[newLimitLevel] > levelOrder[operatorLimit.betting_limit_level]) {
+      return res.json({
+        success: false,
+        message: '不能設定高於自己限紅等級的代理'
+      });
+    }
+    
+    const oldLimitLevel = targetAgent.betting_limit_level || 'level3';
+    
+    // 更新代理限紅等級
+    await db.none(`
+      UPDATE agents 
+      SET betting_limit_level = $1, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = $2
+    `, [newLimitLevel, agentId]);
+    
+    // 記錄操作日誌
+    await db.none(`
+      INSERT INTO transaction_records 
+      (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [
+      'agent', 
+      agentId, 
+      'other', 
+      0, 
+      0, 
+      0, 
+      `限紅等級變更: ${oldLimitLevel} -> ${newLimitLevel}, 操作者: ${operator.username}, 原因: ${reason || '未說明'}`
+    ]);
+    
+    console.log(`代理 ${targetAgent.username} 限紅等級已更新: ${oldLimitLevel} -> ${newLimitLevel}`);
+    
+    // 如果是調降限紅等級，需要連鎖調整所有下級
+    if (levelOrder[newLimitLevel] < levelOrder[oldLimitLevel]) {
+      console.log(`開始連鎖調整代理 ${targetAgent.username} 的所有下級限紅等級...`);
+      
+      // 遞迴函數：調整所有下級代理和會員的限紅等級
+      async function adjustDownlineBettingLimits(parentAgentId, maxLevel) {
+        // 獲取所有直接下級代理
+        const childAgents = await db.any(`
+          SELECT id, username, betting_limit_level 
+          FROM agents 
+          WHERE parent_id = $1
+        `, [parentAgentId]);
+        
+        for (const childAgent of childAgents) {
+          const childLevel = childAgent.betting_limit_level || 'level3';
+          
+          // 如果下級代理的限紅等級超過上級的新限制，則調整為上級的限制
+          if (levelOrder[childLevel] > levelOrder[maxLevel]) {
+            await db.none(`
+              UPDATE agents 
+              SET betting_limit_level = $1, updated_at = CURRENT_TIMESTAMP 
+              WHERE id = $2
+            `, [maxLevel, childAgent.id]);
+            
+            console.log(`  - 調整下級代理 ${childAgent.username} 的限紅等級: ${childLevel} -> ${maxLevel}`);
+            
+            // 記錄調整日誌
+            await db.none(`
+              INSERT INTO transaction_records 
+              (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, [
+              'agent', 
+              childAgent.id, 
+              'other', 
+              0, 
+              0, 
+              0, 
+              `限紅等級連鎖調整: ${childLevel} -> ${maxLevel} (因上級代理 ${targetAgent.username} 限紅調降)`
+            ]);
+          }
+          
+          // 遞迴處理此代理的下級
+          await adjustDownlineBettingLimits(childAgent.id, maxLevel);
+        }
+        
+        // 獲取該代理的所有會員
+        const members = await db.any(`
+          SELECT id, username, betting_limit_level 
+          FROM members 
+          WHERE agent_id = $1
+        `, [parentAgentId]);
+        
+        for (const member of members) {
+          const memberLevel = member.betting_limit_level || 'level1';
+          
+          // 如果會員的限紅等級超過代理的新限制，則調整為代理的限制
+          if (levelOrder[memberLevel] > levelOrder[maxLevel]) {
+            await db.none(`
+              UPDATE members 
+              SET betting_limit_level = $1, updated_at = CURRENT_TIMESTAMP 
+              WHERE id = $2
+            `, [maxLevel, member.id]);
+            
+            console.log(`  - 調整會員 ${member.username} 的限紅等級: ${memberLevel} -> ${maxLevel}`);
+            
+            // 記錄調整日誌
+            await db.none(`
+              INSERT INTO transaction_records 
+              (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, [
+              'member', 
+              member.id, 
+              'other', 
+              0, 
+              0, 
+              0, 
+              `限紅等級連鎖調整: ${memberLevel} -> ${maxLevel} (因所屬代理限紅調降)`
+            ]);
+          }
+        }
+      }
+      
+      // 開始連鎖調整
+      await adjustDownlineBettingLimits(agentId, newLimitLevel);
+      
+      console.log(`連鎖調整完成`);
+    }
+    
+    // 重新獲取更新後的代理資料
+    const updatedAgent = await db.oneOrNone(`
+      SELECT id, username, betting_limit_level, level, status, balance
+      FROM agents
+      WHERE id = $1
+    `, [agentId]);
+    
+    res.json({
+      success: true,
+      message: '限紅設定更新成功',
+      data: {
+        agentId: agentId,
+        username: targetAgent.username,
+        oldLevel: oldLimitLevel,
+        newLevel: newLimitLevel,
+        levelDisplayName: limitConfig.level_display_name
+      },
+      updatedAgent: updatedAgent
+    });
+    
+  } catch (error) {
+    console.error('更新代理限紅設定失敗:', error);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
