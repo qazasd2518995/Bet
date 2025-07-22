@@ -656,6 +656,12 @@ const app = createApp({
             // 获取当前登入代理的完整信息（包括 betting_limit_level）
             await this.fetchCurrentAgentInfo();
             
+            // 再次检查并確保子帳號状态正確
+            if (this.isSubAccount) {
+                console.log('確認子帳號状态，强制切換到报表查询页面');
+                this.activeTab = 'reports';
+            }
+            
             // 检查是否为客服
             this.isCustomerService = this.user.level === 0;
             console.log('是否为客服:', this.isCustomerService);
@@ -1369,10 +1375,13 @@ const app = createApp({
                 if (response.data.success && response.data.agent) {
                     const agentInfo = response.data.agent;
                     
-                    // 更新 user 对象
+                    // 更新 user 对象，保留 is_sub_account 标志和正确的 level
                     this.user = {
                         ...this.user,
-                        betting_limit_level: agentInfo.betting_limit_level
+                        betting_limit_level: agentInfo.betting_limit_level,
+                        is_sub_account: this.user.is_sub_account, // 保留子帳號标志
+                        // 如果是子帳號，保留登入时设置的 level，不要用查询结果覆盖
+                        level: this.user.is_sub_account ? this.user.level : agentInfo.level
                     };
                     
                     // 更新 currentManagingAgent
@@ -1445,6 +1454,15 @@ const app = createApp({
                 console.log('解析後的user对象:', user);
                 
                 if (user && user.id) {
+                    // 如果是子帳號且 level 是 99，需要修正
+                    if (user.is_sub_account && user.level === 99) {
+                        console.log('檢測到子帳號 level 為 99，需要重新獲取正確的級別');
+                        // 子帳號的 level 應該是 0（總代理），因為 ti2025A 是總代理
+                        user.level = 0;
+                        // 更新 localStorage
+                        localStorage.setItem('agent_user', JSON.stringify(user));
+                    }
+                    
                     this.isLoggedIn = true;
                     this.user = user;
                     console.log('设置user对象成功:', this.user);
@@ -1550,6 +1568,16 @@ const app = createApp({
                     };
                     
                     console.log('✅ 登录成功，设置当前管理代理:', this.currentManagingAgent);
+                    
+                    // 检查是否为子帳號
+                    this.isSubAccount = agent.is_sub_account || false;
+                    console.log('是否为子帳號:', this.isSubAccount);
+                    
+                    // 如果是子帳號，强制设置activeTab为reports
+                    if (this.isSubAccount) {
+                        this.activeTab = 'reports';
+                        console.log('子帳號登入，限制只能访问报表查询');
+                    }
                     
                     // 检查是否为客服
                     this.isCustomerService = this.user.level === 0;
@@ -6350,67 +6378,6 @@ const app = createApp({
              this.enterAgentReport(targetItem);
          },
 
-         async exportReport() {
-             try {
-                 this.loading = true;
-                 
-                 // 准备筛选参数
-                 const params = new URLSearchParams({
-                     startDate: this.reportFilters.startDate,
-                     endDate: this.reportFilters.endDate,
-                     settlementStatus: this.reportFilters.settlementStatus,
-                     betType: this.reportFilters.betType,
-                     username: this.reportFilters.username,
-                     minAmount: this.reportFilters.minAmount,
-                     maxAmount: this.reportFilters.maxAmount,
-                     export: 'true'
-                 });
-
-                 // 处理遊戲类型筛选
-                 const selectedGameTypes = [];
-                 if (!this.reportFilters.gameTypes.all) {
-                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
-                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
-                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
-                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
-                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
-                 }
-                 
-                 if (selectedGameTypes.length > 0) {
-                     params.append('gameTypes', selectedGameTypes.join(','));
-                 }
-
-                 const response = await fetch(`${this.API_BASE_URL}/reports/export?${params.toString()}`, {
-                     method: 'GET',
-                     headers: {
-                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
-                     }
-                 });
-
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-
-                 // 处理檔案下载
-                 const blob = await response.blob();
-                 const url = window.URL.createObjectURL(blob);
-                 const a = document.createElement('a');
-                 a.href = url;
-                 a.download = `报表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
-                 document.body.appendChild(a);
-                 a.click();
-                 window.URL.revokeObjectURL(url);
-                 document.body.removeChild(a);
-                 
-                 this.showMessage('报表匯出完成', 'success');
-                 
-             } catch (error) {
-                 console.error('匯出报表失败:', error);
-                 this.showMessage('匯出报表失败: ' + error.message, 'error');
-             } finally {
-                 this.loading = false;
-             }
-         },
 
 
 

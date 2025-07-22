@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代理管理系统</title>
+    <title>代理管理系统 - FS金彩赛车</title>
     
     <!-- 添加緩存清除参数 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1430,9 +1430,6 @@
                             <i class="fas fa-chart-bar me-2 text-primary"></i>报表查询
                         </h2>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary" @click="exportReport()">
-                                <i class="fas fa-download me-1"></i>匯出报表
-                            </button>
                             <button class="btn btn-primary" @click="searchReports()">
                                 <i class="fas fa-search me-1"></i>查询
                             </button>
@@ -1598,7 +1595,13 @@
                                             <tr v-if="item.type === 'agent' || item.userType === 'agent'">
                                                 <td class="text-center">
                                                     <span class="badge bg-primary">
-                                                        {{ parseInt(item.level) === 0 ? '总代理' : getLevelShortName(parseInt(item.level)) + '代理' }}
+                                                        <!-- 如果是当前登录的代理且是子账号，使用user.level而不是item.level -->
+                                                        <template v-if="item.username === user.username && user.is_sub_account">
+                                                            {{ parseInt(user.level) === 0 ? '总代理' : getLevelShortName(parseInt(user.level)) + '代理' }}
+                                                        </template>
+                                                        <template v-else>
+                                                            {{ parseInt(item.level) === 0 ? '总代理' : getLevelShortName(parseInt(item.level)) + '代理' }}
+                                                        </template>
                                                     </span>
                                                 </td>
                                                 <td class="text-center">
@@ -1622,7 +1625,7 @@
                                                 <td class="text-end">0.00</td>
                                                 <td class="text-end">0.00</td>
                                                 <td class="text-end">{{ formatMoney(item.earnedRebateAmount || 0) }}</td>
-                                                <td class="text-end" :class="getProfitClass(-item.memberWinLoss + (item.earnedRebateAmount || 0))">{{ formatProfit(-item.memberWinLoss + (item.earnedRebateAmount || 0)) }}</td>
+                                                <td class="text-end" :class="getProfitClass(item.earnedRebateAmount || 0)">{{ formatProfit(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end">{{ formatMoney(item.betAmount || 0) }}</td>
                                                 <td class="text-end" :class="getProfitClass(item.memberWinLoss)">{{ formatProfit(item.memberWinLoss || 0) }}</td>
                                             </tr>
@@ -1652,7 +1655,7 @@
                                                 <td class="text-end">0.00</td>
                                                 <td class="text-end">0.00</td>
                                                 <td class="text-end">{{ formatMoney(item.earnedRebateAmount || 0) }}</td>
-                                                <td class="text-end" :class="getProfitClass(-item.memberWinLoss + (item.earnedRebateAmount || 0))">{{ formatProfit(-item.memberWinLoss + (item.earnedRebateAmount || 0)) }}</td>
+                                                <td class="text-end" :class="getProfitClass(item.earnedRebateAmount || 0)">{{ formatProfit(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end">{{ formatMoney(item.betAmount || 0) }}</td>
                                                 <td class="text-end" :class="getProfitClass(item.memberWinLoss)">{{ formatProfit(item.memberWinLoss || 0) }}</td>
                                             </tr>
@@ -1672,7 +1675,7 @@
                                             <td class="text-end">0.00</td>
                                             <td class="text-end">0.00</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.earnedRebateAmount || 0) }}</td>
-                                            <td class="text-end fw-bold" :class="getProfitClass(-(reportData.totalSummary.memberWinLoss || 0) + (reportData.totalSummary.earnedRebateAmount || 0))">{{ formatProfit(-(reportData.totalSummary.memberWinLoss || 0) + (reportData.totalSummary.earnedRebateAmount || 0)) }}</td>
+                                            <td class="text-end fw-bold" :class="getProfitClass(reportData.totalSummary.earnedRebateAmount || 0)">{{ formatProfit(reportData.totalSummary.earnedRebateAmount || 0) }}</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.betAmount || 0) }}</td>
                                             <td class="text-end fw-bold" :class="getProfitClass(reportData.totalSummary.memberWinLoss)">{{ formatProfit(reportData.totalSummary.memberWinLoss || 0) }}</td>
                                         </tr>

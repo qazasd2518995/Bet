@@ -13,7 +13,6 @@ import initDatabaseBase from './db/init.js';
 import SessionManager from './security/session-manager.js';
 import { generateBlockchainData } from './utils/blockchain.js';
 import bcrypt from 'bcrypt';
-import XLSX from 'xlsx';
 
 // 初始化環境變量
 dotenv.config();
@@ -2466,7 +2465,7 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
     } else {
       // 如果不是代理，嘗試查詢子帳號
       const subAccount = await db.oneOrNone(`
-        SELECT sa.*, a.username as parent_agent_username, a.id as parent_agent_id
+        SELECT sa.*, a.username as parent_agent_username, a.id as parent_agent_id, a.level as parent_agent_level
         FROM sub_accounts sa
         JOIN agents a ON sa.parent_agent_id = a.id
         WHERE sa.username = $1
@@ -2504,16 +2503,37 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       `, [subAccount.id]);
       
       // 設置 user 為子帳號，但使用父代理的基本信息
+      console.log('子帳號登入 - 查詢結果:', {
+        subAccountUsername: subAccount.username,
+        parentAgentId: subAccount.parent_agent_id,
+        parentAgentLevel: subAccount.parent_agent_level,
+        parentAgentUsername: subAccount.parent_agent_username
+      });
+      
+      // 獲取父代理的完整信息
+      const parentAgent = await AgentModel.findById(subAccount.parent_agent_id);
+      if (!parentAgent) {
+        return res.json({
+          success: false,
+          message: '父代理不存在'
+        });
+      }
+      
       user = {
-        id: subAccount.parent_agent_id,
+        id: parentAgent.id,
         username: subAccount.username,
-        level: 99, // 特殊等級表示子帳號
-        balance: '0.00',
-        commission_balance: '0.00',
+        level: parentAgent.level, // 使用父代理的等級
+        balance: parentAgent.balance,
+        commission_balance: parentAgent.commission_balance,
         status: subAccount.status,
+        rebate_percentage: parentAgent.rebate_percentage,
+        max_rebate_percentage: parentAgent.max_rebate_percentage,
+        rebate_mode: parentAgent.rebate_mode,
+        market_type: parentAgent.market_type,
+        betting_limit_level: parentAgent.betting_limit_level,
         is_sub_account: true,
         sub_account_id: subAccount.id,
-        parent_agent_username: subAccount.parent_agent_username
+        parent_agent_username: parentAgent.username
       };
       
       isSubAccount = true;
@@ -2564,22 +2584,32 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
     
     console.log(`✅ ${isSubAccount ? '子帳號' : '代理'}登入成功: ${username} (ID: ${user.id}), IP: ${ipAddress}`);
     
+    // 在返回之前記錄將要發送的數據
+    const responseAgent = {
+      id: user.id,
+      username: user.username,
+      level: user.level,
+      balance: user.balance,
+      commission_balance: user.commission_balance,
+      rebate_percentage: user.rebate_percentage,
+      max_rebate_percentage: user.max_rebate_percentage,
+      rebate_mode: user.rebate_mode,
+      market_type: user.market_type || 'D', // 添加盤口類型
+      betting_limit_level: user.betting_limit_level || 'level3', // 添加限紅等級
+      is_sub_account: user.is_sub_account || false // 添加子帳號標記
+    };
+    
+    console.log('登入響應 - 即將發送的代理數據:', {
+      id: responseAgent.id,
+      username: responseAgent.username,
+      level: responseAgent.level,
+      is_sub_account: responseAgent.is_sub_account
+    });
+    
     res.json({
       success: true,
       message: '登入成功',
-      agent: {
-        id: user.id,
-        username: user.username,
-        level: user.level,
-        balance: user.balance,
-        commission_balance: user.commission_balance,
-        rebate_percentage: user.rebate_percentage,
-        max_rebate_percentage: user.max_rebate_percentage,
-        rebate_mode: user.rebate_mode,
-        market_type: user.market_type || 'D', // 添加盤口類型
-        betting_limit_level: user.betting_limit_level || 'level3', // 添加限紅等級
-        is_sub_account: user.is_sub_account || false // 添加子帳號標記
-      },
+      agent: responseAgent,
       token: legacyToken,
       sessionToken: sessionToken // 新的會話token
     });
@@ -8849,202 +8879,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
   }
 });
 
-app.get(`${API_PREFIX}/reports/export`, async (req, res) => {
-  try {
-    // 使用通用認證中間件
-    const authResult = await authenticateAgent(req);
-    if (!authResult.success) {
-      return res.status(401).json(authResult);
-    }
 
-    const { agent } = authResult;
-    const { startDate, endDate, settlementStatus, betType, username, minAmount, maxAmount, gameTypes } = req.query;
-
-    // 構建查詢條件
-    let whereClause = 'WHERE 1=1';
-    let params = [];
-    let paramIndex = 1;
-
-    if (startDate && startDate.trim()) {
-      whereClause += ` AND bh.created_at >= $${paramIndex}`;
-      params.push(startDate + ' 00:00:00');
-      paramIndex++;
-    }
-
-    if (endDate && endDate.trim()) {
-      whereClause += ` AND bh.created_at <= $${paramIndex}`;
-      params.push(endDate + ' 23:59:59');
-      paramIndex++;
-    }
-
-    if (settlementStatus && settlementStatus !== 'all') {
-      whereClause += ` AND bh.settlement_status = $${paramIndex}`;
-      params.push(settlementStatus);
-      paramIndex++;
-    }
-
-    if (betType && betType !== 'all') {
-      whereClause += ` AND bh.bet_type = $${paramIndex}`;
-      params.push(betType);
-      paramIndex++;
-    }
-
-    if (username && username.trim()) {
-      whereClause += ` AND bh.username ILIKE $${paramIndex}`;
-      params.push(`%${username}%`);
-      paramIndex++;
-    }
-
-    if (minAmount) {
-      whereClause += ` AND bh.bet_amount >= $${paramIndex}`;
-      params.push(parseFloat(minAmount));
-      paramIndex++;
-    }
-
-    if (maxAmount) {
-      whereClause += ` AND bh.bet_amount <= $${paramIndex}`;
-      params.push(parseFloat(maxAmount));
-      paramIndex++;
-    }
-
-    if (gameTypes && gameTypes !== '') {
-      const types = gameTypes.split(',');
-      whereClause += ` AND bh.game_type = ANY($${paramIndex})`;
-      params.push(types);
-      paramIndex++;
-    }
-
-    // 查詢下注記錄
-    const query = `
-      WITH RECURSIVE agent_tree AS (
-        SELECT id, username, level, parent_id, 0 as depth
-        FROM agents 
-        WHERE id = $${paramIndex}
-        
-        UNION ALL
-        
-        SELECT a.id, a.username, a.level, a.parent_id, at.depth + 1
-        FROM agents a
-        INNER JOIN agent_tree at ON a.parent_id = at.id
-        WHERE a.status = 1
-      )
-      SELECT 
-        bh.id,
-        bh.session_number as period,
-        bh.username,
-        bh.game_type,
-        bh.bet_content,
-        bh.bet_amount,
-        bh.valid_amount,
-        bh.win_loss,
-        bh.rebate_amount,
-        COALESCE(a.username, m.agent_username) as agent_username,
-        bh.agent_percentage,
-        bh.agent_result,
-        bh.turnover,
-        bh.created_at,
-        bh.settlement_status,
-        CASE 
-          WHEN a.id IS NOT NULL THEN 'agent'
-          ELSE 'member'
-        END as user_type
-      FROM bet_history bh
-      LEFT JOIN agents a ON bh.username = a.username
-      LEFT JOIN members m ON bh.username = m.username
-      ${whereClause}
-        AND (
-          bh.username IN (SELECT username FROM agent_tree)
-          OR bh.username IN (
-            SELECT username FROM members 
-            WHERE agent_id IN (SELECT id FROM agent_tree)
-          )
-        )
-      ORDER BY bh.created_at DESC
-    `;
-
-    params.push(agent.id);
-
-    console.log('📊 執行報表匯出查詢:', { query, params });
-    const result = await db.query(query, params);
-
-    // 準備Excel數據
-    const excelData = result.rows.map(row => ({
-      '期號': row.period || '',
-      '用戶名': row.username || '',
-      '遊戲類型': formatGameType(row.game_type),
-      '投注內容': row.bet_content || '',
-      '下注金額': parseFloat(row.bet_amount || 0).toFixed(2),
-      '有效金額': parseFloat(row.valid_amount || 0).toFixed(2),
-      '盈虧': parseFloat(row.win_loss || 0).toFixed(2),
-      '退水': parseFloat(row.rebate_amount || 0).toFixed(2),
-      '所屬代理': row.agent_username || '',
-      '佔成': row.agent_percentage ? `${row.agent_percentage}%` : '0%',
-      '代理結果': parseFloat(row.agent_result || 0).toFixed(2),
-      '上交': parseFloat(row.turnover || 0).toFixed(2),
-      '結算狀態': row.settlement_status === 'settled' ? '已結算' : '未結算',
-      '用戶類型': row.user_type === 'agent' ? '代理' : '會員',
-      '時間': new Date(row.created_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
-    }));
-
-    // 創建工作簿
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
-
-    // 設置列寬
-    const colWidths = [
-      { wch: 15 }, // 期號
-      { wch: 12 }, // 用戶名
-      { wch: 12 }, // 遊戲類型
-      { wch: 20 }, // 投注內容
-      { wch: 10 }, // 下注金額
-      { wch: 10 }, // 有效金額
-      { wch: 10 }, // 盈虧
-      { wch: 8 },  // 退水
-      { wch: 12 }, // 所屬代理
-      { wch: 8 },  // 佔成
-      { wch: 10 }, // 代理結果
-      { wch: 10 }, // 上交
-      { wch: 10 }, // 結算狀態
-      { wch: 8 },  // 用戶類型
-      { wch: 20 }  // 時間
-    ];
-    ws['!cols'] = colWidths;
-
-    // 添加工作表到工作簿
-    XLSX.utils.book_append_sheet(wb, ws, '下注報表');
-
-    // 生成Excel文件緩衝區
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
-
-    // 設置響應頭
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=report_${startDate}_${endDate}.xlsx`);
-    res.setHeader('Content-Length', excelBuffer.length);
-
-    // 發送文件
-    res.send(excelBuffer);
-
-  } catch (error) {
-    console.error('匯出報表失敗:', error);
-    res.status(500).json({
-      success: false,
-      message: '匯出報表失敗',
-      error: error.message
-    });
-  }
-});
-
-// 格式化遊戲類型
-function formatGameType(gameType) {
-  const gameTypeMap = {
-    'pk10': 'AR PK10',
-    'ssc': '时时彩',
-    'lottery539': '539彩票',
-    'lottery': '彩票',
-    'other': '其他'
-  };
-  return gameTypeMap[gameType] || gameType || '';
-}
 
 // 創建通用認證中間件
 async function authenticateAgent(req) {
