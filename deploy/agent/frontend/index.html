@@ -916,6 +916,10 @@
                                                     <button v-if="item.userType === 'agent'" class="btn btn-outline-info" @click="showRebateSettingsModal(item)">
                                                         <i class="fas fa-percent me-1"></i>退水設定
                                                     </button>
+                                                    <!-- 代理獨有：限紅設定 -->
+                                                    <button v-if="item.userType === 'agent'" class="btn btn-outline-warning" @click="adjustAgentBettingLimit(item)">
+                                                        <i class="fas fa-sliders-h me-1"></i>限紅設定
+                                                    </button>
                                                     <!-- 會員獨有：調整限紅 -->
                                                     <button v-if="item.userType === 'member'" class="btn btn-outline-info" @click="adjustMemberBettingLimit(item)">
                                                         <i class="fas fa-sliders-h me-1"></i>調整限紅
@@ -1016,6 +1020,21 @@
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-arrow-down me-1"></i>
                                                         盤口類型自動繼承自 {{ (currentMemberManagingAgent && currentMemberManagingAgent.username ? currentMemberManagingAgent.username : currentManagingAgent.username) }}，無需選擇
+                                                    </small>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">限紅等級</label>
+                                                    <select class="form-select" v-model="newAgent.betting_limit_level" required>
+                                                        <option value="">請選擇限紅等級</option>
+                                                        <option v-for="config in availableBettingLimitConfigs" 
+                                                                :key="config.level_name" 
+                                                                :value="config.level_name">
+                                                            {{ config.level_display_name }} - {{ config.description }}
+                                                        </option>
+                                                    </select>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        限紅等級決定該代理可創建的會員和下級代理的最高限紅等級
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
@@ -3314,6 +3333,107 @@
                                 @click="submitBettingLimitAdjustment()"
                                 :disabled="!bettingLimitData.newLimitLevel || bettingLimitData.submitting">
                             <span v-if="bettingLimitData.submitting" class="spinner-border spinner-border-sm me-2"></span>
+                            確認調整
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 調整代理限紅 Modal - 使用v-if控制顯示 -->
+        <div v-if="showAgentBettingLimitModal && isLoggedIn && user && user.id && modalSystemReady" 
+             class="modal d-block" id="adjustAgentBettingLimitModal" tabindex="-1" 
+             style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-sliders-h me-2"></i>調整代理限紅設定
+                        </h5>
+                        <button type="button" class="btn-close" @click="hideAgentBettingLimitModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 載入狀態 -->
+                        <div v-if="agentBettingLimitData.loading" class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">載入中...</span>
+                            </div>
+                            <p class="mt-2">載入限紅配置中...</p>
+                        </div>
+                        
+                        <!-- 主要內容 -->
+                        <div v-else>
+                            <!-- 代理信息 -->
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-user-tie me-2"></i>代理信息</h6>
+                                <p class="mb-1"><strong>用戶名:</strong> {{ agentBettingLimitData.agent.username }}</p>
+                                <p class="mb-1"><strong>當前限紅等級:</strong> 
+                                    <span class="badge bg-secondary">{{ agentBettingLimitData.agent.levelDisplayName }}</span>
+                                </p>
+                                <p class="mb-0"><strong>說明:</strong> {{ agentBettingLimitData.agent.description }}</p>
+                            </div>
+
+                            <!-- 重要提示 -->
+                            <div class="alert alert-warning">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>重要提示</h6>
+                                <p class="mb-1">• 代理的限紅等級決定了該代理可以創建的會員和下級代理的<strong>最高限紅等級</strong></p>
+                                <p class="mb-1">• 您只能將代理的限紅等級設定為<strong>不高於您自己的限紅等級</strong></p>
+                                <p class="mb-0">• 調整限紅等級<strong>不會影響</strong>該代理已創建的會員和下級代理的限紅設定</p>
+                            </div>
+
+                            <!-- 限紅等級選擇 -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">選擇新的限紅等級</label>
+                                <select class="form-select" v-model="agentBettingLimitData.newLimitLevel">
+                                    <option value="">請選擇限紅等級</option>
+                                    <option v-for="config in agentBettingLimitData.availableConfigs" 
+                                            :key="config.level_name" 
+                                            :value="config.level_name">
+                                        {{ config.level_display_name }} - {{ config.description }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- 限紅配置預覽 -->
+                            <div v-if="agentBettingLimitData.newLimitLevel" class="mb-3">
+                                <h6><i class="fas fa-eye me-2"></i>限紅配置預覽</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead style="background-color: #1e3a8a; color: white; font-weight: bold;">
+                                            <tr>
+                                                <th style="color: white; font-weight: bold; background-color: #1e3a8a;">玩法</th>
+                                                <th style="color: white; font-weight: bold; background-color: #1e3a8a;">單注最高</th>
+                                                <th style="color: white; font-weight: bold; background-color: #1e3a8a;">單期限額</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(config, key) in selectedAgentLimitConfig" :key="key">
+                                                <td>{{ formatBetTypeName(key) }}</td>
+                                                <td class="text-success fw-bold">{{ formatMoney(config.maxBet) }}</td>
+                                                <td class="text-primary fw-bold">{{ formatMoney(config.periodLimit) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- 調整原因 -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">調整原因</label>
+                                <textarea class="form-control" 
+                                          v-model="agentBettingLimitData.reason" 
+                                          rows="3" 
+                                          placeholder="請輸入調整限紅的原因（可選）"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="hideAgentBettingLimitModal">取消</button>
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                @click="submitAgentBettingLimitAdjustment()"
+                                :disabled="!agentBettingLimitData.newLimitLevel || agentBettingLimitData.submitting">
+                            <span v-if="agentBettingLimitData.submitting" class="spinner-border spinner-border-sm me-2"></span>
                             確認調整
                         </button>
                     </div>

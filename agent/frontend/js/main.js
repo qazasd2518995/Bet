@@ -631,6 +631,10 @@ const app = createApp({
         
         if (isAuthenticated && sessionValid) {
             console.log('用戶已認證，开始加載初始數據');
+            
+            // 獲取當前登入代理的完整信息（包括 betting_limit_level）
+            await this.fetchCurrentAgentInfo();
+            
             // 检查是否為客服
             this.isCustomerService = this.user.level === 0;
             console.log('是否為客服:', this.isCustomerService);
@@ -859,7 +863,18 @@ const app = createApp({
                     }
                     
                     // 獲取管理代理的限紅等級（創建代理時需要參考父代理的限紅等級）
-                    const managingAgentBettingLevel = managingAgent.betting_limit_level || 'level3';
+                    let managingAgentBettingLevel;
+                    
+                    // 如果當前用戶和管理代理是同一人（即為自己創建下級代理）
+                    if (managingAgent.id === this.user.id) {
+                        // 使用當前登入代理的限紅等級（已經在 fetchCurrentAgentInfo 中更新）
+                        managingAgentBettingLevel = this.user.betting_limit_level || 'level3';
+                        console.log('為自己創建下級代理，使用當前登入代理的限紅等級:', managingAgentBettingLevel);
+                    } else {
+                        // 為其他代理創建下級，使用該代理的限紅等級
+                        managingAgentBettingLevel = managingAgent.betting_limit_level || 'level3';
+                        console.log('為其他代理創建下級，使用管理代理的限紅等級:', managingAgentBettingLevel);
+                    }
                     
                     // 限紅等級排序
                     const levelOrder = {
@@ -1054,6 +1069,37 @@ const app = createApp({
                     toggle: false
                 });
                 bootstrapCollapse.hide();
+            }
+        },
+        
+        // 獲取當前登入代理的完整信息
+        async fetchCurrentAgentInfo() {
+            try {
+                // 使用已經在 checkAuth 中設置好的 axios headers
+                const response = await axios.get(`${API_BASE_URL}/agents/${this.user.id}`);
+                
+                if (response.data.success && response.data.agent) {
+                    const agentInfo = response.data.agent;
+                    
+                    // 更新 user 對象
+                    this.user = {
+                        ...this.user,
+                        betting_limit_level: agentInfo.betting_limit_level
+                    };
+                    
+                    // 更新 currentManagingAgent
+                    this.currentManagingAgent = {
+                        ...this.currentManagingAgent,
+                        betting_limit_level: agentInfo.betting_limit_level
+                    };
+                    
+                    // 更新 localStorage
+                    localStorage.setItem('agent_user', JSON.stringify(this.user));
+                    
+                    console.log('✅ 已更新當前代理信息，限紅等級:', agentInfo.betting_limit_level);
+                }
+            } catch (error) {
+                console.error('獲取當前代理信息失敗:', error);
             }
         },
         
