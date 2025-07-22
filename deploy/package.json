@@ -1,7 +1,7 @@
 {
   "name": "bet",
   "version": "1.0.0",
-  "description": "極速賽車遊戲網站",
+  "description": "FS金彩賽車遊戲網站",
   "type": "module",
   "main": "backend.js",
   "scripts": {
@@ -22,6 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.9.0",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.0.0",
     "concurrently": "^8.2.2",

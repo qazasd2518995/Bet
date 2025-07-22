@@ -1,14 +1,14 @@
 // filepath: /Users/justin/Desktop/Bet/frontend/src/components/GameInterface.js
-// 游戏界面主組件 - 根據設備類型提供適當的游戏界面佈局
+// 游戏界面主組件 - 根据设备类型提供适當的游戏界面佈局
 
 Vue.component('game-interface', {
   props: {
-    // 接受父組件傳遞的賠率
+    // 接受父組件传递的赔率
     parentOdds: {
       type: Object,
       default: () => ({})
     },
-    // 接受父組件傳遞的用戶市場類型
+    // 接受父組件传递的用戶市場类型
     userMarketType: {
       type: String,
       default: 'D'
@@ -16,22 +16,22 @@ Vue.component('game-interface', {
   },
   template: /* html */`
     <div class="game-interface game-container">
-      <!-- 比賽结果顯示區 -->
+      <!-- 比赛结果显示區 -->
       <div class="race-result">
         <h2 class="result-title">FS赛车 第{{currentPeriod}}期</h2>
         <div class="countdown">
-          <div class="countdown-label">距離下期开奖:</div>
+          <div class="countdown-label">距离下期开奖:</div>
           <div class="countdown-timer">{{formatCountdown(countdown)}}</div>
         </div>
         
-        <!-- 赛车軌道區域 - 根據設備類型有不同佈局 -->
+        <!-- 赛车轨道區域 - 根据设备类型有不同佈局 -->
         <div class="race-track" :class="{'desktop-layout': isDesktop}">
-          <!-- 赛车內容（游戏動畫）-->
+          <!-- 赛车内容（游戏動畫）-->
           <div class="racing-content">
-            <!-- 赛车會在这里動畫顯示 -->
+            <!-- 赛车会在这里動畫显示 -->
           </div>
           
-          <!-- 当前开奖结果 - 球号顯示 -->
+          <!-- 当前开奖结果 - 球号显示 -->
           <div class="current-result">
             <div v-for="(number, index) in currentResult" :key="index" 
                  :class="['number-ball', 'color-' + number]">
@@ -41,9 +41,9 @@ Vue.component('game-interface', {
         </div>
       </div>
       
-      <!-- 下注區域 - 根據設備類型自動调整排列方向 -->
+      <!-- 下注區域 - 根据设备类型自動调整排列方向 -->
       <div class="betting-area">
-        <!-- 下注選項 -->
+        <!-- 下注选项 -->
         <div class="bet-options">
           <div class="bet-type-tabs">
             <div :class="['tab', activeTab === 'number' ? 'active' : '']" 
@@ -51,9 +51,9 @@ Vue.component('game-interface', {
             <div :class="['tab', activeTab === 'bigSmall' ? 'active' : '']" 
                  @click="activeTab = 'bigSmall'">大小</div>
             <div :class="['tab', activeTab === 'oddEven' ? 'active' : '']" 
-                 @click="activeTab = 'oddEven'">單雙</div>
+                 @click="activeTab = 'oddEven'">單双</div>
             <div :class="['tab', activeTab === 'combo' ? 'active' : '']" 
-                 @click="activeTab = 'combo'">冠亞和/龍虎</div>
+                 @click="activeTab = 'combo'">冠亞和/龙虎</div>
           </div>
           
           <div class="betting-content">
@@ -81,10 +81,10 @@ Vue.component('game-interface', {
               </div>
             </div>
             
-            <!-- 單雙投注 -->
+            <!-- 單双投注 -->
             <div v-if="activeTab === 'oddEven'" class="oddeven-betting">
               <div class="option-row">
-                <div v-for="(option, index) in ['單', '雙']" :key="index"
+                <div v-for="(option, index) in ['單', '双']" :key="index"
                      :class="['bet-option', {'selected': isBetSelected('oddEven', option)}]" 
                      @click="toggleBet('oddEven', option)">
                   <div class="option-label">{{ option }}</div>
@@ -93,7 +93,7 @@ Vue.component('game-interface', {
               </div>
             </div>
             
-            <!-- 冠亞和/龍虎投注 -->
+            <!-- 冠亞和/龙虎投注 -->
             <div v-if="activeTab === 'combo'" class="combo-betting">
               <div class="option-section">
                 <h3>冠亞和</h3>
@@ -108,9 +108,9 @@ Vue.component('game-interface', {
               </div>
               
               <div class="option-section">
-                <h3>龍虎</h3>
+                <h3>龙虎</h3>
                 <div class="option-row">
-                  <div v-for="(option, index) in ['龍', '虎', '和']" :key="index"
+                  <div v-for="(option, index) in ['龙', '虎', '和']" :key="index"
                        :class="['bet-option', {'selected': isBetSelected('dragonTiger', option)}]" 
                        @click="toggleBet('dragonTiger', option)">
                     <div class="option-label">{{ option }}</div>
@@ -142,7 +142,7 @@ Vue.component('game-interface', {
             <div class="bet-actions">
               <div class="total-info">
                 <div>總金额: {{calculateTotalAmount()}}</div>
-                <div>可贏金额: {{calculatePossibleWin()}}</div>
+                <div>可赢金额: {{calculatePossibleWin()}}</div>
               </div>
               <button class="place-bet-btn" @click="placeBets" :disabled="!canPlaceBet">投注</button>
             </div>
@@ -150,7 +150,7 @@ Vue.component('game-interface', {
         </div>
       </div>
       
-      <!-- 顯示/隱藏历史记录控制按鈕 - 现在放在頂部 -->
+      <!-- 显示/隐藏历史记录控制按钮 - 现在放在顶部 -->
       <div class="history-buttons">
         <button @click="toggleHistory" class="history-control-btn">
           {{ showHistory ? '关闭开奖历史' : '开奖历史' }}
@@ -160,7 +160,7 @@ Vue.component('game-interface', {
         </button>
       </div>
       
-      <!-- 历史记录區域 - 浮動覆蓋顯示 -->
+      <!-- 历史记录區域 - 浮動复蓋显示 -->
       <div class="modal-overlay" v-if="showHistory || showBetRecords" @click="closeAllModals"></div>
       
       <div class="history-modal" v-if="showHistory">
@@ -181,23 +181,23 @@ Vue.component('game-interface', {
   
   data() {
     return {
-      isDesktop: false, // 是否為桌面設備
+      isDesktop: false, // 是否为桌面设备
       activeTab: 'number', // 当前活躍的投注標籤
       currentPeriod: '20230001', // 当前期数
       countdown: 60, // 倒计时（秒）
       currentResult: [1, 3, 5, 7, 9, 2, 4, 6, 8, 0], // 当前开奖结果
-      currentBets: [], // 当前投注清單
+      currentBets: [], // 当前投注清单
       userId: 'user123', // 用戶ID
-      showHistory: false, // 是否顯示开奖历史
-      showBetRecords: false, // 是否顯示投注记录
-      // 赔率表 - 通常從伺服器加載
+      showHistory: false, // 是否显示开奖历史
+      showBetRecords: false, // 是否显示投注记录
+      // 赔率表 - 通常從伺服器加载
       odds: {
         number: [9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8, 9.8],
         bigSmall: { '大': 1.95, '小': 1.95 },
-        oddEven: { '單': 1.95, '雙': 1.95 },
+        oddEven: { '單': 1.95, '双': 1.95 },
         sum: { 3: 40, 4: 20, 5: 10, 6: 8, 7: 7, 8: 6, 9: 5, 10: 4.5, 11: 4, 
                12: 4, 13: 4.5, 14: 5, 15: 6, 16: 7, 17: 8, 18: 10, 19: 20 },
-        dragonTiger: { '龍': 1.95, '虎': 1.95, '和': 9.0 }
+        dragonTiger: { '龙': 1.95, '虎': 1.95, '和': 9.0 }
       }
     };
   },
@@ -211,7 +211,7 @@ Vue.component('game-interface', {
   },
   
   created() {
-    // 監聽設備检测模組的事件
+    // 監聽设备检测模組的事件
     this.checkDeviceType();
     window.addEventListener('resize', this.checkDeviceType);
     
@@ -225,12 +225,12 @@ Vue.component('game-interface', {
   },
   
   methods: {
-    // 检查設備類型
+    // 检查设备类型
     checkDeviceType() {
       if (window.DeviceDetector) {
         this.isDesktop = window.DeviceDetector.detectDevice() === 'desktop';
         
-        // 在桌面設備上同时顯示兩個历史记录區域
+        // 在桌面设备上同时显示两个历史记录區域
         if (this.isDesktop) {
           this.showHistory = true;
           this.showBetRecords = true;
@@ -238,7 +238,7 @@ Vue.component('game-interface', {
       }
     },
     
-    // 格式化倒计时顯示
+    // 格式化倒计时显示
     formatCountdown(seconds) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
@@ -251,7 +251,7 @@ Vue.component('game-interface', {
         if (this.countdown > 0) {
           this.countdown--;
         } else {
-          // 當倒计时结束時，模擬新的一期开始
+          // 當倒计时结束时，模擬新的一期开始
           this.countdown = 60; // 重设倒计时
           this.currentPeriod = String(parseInt(this.currentPeriod) + 1); // 更新期数
           this.generateNewResult(); // 生成新的结果
@@ -261,7 +261,7 @@ Vue.component('game-interface', {
     
     // 生成新的开奖结果（模擬）
     generateNewResult() {
-      // 隨機生成10個不重複的數字（0-9）
+      // 随机生成10个不重复的數字（0-9）
       const numbers = Array.from({length: 10}, (_, i) => i);
       for (let i = numbers.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -270,7 +270,7 @@ Vue.component('game-interface', {
       this.currentResult = numbers;
     },
     
-    // 检查投注是否被選中
+    // 检查投注是否被选中
     isBetSelected(type, value) {
       return this.currentBets.some(bet => bet.type === type && bet.value === value);
     },
@@ -327,40 +327,40 @@ Vue.component('game-interface', {
       }, 0).toFixed(2);
     },
     
-    // 提交投注（實際应用中會發送到伺服器）
+    // 提交投注（實际应用中会发送到伺服器）
     placeBets() {
       if (!this.canPlaceBet) return;
       
-      // 这里應該有API調用將投注發送到伺服器
+      // 这里應該有API調用將投注发送到伺服器
       alert(`已投注 ${this.calculateTotalAmount()} 元`);
       
       // 清空投注單
       this.currentBets = [];
     },
     
-    // 获取投注類型標籤
+    // 获取投注类型標籤
     getBetTypeLabel(type) {
       const typeMap = {
         'number': '号码',
         'bigSmall': '大小',
-        'oddEven': '單雙',
+        'oddEven': '單双',
         'sum': '冠亞和',
-        'dragonTiger': '龍虎'
+        'dragonTiger': '龙虎'
       };
       return typeMap[type] || type;
     },
     
-    // 切換开奖历史顯示
+    // 切換开奖历史显示
     toggleHistory() {
       this.showHistory = !this.showHistory;
-      // 确保不會同时顯示兩個模態窗口
+      // 确保不会同时显示两个模態窗口
       if (this.showHistory) this.showBetRecords = false;
     },
     
-    // 切換投注记录顯示
+    // 切換投注记录显示
     toggleBetRecords() {
       this.showBetRecords = !this.showBetRecords;
-      // 确保不會同时顯示兩個模態窗口
+      // 确保不会同时显示两个模態窗口
       if (this.showBetRecords) this.showHistory = false;
     },
     

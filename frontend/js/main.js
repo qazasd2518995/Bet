@@ -2,18 +2,18 @@
 // 代理管理系统前端 JavaScript 档案
 // 最后更新：2025-05-10
 
-// API 基礎 URL - 根據環境调整
+// API 基礎 URL - 根据环境调整
 let API_BASE_URL;
 
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // 本地開發環境 - 代理系统运行在3003端口
+    // 本地开发环境 - 代理系统运行在3003端口
     API_BASE_URL = 'http://localhost:3003/api/agent';
 } else {
-    // Render 生產環境 - 不使用端口号，讓Render处理路由
+    // Render 生产环境 - 不使用端口号，让Render处理路由
     API_BASE_URL = 'https://bet-agent.onrender.com/api/agent';
 }
 
-// 添加調試信息
+// 添加调试信息
 console.log('当前API基礎URL:', API_BASE_URL, '主機名:', window.location.hostname);
 
 // API请求通用配置
@@ -28,9 +28,9 @@ console.log('开始初始化Vue应用');
 console.log('Vue是否可用:', typeof Vue);
 
 if (typeof Vue === 'undefined') {
-    console.error('Vue未定義！请检查Vue腳本是否正确加載。');
-    alert('Vue未定義！请检查Vue腳本是否正确加載。');
-    throw new Error('Vue未定義');
+    console.error('Vue未定义！请检查Vue腳本是否正确加载。');
+    alert('Vue未定义！请检查Vue腳本是否正确加载。');
+    throw new Error('Vue未定义');
 }
 
 const { createApp } = Vue;
@@ -39,10 +39,10 @@ console.log('createApp是否可用:', typeof createApp);
 const app = createApp({
     data() {
         return {
-            // 將API_BASE_URL添加到Vue實例的data中，使模板可以訪問
+            // 將API_BASE_URL添加到Vue實例的data中，使模板可以访问
             API_BASE_URL: API_BASE_URL,
             
-            // 身份驗證狀態
+            // 身份验证状态
             isLoggedIn: false,
             loading: false,
             
@@ -74,12 +74,12 @@ const app = createApp({
                 category: '最新公告'
             },
             
-            // 当前活動分頁
+            // 当前活動分页
             activeTab: 'dashboard',
             transactionTab: 'transfers',
-            customerServiceTab: 'transactions', // 客服功能標籤頁：'transactions' 或 'win-loss-control'
+            customerServiceTab: 'transactions', // 客服功能標籤页：'transactions' 或 'win-loss-control'
             
-            // 儀表板數據
+            // 儀表板数据
             dashboardData: {
                 totalDeposit: 0,
                 totalWithdraw: 0,
@@ -90,14 +90,14 @@ const app = createApp({
                 subAgentsCount: 0
             },
             
-            // 圖表實例
+            // 图表實例
             transactionChart: null,
             
             // 代理管理相关
             agents: [],
             agentFilters: {
                 level: '-1',
-                status: '-1', // 顯示所有狀態（物理删除後不會有已删除項目）
+                status: '-1', // 显示所有状态（物理删除後不会有已删除项目）
                 keyword: ''
             },
             agentPagination: {
@@ -113,9 +113,9 @@ const app = createApp({
                 password: '',
                 level: '1',
                 parent: '',
-                market_type: 'D', // 默認D盤
+                market_type: 'D', // 默认D盤
                 rebate_mode: 'percentage',
-                rebate_percentage: 2.0, // 將在showAgentModal中根據盤口動態設定
+                rebate_percentage: 2.0, // 將在showAgentModal中根据盤口動態设定
                 notes: ''
             },
             parentAgents: [],
@@ -154,11 +154,11 @@ const app = createApp({
             editAgentModal: null,
             editAgentNotesModal: null,
             
-            // 編輯備註相关
+            // 编辑备注相关
             showEditAgentNotesModal: false,
             showEditMemberNotesModal: false,
             
-            // 顯示限紅調整模態框
+            // 显示限红调整模態框
             showBettingLimitModal: false,
             editNotesData: {
                 id: null,
@@ -170,7 +170,7 @@ const app = createApp({
             // 会员管理相关
             members: [],
             memberFilters: {
-                status: '-1', // 顯示所有狀態（物理删除後不會有已删除項目）
+                status: '-1', // 显示所有状态（物理删除後不会有已删除项目）
                 keyword: ''
             },
             memberPagination: {
@@ -180,9 +180,9 @@ const app = createApp({
             },
             memberViewMode: 'direct', // 'direct' 或 'downline'
             
-            // 層級會員管理相關
-            hierarchicalMembers: [], // 統一的代理+會員列表
-            memberBreadcrumb: [], // 會員管理導航麵包屑
+            // 层级会员管理相关
+            hierarchicalMembers: [], // 統一的代理+会员列表
+            memberBreadcrumb: [], // 会员管理導航面包屑
             memberHierarchyStats: {
                 agentCount: 0,
                 memberCount: 0
@@ -203,7 +203,7 @@ const app = createApp({
                 balance: 0,
                 status: 1,
                 notes: '',
-                market_type: 'D' // 默認繼承代理盤口
+                market_type: 'D' // 默认繼承代理盤口
             },
             
 
@@ -219,7 +219,7 @@ const app = createApp({
                 description: ''
             },
 
-            // 報表查詢相关
+            // 报表查询相关
             reportFilters: {
                 startDate: new Date().toISOString().split('T')[0], // 今日
                 endDate: new Date().toISOString().split('T')[0],   // 今日
@@ -254,10 +254,10 @@ const app = createApp({
                 message: ''
             },
             
-            // 報表層級追蹤
+            // 报表层级追蹤
             reportBreadcrumb: [],
 
-            // 登錄日誌相关
+            // 登录日誌相关
             loginLogs: [],
             loginLogFilters: {
                 startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7天前
@@ -340,7 +340,7 @@ const app = createApp({
                 agentUsername: '',
                 currentBalance: 0,
                 reason: '',
-                description: '' // 新增: 点数转移備註
+                description: '' // 新增: 点数转移备注
             },
             agentModifyType: 'absolute', // 'absolute' 或 'relative'
             agentModifyAmount: 0,
@@ -351,8 +351,8 @@ const app = createApp({
             agentTransferType: 'deposit', // 'deposit' 或 'withdraw'
             agentTransferAmount: 0,
 
-            // 客服專用數據
-            isCustomerService: false, // 是否為客服 - 根據用戶權限動態設定
+            // 客服專用数据
+            isCustomerService: false, // 是否为客服 - 根据用戶权限動態设定
             showCSOperationModal: false, // 客服操作模態框
             csOperation: {
                 targetAgentId: '',
@@ -374,7 +374,7 @@ const app = createApp({
             },
             allAgents: [], // 所有代理列表（供客服选择）
             
-            // 輸贏控制相關
+            // 输赢控制相关
             winLossControls: [],
             activeWinLossControl: {
                 control_mode: 'normal',
@@ -389,7 +389,7 @@ const app = createApp({
                 loss_control: false,
                 start_period: null
             },
-            agentMembers: [], // 選中代理的会员列表
+            agentMembers: [], // 选中代理的会员列表
             csOperationModal: null, // 客服操作模態框
             
             // 存款记录
@@ -408,7 +408,7 @@ const app = createApp({
                 total: 0
             },
             
-            // 重设密碼數據
+            // 重设密码数据
             resetPasswordData: {
                 userType: '', // 'agent' 或 'member'
                 userId: null,
@@ -417,7 +417,7 @@ const app = createApp({
                 confirmPassword: ''
             },
             
-            // 調整限紅數據
+            // 调整限红数据
             bettingLimitData: {
                 loading: false,
                 submitting: false,
@@ -433,7 +433,7 @@ const app = createApp({
                 reason: ''
             },
             
-            // 个人资料數據
+            // 个人资料数据
             profileData: {
                 realName: '',
                 phone: '',
@@ -444,15 +444,15 @@ const app = createApp({
                 remark: ''
             },
             
-            // 顯示用的用戶信息
+            // 显示用的用戶信息
             displayUsername: '载入中...',
             displayUserLevel: '载入中...',
-            // 个人资料储存專用载入狀態
+            // 个人资料储存專用载入状态
             profileLoading: false,
-            // 控制个人资料 modal 顯示
+            // 控制个人资料 modal 显示
             isProfileModalVisible: false,
 
-            // 會員餘額調整相關
+            // 会员余额调整相关
             memberBalanceData: {
                 memberId: null,
                 memberUsername: '',
@@ -463,7 +463,7 @@ const app = createApp({
             memberTransferAmount: 0,
             adjustMemberBalanceModal: null,
             
-            // 輸贏控制用戶清單
+            // 输赢控制用戶清单
             availableAgents: [],
             availableMembers: [],
             currentPeriodInfo: {
@@ -474,22 +474,22 @@ const app = createApp({
         };
     },
     
-    // 頁面载入時自動执行
+    // 页面载入时自動执行
     async mounted() {
-        console.log('Vue应用已掛載');
+        console.log('Vue应用已掛载');
         
-        // 強制确保所有模態框初始狀態為关闭，防止登录前意外顯示
+        // 强制确保所有模態框初始状态为关闭，防止登录前意外显示
         this.showCreateMemberModal = false;
         this.showCreateAgentModal = false;
         this.isProfileModalVisible = false;
         this.showCSOperationModal = false;
         this.showAdjustBalanceModal = false;
-        console.log('🔒 所有模態框狀態已重置為关闭');
+        console.log('🔒 所有模態框状态已重置为关闭');
         
-        // 添加全域保護機制：監聽所有模態框狀態變化
+        // 添加全域保护机制：監聽所有模態框状态變化
         this.$watch('showCreateMemberModal', (newVal) => {
             if (newVal && (!this.isLoggedIn || !this.user || !this.user.id)) {
-                console.warn('🚫 阻止未登录狀態顯示新增会员模態框');
+                console.warn('🚫 阻止未登录状态显示新增会员模態框');
                 this.$nextTick(() => {
                     this.showCreateMemberModal = false;
                 });
@@ -498,14 +498,14 @@ const app = createApp({
         
         this.$watch('isProfileModalVisible', (newVal) => {
             if (newVal && (!this.isLoggedIn || !this.user || !this.user.id)) {
-                console.warn('🚫 阻止未登录狀態顯示个人资料模態框');
+                console.warn('🚫 阻止未登录状态显示个人资料模態框');
                 this.$nextTick(() => {
                     this.isProfileModalVisible = false;
                 });
             }
         });
         
-        console.log('初始數據检查:', {
+        console.log('初始数据检查:', {
             noticeForm: this.noticeForm,
             showNoticeForm: this.showNoticeForm,
             isCustomerService: this.isCustomerService
@@ -513,39 +513,39 @@ const app = createApp({
         
         // 测试模板插值功能
         this.$nextTick(() => {
-            console.log('nextTick 检查模板數據:', {
+            console.log('nextTick 检查模板数据:', {
                 'noticeForm.title': this.noticeForm.title,
                 'noticeForm.title.length': this.noticeForm.title.length,
                 'noticeForm.content.length': this.noticeForm.content.length
             });
         });
         
-        // 先檢查會話有效性，如果會話無效則清除本地存儲
+        // 先检查会话有效性，如果会话无效則清除本地存儲
         const sessionValid = await this.checkSession();
         
         if (!sessionValid) {
-            // 會話無效，清除本地存儲
+            // 会话无效，清除本地存儲
             localStorage.removeItem('agent_token');
             localStorage.removeItem('agent_user');
             localStorage.removeItem('agent_session_token');
-            console.log('會話無效，已清除本地存儲');
+            console.log('会话无效，已清除本地存儲');
         }
         
         // 检查是否已登录
         const isAuthenticated = await this.checkAuth();
         
         if (isAuthenticated && sessionValid) {
-            console.log('用戶已認證，开始加載初始數據');
-            // 检查是否為客服
+            console.log('用戶已认证，开始加载初始数据');
+            // 检查是否为客服
             this.isCustomerService = this.user.level === 0;
-            console.log('是否為客服:', this.isCustomerService);
+            console.log('是否为客服:', this.isCustomerService);
             
-            // 如果是客服，加載所有代理列表
+            // 如果是客服，加载所有代理列表
             if (this.isCustomerService) {
                 await this.loadAllAgents();
             }
             
-            // 获取初始數據
+            // 获取初始数据
             await Promise.all([
                 this.fetchDashboardData(),
                 this.fetchNotices()
@@ -554,7 +554,7 @@ const app = createApp({
             // 获取代理現有的点数余额
             console.log('嘗試获取代理余额，代理ID:', this.user.id);
             try {
-                // 修改API路徑格式，使其與後端一致
+                // 修改API路徑格式，使其与後端一致
                 const response = await axios.get(`${API_BASE_URL}/agent-balance?agentId=${this.user.id}`);
                 if (response.data.success) {
                     console.log('代理当前额度:', response.data.balance);
@@ -562,7 +562,7 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('获取代理额度错误:', error);
-                // 遇到错误時嘗試備用API格式
+                // 遇到错误时嘗試備用API格式
                 try {
                     console.log('嘗試備用API路徑获取代理余额');
                     const fallbackResponse = await axios.get(`${API_BASE_URL}/agent/${this.user.id}`);
@@ -575,18 +575,18 @@ const app = createApp({
                 }
             }
         } else {
-            console.log('用戶未認證，顯示登录表單');
+            console.log('用戶未认证，显示登录表單');
         }
         
         // 初始化模態框
         this.$nextTick(() => {
             this.initModals();
             
-            // 延遲启用模態框系统，确保所有組件都已初始化
+            // 延迟启用模態框系统，确保所有組件都已初始化
             setTimeout(() => {
                 this.modalSystemReady = true;
                 console.log('🔓 模態框系统已启用');
-            }, 1000); // 延遲1秒确保一切就緒
+            }, 1000); // 延迟1秒确保一切就緒
         });
     },
     
@@ -630,10 +630,10 @@ const app = createApp({
                 this.modifyMemberBalanceModal = new bootstrap.Modal(modifyMemberBalanceModalEl);
             }
             
-            // 初始化會員點數轉移模態框
+            // 初始化会员点數转移模態框
             const adjustMemberBalanceModalEl = document.getElementById('adjustMemberBalanceModal');
             if (adjustMemberBalanceModalEl) {
-                console.log('初始化會員點數轉移模態框');
+                console.log('初始化会员点數转移模態框');
                 this.adjustMemberBalanceModal = new bootstrap.Modal(adjustMemberBalanceModalEl);
             }
             
@@ -643,43 +643,43 @@ const app = createApp({
                 console.log('初始化客服操作模態框');
                 this.csOperationModal = new bootstrap.Modal(csOperationModalEl);
                 
-                // 監聽模態框隱藏事件，重置表單
+                // 監聽模態框隐藏事件，重置表單
                 csOperationModalEl.addEventListener('hidden.bs.modal', () => {
                     this.hideCSOperationModal();
                 });
             }
             
-            // 初始化代理備註編輯模態框
+            // 初始化代理备注编辑模態框
             const editAgentNotesModalEl = document.getElementById('editAgentNotesModal');
             if (editAgentNotesModalEl) {
-                console.log('初始化代理備註編輯模態框');
+                console.log('初始化代理备注编辑模態框');
                 this.editAgentNotesModal = new bootstrap.Modal(editAgentNotesModalEl);
             }
         },
         
-        // 顯示创建代理模態框
+        // 显示创建代理模態框
         showAgentModal() {
             this.showCreateAgentModal = true;
             
-            // 確定盤口類型和選擇權限：
-            // 1. 如果是總代理且為自己創建代理(level 0 -> level 1)，可自由選擇
-            // 2. 如果是總代理但在代理管理界面為下級代理創建代理，要遵守下級代理的盤口類型
-            // 3. 其他情況都固定繼承
-            let marketType = 'D'; // 默認D盤
+            // 确定盤口类型和选择权限：
+            // 1. 如果是总代理且为自己创建代理(level 0 -> level 1)，可自由选择
+            // 2. 如果是总代理但在代理管理界面为下級代理创建代理，要遵守下級代理的盤口类型
+            // 3. 其他情况都固定繼承
+            let marketType = 'D'; // 默认D盤
             let canChooseMarket = false;
             
             if (this.user.level === 0 && this.currentManagingAgent.id === this.user.id) {
-                // 總代理為自己創建一級代理，可自由選擇
+                // 总代理为自己创建一級代理，可自由选择
                 canChooseMarket = true;
-                marketType = 'D'; // 預設D盤
+                marketType = 'D'; // 预設D盤
             } else {
-                // 其他情況：固定繼承當前管理代理的盤口類型
+                // 其他情况：固定繼承当前管理代理的盤口类型
                 canChooseMarket = false;
                 marketType = this.currentManagingAgent.market_type || 'D';
             }
             
-            // 根據当前管理代理级别，设置默認的下級代理级别
-            // 根據盤口類型設定合適的默認退水比例
+            // 根据当前管理代理级别，设置默认的下級代理级别
+            // 根据盤口类型设定合适的默认退水比例
             const defaultRebatePercentage = marketType === 'A' ? 0.5 : 2.0; // A盤用0.5%，D盤用2.0%
             
             this.newAgent = {
@@ -687,13 +687,13 @@ const app = createApp({
                 password: '',
                 level: (this.currentManagingAgent.level + 1).toString(),
                 parent: this.currentManagingAgent.id,
-                market_type: marketType,  // 設置盤口繼承
+                market_type: marketType,  // 设置盤口繼承
                 rebate_mode: 'percentage',
                 rebate_percentage: defaultRebatePercentage,
                 notes: ''
             };
             
-            console.log('🔧 創建代理模態框設定:', {
+            console.log('🔧 创建代理模態框设定:', {
                 currentUserLevel: this.user.level,
                 currentManagingAgentLevel: this.currentManagingAgent.level,
                 currentManagingAgentMarketType: this.currentManagingAgent.market_type,
@@ -703,7 +703,7 @@ const app = createApp({
             });
             
             this.$nextTick(() => {
-                // 确保模態框元素已经被渲染到DOM後再初始化和顯示
+                // 确保模態框元素已经被渲染到DOM後再初始化和显示
                 const modalEl = document.getElementById('createAgentModal');
                 if (modalEl) {
                     this.agentModal = new bootstrap.Modal(modalEl);
@@ -715,7 +715,7 @@ const app = createApp({
             });
         },
         
-        // 隱藏创建代理模態框
+        // 隐藏创建代理模態框
         hideCreateAgentModal() {
             if (this.agentModal) {
                 this.agentModal.hide();
@@ -723,13 +723,13 @@ const app = createApp({
             this.showCreateAgentModal = false;
         },
         
-        // 顯示新增会员模態框 - 重定向到统一函數
+        // 显示新增会员模態框 - 重定向到统一函數
         showMemberModal() {
             console.log('showMemberModal 已棄用，重定向到 quickCreateMember');
             this.quickCreateMember();
         },
         
-        // 快速新增会员 - 專為会员管理頁面和下級代理管理設計
+        // 快速新增会员 - 專为会员管理页面和下級代理管理设计
         quickCreateMember() {
             // 安全检查：确保已登录且有用戶资讯
             if (!this.isLoggedIn || !this.user || !this.user.id) {
@@ -738,7 +738,7 @@ const app = createApp({
             }
             
             console.log('🚀 快速新增会员啟動');
-            console.log('当前狀態:');
+            console.log('当前状态:');
             console.log('- activeTab:', this.activeTab);
             console.log('- currentManagingAgent:', this.currentManagingAgent);
             console.log('- agentBreadcrumbs:', this.agentBreadcrumbs);
@@ -754,15 +754,15 @@ const app = createApp({
                 notes: ''
             };
             
-            // 根據当前頁面和狀態确定管理代理
+            // 根据当前页面和状态确定管理代理
             let targetAgent = null;
             
             if (this.activeTab === 'agents' && this.agentBreadcrumbs.length > 0) {
-                // 在下級代理管理頁面，為当前查看的代理新增会员
+                // 在下級代理管理页面，为当前查看的代理新增会员
                 targetAgent = this.currentManagingAgent;
-                console.log('📋 下級代理管理模式：為代理', targetAgent?.username, '新增会员');
+                console.log('📋 下級代理管理模式：为代理', targetAgent?.username, '新增会员');
             } else if (this.activeTab === 'members') {
-                // 在会员管理頁面，為自己新增会员
+                // 在会员管理页面，为自己新增会员
                 const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                 targetAgent = {
                     id: this.user.id,
@@ -770,9 +770,9 @@ const app = createApp({
                     level: this.user.level,
                     max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
-                console.log('👤 会员管理模式：為自己新增会员');
+                console.log('👤 会员管理模式：为自己新增会员');
             } else {
-                // 預設情況：為自己新增会员
+                // 预設情况：为自己新增会员
                 const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
                 targetAgent = {
                     id: this.user.id,
@@ -780,32 +780,32 @@ const app = createApp({
                     level: this.user.level,
                     max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
-                console.log('🔄 預設模式：為自己新增会员');
+                console.log('🔄 预設模式：为自己新增会员');
             }
             
             if (!targetAgent || !targetAgent.id) {
-                console.error('❌ 無法确定目標代理');
-                this.showMessage('無法确定代理信息，请重新整理頁面', 'error');
+                console.error('❌ 無法确定目标代理');
+                this.showMessage('無法确定代理信息，请重新整理页面', 'error');
                 return;
             }
             
             // 设置当前管理代理
             this.currentManagingAgent = targetAgent;
-            console.log('✅ 设置目標代理:', this.currentManagingAgent);
+            console.log('✅ 设置目标代理:', this.currentManagingAgent);
             
-            // 簡化模態框顯示邏輯，只设置Vue狀態
+            // 簡化模態框显示逻辑，只设置Vue状态
             this.showCreateMemberModal = true;
-            console.log('✅ 新增会员模態框已设置為顯示');
+            console.log('✅ 新增会员模態框已设置为显示');
         },
         
-        // 隱藏创建会员模態框 - 簡化版本
+        // 隐藏创建会员模態框 - 簡化版本
         hideCreateMemberModal() {
             console.log('🚫 关闭新增会员模態框');
             
-            // 设置Vue響應式狀態
+            // 设置Vue响应式状态
             this.showCreateMemberModal = false;
             
-            // 重置表單數據
+            // 重置表單数据
             this.newMember = { 
                 username: '', 
                 password: '', 
@@ -815,16 +815,16 @@ const app = createApp({
                 notes: ''
             };
             
-            console.log('✅ 模態框已关闭，數據已重置');
+            console.log('✅ 模態框已关闭，数据已重置');
         },
         
 
         
-        // 设置活動標籤並关闭漢堡選單
+        // 设置活動標籤並关闭漢堡选單
         setActiveTab(tab) {
-            console.log('🔄 切換頁籤到:', tab);
+            console.log('🔄 切換页籤到:', tab);
             
-            // 如果不是在代理管理頁面，重置当前管理代理為自己
+            // 如果不是在代理管理页面，重置当前管理代理为自己
             if (tab !== 'agents') {
                 if (this.currentManagingAgent.id !== this.user.id) {
                     console.log('📍 重置管理視角：從', this.currentManagingAgent.username, '回到', this.user.username);
@@ -841,9 +841,9 @@ const app = createApp({
                     // 清空代理導航面包屑
                     this.agentBreadcrumbs = [];
                     
-                    // 如果切換到会员管理或下注记录，重新载入相关數據
+                    // 如果切換到会员管理或下注记录，重新载入相关数据
                     if (tab === 'members') {
-                        // 初始化層級會員管理
+                        // 初始化层级会员管理
                         this.currentMemberManagingAgent = {
                             id: this.currentManagingAgent.id,
                             username: this.currentManagingAgent.username,
@@ -859,7 +859,7 @@ const app = createApp({
             
             this.activeTab = tab;
             
-            // 关闭Bootstrap漢堡選單
+            // 关闭Bootstrap漢堡选單
             const navbarCollapse = document.getElementById('navbarNav');
             if (navbarCollapse && navbarCollapse.classList.contains('show')) {
                 const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
@@ -869,14 +869,14 @@ const app = createApp({
             }
         },
         
-        // 检查會話狀態
+        // 检查会话状态
         async checkSession() {
             try {
                 const sessionToken = localStorage.getItem('agent_session_token');
                 const legacyToken = localStorage.getItem('agent_token');
                 
                 if (!sessionToken && !legacyToken) {
-                    console.log('沒有會話憑證');
+                    console.log('沒有会话凭证');
                     return false;
                 }
                 
@@ -893,8 +893,8 @@ const app = createApp({
                 if (response.data.success && response.data.isAuthenticated) {
                     return true;
                 } else if (response.data.reason === 'session_invalid') {
-                    console.warn('⚠️ 检测到代理會話已失效，可能在其他裝置登录');
-                    if (confirm('您的账号已在其他裝置登录，请重新登录。')) {
+                    console.warn('⚠️ 检测到代理会话已失效，可能在其他装置登录');
+                    if (confirm('您的账号已在其他装置登录，请重新登录。')) {
                         this.logout();
                         return false;
                     }
@@ -902,32 +902,32 @@ const app = createApp({
                 
                 return false;
             } catch (error) {
-                console.error('會話检查失败:', error);
+                console.error('会话检查失败:', error);
                 return false;
             }
         },
         
-        // 检查身份驗證狀態
+        // 检查身份验证状态
         async checkAuth() {
             const token = localStorage.getItem('agent_token');
             const userStr = localStorage.getItem('agent_user');
-            console.log('检查認證，localStorage中的user字符串:', userStr);
+            console.log('检查认证，localStorage中的user字符串:', userStr);
             
             if (!userStr || !token) {
-                console.log('認證失败，缺少token或user數據');
+                console.log('认证失败，缺少token或user数据');
                 return false;
             }
             
             try {
                 const user = JSON.parse(userStr);
-                console.log('解析後的user對象:', user);
+                console.log('解析後的user对象:', user);
                 
                 if (user && user.id) {
                     this.isLoggedIn = true;
                     this.user = user;
-                    console.log('设置user對象成功:', this.user);
+                    console.log('设置user对象成功:', this.user);
                     
-                    // 初始化当前管理代理為自己
+                    // 初始化当前管理代理为自己
                     this.currentManagingAgent = {
                         id: this.user.id,
                         username: this.user.username,
@@ -937,38 +937,38 @@ const app = createApp({
                         max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
-                    // 检查是否為客服（總代理）
+                    // 检查是否为客服（总代理）
                     this.isCustomerService = this.user.level === 0;
-                    console.log('checkAuth設定客服權限:', this.isCustomerService, '用戶级别:', this.user.level);
+                    console.log('checkAuth设定客服权限:', this.isCustomerService, '用戶级别:', this.user.level);
                     
-                    // 设置 axios 身份驗證頭
+                    // 设置 axios 身份验证头
                     axios.defaults.headers.common['Authorization'] = token;
                     
-                    // 設置session token header（優先使用）
+                    // 设置session token header（優先使用）
                     const sessionToken = localStorage.getItem('agent_session_token');
                     if (sessionToken) {
                         axios.defaults.headers.common['x-session-token'] = sessionToken;
                     }
                     
-                    // 強制Vue更新
+                    // 强制Vue更新
                     this.$forceUpdate();
                     return true;
                 }
             } catch (error) {
-                console.error('解析用戶數據失败:', error);
-                // 清除損壞的數據
+                console.error('解析用戶数据失败:', error);
+                // 清除損壞的数据
                 localStorage.removeItem('agent_token');
                 localStorage.removeItem('agent_user');
             }
             
-            console.log('認證失败');
+            console.log('认证失败');
             return false;
         },
         
         // 登录方法
         async login() {
             if (!this.loginForm.username || !this.loginForm.password) {
-                return this.showMessage('请输入用戶名和密碼', 'error');
+                return this.showMessage('请输入用戶名和密码', 'error');
             }
             
             this.loading = true;
@@ -982,16 +982,16 @@ const app = createApp({
                     localStorage.setItem('agent_token', token);
                     localStorage.setItem('agent_user', JSON.stringify(agent));
                     
-                    // 保存新的會話token
+                    // 保存新的会话token
                     if (sessionToken) {
                         localStorage.setItem('agent_session_token', sessionToken);
-                        console.log('✅ 代理會話token已保存');
+                        console.log('✅ 代理会话token已保存');
                     }
                     
-                    // 设置 axios 身份驗證頭
+                    // 设置 axios 身份验证头
                     axios.defaults.headers.common['Authorization'] = token;
                     
-                    // 設置session token header（優先使用）
+                    // 设置session token header（優先使用）
                     if (sessionToken) {
                         axios.defaults.headers.common['x-session-token'] = sessionToken;
                     }
@@ -1000,7 +1000,7 @@ const app = createApp({
                     this.user = agent;
                     this.isLoggedIn = true;
                     
-                    // 設置當前管理代理為自己 - 修復儀表板數據獲取問題
+                    // 设置当前管理代理为自己 - 修復儀表板数据获取问题
                     this.currentManagingAgent = {
                         id: agent.id,
                         username: agent.username,
@@ -1010,18 +1010,18 @@ const app = createApp({
                         max_rebate_percentage: agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
-                    console.log('✅ 登錄成功，設置當前管理代理:', this.currentManagingAgent);
+                    console.log('✅ 登录成功，设置当前管理代理:', this.currentManagingAgent);
                     
-                    // 检查是否為客服
+                    // 检查是否为客服
                     this.isCustomerService = this.user.level === 0;
-                    console.log('登录後是否為客服:', this.isCustomerService, '用戶级别:', this.user.level);
+                    console.log('登录後是否为客服:', this.isCustomerService, '用戶级别:', this.user.level);
                     
-                    // 如果是客服，加載所有代理列表
+                    // 如果是客服，加载所有代理列表
                     if (this.isCustomerService) {
                         await this.loadAllAgents();
                     }
                     
-                    // 获取初始數據
+                    // 获取初始数据
                     await this.fetchDashboardData();
                     await this.fetchNotices();
                     
@@ -1048,12 +1048,12 @@ const app = createApp({
         async logout() {
             console.log('执行登出操作');
             
-            // 如果有會話token，通知伺服器登出
+            // 如果有会话token，通知伺服器登出
             const sessionToken = localStorage.getItem('agent_session_token');
             if (sessionToken) {
                 try {
                     await axios.post(`${API_BASE_URL}/logout`, { sessionToken });
-                    console.log('✅ 會話已在伺服器端登出');
+                    console.log('✅ 会话已在伺服器端登出');
                 } catch (error) {
                     console.error('伺服器端登出失败:', error);
                 }
@@ -1064,7 +1064,7 @@ const app = createApp({
             localStorage.removeItem('agent_user');
             localStorage.removeItem('agent_session_token');
             
-            // 重置狀態
+            // 重置状态
             this.isLoggedIn = false;
             this.user = {
                 id: '',
@@ -1073,35 +1073,35 @@ const app = createApp({
                 balance: 0
             };
             
-            // 重置 axios 身份驗證頭
+            // 重置 axios 身份验证头
             delete axios.defaults.headers.common['Authorization'];
             delete axios.defaults.headers.common['x-session-token'];
             
             this.showMessage('已成功登出', 'success');
             
-            // 重定向到登录頁面
+            // 重定向到登录页面
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         },
         
-        // 获取儀表板數據
+        // 获取儀表板数据
         async fetchDashboardData() {
             this.loading = true;
             
             try {
-                console.log('嘗試获取儀表板數據，代理ID:', this.currentManagingAgent.id);
+                console.log('嘗試获取儀表板数据，代理ID:', this.currentManagingAgent.id);
                 const response = await axios.get(`${API_BASE_URL}/stats`, {
                     params: { agentId: this.currentManagingAgent.id }
                 });
                 
                 if (response.data.success) {
-                    // 使用data屬性而非stats屬性
+                    // 使用data属性而非stats属性
                     const data = response.data.data;
                     
                     if (!data) {
-                        console.error('获取儀表板數據错误: 返回數據格式异常', response.data);
-                        this.showMessage('获取數據失败，數據格式异常', 'error');
+                        console.error('获取儀表板数据错误: 返回数据格式异常', response.data);
+                        this.showMessage('获取数据失败，数据格式异常', 'error');
                         return;
                     }
                     
@@ -1115,36 +1115,36 @@ const app = createApp({
                         subAgentsCount: data.subAgentsCount || 0
                     };
                     
-                    // 初始化交易圖表
+                    // 初始化交易图表
                     this.$nextTick(() => {
                         this.initTransactionChart();
                     });
                 } else {
-                    // 处理成功但返回失败的情況
-                    console.error('获取儀表板數據错误: API返回失败', response.data);
-                    this.showMessage(response.data.message || '获取數據失败，请稍後再試', 'error');
+                    // 处理成功但返回失败的情况
+                    console.error('获取儀表板数据错误: API返回失败', response.data);
+                    this.showMessage(response.data.message || '获取数据失败，请稍後再試', 'error');
                 }
             } catch (error) {
-                console.error('获取儀表板數據错误:', error);
-                this.showMessage('获取數據失败，请检查网络连接', 'error');
+                console.error('获取儀表板数据错误:', error);
+                this.showMessage('获取数据失败，请检查网络连接', 'error');
             } finally {
                 this.loading = false;
             }
         },
         
-        // 初始化交易趨勢圖表
+        // 初始化交易趋势图表
         initTransactionChart() {
             const ctx = document.getElementById('transactionChart');
             if (!ctx) return;
             
-            // 检查 Chart.js 是否已加載
+            // 检查 Chart.js 是否已加载
             if (typeof Chart === 'undefined') {
-                console.warn('Chart.js 尚未加載，延遲初始化圖表');
+                console.warn('Chart.js 尚未加载，延迟初始化图表');
                 setTimeout(() => this.initTransactionChart(), 500);
                 return;
             }
             
-            // 模擬數據 - 過去7天的交易數據
+            // 模擬数据 - 过去7天的交易数据
             const labels = Array(7).fill(0).map((_, i) => {
                 const date = new Date();
                 date.setDate(date.getDate() - (6 - i));
@@ -1188,10 +1188,10 @@ const app = createApp({
         
 
         
-        // 顯示訊息
+        // 显示讯息
         showMessage(message, type = 'info') {
             console.log(`[${type}] ${message}`);
-            // 可根據項目需求使用 alert、toast 或自定義訊息組件
+            // 可根据项目需求使用 alert、toast 或自定义讯息組件
             if (type === 'error') {
                 alert(`错误: ${message}`);
             } else if (type === 'success') {
@@ -1201,7 +1201,7 @@ const app = createApp({
             }
         },
         
-        // 格式化金额顯示
+        // 格式化金额显示
         formatMoney(amount) {
             if (amount === undefined || amount === null) return '0.00';
             return Number(amount).toLocaleString('zh-CN', {
@@ -1210,7 +1210,7 @@ const app = createApp({
             });
         },
         
-        // 格式化日期顯示
+        // 格式化日期显示
         formatDate(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
@@ -1224,7 +1224,7 @@ const app = createApp({
             });
         },
         
-        // 格式化日期时间（與 formatDate 相同，為了模板兼容性）
+        // 格式化日期时间（与 formatDate 相同，为了模板兼容性）
         formatDateTime(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
@@ -1238,13 +1238,13 @@ const app = createApp({
             });
         },
         
-        // 客服交易记录分頁 - 上一頁
+        // 客服交易记录分页 - 上一页
         loadCSTransactionsPrevPage() {
             const prevPage = Math.max(1, this.csTransactionsPagination.page - 1);
             this.loadCSTransactions(prevPage);
         },
         
-        // 客服交易记录分頁 - 下一頁
+        // 客服交易记录分页 - 下一页
         loadCSTransactionsNextPage() {
             const maxPage = Math.ceil(this.csTransactionsPagination.total / this.csTransactionsPagination.limit);
             const nextPage = Math.min(maxPage, this.csTransactionsPagination.page + 1);
@@ -1280,7 +1280,7 @@ const app = createApp({
                         this.noticeCategories = ['all', ...data.categories];
                     }
                 } else {
-                    console.error('系统公告數據格式错误:', data);
+                    console.error('系统公告数据格式错误:', data);
                     this.notices = [];
                 }
             } catch (error) {
@@ -1289,21 +1289,21 @@ const app = createApp({
             }
         },
         
-        // 根據分類過濾公告
+        // 根据分類过滤公告
         async filterNoticesByCategory(category) {
             this.selectedNoticeCategory = category;
             await this.fetchNotices(category === 'all' ? null : category);
         },
         
-        // 顯示新增公告模態框
+        // 显示新增公告模態框
         // 开始编辑公告
         startEditNotice(notice) {
             if (this.user.level !== 0) {
-                this.showMessage('權限不足，只有總代理可以编辑系统公告', 'error');
+                this.showMessage('权限不足，只有总代理可以编辑系统公告', 'error');
                 return;
             }
             
-            // 设置编辑數據
+            // 设置编辑数据
             this.editingNoticeId = notice.id;
             this.noticeForm = {
                 title: notice.title,
@@ -1335,20 +1335,20 @@ const app = createApp({
         // 提交公告（新增或编辑）
         async submitNotice() {
             try {
-                // 驗證输入
+                // 验证输入
                 if (!this.noticeForm.title.trim()) {
-                    this.showMessage('请输入公告標題', 'error');
+                    this.showMessage('请输入公告标题', 'error');
                     return;
                 }
                 
                 if (!this.noticeForm.content.trim()) {
-                    this.showMessage('请输入公告內容', 'error');
+                    this.showMessage('请输入公告内容', 'error');
                     return;
                 }
                 
-                // 標題長度限制
+                // 标题长度限制
                 if (this.noticeForm.title.length > 100) {
-                    this.showMessage('公告標題不能超過100個字符', 'error');
+                    this.showMessage('公告标题不能超过100个字符', 'error');
                     return;
                 }
                 
@@ -1405,7 +1405,7 @@ const app = createApp({
         // 删除公告
         async deleteNotice(notice) {
             if (this.user.level !== 0) {
-                this.showMessage('權限不足，只有總代理可以删除系统公告', 'error');
+                this.showMessage('权限不足，只有总代理可以删除系统公告', 'error');
                 return;
             }
             
@@ -1448,7 +1448,7 @@ const app = createApp({
                 const params = new URLSearchParams();
                 if (this.agentFilters.status !== '-1') params.append('status', this.agentFilters.status);
                 if (this.agentFilters.keyword) params.append('keyword', this.agentFilters.keyword);
-                // 使用当前管理代理的ID作為parentId
+                // 使用当前管理代理的ID作为parentId
                 params.append('parentId', this.currentManagingAgent.id);
                 
                 const url = `${API_BASE_URL}/sub-agents?${params.toString()}`;
@@ -1466,7 +1466,7 @@ const app = createApp({
                     this.agentPagination.totalPages = Math.ceil(data.data.total / this.agentPagination.limit);
                     this.agentPagination.currentPage = data.data.page || 1;
                 } else {
-                    console.error('代理數據格式错误:', data);
+                    console.error('代理数据格式错误:', data);
                     this.agents = [];
                 }
             } catch (error) {
@@ -1498,12 +1498,12 @@ const app = createApp({
             }
         },
 
-        // 層級會員管理相關函數
+        // 层级会员管理相关函數
         async loadHierarchicalMembers() {
             this.loading = true;
             try {
                 const agentId = this.currentMemberManagingAgent.id || this.currentManagingAgent.id;
-                console.log('🔄 載入層級會員管理數據...', { agentId });
+                console.log('🔄 载入层级会员管理数据...', { agentId });
                 
                 const response = await axios.get(`${API_BASE_URL}/hierarchical-members`, {
                     params: {
@@ -1516,14 +1516,14 @@ const app = createApp({
                 if (response.data.success) {
                     this.hierarchicalMembers = response.data.data || [];
                     this.memberHierarchyStats = response.data.stats || { agentCount: 0, memberCount: 0 };
-                    console.log('✅ 層級會員管理數據載入成功:', this.hierarchicalMembers.length, '項');
+                    console.log('✅ 层级会员管理数据载入成功:', this.hierarchicalMembers.length, '项');
                 } else {
-                    console.error('❌ 載入層級會員管理數據失败:', response.data.message);
+                    console.error('❌ 载入层级会员管理数据失败:', response.data.message);
                     this.hierarchicalMembers = [];
                     this.memberHierarchyStats = { agentCount: 0, memberCount: 0 };
                 }
             } catch (error) {
-                console.error('❌ 載入層級會員管理數據错误:', error);
+                console.error('❌ 载入层级会员管理数据错误:', error);
                 this.hierarchicalMembers = [];
                 this.memberHierarchyStats = { agentCount: 0, memberCount: 0 };
             } finally {
@@ -1536,23 +1536,23 @@ const app = createApp({
         },
 
         async enterAgentMemberManagement(agent) {
-            console.log('🔽 進入代理的會員管理:', agent);
+            console.log('🔽 进入代理的会员管理:', agent);
             
-            // 添加到麵包屑
+            // 添加到面包屑
             this.memberBreadcrumb.push({
                 id: this.currentMemberManagingAgent.id || this.currentManagingAgent.id,
                 username: this.currentMemberManagingAgent.username || this.currentManagingAgent.username,
                 level: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
             });
             
-            // 設定新的管理代理
+            // 设定新的管理代理
             this.currentMemberManagingAgent = {
                 id: agent.id,
                 username: agent.username,
                 level: agent.level
             };
             
-            // 載入新代理的會員
+            // 载入新代理的会员
             await this.loadHierarchicalMembers();
         },
 
@@ -1578,9 +1578,9 @@ const app = createApp({
         },
 
         getLevelFromName(levelName) {
-            // 將級別名稱轉換回級別數字
+            // 將级别名称转換回级别數字
             const levelMap = {
-                '總代理': 0,
+                '总代理': 0,
                 '一級代理': 1,
                 '二級代理': 2,
                 '三級代理': 3,
@@ -1624,7 +1624,7 @@ const app = createApp({
                 this.memberPagination.totalPages = Math.ceil(data.data.total / this.memberPagination.limit);
                 this.memberPagination.currentPage = data.data.page || 1;
             } else {
-                console.error('直屬会员數據格式错误:', data);
+                console.error('直屬会员数据格式错误:', data);
                 this.members = [];
             }
         },
@@ -1643,10 +1643,10 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.members = response.data.members || [];
-                    // 為下級代理会员模式设定分頁（簡化版）
+                    // 为下級代理会员模式设定分页（簡化版）
                     this.memberPagination.totalPages = 1;
                     this.memberPagination.currentPage = 1;
-                    console.log('✅ 载入下級代理会员成功:', this.members.length, '個');
+                    console.log('✅ 载入下級代理会员成功:', this.members.length, '个');
                 } else {
                     console.error('❌ 载入下級代理会员失败:', response.data.message);
                     this.members = [];
@@ -1657,16 +1657,16 @@ const app = createApp({
             }
         },
         
-        // 处理会员查看模式變更
+        // 处理会员查看模式变更
         async handleMemberViewModeChange() {
-            console.log('🔄 会员查看模式變更:', this.memberViewMode);
-            // 重置分頁
+            console.log('🔄 会员查看模式变更:', this.memberViewMode);
+            // 重置分页
             this.memberPagination.currentPage = 1;
             // 重新载入会员列表
             await this.searchMembers();
         },
         
-        // 隱藏余额调整模態框
+        // 隐藏余额调整模態框
         hideAdjustBalanceModal() {
             if (this.adjustBalanceModal) {
                 this.adjustBalanceModal.hide();
@@ -1691,7 +1691,7 @@ const app = createApp({
             const amount = parseFloat(this.transferAmount) || 0;
             
             if (this.transferType === 'deposit') {
-                // 代理存入点数給会员，代理余额減少
+                // 代理存入点数給会员，代理余额减少
                 return currentBalance - amount;
             } else {
                 // 代理從会员提领点数，代理余额增加
@@ -1721,23 +1721,23 @@ const app = createApp({
             });
         },
         
-        // 獲取盤口最大退水比例
+        // 获取盤口最大退水比例
         getMaxRebateForMarket(marketType) {
             if (marketType === 'A') {
                 return 1.1; // A盤最大1.1%
             } else if (marketType === 'D') {
                 return 4.1; // D盤最大4.1%
             }
-            return 4.1; // 默認D盤
+            return 4.1; // 默认D盤
         },
         
-        // 獲取盤口信息
+        // 获取盤口信息
         getMarketInfo(marketType) {
             if (marketType === 'A') {
                 return {
                     name: 'A盤',
                     rebate: '1.1%',
-                    description: '高賠率盤口',
+                    description: '高赔率盤口',
                     numberOdds: '9.89',
                     twoSideOdds: '1.9'
                 };
@@ -1745,24 +1745,24 @@ const app = createApp({
                 return {
                     name: 'D盤',
                     rebate: '4.1%',
-                    description: '標準盤口',
+                    description: '标准盤口',
                     numberOdds: '9.59',
                     twoSideOdds: '1.88'
                 };
             }
-            return this.getMarketInfo('D'); // 默認D盤
+            return this.getMarketInfo('D'); // 默认D盤
         },
         
-        // 处理查看范围變更
+        // 处理查看范围变更
         async handleViewScopeChange() {
-            console.log('🔄 查看范围變更:', this.betFilters.viewScope);
+            console.log('🔄 查看范围变更:', this.betFilters.viewScope);
             
-            // 重置相关篩選
+            // 重置相关筛选
             this.betFilters.member = '';
             this.betFilters.specificAgent = '';
             
             if (this.betFilters.viewScope === 'own') {
-                // 僅本代理下級会员 - 總是載入直屬會員
+                // 僅本代理下級会员 - 總是载入直屬会员
                 await this.loadDirectMembersForBets();
             } else if (this.betFilters.viewScope === 'downline') {
                 // 整條代理線
@@ -1774,7 +1774,7 @@ const app = createApp({
             }
         },
         
-        // 載入直屬會員用於下注記錄
+        // 载入直屬会员用於下注记录
         async loadDirectMembersForBets() {
             try {
                 console.log('📡 载入直屬会员用於下注记录...');
@@ -1782,13 +1782,13 @@ const app = createApp({
                     params: { 
                         agentId: this.currentManagingAgent.id,
                         page: 1,
-                        limit: 1000  // 載入所有直屬會員
+                        limit: 1000  // 载入所有直屬会员
                     }
                 });
                 
                 if (response.data.success && response.data.data) {
                     this.availableMembers = response.data.data.list || [];
-                    console.log('✅ 载入直屬会员成功:', this.availableMembers.length, '個');
+                    console.log('✅ 载入直屬会员成功:', this.availableMembers.length, '个');
                 } else {
                     console.error('❌ 载入直屬会员失败:', response.data.message);
                     this.availableMembers = [];
@@ -1811,7 +1811,7 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.allDownlineAgents = response.data.agents || [];
-                    console.log('✅ 载入下級代理成功:', this.allDownlineAgents.length, '個');
+                    console.log('✅ 载入下級代理成功:', this.allDownlineAgents.length, '个');
                 } else {
                     console.error('❌ 载入下級代理失败:', response.data.message);
                 }
@@ -1833,7 +1833,7 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.availableMembers = response.data.members || [];
-                    console.log('✅ 载入整條代理線会员成功:', this.availableMembers.length, '個');
+                    console.log('✅ 载入整條代理線会员成功:', this.availableMembers.length, '个');
                 } else {
                     console.error('❌ 载入整條代理線会员失败:', response.data.message);
                 }
@@ -1860,7 +1860,7 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.availableMembers = response.data.members || [];
-                    console.log('✅ 载入指定代理会员成功:', this.availableMembers.length, '個');
+                    console.log('✅ 载入指定代理会员成功:', this.availableMembers.length, '个');
                 } else {
                     console.error('❌ 载入指定代理会员失败:', response.data.message);
                 }
@@ -1870,9 +1870,9 @@ const app = createApp({
             }
         },
         
-        // 重置下注篩選條件
+        // 重置下注筛选條件
         resetBetFilters() {
-            console.log('🔄 重置下注篩選條件');
+            console.log('🔄 重置下注筛选條件');
             this.betFilters = {
                 member: '',
                 date: '',
@@ -1882,7 +1882,7 @@ const app = createApp({
                 viewScope: 'own',
                 specificAgent: ''
             };
-            // 重新載入直屬會員列表
+            // 重新载入直屬会员列表
             this.loadDirectMembersForBets();
             this.searchBets();
         },
@@ -1901,7 +1901,7 @@ const app = createApp({
                 if (this.betFilters.endDate) params.append('endDate', this.betFilters.endDate);
                 if (this.betFilters.period) params.append('period', this.betFilters.period);
                 
-                // 根據查看范围设置不同的查询參數
+                // 根据查看范围设置不同的查询参数
                 if (this.betFilters.viewScope === 'own') {
                     // 僅本代理下級会员
                     params.append('agentId', this.currentManagingAgent.id);
@@ -1914,7 +1914,7 @@ const app = createApp({
                     params.append('agentId', this.betFilters.specificAgent);
                 }
                 
-                // 添加分頁參數
+                // 添加分页参数
                 params.append('page', this.betPagination.currentPage);
                 params.append('limit', this.betPagination.limit);
                 
@@ -1936,7 +1936,7 @@ const app = createApp({
                     
                     this.betPagination.totalPages = Math.ceil(data.total / this.betPagination.limit);
 
-                    // 更新统计數據
+                    // 更新统计数据
                     this.betStats = data.stats || {
                         totalBets: 0,
                         totalAmount: 0,
@@ -1956,16 +1956,16 @@ const app = createApp({
             }
         },
         
-        // 加載开奖历史
+        // 加载开奖历史
         async loadDrawHistory() {
             this.loading = true;
             try {
-                console.log('加載开奖历史...');
+                console.log('加载开奖历史...');
                 const url = `${API_BASE_URL}/draw-history`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
-                    console.error('加載开奖历史失败:', response.status);
+                    console.error('加载开奖历史失败:', response.status);
                     this.drawRecords = [];
                     return;
                 }
@@ -1976,11 +1976,11 @@ const app = createApp({
                     this.drawPagination.totalPages = Math.ceil(data.total / this.drawPagination.limit);
                     this.drawPagination.currentPage = data.page || 1;
                 } else {
-                    console.error('开奖历史數據格式错误:', data);
+                    console.error('开奖历史数据格式错误:', data);
                     this.drawRecords = [];
                 }
             } catch (error) {
-                console.error('加載开奖历史错误:', error);
+                console.error('加载开奖历史错误:', error);
                 this.drawRecords = [];
             } finally {
                 this.loading = false;
@@ -2013,7 +2013,7 @@ const app = createApp({
                     this.drawPagination.totalPages = Math.ceil(data.total / this.drawPagination.limit);
                     this.drawPagination.currentPage = data.page || 1;
                 } else {
-                    console.error('开奖历史數據格式错误:', data);
+                    console.error('开奖历史数据格式错误:', data);
                     this.drawRecords = [];
                 }
             } catch (error) {
@@ -2026,23 +2026,23 @@ const app = createApp({
         
         // 搜索今日开奖记录
         async searchTodayDrawHistory() {
-            this.drawFilters.date = new Date().toISOString().split('T')[0]; // 设置為今天日期 YYYY-MM-DD
+            this.drawFilters.date = new Date().toISOString().split('T')[0]; // 设置为今天日期 YYYY-MM-DD
             this.drawFilters.period = '';
             await this.searchDrawHistory();
         },
         
-        // 获取分頁范围
+        // 获取分页范围
         getPageRange(currentPage, totalPages) {
             const range = [];
             const maxVisible = 5;
             
             if (totalPages <= maxVisible) {
-                // 如果總頁數小於要顯示的頁數，顯示所有頁
+                // 如果總页數小於要显示的页數，显示所有页
                 for (let i = 1; i <= totalPages; i++) {
                     range.push(i);
                 }
             } else {
-                // 计算顯示哪些頁面
+                // 计算显示哪些页面
                 let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
                 let end = start + maxVisible - 1;
                 
@@ -2059,30 +2059,30 @@ const app = createApp({
             return range;
         },
         
-        // 格式化投注類型
+        // 格式化投注类型
         formatBetType(type) {
-            // 根據後端邏輯，重新分類投注類型
+            // 根据後端逻辑，重新分類投注类型
             if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(type)) {
-                return '雙面';
+                return '双面';
             } else if (type === 'number') {
                 return '号码';
             } else if (type === 'sumValue') {
                 return '冠亞和值';
             } else if (type === 'dragonTiger' || type === 'dragon_tiger') {
-                return '龍虎';
+                return '龙虎';
             }
             
             // 備用映射（向下相容）
             const types = {
                 'sum': '冠亞和值',
-                'second': '雙面'
+                'second': '双面'
             };
             return types[type] || type;
         },
         
         // 格式化位置
         formatPosition(position, betType) {
-            // 對於号码投注，position是數字（1-10），代表第幾位
+            // 对於号码投注，position是數字（1-10），代表第幾位
             if (betType === 'number' && position) {
                 const positionMap = {
                     '1': '冠军',
@@ -2099,7 +2099,7 @@ const app = createApp({
                 return positionMap[position.toString()] || `第${position}名`;
             }
             
-            // 對於位置投注，bet_type本身就是位置
+            // 对於位置投注，bet_type本身就是位置
             if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
                 const positionMap = {
                     'champion': '冠军',
@@ -2116,11 +2116,11 @@ const app = createApp({
                 return positionMap[betType] || betType;
             }
             
-            // 其他情況（冠亞和值、龍虎等）不需要位置
+            // 其他情况（冠亞和值、龙虎等）不需要位置
             return '-';
         },
         
-        // 获取龍虎结果
+        // 获取龙虎结果
         getDragonTigerResult(record) {
             if (!record || !record.result || record.result.length < 10) {
                 return { value: '-', class: '' };
@@ -2130,7 +2130,7 @@ const app = createApp({
             const tenth = record.result[9];
             
             if (first > tenth) {
-                return { value: '龍', class: 'text-danger' };
+                return { value: '龙', class: 'text-danger' };
             } else if (first < tenth) {
                 return { value: '虎', class: 'text-primary' };
             } else {
@@ -2138,26 +2138,26 @@ const app = createApp({
             }
         },
         
-        // 格式化转移類型
+        // 格式化转移类型
         formatTransferType(transfer) {
-            // 以当前登录代理身份為第一人稱，只顯示存款或提领
+            // 以当前登录代理身份为第一人稱，只显示存款或提领
             const currentAgentId = this.user.id;
             
-            // 如果当前代理是转出方，顯示為「提领」（我转出給其他人）
+            // 如果当前代理是转出方，显示为「提领」（我转出給其他人）
             if (transfer.from_id === currentAgentId && transfer.from_type === 'agent') {
                 return '提领';
             }
-            // 如果当前代理是转入方，顯示為「存款」（其他人转入給我）
+            // 如果当前代理是转入方，显示为「存款」（其他人转入給我）
             else if (transfer.to_id === currentAgentId && transfer.to_type === 'agent') {
                 return '存款';
             }
-            // 備用邏輯（適用於查看其他代理记录的情況）
+            // 備用逻辑（适用於查看其他代理记录的情况）
             else if (transfer.from_type === 'agent' && transfer.to_type === 'member') {
                 return '存入';
             } else if (transfer.from_type === 'member' && transfer.to_type === 'agent') {
                 return '提领';
             } else if (transfer.from_type === 'agent' && transfer.to_type === 'agent') {
-                return '存入';  // 代理間转移统一顯示為存入
+                return '存入';  // 代理间转移统一显示为存入
             } else {
                 return '点数转移';
             }
@@ -2165,7 +2165,7 @@ const app = createApp({
         
         // 格式化转移方向
         formatTransferDirection(transfer) {
-            // 以当前登录代理身份為第一人稱，從其观点描述转移方向
+            // 以当前登录代理身份为第一人稱，從其观点描述转移方向
             const currentAgentId = this.user.id;
             
             // 如果当前代理是转出方
@@ -2184,7 +2184,7 @@ const app = createApp({
                     return `${transfer.from_username || '未知代理'} → 我`;
                 }
             }
-            // 其他情況（查看他人记录）
+            // 其他情况（查看他人记录）
             else {
                 const fromName = transfer.from_username || (transfer.from_type === 'agent' ? '代理' : '会员');
                 const toName = transfer.to_username || (transfer.to_type === 'agent' ? '代理' : '会员');
@@ -2194,7 +2194,7 @@ const app = createApp({
             return '未知方向';
         },
         
-        // 格式化交易類型
+        // 格式化交易类型
         formatTransactionType(transaction) {
             const type = transaction.transaction_type || transaction.type;
             switch (type) {
@@ -2213,11 +2213,11 @@ const app = createApp({
                 case 'adjustment':
                     return '余额调整';
                 case 'password_reset':
-                    return '密碼重设';
+                    return '密码重设';
                 case 'game_bet':
                     return '游戏下注';
                 case 'game_win':
-                    return '游戏中獎';
+                    return '游戏中奖';
                 case 'rebate':
                     return '退水';
                 default:
@@ -2225,7 +2225,7 @@ const app = createApp({
             }
         },
         
-        // 格式化用戶類型
+        // 格式化用戶类型
         formatUserType(userType) {
             switch (userType) {
                 case 'agent':
@@ -2237,7 +2237,7 @@ const app = createApp({
             }
         },
         
-        // 获取级别名稱
+        // 获取级别名称
         getLevelName(level) {
             const levels = {
                 0: '客服',
@@ -2263,18 +2263,18 @@ const app = createApp({
         // 提交余额调整
         async submitBalanceAdjustment() {
             if (!this.balanceAdjustData.memberId || !this.balanceAdjustData.currentBalance || !this.transferAmount || !this.transferType) {
-                return this.showMessage('请填寫完整余额调整资料', 'error');
+                return this.showMessage('请填写完整余额调整资料', 'error');
             }
             
             this.loading = true;
             
             try {
-                // 准备要傳送的數據，确保包含所有後端需要的欄位
+                // 准备要傳送的数据，确保包含所有後端需要的欄位
                 const payload = {
                     agentId: this.balanceAdjustData.agentId,
                     username: this.balanceAdjustData.memberUsername, // 後端需要 username
-                    amount: this.transferType === 'deposit' ? this.transferAmount : -this.transferAmount, // 根據類型调整金额正負
-                    type: this.transferType, // 转移類型 'deposit' 或 'withdraw'
+                    amount: this.transferType === 'deposit' ? this.transferAmount : -this.transferAmount, // 根据类型调整金额正負
+                    type: this.transferType, // 转移类型 'deposit' 或 'withdraw'
                     description: this.balanceAdjustData.description
                 };
 
@@ -2282,15 +2282,15 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage('余额调整成功', 'success');
-                    // 更新前端顯示的代理和会员余额
+                    // 更新前端显示的代理和会员余额
                     this.user.balance = response.data.agentBalance;
                     // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
                     this.agentCurrentBalance = parseFloat(response.data.agentBalance) || 0; // 同步更新代理当前余额
-                    // 需要重新获取会员列表或更新特定会员的余额，以反映變更
-                    this.searchMembers(); // 重新载入会员列表，會包含更新後的余额
+                    // 需要重新获取会员列表或更新特定会员的余额，以反映变更
+                    this.searchMembers(); // 重新载入会员列表，会包含更新後的余额
                     this.hideAdjustBalanceModal(); // 关闭模態框
-                    await this.fetchDashboardData(); // 更新儀表板數據
+                    await this.fetchDashboardData(); // 更新儀表板数据
                 } else {
                     this.showMessage(response.data.message || '余额调整失败', 'error');
                 }
@@ -2301,30 +2301,30 @@ const app = createApp({
                 this.loading = false;
             }
         },
-        // 新增的方法，确保在Vue實例中定義
+        // 新增的方法，确保在Vue實例中定义
         async createMember() {
-            // 實際的创建会员邏輯需要您來實現
+            // 實际的创建会员逻辑需要您来實現
             console.log('createMember 方法被調用', this.newMember);
             if (!this.newMember.username || !this.newMember.password || !this.newMember.confirmPassword) {
-                this.showMessage('请填寫所有必填欄位', 'error');
+                this.showMessage('请填写所有必填欄位', 'error');
                 return;
             }
             
-            // 驗證用戶名格式（只允許英文、數字）
+            // 验证用戶名格式（只允许英文、數字）
             const usernameRegex = /^[a-zA-Z0-9]+$/;
             if (!usernameRegex.test(this.newMember.username)) {
                 this.showMessage('用戶名只能包含英文字母和數字', 'error');
                 return;
             }
             
-            // 驗證密碼長度（至少6碼）
+            // 验证密码长度（至少6碼）
             if (this.newMember.password.length < 6) {
-                this.showMessage('密碼至少需要6個字符', 'error');
+                this.showMessage('密码至少需要6个字符', 'error');
                 return;
             }
             
             if (this.newMember.password !== this.newMember.confirmPassword) {
-                this.showMessage('兩次输入的密碼不一致', 'error');
+                this.showMessage('两次输入的密码不一致', 'error');
                 return;
             }
             this.loading = true;
@@ -2340,7 +2340,7 @@ const app = createApp({
                     const isCurrentUser = this.currentManagingAgent.id === this.user.id;
                     const message = isCurrentUser ? 
                         `会员 ${this.newMember.username} 创建成功!` : 
-                        `已為代理 ${agentName} 创建会员 ${this.newMember.username}`;
+                        `已为代理 ${agentName} 创建会员 ${this.newMember.username}`;
                     this.showMessage(message, 'success');
                     this.hideCreateMemberModal();
                     // 重置新增会员表單
@@ -2366,16 +2366,16 @@ const app = createApp({
         
 
         async fetchParentAgents() {
-            // 實際获取上級代理列表的邏輯需要您來實現
+            // 實际获取上級代理列表的逻辑需要您来實現
             console.log('fetchParentAgents 方法被調用');
-             if (this.user.level === 0) { // 總代理不能有上級
+             if (this.user.level === 0) { // 总代理不能有上級
                 this.parentAgents = [];
                 return;
             }
             this.loading = true;
             try {
-                // 通常是获取可作為当前操作代理的上級代理列表
-                // 这里假設API會返回合適的代理列表
+                // 通常是获取可作为当前操作代理的上級代理列表
+                // 这里假設API会返回合适的代理列表
                 const response = await axios.get(`${API_BASE_URL}/available-parents`);
                 if (response.data.success) {
                     this.parentAgents = response.data.agents || [];
@@ -2394,32 +2394,32 @@ const app = createApp({
         async createAgent() {
             console.log('createAgent 方法被調用', this.newAgent);
             if (!this.newAgent.username || !this.newAgent.password) {
-                this.showMessage('请填寫所有必填欄位', 'error');
+                this.showMessage('请填写所有必填欄位', 'error');
                 return;
             }
             
-            // 驗證用戶名格式（只允許英文、數字）
+            // 验证用戶名格式（只允许英文、數字）
             const usernameRegex = /^[a-zA-Z0-9]+$/;
             if (!usernameRegex.test(this.newAgent.username)) {
                 this.showMessage('用戶名只能包含英文字母和數字', 'error');
                 return;
             }
             
-            // 驗證密碼長度（至少6碼）
+            // 验证密码长度（至少6碼）
             if (this.newAgent.password.length < 6) {
-                this.showMessage('密碼至少需要6個字符', 'error');
+                this.showMessage('密码至少需要6个字符', 'error');
                 return;
             }
             
-                            // 驗證退水设定
+                            // 验证退水设定
             if (this.newAgent.rebate_mode === 'percentage') {
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
-                // 修復：使用当前管理代理的實際退水比例作為最大限制，根據盤口類型設定默認值
+                // 修復：使用当前管理代理的實际退水比例作为最大限制，根据盤口类型设定默认值
                 const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
                 const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate) * 100;
                 
                 if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
-                    this.showMessage(`退水比例必須在 0% - ${maxRebate.toFixed(1)}% 之間`, 'error');
+                    this.showMessage(`退水比例必须在 0% - ${maxRebate.toFixed(1)}% 之间`, 'error');
                     return;
                 }
             }
@@ -2436,12 +2436,12 @@ const app = createApp({
                     notes: this.newAgent.notes || ''
                 };
                 
-                // 只有在选择具體比例時才傳送退水比例
+                // 只有在选择具体比例时才傳送退水比例
                 if (this.newAgent.rebate_mode === 'percentage') {
                     payload.rebate_percentage = parseFloat(this.newAgent.rebate_percentage) / 100;
                 }
                 
-                console.log('创建代理请求數據:', payload);
+                console.log('创建代理请求数据:', payload);
                 
                 const response = await axios.post(`${API_BASE_URL}/create-agent`, payload);
                 if (response.data.success) {
@@ -2456,7 +2456,7 @@ const app = createApp({
                         parent: '',
                         market_type: 'D',
                         rebate_mode: 'percentage',
-                        rebate_percentage: 2.0, // 重置時使用D盤默認值
+                        rebate_percentage: 2.0, // 重置时使用D盤默认值
                         notes: ''
                     };
                     
@@ -2471,16 +2471,16 @@ const app = createApp({
                 this.loading = false;
             }
         },
-        // 加載点数转移记录
+        // 加载点数转移记录
         async loadPointTransfers() {
             this.loading = true;
             try {
-                console.log('加載点数转移记录...');
+                console.log('加载点数转移记录...');
                 const url = `${API_BASE_URL}/point-transfers?agentId=${this.user.id}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
-                    console.error('加載点数转移记录失败:', response.status);
+                    console.error('加载点数转移记录失败:', response.status);
                     this.pointTransfers = [];
                     return;
                 }
@@ -2490,11 +2490,11 @@ const app = createApp({
                     this.pointTransfers = data.transfers || [];
                     console.log('点数转移记录载入成功，共有 ' + this.pointTransfers.length + ' 筆记录');
                 } else {
-                    console.error('点数转移记录數據格式错误:', data);
+                    console.error('点数转移记录数据格式错误:', data);
                     this.pointTransfers = [];
                 }
             } catch (error) {
-                console.error('加載点数转移记录错误:', error);
+                console.error('加载点数转移记录错误:', error);
                 this.pointTransfers = [];
             } finally {
                 this.loading = false;
@@ -2503,7 +2503,7 @@ const app = createApp({
         
         // 清空所有转移记录（僅用於测试）
         async clearAllTransfers() {
-            if (!confirm('确定要清空所有点数转移记录嗎？此操作無法撤銷！')) {
+            if (!confirm('确定要清空所有点数转移记录嗎？此操作無法撤销！')) {
                 return;
             }
             
@@ -2531,9 +2531,9 @@ const app = createApp({
                 this.loading = false;
             }
         },
-        // 新增：处理会员余额调整模態框的顯示
+        // 新增：处理会员余额调整模態框的显示
         adjustMemberBalance(member) {
-            // 設置要修改的會員資料
+            // 设置要修改的会员资料
             this.memberBalanceData = {
                 memberId: member.id,
                 memberUsername: member.username,
@@ -2541,21 +2541,21 @@ const app = createApp({
                 description: ''
             };
             
-            // 設置默認值
+            // 设置默认值
             this.memberTransferType = 'deposit';
             this.memberTransferAmount = 0;
             
-            console.log('會員點數轉移數據準備完成:', {
+            console.log('会员点數转移数据准备完成:', {
                 member: member,
                 user: this.user,
                 memberBalanceData: this.memberBalanceData
             });
             
-            // 使用Bootstrap 5標準方式顯示模態框
+            // 使用Bootstrap 5标准方式显示模態框
             const modalElement = document.getElementById('adjustMemberBalanceModal');
             if (!modalElement) {
-                console.error('找不到會員點數轉移模態框元素');
-                return this.showMessage('系統錯誤：找不到模態框元素', 'error');
+                console.error('找不到会员点數转移模態框元素');
+                return this.showMessage('系统错误：找不到模態框元素', 'error');
             }
             
             // 直接使用Bootstrap 5的Modal方法
@@ -2564,7 +2564,7 @@ const app = createApp({
             modal.show();
         },
 
-        // 計算最終會員餘額（會員點數轉移）
+        // 计算最終会员余额（会员点數转移）
         calculateFinalMemberBalanceTransfer() {
             // 確保使用有效數值
             const currentBalance = parseFloat(this.memberBalanceData?.currentBalance) || 0;
@@ -2577,7 +2577,7 @@ const app = createApp({
             }
         },
         
-        // 計算最終代理餘額（會員點數轉移）
+        // 计算最終代理余额（会员点數转移）
         calculateFinalAgentBalanceFromMember() {
             // 確保使用有效數值
             const currentBalance = parseFloat(this.user.balance) || 0;
@@ -2590,75 +2590,75 @@ const app = createApp({
             }
         },
 
-        // 設置最大轉移金額（會員點數轉移）
+        // 设置最大转移金额（会员点數转移）
         setMaxMemberAmount() {
             if (this.memberTransferType === 'deposit') {
-                // 存入：使用代理（自己）的全部餘額
+                // 存入：使用代理（自己）的全部余额
                 this.memberTransferAmount = parseFloat(this.user.balance) || 0;
             } else if (this.memberTransferType === 'withdraw') {
-                // 提領：使用會員的全部餘額
+                // 提领：使用会员的全部余额
                 this.memberTransferAmount = parseFloat(this.memberBalanceData.currentBalance) || 0;
             }
         },
 
-        // 隱藏會員點數轉移模態框
+        // 隐藏会员点數转移模態框
         hideAdjustMemberBalanceModal() {
             if (this.adjustMemberBalanceModal) {
                 this.adjustMemberBalanceModal.hide();
             }
         },
 
-        // 提交會員點數轉移
+        // 提交会员点數转移
         async submitMemberBalanceTransfer() {
-            console.log('嘗試提交會員點數轉移');
+            console.log('嘗試提交会员点數转移');
             if (!this.memberBalanceData.memberId || !this.memberTransferAmount) {
-                console.log('資料不完整:', {
+                console.log('资料不完整:', {
                     memberId: this.memberBalanceData.memberId,
                     transferAmount: this.memberTransferAmount,
                     description: this.memberBalanceData.description
                 });
-                return this.showMessage('請填寫轉移金額', 'error');
+                return this.showMessage('请填写转移金额', 'error');
             }
             
             this.loading = true;
-            console.log('開始提交會員點數轉移數據');
+            console.log('开始提交会员点數转移数据');
             
             try {
-                // 準備要傳送的數據
+                // 准备要傳送的数据
                 const payload = {
-                    agentId: this.user.id,  // 當前代理ID（來源或目標）
-                    memberId: this.memberBalanceData.memberId,  // 會員ID
-                    amount: this.memberTransferType === 'deposit' ? this.memberTransferAmount : -this.memberTransferAmount, // 根據類型調整金額正負
-                    type: this.memberTransferType, // 轉移類型 'deposit' 或 'withdraw'
+                    agentId: this.user.id,  // 当前代理ID（来源或目标）
+                    memberId: this.memberBalanceData.memberId,  // 会员ID
+                    amount: this.memberTransferType === 'deposit' ? this.memberTransferAmount : -this.memberTransferAmount, // 根据类型调整金额正負
+                    type: this.memberTransferType, // 转移类型 'deposit' 或 'withdraw'
                     description: this.memberBalanceData.description
                 };
 
-                console.log('準備發送的數據:', payload);
+                console.log('准备发送的数据:', payload);
                 const response = await axios.post(`${API_BASE_URL}/transfer-member-balance`, payload);
-                console.log('伺服器返回結果:', response.data);
+                console.log('伺服器返回结果:', response.data);
                 
                 if (response.data.success) {
-                    this.showMessage('會員點數轉移成功', 'success');
-                    // 更新前端顯示的代理餘額
+                    this.showMessage('会员点數转移成功', 'success');
+                    // 更新前端显示的代理余额
                     this.user.balance = response.data.parentBalance;
-                    // 同時更新localStorage中的用戶資訊
+                    // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
-                    // 需要重新獲取會員列表或更新特定會員的餘額
+                    // 需要重新获取会员列表或更新特定会员的余额
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新會員列表
+                        // 在其他介面时刷新会员列表
                         this.searchMembers();
                     }
-                    this.hideAdjustMemberBalanceModal(); // 關閉模態框
-                    await this.fetchDashboardData(); // 更新儀表板數據
+                    this.hideAdjustMemberBalanceModal(); // 关闭模態框
+                    await this.fetchDashboardData(); // 更新儀表板数据
                 } else {
-                    this.showMessage(response.data.message || '會員點數轉移失敗', 'error');
+                    this.showMessage(response.data.message || '会员点數转移失败', 'error');
                 }
             } catch (error) {
-                console.error('提交會員點數轉移錯誤:', error);
-                this.showMessage(error.response?.data?.message || '會員點數轉移失敗，請稍後再試', 'error');
+                console.error('提交会员点數转移错误:', error);
+                this.showMessage(error.response?.data?.message || '会员点數转移失败，请稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
@@ -2712,7 +2712,7 @@ const app = createApp({
                     max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                 };
             } else if (targetIndex >= 0) {
-                // 移除該位置之後的所有面包屑
+                // 移除該位置之后的所有面包屑
                 const targetBreadcrumb = this.agentBreadcrumbs[targetIndex];
                 this.agentBreadcrumbs = this.agentBreadcrumbs.slice(0, targetIndex);
                 const defaultMaxRebate = targetBreadcrumb.market_type === 'A' ? 0.011 : 0.041;
@@ -2766,9 +2766,9 @@ const app = createApp({
             await this.searchMembers();
         },
         
-        // 顯示退水设定模態框
+        // 显示退水设定模態框
         showRebateSettingsModal(agent) {
-            // 修復：需要從上級代理获取退水限制，根據盤口類型設定默認值
+            // 修復：需要從上級代理获取退水限制，根据盤口类型设定默认值
             const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
             const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate;
             
@@ -2795,7 +2795,7 @@ const app = createApp({
             });
         },
         
-        // 隱藏退水设定模態框
+        // 隐藏退水设定模態框
         hideRebateSettingsModal() {
             if (this.rebateSettingsModal) {
                 this.rebateSettingsModal.hide();
@@ -2846,9 +2846,9 @@ const app = createApp({
             }
         },
 
-        // 新增：切換会员狀態
+        // 新增：切換会员状态
         async toggleMemberStatus(memberId, currentStatus) {
-            // 支援三種狀態的切換：启用(1) -> 停用(0) -> 凍結(2) -> 启用(1)
+            // 支援三種状态的切換：启用(1) -> 停用(0) -> 冻结(2) -> 启用(1)
             let newStatus, actionText;
             
             if (currentStatus === 1) {
@@ -2856,7 +2856,7 @@ const app = createApp({
                 actionText = '停用';
             } else if (currentStatus === 0) {
                 newStatus = 2;
-                actionText = '凍結';
+                actionText = '冻结';
             } else {
                 newStatus = 1;
                 actionText = '启用';
@@ -2871,17 +2871,17 @@ const app = createApp({
                 const response = await axios.post(`${API_BASE_URL}/toggle-member-status`, { memberId, status: newStatus });
                 if (response.data.success) {
                     this.showMessage(`会员已${actionText}`, 'success');
-                    // 更新本地会员列表中的狀態
+                    // 更新本地会员列表中的状态
                     const member = this.members.find(m => m.id === memberId);
                     if (member) {
                         member.status = newStatus;
                     }
-                    // 重新載入會員列表以確保狀態同步
+                    // 重新载入会员列表以確保状态同步
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新會員列表
+                        // 在其他介面时刷新会员列表
                         await this.searchMembers();
                     }
                 } else {
@@ -2895,7 +2895,7 @@ const app = createApp({
             }
         },
         
-        // 获取狀態文字
+        // 获取状态文字
         getStatusText(status) {
             switch (parseInt(status)) {
                 case 1:
@@ -2903,13 +2903,13 @@ const app = createApp({
                 case 0:
                     return '停用';
                 case 2:
-                    return '凍結';
+                    return '冻结';
                 default:
                     return '未知';
             }
         },
         
-        // 获取狀態徽章樣式類別
+        // 获取状态徽章樣式類別
         getStatusBadgeClass(status) {
             switch (parseInt(status)) {
                 case 1:
@@ -2917,23 +2917,23 @@ const app = createApp({
                 case 0:
                     return 'badge bg-secondary'; // 灰色 - 停用
                 case 2:
-                    return 'badge bg-warning text-dark'; // 黄色 - 凍結
+                    return 'badge bg-warning text-dark'; // 黄色 - 冻结
                 default:
-                    return 'badge bg-dark'; // 黑色 - 未知狀態
+                    return 'badge bg-dark'; // 黑色 - 未知状态
             }
         },
         
-        // 获取狀態圖標類別
+        // 获取状态图标類別
         getStatusIconClass(status) {
             switch (parseInt(status)) {
                 case 1:
-                    return 'fa-check'; // 勾選 - 启用
+                    return 'fa-check'; // 勾选 - 启用
                 case 0:
                     return 'fa-ban'; // 禁止 - 停用
                 case 2:
-                    return 'fa-snowflake'; // 雪花 - 凍結
+                    return 'fa-snowflake'; // 雪花 - 冻结
                 default:
-                    return 'fa-question'; // 問號 - 未知狀態
+                    return 'fa-question'; // 问號 - 未知状态
             }
         },
         
@@ -2959,7 +2959,7 @@ const app = createApp({
             });
         },
         
-        // 隱藏修改会员额度模態框
+        // 隐藏修改会员额度模態框
         hideModifyMemberBalanceModal() {
             if (this.modifyMemberBalanceModal) {
                 this.modifyMemberBalanceModal.hide();
@@ -2985,7 +2985,7 @@ const app = createApp({
         // 提交修改会员额度
         async submitModifyMemberBalance() {
             if (!this.modifyBalanceData.memberId || !this.modifyBalanceAmount || !this.modifyBalanceData.reason) {
-                return this.showMessage('请填寫完整资料', 'error');
+                return this.showMessage('请填写完整资料', 'error');
             }
             
             // 检查修改後的金额是否合理
@@ -2997,14 +2997,14 @@ const app = createApp({
             this.loading = true;
             
             try {
-                // 准备發送到後端的數據
+                // 准备发送到後端的数据
                 let requestData = {
                     memberId: this.modifyBalanceData.memberId,
                     amount: finalBalance,
                     reason: this.modifyBalanceData.reason
                 };
                 
-                // 相對值模式下，發送相對值變化量
+                // 相对值模式下，发送相对值變化量
                 if (this.modifyBalanceType === 'relative') {
                     requestData.amount = this.balanceChangeDirection === 'increase' 
                         ? this.modifyBalanceAmount 
@@ -3019,12 +3019,12 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('会员额度修改成功', 'success');
                     this.hideModifyMemberBalanceModal();
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新會員列表
+                        // 在其他介面时刷新会员列表
                         this.searchMembers();
                     }
                 } else {
@@ -3040,7 +3040,7 @@ const app = createApp({
         
         // 删除会员
         async deleteMember(memberId, username) {
-            if (!confirm(`⚠️ 警告：确定要永久删除会员 ${username} 嗎？\n\n此操作將：\n✓ 完全從系统中移除該会员\n✓ 無法恢复任何數據\n✓ 必須确保会员余额為0\n\n请确认您真的要执行此不可逆操作！`)) {
+            if (!confirm(`⚠️ 警告：确定要永久删除会员 ${username} 嗎？\n\n此操作將：\n✓ 完全從系统中移除該会员\n✓ 無法恢复任何数据\n✓ 必须确保会员余额为0\n\n请确认您真的要执行此不可逆操作！`)) {
                 return;
             }
             
@@ -3051,12 +3051,12 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage('会员删除成功', 'success');
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新會員列表
+                        // 在其他介面时刷新会员列表
                         this.searchMembers();
                     }
                 } else {
@@ -3064,7 +3064,7 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('删除会员错误:', error);
-                // 提取具體的错误信息
+                // 提取具体的错误信息
                 let errorMessage = '会员删除失败，请稍後再試';
                 if (error.response?.data?.message) {
                     errorMessage = error.response.data.message;
@@ -3087,17 +3087,17 @@ const app = createApp({
                 description: ''
             };
             
-            // 设置默認值
+            // 设置默认值
             this.agentTransferType = 'deposit';
             this.agentTransferAmount = 0;
             
-            console.log('代理点数转移數據准备完成:', {
+            console.log('代理点数转移数据准备完成:', {
                 agent: agent,
                 user: this.user,
                 agentBalanceData: this.agentBalanceData
             });
             
-            // 使用Bootstrap 5標準方式顯示模態框
+            // 使用Bootstrap 5标准方式显示模態框
             const modalElement = document.getElementById('adjustAgentBalanceModal');
             if (!modalElement) {
                 console.error('找不到模態框元素');
@@ -3147,9 +3147,9 @@ const app = createApp({
             }
         },
         
-        // 切換代理狀態
+        // 切換代理状态
         async toggleAgentStatus(agent) {
-            // 支援三種狀態的切換：启用(1) -> 停用(0) -> 凍結(2) -> 启用(1)
+            // 支援三種状态的切換：启用(1) -> 停用(0) -> 冻结(2) -> 启用(1)
             let newStatus, actionText;
             
             if (agent.status === 1) {
@@ -3157,7 +3157,7 @@ const app = createApp({
                 actionText = '停用';
             } else if (agent.status === 0) {
                 newStatus = 2;
-                actionText = '凍結';
+                actionText = '冻结';
             } else {
                 newStatus = 1;
                 actionText = '启用';
@@ -3176,17 +3176,17 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`代理已${actionText}`, 'success');
-                    // 更新本地代理列表中的狀態
+                    // 更新本地代理列表中的状态
                     const agentInList = this.agents.find(a => a.id === agent.id);
                     if (agentInList) {
                         agentInList.status = newStatus;
                     }
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新代理列表
+                        // 在其他介面时刷新代理列表
                         this.searchAgents();
                     }
                 } else {
@@ -3200,9 +3200,9 @@ const app = createApp({
             }
         },
 
-        // 直接設定代理狀態（新的下拉選單功能）
+        // 直接设定代理状态（新的下拉选單功能）
         async changeAgentStatus(agent, newStatus) {
-            const statusNames = { 1: '启用', 0: '停用', 2: '凍結' };
+            const statusNames = { 1: '启用', 0: '停用', 2: '冻结' };
             const actionText = statusNames[newStatus];
             
             if (!confirm(`确定要将代理 ${agent.username} 设为${actionText}状态嗎？`)) {
@@ -3218,17 +3218,17 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`代理已设为${actionText}`, 'success');
-                    // 更新本地代理列表中的狀態
+                    // 更新本地代理列表中的状态
                     const agentInList = this.agents.find(a => a.id === agent.id);
                     if (agentInList) {
                         agentInList.status = newStatus;
                     }
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新代理列表
+                        // 在其他介面时刷新代理列表
                         this.searchAgents();
                     }
                 } else {
@@ -3242,9 +3242,9 @@ const app = createApp({
             }
         },
 
-        // 直接設定會員狀態（新的下拉選單功能）
+        // 直接设定会员状态（新的下拉选單功能）
         async changeMemberStatus(member, newStatus) {
-            const statusNames = { 1: '启用', 0: '停用', 2: '凍結' };
+            const statusNames = { 1: '启用', 0: '停用', 2: '冻结' };
             const actionText = statusNames[newStatus];
             
             if (!confirm(`确定要将会员 ${member.username} 设为${actionText}状态嗎？`)) {
@@ -3260,17 +3260,17 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`会员已设为${actionText}`, 'success');
-                    // 更新本地會員列表中的狀態
+                    // 更新本地会员列表中的状态
                     const memberInList = this.members.find(m => m.id === member.id);
                     if (memberInList) {
                         memberInList.status = newStatus;
                     }
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新會員列表
+                        // 在其他介面时刷新会员列表
                         await this.searchMembers();
                     }
                 } else {
@@ -3284,7 +3284,7 @@ const app = createApp({
             }
         },
 
-        // 編輯代理備註
+        // 编辑代理备注
         editAgentNotes(agent) {
             console.log('editAgentNotes 方法被調用，agent:', agent);
             
@@ -3295,22 +3295,22 @@ const app = createApp({
                 type: 'agent'
             };
             
-            // 確保在下一個tick執行，讓Vue完成渲染
+            // 確保在下一个tick执行，让Vue完成渲染
             this.$nextTick(() => {
-                // 使用已初始化的Modal實例，如果沒有則重新創建
+                // 使用已初始化的Modal實例，如果沒有則重新创建
                 if (!this.editAgentNotesModal) {
                     const modalEl = document.getElementById('editAgentNotesModal');
                     if (modalEl) {
-                        // 檢查Bootstrap是否可用
+                        // 检查Bootstrap是否可用
                         if (typeof bootstrap === 'undefined') {
-                            console.error('Bootstrap未加載');
-                            this.showMessage('系統組件未完全加載，請重新整理頁面', 'error');
+                            console.error('Bootstrap未加载');
+                            this.showMessage('系统組件未完全加载，请重新整理页面', 'error');
                             return;
                         }
                         this.editAgentNotesModal = new bootstrap.Modal(modalEl);
                     } else {
                         console.error('找不到editAgentNotesModal元素');
-                        this.showMessage('系統錯誤，請重新整理頁面', 'error');
+                        this.showMessage('系统错误，请重新整理页面', 'error');
                         return;
                     }
                 }
@@ -3318,13 +3318,13 @@ const app = createApp({
                 try {
                     this.editAgentNotesModal.show();
                 } catch (error) {
-                    console.error('顯示Modal時出錯:', error);
-                    this.showMessage('無法打開備註編輯視窗，請重新整理頁面', 'error');
+                    console.error('显示Modal时出錯:', error);
+                    this.showMessage('無法打开备注编辑視窗，请重新整理页面', 'error');
                 }
             });
         },
 
-        // 隱藏編輯代理備註模態框
+        // 隐藏编辑代理备注模態框
         hideEditAgentNotesModal() {
             if (this.editAgentNotesModal) {
                 this.editAgentNotesModal.hide();
@@ -3337,10 +3337,10 @@ const app = createApp({
             };
         },
 
-        // 更新代理備註
+        // 更新代理备注
         async updateAgentNotes() {
             if (!this.editNotesData.id) {
-                this.showMessage('無效的代理ID', 'error');
+                this.showMessage('无效的代理ID', 'error');
                 return;
             }
 
@@ -3352,42 +3352,42 @@ const app = createApp({
                 });
 
                 if (response.data.success) {
-                    this.showMessage('代理備註更新成功', 'success');
+                    this.showMessage('代理备注更新成功', 'success');
                     
-                    // 更新本地代理列表中的備註
+                    // 更新本地代理列表中的备注
                     const agentInList = this.agents.find(a => a.id === this.editNotesData.id);
                     if (agentInList) {
                         agentInList.notes = this.editNotesData.notes;
                     }
                     
                     this.hideEditAgentNotesModal();
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新代理列表
+                        // 在其他介面时刷新代理列表
                         this.searchAgents();
                     }
                 } else {
-                    this.showMessage(response.data.message || '更新代理備註失敗', 'error');
+                    this.showMessage(response.data.message || '更新代理备注失败', 'error');
                 }
             } catch (error) {
-                console.error('更新代理備註錯誤:', error);
-                this.showMessage(error.response?.data?.message || '更新代理備註失敗，請稍後再試', 'error');
+                console.error('更新代理备注错误:', error);
+                this.showMessage(error.response?.data?.message || '更新代理备注失败，请稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
         },
 
-        // 編輯會員備註
+        // 编辑会员备注
         editMemberNotes(member) {
             console.log('🔧 editMemberNotes 方法被調用，member:', member);
             
-            // 重置loading狀態
+            // 重置loading状态
             this.loading = false;
             
-            // 確保數據設置正確
+            // 確保数据设置正確
             this.editNotesData = {
                 id: member.id,
                 username: member.username,
@@ -3395,9 +3395,9 @@ const app = createApp({
                 type: 'member'
             };
             
-            console.log('🔧 設置editNotesData:', this.editNotesData);
+            console.log('🔧 设置editNotesData:', this.editNotesData);
             
-            // 使用Vue.js反應式方式顯示模態框
+            // 使用Vue.js反应式方式显示模態框
             this.showEditMemberNotesModal = true;
             
             // 添加背景和防止滾動
@@ -3413,15 +3413,15 @@ const app = createApp({
                 document.body.classList.add('modal-open');
                 document.body.style.paddingRight = '17px';
                 
-                console.log('🔧 會員備註模態框已顯示，Vue綁定應該正常工作');
+                console.log('🔧 会员备注模態框已显示，Vue綁定應該正常工作');
             });
         },
 
-        // 隱藏編輯會員備註模態框
+        // 隐藏编辑会员备注模態框
         hideEditMemberNotesModal() {
             console.log('🔧 hideEditMemberNotesModal 方法被調用');
             
-            // 重置Vue.js狀態
+            // 重置Vue.js状态
             this.showEditMemberNotesModal = false;
             this.loading = false;
             
@@ -3433,7 +3433,7 @@ const app = createApp({
                 backdrop.remove();
             }
             
-            // 清理編輯數據
+            // 清理编辑数据
             this.editNotesData = {
                 id: null,
                 username: '',
@@ -3441,13 +3441,13 @@ const app = createApp({
                 type: ''
             };
             
-            console.log('🔧 會員備註模態框已隱藏，數據已重置');
+            console.log('🔧 会员备注模態框已隐藏，数据已重置');
         },
 
-        // 更新會員備註
+        // 更新会员备注
         async updateMemberNotes() {
             if (!this.editNotesData.id) {
-                this.showMessage('無效的會員ID', 'error');
+                this.showMessage('无效的会员ID', 'error');
                 return;
             }
 
@@ -3459,9 +3459,9 @@ const app = createApp({
                 });
 
                 if (response.data.success) {
-                    this.showMessage('會員備註更新成功', 'success');
+                    this.showMessage('会员备注更新成功', 'success');
                     
-                    // 更新本地會員列表中的備註
+                    // 更新本地会员列表中的备注
                     const memberInList = this.members.find(m => m.id === this.editNotesData.id);
                     if (memberInList) {
                         memberInList.notes = this.editNotesData.notes;
@@ -3469,35 +3469,35 @@ const app = createApp({
                     
                     this.hideEditMemberNotesModal();
                     
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新會員列表
+                        // 在其他介面时刷新会员列表
                         await this.searchMembers();
                     }
                 } else {
-                    this.showMessage(response.data.message || '更新會員備註失敗', 'error');
+                    this.showMessage(response.data.message || '更新会员备注失败', 'error');
                 }
             } catch (error) {
-                console.error('更新會員備註錯誤:', error);
-                this.showMessage(error.response?.data?.message || '更新會員備註失敗，請稍後再試', 'error');
+                console.error('更新会员备注错误:', error);
+                this.showMessage(error.response?.data?.message || '更新会员备注失败，请稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
         },
         
-        // 隱藏代理额度修改模態框
+        // 隐藏代理额度修改模態框
         hideAdjustAgentBalanceModal() {
-            console.log('嘗試隱藏代理点数转移模態框');
+            console.log('嘗試隐藏代理点数转移模態框');
             try {
                 if (this.adjustAgentBalanceModal) {
-                    console.log('找到模態框實例，嘗試隱藏');
+                    console.log('找到模態框實例，嘗試隐藏');
                     this.adjustAgentBalanceModal.hide();
-                    console.log('模態框隱藏方法已調用');
+                    console.log('模態框隐藏方法已調用');
                 } else {
-                    console.log('找不到模態框實例，嘗試手動隱藏');
+                    console.log('找不到模態框實例，嘗試手動隐藏');
                     const modalEl = document.getElementById('adjustAgentBalanceModal');
                     if (modalEl) {
                         modalEl.style.display = 'none';
@@ -3505,11 +3505,11 @@ const app = createApp({
                         document.body.classList.remove('modal-open');
                         const backdrop = document.querySelector('.modal-backdrop');
                         if (backdrop) backdrop.remove();
-                        console.log('已手動隱藏模態框');
+                        console.log('已手動隐藏模態框');
                     }
                 }
             } catch (error) {
-                console.error('隱藏模態框時出錯:', error);
+                console.error('隐藏模態框时出錯:', error);
             }
         },
         
@@ -3538,42 +3538,42 @@ const app = createApp({
                     transferAmount: this.agentTransferAmount,
                     description: this.agentBalanceData.description
                 });
-                return this.showMessage('请填寫转移金额', 'error');
+                return this.showMessage('请填写转移金额', 'error');
             }
             
             this.loading = true;
-            console.log('开始提交代理点数转移數據');
+            console.log('开始提交代理点数转移数据');
             
             try {
-                // 准备要傳送的數據
+                // 准备要傳送的数据
                 const payload = {
-                    agentId: this.user.id,  // 当前代理ID（來源或目標）
+                    agentId: this.user.id,  // 当前代理ID（来源或目标）
                     subAgentId: this.agentBalanceData.agentId,  // 下級代理ID
-                    amount: this.agentTransferType === 'deposit' ? this.agentTransferAmount : -this.agentTransferAmount, // 根據類型调整金额正負
-                    type: this.agentTransferType, // 转移類型 'deposit' 或 'withdraw'
+                    amount: this.agentTransferType === 'deposit' ? this.agentTransferAmount : -this.agentTransferAmount, // 根据类型调整金额正負
+                    type: this.agentTransferType, // 转移类型 'deposit' 或 'withdraw'
                     description: this.agentBalanceData.description
                 };
 
-                console.log('准备發送的數據:', payload);
+                console.log('准备发送的数据:', payload);
                 const response = await axios.post(`${API_BASE_URL}/transfer-agent-balance`, payload);
                 console.log('伺服器返回结果:', response.data);
                 
                 if (response.data.success) {
                     this.showMessage('代理点数转移成功', 'success');
-                    // 更新前端顯示的代理余额
+                    // 更新前端显示的代理余额
                     this.user.balance = response.data.parentBalance;
                     // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新代理列表
+                        // 在其他介面时刷新代理列表
                         this.searchAgents();
                     }
                     this.hideAdjustAgentBalanceModal(); // 关闭模態框
-                    await this.fetchDashboardData(); // 更新儀表板數據
+                    await this.fetchDashboardData(); // 更新儀表板数据
                 } else {
                     this.showMessage(response.data.message || '代理点数转移失败', 'error');
                 }
@@ -3587,7 +3587,7 @@ const app = createApp({
         
         // 删除代理
         async deleteAgent(agentId, username) {
-            if (!confirm(`⚠️ 警告：确定要永久删除代理 ${username} 嗎？\n\n此操作將：\n✓ 完全從系统中移除該代理\n✓ 無法恢复任何數據\n✓ 必須确保代理余额為0且無下級代理/会员\n\n请确认您真的要执行此不可逆操作！`)) {
+            if (!confirm(`⚠️ 警告：确定要永久删除代理 ${username} 嗎？\n\n此操作將：\n✓ 完全從系统中移除該代理\n✓ 無法恢复任何数据\n✓ 必须确保代理余额为0且無下級代理/会员\n\n请确认您真的要执行此不可逆操作！`)) {
                 return;
             }
             
@@ -3598,12 +3598,12 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage('代理删除成功', 'success');
-                    // 根據當前介面決定刷新方式
+                    // 根据当前介面决定刷新方式
                     if (this.activeTab === 'members') {
-                        // 在層級會員管理介面時刷新層級會員數據
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
-                        // 在其他介面時刷新代理列表
+                        // 在其他介面时刷新代理列表
                         this.searchAgents();
                     }
                 } else {
@@ -3611,7 +3611,7 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('删除代理错误:', error);
-                // 提取具體的错误信息
+                // 提取具体的错误信息
                 let errorMessage = '代理删除失败，请稍後再試';
                 if (error.response?.data?.message) {
                     errorMessage = error.response.data.message;
@@ -3624,7 +3624,7 @@ const app = createApp({
             }
         },
         
-        // 改變頁碼
+        // 改變页碼
         changePage(page, type) {
             if (page < 1) return;
             
@@ -3650,23 +3650,23 @@ const app = createApp({
                     this.searchBets();
                     break;
                 default:
-                    console.warn('未知的分頁類型:', type);
+                    console.warn('未知的分页类型:', type);
             }
         },
         
-        // 格式化佣金比例顯示
+        // 格式化佣金比例显示
 
         
-        // 格式化投注選項顯示
+        // 格式化投注选项显示
         formatBetValue(value) {
             if (!value) return '-';
             
-            // 處理龍虎投注格式：dragon_1_10 -> 龍(冠軍vs第10名)
+            // 处理龙虎投注格式：dragon_1_10 -> 龙(冠军vs第10名)
             if (value && value.includes('_')) {
                 const parts = value.split('_');
                 if (parts.length === 3 && (parts[0] === 'dragon' || parts[0] === 'tiger')) {
-                    const dragonTiger = parts[0] === 'dragon' ? '龍' : '虎';
-                    const pos1 = parts[1] === '1' ? '冠軍' : parts[1] === '2' ? '亞軍' : `第${parts[1]}名`;
+                    const dragonTiger = parts[0] === 'dragon' ? '龙' : '虎';
+                    const pos1 = parts[1] === '1' ? '冠军' : parts[1] === '2' ? '亚军' : `第${parts[1]}名`;
                     const pos2 = parts[2] === '10' ? '第十名' : `第${parts[2]}名`;
                     return `${dragonTiger}(${pos1}vs${pos2})`;
                 }
@@ -3676,17 +3676,17 @@ const app = createApp({
                 // 大小
                 'big': '大',
                 'small': '小',
-                // 單雙
+                // 單双
                 'odd': '單',
-                'even': '雙',
-                // 龍虎
-                'dragon': '龍',
+                'even': '双',
+                // 龙虎
+                'dragon': '龙',
                 'tiger': '虎',
                 // 和值相关
                 'sumBig': '总和大',
                 'sumSmall': '总和小',
                 'sumOdd': '总和單',
-                'sumEven': '总和雙',
+                'sumEven': '总和双',
             };
             
             // 如果是純數字，直接返回
@@ -3694,7 +3694,7 @@ const app = createApp({
                 return value;
             }
             
-            // 查找對應的中文翻譯
+            // 查找对應的中文翻譯
             return valueMap[value] || value;
         },
         
@@ -3702,25 +3702,25 @@ const app = createApp({
         async loadAllAgents() {
             try {
                 this.loading = true;
-                console.log('开始加載所有代理...');
-                // 遞歸获取所有代理
+                console.log('开始加载所有代理...');
+                // 递歸获取所有代理
                 const response = await axios.get(`${API_BASE_URL}/sub-agents`, {
                     params: {
                         parentId: '', // 空值获取所有代理
                         level: -1,
                         status: -1,
                         page: 1,
-                        limit: 1000 // 设置較大的limit获取所有代理
+                        limit: 1000 // 设置较大的limit获取所有代理
                     }
                 });
                 
-                console.log('API響應:', response.data);
+                console.log('API响应:', response.data);
                 
                 if (response.data.success) {
                     this.allAgents = response.data.data.list || [];
-                    console.log('加載所有代理成功:', this.allAgents.length, this.allAgents);
+                    console.log('加载所有代理成功:', this.allAgents.length, this.allAgents);
                     
-                    // 确保每個代理都有正确的屬性
+                    // 确保每个代理都有正确的属性
                     this.allAgents.forEach((agent, index) => {
                         console.log(`代理 ${index}:`, {
                             id: agent.id,
@@ -3731,7 +3731,7 @@ const app = createApp({
                             formattedBalance: this.formatMoney(agent.balance)
                         });
                         
-                        // 确保數據類型正确
+                        // 确保数据类型正确
                         agent.balance = parseFloat(agent.balance) || 0;
                         agent.level = parseInt(agent.level) || 0;
                     });
@@ -3740,11 +3740,11 @@ const app = createApp({
                     this.updateAgentSelect();
                 } else {
                     console.error('API返回失败:', response.data.message);
-                    this.showMessage('加載代理列表失败', 'error');
+                    this.showMessage('加载代理列表失败', 'error');
                 }
             } catch (error) {
-                console.error('加載所有代理出錯:', error);
-                this.showMessage('加載代理列表出錯', 'error');
+                console.error('加载所有代理出錯:', error);
+                this.showMessage('加载代理列表出錯', 'error');
             } finally {
                 this.loading = false;
             }
@@ -3755,7 +3755,7 @@ const app = createApp({
             
             try {
                 this.loading = true;
-                // 确保 page 是一個有效的數字
+                // 确保 page 是一个有效的數字
                 const pageNum = parseInt(page) || 1;
                 const response = await axios.get(`${API_BASE_URL}/cs-transactions`, {
                     params: {
@@ -3774,48 +3774,48 @@ const app = createApp({
                         limit: response.data.data.limit,
                         total: response.data.data.total
                     };
-                    console.log('加載客服交易记录成功:', this.csTransactions.length);
+                    console.log('加载客服交易记录成功:', this.csTransactions.length);
                 } else {
-                    this.showMessage(response.data.message || '加載客服交易记录失败', 'error');
+                    this.showMessage(response.data.message || '加载客服交易记录失败', 'error');
                 }
             } catch (error) {
-                console.error('加載客服交易记录出錯:', error);
-                this.showMessage('加載客服交易记录出錯', 'error');
+                console.error('加载客服交易记录出錯:', error);
+                this.showMessage('加载客服交易记录出錯', 'error');
             } finally {
                 this.loading = false;
             }
         },
         
-        // 輸贏控制相關方法
+        // 输赢控制相关方法
         
-        // 載入輸贏控制列表
+        // 载入输赢控制列表
         async loadWinLossControls(page = 1) {
             try {
                 this.loading = true;
-                console.log('載入輸贏控制列表...');
+                console.log('载入输赢控制列表...');
                 
-                // 🔧 確保認證標頭設置正確
+                // 🔧 確保认证標头设置正確
                 const headers = {};
                 const sessionToken = localStorage.getItem('agent_session_token');
                 const legacyToken = localStorage.getItem('agent_token');
                 
                 if (sessionToken) {
                     headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken; // 確保大小寫兼容
+                    headers['X-Session-Token'] = sessionToken; // 確保大小写兼容
                 }
                 if (legacyToken) {
                     headers['Authorization'] = legacyToken;
                 }
                 
-                console.log('🔐 使用認證標頭:', { hasSessionToken: !!sessionToken, hasLegacyToken: !!legacyToken });
+                console.log('🔐 使用认证標头:', { hasSessionToken: !!sessionToken, hasLegacyToken: !!legacyToken });
                 
                 const response = await axios.get(`${API_BASE_URL}/win-loss-control?page=${page}&limit=20`, { headers });
                 
                 if (response.data.success) {
                     this.winLossControls = response.data.data || [];
-                    console.log('輸贏控制列表載入成功:', this.winLossControls.length, '項記錄');
+                    console.log('输赢控制列表载入成功:', this.winLossControls.length, '项记录');
                     
-                    // 同時載入當前活躍控制、用戶清單和期數信息
+                    // 同时载入当前活躍控制、用戶清单和期數信息
                     await Promise.all([
                         this.loadActiveWinLossControl(),
                         this.loadAvailableAgents(),
@@ -3823,18 +3823,18 @@ const app = createApp({
                         this.loadCurrentPeriod()
                     ]);
                 } else {
-                    console.error('載入輸贏控制列表失敗:', response.data.message);
-                    this.showMessage('載入控制列表失敗: ' + response.data.message, 'error');
+                    console.error('载入输赢控制列表失败:', response.data.message);
+                    this.showMessage('载入控制列表失败: ' + response.data.message, 'error');
                 }
             } catch (error) {
-                console.error('載入輸贏控制列表錯誤:', error);
+                console.error('载入输赢控制列表错误:', error);
                 
-                // 🔧 特殊處理401錯誤
+                // 🔧 特殊处理401错误
                 if (error.response?.status === 401) {
-                    console.warn('⚠️ 認證失敗，嘗試重新認證...');
-                    this.showMessage('會話已過期，請重新登入', 'warning');
+                    console.warn('⚠️ 认证失败，嘗試重新认证...');
+                    this.showMessage('会话已过期，请重新登入', 'warning');
                     
-                    // 清除過期的認證信息
+                    // 清除过期的认证信息
                     delete axios.defaults.headers.common['Authorization'];
                     delete axios.defaults.headers.common['x-session-token'];
                     
@@ -3843,17 +3843,17 @@ const app = createApp({
                         this.logout();
                     }, 2000);
                 } else {
-                    this.showMessage('載入控制列表時發生錯誤', 'error');
+                    this.showMessage('载入控制列表时發生错误', 'error');
                 }
             } finally {
                 this.loading = false;
             }
         },
         
-        // 載入可用代理清單
+        // 载入可用代理清单
         async loadAvailableAgents() {
             try {
-                // 🔧 確保認證標頭設置正確
+                // 🔧 確保认证標头设置正確
                 const headers = {};
                 const sessionToken = localStorage.getItem('agent_session_token');
                 const legacyToken = localStorage.getItem('agent_token');
@@ -3869,17 +3869,17 @@ const app = createApp({
                 const response = await axios.get(`${API_BASE_URL}/win-loss-control/agents`, { headers });
                 if (response.data.success) {
                     this.availableAgents = response.data.data || [];
-                    console.log('載入代理清單成功:', this.availableAgents.length, '個代理');
+                    console.log('载入代理清单成功:', this.availableAgents.length, '个代理');
                 }
             } catch (error) {
-                console.error('載入代理清單錯誤:', error);
+                console.error('载入代理清单错误:', error);
             }
         },
         
-        // 載入可用會員清單
+        // 载入可用会员清单
         async loadAvailableMembers() {
             try {
-                // 🔧 確保認證標頭設置正確
+                // 🔧 確保认证標头设置正確
                 const headers = {};
                 const sessionToken = localStorage.getItem('agent_session_token');
                 const legacyToken = localStorage.getItem('agent_token');
@@ -3895,32 +3895,32 @@ const app = createApp({
                 const response = await axios.get(`${API_BASE_URL}/win-loss-control/members`, { headers });
                 if (response.data.success) {
                     this.availableMembers = response.data.data || [];
-                    console.log('載入會員清單成功:', this.availableMembers.length, '個會員');
+                    console.log('载入会员清单成功:', this.availableMembers.length, '个会员');
                 }
             } catch (error) {
-                console.error('載入會員清單錯誤:', error);
+                console.error('载入会员清单错误:', error);
             }
         },
         
-        // 載入當前期數信息
+        // 载入当前期數信息
         async loadCurrentPeriod() {
             try {
                 const response = await axios.get(`${API_BASE_URL}/win-loss-control/current-period`);
                 if (response.data.success) {
                     this.currentPeriodInfo = response.data.data;
-                    // 自動設定建議的開始期數
+                    // 自動设定建议的开始期數
                     this.newWinLossControl.start_period = this.currentPeriodInfo.suggested_start;
-                    console.log('載入期數信息成功:', this.currentPeriodInfo);
+                    console.log('载入期數信息成功:', this.currentPeriodInfo);
                 }
             } catch (error) {
-                console.error('載入期數信息錯誤:', error);
+                console.error('载入期數信息错误:', error);
             }
         },
         
-        // 載入當前活躍的輸贏控制
+        // 载入当前活躍的输赢控制
         async loadActiveWinLossControl() {
             try {
-                // 🔧 確保認證標頭設置正確
+                // 🔧 確保认证標头设置正確
                 const headers = {};
                 const sessionToken = localStorage.getItem('agent_session_token');
                 const legacyToken = localStorage.getItem('agent_token');
@@ -3937,27 +3937,27 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.activeWinLossControl = response.data.data || { control_mode: 'normal', is_active: false };
-                    console.log('當前活躍控制:', this.activeWinLossControl);
+                    console.log('当前活躍控制:', this.activeWinLossControl);
                 } else {
-                    console.error('載入活躍控制失敗:', response.data.message);
+                    console.error('载入活躍控制失败:', response.data.message);
                 }
             } catch (error) {
-                console.error('載入活躍控制錯誤:', error);
+                console.error('载入活躍控制错误:', error);
             }
         },
         
-        // 創建輸贏控制
+        // 创建输赢控制
         async createWinLossControl() {
             try {
                 this.loading = true;
-                console.log('創建輸贏控制:', this.newWinLossControl);
+                console.log('创建输赢控制:', this.newWinLossControl);
                 
                 const response = await axios.post(`${API_BASE_URL}/win-loss-control`, this.newWinLossControl);
                 
                 if (response.data.success) {
-                    this.showMessage('輸贏控制設定成功', 'success');
+                    this.showMessage('输赢控制设定成功', 'success');
                     
-                    // 重新載入列表和活躍控制
+                    // 重新载入列表和活躍控制
                     await this.loadWinLossControls();
                     
                     // 重置表單
@@ -3971,41 +3971,41 @@ const app = createApp({
                         start_period: this.currentPeriodInfo.suggested_start
                     };
                 } else {
-                    this.showMessage('設定失敗: ' + response.data.message, 'error');
+                    this.showMessage('设定失败: ' + response.data.message, 'error');
                 }
             } catch (error) {
-                console.error('創建輸贏控制錯誤:', error);
-                this.showMessage('設定時發生錯誤', 'error');
+                console.error('创建输赢控制错误:', error);
+                this.showMessage('设定时發生错误', 'error');
             } finally {
                 this.loading = false;
             }
         },
         
-        // 啟用輸贏控制
+        // 启用输赢控制
         async activateWinLossControl(controlId) {
             try {
-                console.log('啟用輸贏控制:', controlId);
+                console.log('启用输赢控制:', controlId);
                 
                 const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
                     is_active: true
                 });
                 
                 if (response.data.success) {
-                    this.showMessage('控制已啟用', 'success');
+                    this.showMessage('控制已启用', 'success');
                     await this.loadWinLossControls();
                 } else {
-                    this.showMessage('啟用失敗: ' + response.data.message, 'error');
+                    this.showMessage('启用失败: ' + response.data.message, 'error');
                 }
             } catch (error) {
-                console.error('啟用輸贏控制錯誤:', error);
-                this.showMessage('啟用時發生錯誤', 'error');
+                console.error('启用输赢控制错误:', error);
+                this.showMessage('启用时發生错误', 'error');
             }
         },
         
-        // 停用輸贏控制
+        // 停用输赢控制
         async deactivateWinLossControl(controlId) {
             try {
-                console.log('停用輸贏控制:', controlId);
+                console.log('停用输赢控制:', controlId);
                 
                 const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
                     is_active: false
@@ -4015,53 +4015,53 @@ const app = createApp({
                     this.showMessage('控制已停用', 'success');
                     await this.loadWinLossControls();
                 } else {
-                    this.showMessage('停用失敗: ' + response.data.message, 'error');
+                    this.showMessage('停用失败: ' + response.data.message, 'error');
                 }
             } catch (error) {
-                console.error('停用輸贏控制錯誤:', error);
-                this.showMessage('停用時發生錯誤', 'error');
+                console.error('停用输赢控制错误:', error);
+                this.showMessage('停用时發生错误', 'error');
             }
         },
         
-        // 刪除輸贏控制
+        // 删除输赢控制
         async deleteWinLossControl(controlId) {
             try {
-                if (!confirm('確定要刪除此輸贏控制設定嗎？')) {
+                if (!confirm('确定要删除此输赢控制设定嗎？')) {
                     return;
                 }
                 
-                console.log('刪除輸贏控制:', controlId);
+                console.log('删除输赢控制:', controlId);
                 
                 const response = await axios.delete(`${API_BASE_URL}/win-loss-control/${controlId}`);
                 
                 if (response.data.success) {
-                    this.showMessage('控制設定已刪除', 'success');
+                    this.showMessage('控制设定已删除', 'success');
                     await this.loadWinLossControls();
                 } else {
-                    this.showMessage('刪除失敗: ' + response.data.message, 'error');
+                    this.showMessage('删除失败: ' + response.data.message, 'error');
                 }
             } catch (error) {
-                console.error('刪除輸贏控制錯誤:', error);
-                this.showMessage('刪除時發生錯誤', 'error');
+                console.error('删除输赢控制错误:', error);
+                this.showMessage('删除时發生错误', 'error');
             }
         },
         
-        // 獲取控制模式文字
+        // 获取控制模式文字
         getControlModeText(mode) {
             const modes = {
                 'normal': '正常機率',
                 'agent_line': '代理線控制',
-                'single_member': '單會員控制',
+                'single_member': '單会员控制',
                 'auto_detect': '自動偵測控制'
             };
             return modes[mode] || mode;
         },
         
-        // 顯示客服操作模態框
+        // 显示客服操作模態框
         async showCSOperationModalFunc() {
-            console.log('=== 开始顯示客服操作模態框 ===');
+            console.log('=== 开始显示客服操作模態框 ===');
             
-            // 重置表單數據
+            // 重置表單数据
             this.csOperation = {
                 targetAgentId: '',
                 operationTarget: '',
@@ -4072,25 +4072,25 @@ const app = createApp({
             };
             this.agentMembers = [];
             
-            console.log('当前allAgents數量:', this.allAgents.length);
+            console.log('当前allAgents数量:', this.allAgents.length);
             
-            // 确保代理列表已加載
+            // 确保代理列表已加载
             if (this.allAgents.length === 0) {
-                console.log('代理列表為空，开始加載...');
+                console.log('代理列表为空，开始加载...');
                 await this.loadAllAgents();
             }
             
-            console.log('加載後allAgents數量:', this.allAgents.length);
-            console.log('allAgents內容:', this.allAgents);
+            console.log('加载後allAgents数量:', this.allAgents.length);
+            console.log('allAgents内容:', this.allAgents);
             
             // 手動更新代理选择列表
             this.updateAgentSelect();
             
-            // 顯示模態框
+            // 显示模態框
             if (this.csOperationModal) {
                 this.csOperationModal.show();
             } else {
-                // 如果模態框還沒初始化，先初始化再顯示
+                // 如果模態框还沒初始化，先初始化再显示
                 const csOperationModalEl = document.getElementById('csOperationModal');
                 if (csOperationModalEl) {
                     this.csOperationModal = new bootstrap.Modal(csOperationModalEl);
@@ -4098,7 +4098,7 @@ const app = createApp({
                 }
             }
             
-            // 设置初始操作對象（默認為代理）
+            // 设置初始操作对象（默认为代理）
             setTimeout(() => {
                 const targetAgent = document.getElementById('csTargetAgent');
                 if (targetAgent) {
@@ -4118,7 +4118,7 @@ const app = createApp({
                 const depositRadio = document.getElementById('csDeposit');
                 const withdrawRadio = document.getElementById('csWithdraw');
                 
-                // 移除之前的事件監聽器（避免重複）
+                // 移除之前的事件監聽器（避免重复）
                 if (targetAgent) {
                     targetAgent.removeEventListener('change', this.handleOperationTargetChange);
                     targetAgent.addEventListener('change', this.handleOperationTargetChange.bind(this));
@@ -4158,7 +4158,7 @@ const app = createApp({
                 console.log('事件監聽器已添加');
             }, 300);
             
-            console.log('=== 客服操作模態框顯示完成 ===');
+            console.log('=== 客服操作模態框显示完成 ===');
         },
         
         // 事件处理器方法
@@ -4197,29 +4197,29 @@ const app = createApp({
         
         handleSubmitCSOperation() {
             console.log('处理表單提交');
-            // 防止重複提交
+            // 防止重复提交
             const submitBtn = document.getElementById('csOperationSubmitBtn');
             const spinner = document.getElementById('csOperationSpinner');
             
             if (submitBtn.disabled) {
-                console.log('按鈕已禁用，防止重複提交');
+                console.log('按钮已禁用，防止重复提交');
                 return;
             }
             
-            // 驗證表單
+            // 验证表單
             if (!this.isValidCSOperation) {
-                console.log('表單驗證失败');
-                this.showMessage('请填寫完整的操作信息', 'error');
+                console.log('表單验证失败');
+                this.showMessage('请填写完整的操作信息', 'error');
                 return;
             }
             
-            // 顯示载入狀態
+            // 显示载入状态
             submitBtn.disabled = true;
             spinner.style.display = 'inline-block';
             
             // 調用提交方法
             this.submitCSOperation().finally(() => {
-                // 恢復按鈕狀態
+                // 恢復按钮状态
                 submitBtn.disabled = false;
                 spinner.style.display = 'none';
             });
@@ -4238,7 +4238,7 @@ const app = createApp({
             this.agentMembers = [];
         },
         
-        // 操作對象變化時的处理
+        // 操作对象變化时的处理
         async onOperationTargetChange() {
             const targetAgent = document.getElementById('csTargetAgent');
             const targetMember = document.getElementById('csTargetMember');
@@ -4250,7 +4250,7 @@ const app = createApp({
                 operationTarget = 'member';
             }
             
-            console.log('操作對象變化:', operationTarget);
+            console.log('操作对象變化:', operationTarget);
             this.csOperation.operationTarget = operationTarget;
             
             // 重置会员选择和操作相关欄位（但保留代理选择）
@@ -4274,7 +4274,7 @@ const app = createApp({
             if (depositRadio) depositRadio.checked = false;
             if (withdrawRadio) withdrawRadio.checked = false;
             
-            // 顯示/隱藏相关元素
+            // 显示/隐藏相关元素
             const agentSelectDiv = document.getElementById('agentSelectDiv');
             const memberSelectDiv = document.getElementById('memberSelectDiv');
             const currentBalanceDiv = document.getElementById('currentBalanceDiv');
@@ -4297,24 +4297,24 @@ const app = createApp({
             // 清空会员选择列表
             this.updateMemberSelect();
             
-            // 如果改為会员操作且已经选择了代理，則加載会员列表
+            // 如果改为会员操作且已经选择了代理，則加载会员列表
             if (operationTarget === 'member' && this.csOperation.targetAgentId) {
-                console.log('需要加載代理会员列表，代理ID:', this.csOperation.targetAgentId);
+                console.log('需要加载代理会员列表，代理ID:', this.csOperation.targetAgentId);
                 await this.loadAgentMembers(this.csOperation.targetAgentId);
             }
             
-            // 更新当前余额顯示
+            // 更新当前余额显示
             setTimeout(() => {
                 this.updateCurrentBalanceDisplay();
             }, 100);
         },
         
-        // 代理选择變化時的处理
+        // 代理选择變化时的处理
         async onAgentSelectionChange() {
             const agentSelect = document.getElementById('agentSelect');
             const agentId = agentSelect ? agentSelect.value : '';
             
-            console.log('代理选择變化:', agentId, '操作對象:', this.csOperation.operationTarget);
+            console.log('代理选择變化:', agentId, '操作对象:', this.csOperation.operationTarget);
             this.csOperation.targetAgentId = agentId;
             
             // 重置会员选择和操作相关欄位
@@ -4338,7 +4338,7 @@ const app = createApp({
             if (depositRadio) depositRadio.checked = false;
             if (withdrawRadio) withdrawRadio.checked = false;
             
-            // 顯示/隱藏相关元素
+            // 显示/隐藏相关元素
             const memberSelectDiv = document.getElementById('memberSelectDiv');
             const currentBalanceDiv = document.getElementById('currentBalanceDiv');
             const operationTypeDiv = document.getElementById('operationTypeDiv');
@@ -4346,10 +4346,10 @@ const app = createApp({
             const finalBalanceDiv = document.getElementById('finalBalanceDiv');
             
             if (agentId) {
-                // 根據操作對象決定是否顯示会员选择
+                // 根据操作对象决定是否显示会员选择
                 if (this.csOperation.operationTarget === 'member') {
                     memberSelectDiv.style.display = 'block';
-                    console.log('开始加載選中代理的会员列表，代理ID:', agentId);
+                    console.log('开始加载选中代理的会员列表，代理ID:', agentId);
                     await this.loadAgentMembers(agentId);
                 } else {
                     memberSelectDiv.style.display = 'none';
@@ -4370,28 +4370,28 @@ const app = createApp({
             // 清空会员选择列表
             this.updateMemberSelect();
             
-            // 更新当前余额顯示
+            // 更新当前余额显示
             setTimeout(() => {
                 this.updateCurrentBalanceDisplay();
             }, 100);
         },
         
-        // 加載指定代理的会员列表
+        // 加载指定代理的会员列表
         async loadAgentMembers(agentId) {
             try {
                 const response = await axios.get(`${API_BASE_URL}/members`, {
                     params: {
                         agentId: agentId,
-                        status: -1, // 获取所有狀態的会员
+                        status: -1, // 获取所有状态的会员
                         page: 1,
-                        limit: 1000 // 设置較大的limit获取所有会员
+                        limit: 1000 // 设置较大的limit获取所有会员
                     }
                 });
                 if (response.data.success) {
                     this.agentMembers = response.data.data.list || [];
-                    console.log('加載代理会员列表成功:', this.agentMembers.length, this.agentMembers);
+                    console.log('加载代理会员列表成功:', this.agentMembers.length, this.agentMembers);
                     
-                    // 确保每個会员都有正确的屬性
+                    // 确保每个会员都有正确的属性
                     this.agentMembers.forEach((member, index) => {
                         console.log(`会员 ${index}:`, {
                             id: member.id,
@@ -4400,14 +4400,14 @@ const app = createApp({
                             formattedBalance: this.formatMoney(member.balance)
                         });
                         
-                        // 确保數據類型正确
+                        // 确保数据类型正确
                         member.balance = parseFloat(member.balance) || 0;
                     });
                     
                     // 手動更新会员选择下拉列表
                     this.updateMemberSelect();
                     
-                    // 為会员选择添加change事件監聽器
+                    // 为会员选择添加change事件監聽器
                     this.$nextTick(() => {
                         const memberSelect = document.getElementById('memberSelect');
                         if (memberSelect) {
@@ -4418,11 +4418,11 @@ const app = createApp({
                         this.updateCurrentBalanceDisplay();
                     });
                 } else {
-                    console.error('加載代理会员列表失败:', response.data.message);
+                    console.error('加载代理会员列表失败:', response.data.message);
                     this.agentMembers = [];
                 }
             } catch (error) {
-                console.error('加載代理会员列表出錯:', error);
+                console.error('加载代理会员列表出錯:', error);
                 this.agentMembers = [];
             }
         },
@@ -4432,15 +4432,15 @@ const app = createApp({
             const agentSelect = document.getElementById('agentSelect');
             if (!agentSelect) return;
             
-            // 清除現有選項（保留第一個）
+            // 清除現有选项（保留第一个）
             while (agentSelect.children.length > 1) {
                 agentSelect.removeChild(agentSelect.lastChild);
             }
             
-            // 添加代理選項
+            // 添加代理选项
             this.allAgents.forEach(agent => {
-                // 代理操作：排除總代理（避免自己操作自己）
-                // 会员操作：包含總代理（可以操作自己旗下的会员）
+                // 代理操作：排除总代理（避免自己操作自己）
+                // 会员操作：包含总代理（可以操作自己旗下的会员）
                 const shouldInclude = this.csOperation.operationTarget === 'member' || agent.level !== 0;
                 
                 if (shouldInclude) {
@@ -4451,8 +4451,8 @@ const app = createApp({
                 }
             });
             
-            const totalOptions = agentSelect.children.length - 1; // 排除第一個默認選項
-            console.log('已更新代理选择列表，共', totalOptions, '個選項，操作類型:', this.csOperation.operationTarget);
+            const totalOptions = agentSelect.children.length - 1; // 排除第一个默认选项
+            console.log('已更新代理选择列表，共', totalOptions, '个选项，操作类型:', this.csOperation.operationTarget);
         },
         
         // 手動更新会员选择下拉列表
@@ -4460,12 +4460,12 @@ const app = createApp({
             const memberSelect = document.getElementById('memberSelect');
             if (!memberSelect) return;
             
-            // 清除現有選項（保留第一個）
+            // 清除現有选项（保留第一个）
             while (memberSelect.children.length > 1) {
                 memberSelect.removeChild(memberSelect.lastChild);
             }
             
-            // 添加会员選項
+            // 添加会员选项
             this.agentMembers.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.id;
@@ -4473,30 +4473,30 @@ const app = createApp({
                 memberSelect.appendChild(option);
             });
             
-            console.log('已更新会员选择列表，共', this.agentMembers.length, '個選項');
+            console.log('已更新会员选择列表，共', this.agentMembers.length, '个选项');
         },
         
-        // 更新当前余额顯示
+        // 更新当前余额显示
         updateCurrentBalanceDisplay() {
             const currentBalanceInput = document.getElementById('currentBalanceInput');
             if (currentBalanceInput) {
                 const balance = this.getCurrentBalance();
                 currentBalanceInput.value = balance !== null ? this.formatMoney(balance) : '';
-                console.log('更新当前余额顯示:', balance);
+                console.log('更新当前余额显示:', balance);
             }
         },
         
-        // 更新操作後余额顯示
+        // 更新操作後余额显示
         updateFinalBalanceDisplay() {
             const finalBalanceInput = document.getElementById('finalBalanceInput');
             if (finalBalanceInput) {
                 const finalBalance = this.calculateFinalBalance();
                 finalBalanceInput.value = this.formatMoney(finalBalance);
-                console.log('更新操作後余额顯示:', finalBalance);
+                console.log('更新操作後余额显示:', finalBalance);
             }
         },
         
-        // 获取当前選中用戶的余额
+        // 获取当前选中用戶的余额
         getCurrentBalance() {
             console.log('获取当前余额:', {
                 operationTarget: this.csOperation.operationTarget,
@@ -4549,7 +4549,7 @@ const app = createApp({
             const withdrawRadio = document.getElementById('csWithdraw');
             const descriptionInput = document.getElementById('csOperationDescription');
             
-            // 更新csOperation數據
+            // 更新csOperation数据
             if (targetAgent && targetAgent.checked) {
                 this.csOperation.operationTarget = 'agent';
             } else if (targetMember && targetMember.checked) {
@@ -4568,7 +4568,7 @@ const app = createApp({
             
             this.csOperation.description = descriptionInput ? descriptionInput.value : '';
             
-            console.log('表單數據:', this.csOperation);
+            console.log('表單数据:', this.csOperation);
             
             if (!this.isValidCSOperation) {
                 this.showMessage('请检查输入资料', 'error');
@@ -4582,17 +4582,17 @@ const app = createApp({
                 const currentBalance = this.getCurrentBalance();
                 const amount = parseFloat(this.csOperation.amount);
                 
-                console.log('操作詳情:', {
-                    操作對象: this.csOperation.operationTarget,
+                console.log('操作详情:', {
+                    操作对象: this.csOperation.operationTarget,
                     当前余额: currentBalance,
                     操作金额: amount,
-                    操作類型: this.csOperation.transferType
+                    操作类型: this.csOperation.transferType
                 });
                 
                 if (this.csOperation.operationTarget === 'agent') {
-                    // 代理操作 - 客服代表總代理进行点数转移
-                    // 存款 = 總代理轉給目標代理
-                    // 提款 = 目標代理轉給總代理
+                    // 代理操作 - 客服代表总代理进行点数转移
+                    // 存款 = 总代理转給目标代理
+                    // 提款 = 目标代理转給总代理
                     response = await axios.post(`${API_BASE_URL}/cs-agent-transfer`, {
                         operatorId: this.user.id,
                         targetAgentId: this.csOperation.targetAgentId,
@@ -4602,8 +4602,8 @@ const app = createApp({
                     });
                 } else {
                     // 会员操作 - 客服代表代理进行点数转移
-                    // 存款 = 代理轉給会员
-                    // 提款 = 会员轉給代理
+                    // 存款 = 代理转給会员
+                    // 提款 = 会员转給代理
                     const selectedMember = this.agentMembers.find(member => member.id == this.csOperation.targetMemberId);
                     response = await axios.post(`${API_BASE_URL}/cs-member-transfer`, {
                         operatorId: this.user.id,
@@ -4618,18 +4618,18 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('余额调整成功!', 'success');
                     
-                    // 更新客服餘額（如果後端返回了csBalance）
+                    // 更新客服余额（如果後端返回了csBalance）
                     if (response.data.csBalance !== undefined) {
                         this.user.balance = response.data.csBalance;
                         localStorage.setItem('agent_user', JSON.stringify(this.user));
-                        console.log('✅ 客服餘額已即時更新:', this.formatMoney(this.user.balance));
+                        console.log('✅ 客服余额已即时更新:', this.formatMoney(this.user.balance));
                     }
                     
-                    // 保存操作類型和代理ID，用於後續刷新
+                    // 保存操作类型和代理ID，用於後續刷新
                     const wasMembeOperation = this.csOperation.operationTarget === 'member';
                     const targetAgentId = this.csOperation.targetAgentId;
                     
-                    // 隱藏模態框
+                    // 隐藏模態框
                     if (this.csOperationModal) {
                         this.csOperationModal.hide();
                     }
@@ -4645,7 +4645,7 @@ const app = createApp({
                         description: ''
                     };
                     
-                    // 全面刷新所有相关數據
+                    // 全面刷新所有相关数据
                     const refreshPromises = [
                         this.loadCSTransactions(), // 刷新客服交易记录
                         this.loadAllAgents(),      // 刷新代理列表
@@ -4657,7 +4657,7 @@ const app = createApp({
                         refreshPromises.push(this.loadAgentMembers(targetAgentId));
                     }
                     
-                    // 如果当前在会员頁面，刷新会员列表
+                    // 如果当前在会员页面，刷新会员列表
                     if (this.activeTab === 'members') {
                         refreshPromises.push(this.searchMembers());
                     }
@@ -4665,7 +4665,7 @@ const app = createApp({
                     // 执行所有刷新操作
                     await Promise.all(refreshPromises);
                     
-                    console.log('✅ 客服操作完成，所有數據已刷新');
+                    console.log('✅ 客服操作完成，所有数据已刷新');
                 } else {
                     this.showMessage(response.data.message || '余额调整失败', 'error');
                 }
@@ -4695,15 +4695,15 @@ const app = createApp({
             }
         },
         
-        // 加載存款记录
+        // 加载存款记录
         async loadDepositRecords(page = 1) {
             this.loading = true;
             try {
-                console.log('加載存款记录...');
+                console.log('加载存款记录...');
                 const response = await axios.get(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=deposit&page=${page}&limit=${this.depositPagination.limit}`);
                 
                 if (!response.data.success) {
-                    console.error('加載存款记录失败:', response.data.message);
+                    console.error('加载存款记录失败:', response.data.message);
                     this.depositRecords = [];
                     return;
                 }
@@ -4718,26 +4718,26 @@ const app = createApp({
                     };
                     console.log('存款记录载入成功，共有 ' + this.depositRecords.length + ' 筆记录');
                 } else {
-                    console.error('存款记录數據格式错误:', data);
+                    console.error('存款记录数据格式错误:', data);
                     this.depositRecords = [];
                 }
             } catch (error) {
-                console.error('加載存款记录错误:', error);
+                console.error('加载存款记录错误:', error);
                 this.depositRecords = [];
             } finally {
                 this.loading = false;
             }
         },
         
-        // 加載提款记录
+        // 加载提款记录
         async loadWithdrawRecords(page = 1) {
             this.loading = true;
             try {
-                console.log('加載提款记录...');
+                console.log('加载提款记录...');
                 const response = await axios.get(`${API_BASE_URL}/transactions?agentId=${this.user.id}&type=withdraw&page=${page}&limit=${this.withdrawPagination.limit}`);
                 
                 if (!response.data.success) {
-                    console.error('加載提款记录失败:', response.data.message);
+                    console.error('加载提款记录失败:', response.data.message);
                     this.withdrawRecords = [];
                     return;
                 }
@@ -4752,11 +4752,11 @@ const app = createApp({
                     };
                     console.log('提款记录载入成功，共有 ' + this.withdrawRecords.length + ' 筆记录');
                 } else {
-                    console.error('提款记录數據格式错误:', data);
+                    console.error('提款记录数据格式错误:', data);
                     this.withdrawRecords = [];
                 }
             } catch (error) {
-                console.error('加載提款记录错误:', error);
+                console.error('加载提款记录错误:', error);
                 this.withdrawRecords = [];
             } finally {
                 this.loading = false;
@@ -4779,7 +4779,7 @@ const app = createApp({
                 }
                 
                 const data = response.data;
-                console.log('退水记录API回應:', data);
+                console.log('退水记录API回应:', data);
                 
                 if (data.success) {
                     this.rebateRecords = data.data.list || [];
@@ -4795,27 +4795,27 @@ const app = createApp({
                     this.rebateRecords = [];
                 }
             } catch (error) {
-                console.error('载入退水记录時發生错误:', error);
-                this.showMessage('载入退水记录時發生错误', 'error');
+                console.error('载入退水记录时發生错误:', error);
+                this.showMessage('载入退水记录时發生错误', 'error');
                 this.rebateRecords = [];
             } finally {
                 this.loading = false;
             }
         },
         
-        // 篩選退水记录
+        // 筛选退水记录
         filterRebateRecords() {
-            // 觸發computed屬性重新计算
-            console.log('篩選退水记录，條件:', this.rebateFilters);
+            // 觸發computed属性重新计算
+            console.log('筛选退水记录，條件:', this.rebateFilters);
         },
         
-        // 清除退水记录篩選條件
+        // 清除退水记录筛选條件
         clearRebateFilters() {
             this.rebateFilters.member = '';
             this.rebateFilters.date = '';
         },
         
-        // 重设代理密碼
+        // 重设代理密码
         resetAgentPassword(agent) {
             this.resetPasswordData = {
                 userType: 'agent',
@@ -4829,7 +4829,7 @@ const app = createApp({
             modal.show();
         },
         
-        // 重设会员密碼
+        // 重设会员密码
         resetMemberPassword(member) {
             this.resetPasswordData = {
                 userType: 'member',
@@ -4843,10 +4843,10 @@ const app = createApp({
             modal.show();
         },
         
-        // 提交密碼重设
+        // 提交密码重设
         async submitPasswordReset() {
             if (!this.isPasswordResetValid) {
-                this.showMessage('请确认密碼格式正确且兩次输入一致', 'error');
+                this.showMessage('请确认密码格式正确且两次输入一致', 'error');
                 return;
             }
             
@@ -4862,13 +4862,13 @@ const app = createApp({
                 });
                 
                 if (response.data.success) {
-                    this.showMessage(`${this.resetPasswordData.userType === 'agent' ? '代理' : '会员'}密碼重设成功`, 'success');
+                    this.showMessage(`${this.resetPasswordData.userType === 'agent' ? '代理' : '会员'}密码重设成功`, 'success');
                     
                     // 关闭模態框
                     const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
                     modal.hide();
                     
-                    // 清空表單數據
+                    // 清空表單数据
                     this.resetPasswordData = {
                         userType: '',
                         userId: null,
@@ -4877,37 +4877,37 @@ const app = createApp({
                         confirmPassword: ''
                     };
                 } else {
-                    this.showMessage(response.data.message || '密碼重设失败', 'error');
+                    this.showMessage(response.data.message || '密码重设失败', 'error');
                 }
             } catch (error) {
-                console.error('重设密碼错误:', error);
-                this.showMessage(error.response?.data?.message || '密碼重设失败，请稍後再試', 'error');
+                console.error('重设密码错误:', error);
+                this.showMessage(error.response?.data?.message || '密码重设失败，请稍後再試', 'error');
             } finally {
                 this.loading = false;
             }
         },
         
-        // 顯示个人资料模態框
+        // 显示个人资料模態框
         async showProfileModal() {
             // 安全检查：确保已登录且有用戶资讯
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资讯不完整，無法顯示个人资料');
+                console.warn('⚠️ 未登录或用戶资讯不完整，無法显示个人资料');
                 return;
             }
             
-            console.log('顯示个人资料模態框');
-            // 载入个人资料數據
+            console.log('显示个人资料模態框');
+            // 载入个人资料数据
             await this.loadProfileData();
-            // 顯示 modal
+            // 显示 modal
             this.isProfileModalVisible = true;
         },
         
-        // 隱藏个人资料模態框
+        // 隐藏个人资料模態框
         hideProfileModal() {
             this.isProfileModalVisible = false;
         },
         
-        // 载入个人资料數據
+        // 载入个人资料数据
         async loadProfileData() {
             this.profileLoading = true;
             
@@ -4915,7 +4915,7 @@ const app = createApp({
                 const response = await axios.get(`${API_BASE_URL}/agent-profile/${this.user.id}`);
                 
                 if (response.data.success) {
-                    // 更新个人资料數據
+                    // 更新个人资料数据
                     this.profileData = {
                         realName: response.data.data.real_name || '',
                         phone: response.data.data.phone || '',
@@ -4926,11 +4926,11 @@ const app = createApp({
                         remark: response.data.data.remark || ''
                     };
                 } else {
-                    console.log('首次载入个人资料，使用空白數據');
+                    console.log('首次载入个人资料，使用空白数据');
                 }
             } catch (error) {
                 console.error('载入个人资料错误:', error);
-                // 如果载入失败，使用空白數據
+                // 如果载入失败，使用空白数据
                 this.profileData = {
                     realName: '',
                     phone: '',
@@ -4957,7 +4957,7 @@ const app = createApp({
              this.profileLoading = true;
              
              try {
-                 console.log('發送更新请求到:', `${API_BASE_URL}/update-agent-profile`);
+                 console.log('发送更新请求到:', `${API_BASE_URL}/update-agent-profile`);
                  
                  const response = await axios.post(`${API_BASE_URL}/update-agent-profile`, {
                      agentId: this.user.id,
@@ -4969,13 +4969,13 @@ const app = createApp({
                      address: this.profileData.address,
                      remark: this.profileData.remark
                  }, {
-                     timeout: 10000, // 10秒超時
+                     timeout: 10000, // 10秒超时
                      headers: {
                          'Content-Type': 'application/json'
                      }
                  });
                  
-                 console.log('收到API回應:', response.data);
+                 console.log('收到API回应:', response.data);
                  
                  if (response.data.success) {
                      this.showMessage('个人资料更新成功', 'success');
@@ -4987,7 +4987,7 @@ const app = createApp({
                  }
              } catch (error) {
                  console.error('更新个人资料错误:', error);
-                 console.error('错误詳情:', error.response);
+                 console.error('错误详情:', error.response);
                  
                  let errorMessage = '个人资料更新失败，请稍後再試';
                  if (error.response?.data?.message) {
@@ -5001,17 +5001,17 @@ const app = createApp({
                  console.log('更新个人资料完成');
                  this.profileLoading = false;
                  
-                 // 額外的安全機制：确保按鈕狀態正确重置
+                 // 额外的安全机制：确保按钮状态正确重置
                  setTimeout(() => {
                      if (this.profileLoading) {
-                         console.warn('检测到 profileLoading 狀態异常，強制重置');
+                         console.warn('检测到 profileLoading 状态异常，强制重置');
                          this.profileLoading = false;
                      }
                  }, 1000);
              }
          },
 
-         // 報表查詢相關方法
+         // 报表查询相关方法
          getCurrentDateText() {
              const today = new Date();
              return today.toLocaleDateString('zh-CN', {
@@ -5055,10 +5055,10 @@ const app = createApp({
              try {
                  this.loading = true;
                  
-                 // 準備篩選參數
+                 // 准备筛选参数
                  const params = new URLSearchParams();
                  
-                 // 日期參數
+                 // 日期参数
                  if (this.reportFilters.startDate) {
                      params.append('startDate', this.reportFilters.startDate);
                  }
@@ -5066,30 +5066,30 @@ const app = createApp({
                      params.append('endDate', this.reportFilters.endDate);
                  }
                  
-                 // 結算狀態
+                 // 结算状态
                  if (this.reportFilters.settlementStatus) {
                      params.append('settlementStatus', this.reportFilters.settlementStatus);
                  }
                  
-                 // 用戶名篩選
+                 // 用戶名筛选
                  if (this.reportFilters.username && this.reportFilters.username.trim()) {
                      params.append('username', this.reportFilters.username.trim());
                  }
                  
-                 // 遊戲類型：只支援FS赛车
+                 // 遊戲类型：只支援FS赛车
                  params.append('gameTypes', 'pk10');
 
-                 console.log('📊 前端: 調用代理層級分析API');
+                 console.log('📊 前端: 調用代理层级分析API');
                  
                  const response = await axios.get(`${API_BASE_URL}/reports/agent-analysis?${params.toString()}`);
                  const data = response.data;
                  
-                 console.log('📊 前端: 接收到報表數據', data);
+                 console.log('📊 前端: 接收到报表数据', data);
                  
-                 // 新的簡化數據結構
+                 // 新的簡化数据結構
                  this.reportData = {
                      success: data.success,
-                     reportData: data.reportData || [],                  // 統一的代理+會員列表
+                     reportData: data.reportData || [],                  // 統一的代理+会员列表
                      totalSummary: data.totalSummary || {
                          betCount: 0,
                          betAmount: 0.0,
@@ -5102,19 +5102,19 @@ const app = createApp({
                          finalProfitLoss: 0.0
                      },
                      hasData: data.hasData || false,
-                     agentInfo: data.agentInfo || {},                    // 代理信息：下級數量等
+                     agentInfo: data.agentInfo || {},                    // 代理信息：下級数量等
                      message: data.message
                  };
                  
                  if (!data.hasData) {
-                     this.showMessage(data.message || '查詢期間內沒有數據', 'info');
+                     this.showMessage(data.message || '查询期间內没有数据', 'info');
                  }
                  
              } catch (error) {
-                 console.error('查詢報表失敗:', error);
-                 this.showMessage('查詢報表失敗: ' + error.message, 'error');
+                 console.error('查询报表失败:', error);
+                 this.showMessage('查询报表失败: ' + error.message, 'error');
                  
-                 // 設置空的報表數據結構
+                 // 设置空的报表数据結構
                  this.reportData = {
                      success: false,
                      reportData: [],
@@ -5146,7 +5146,7 @@ const app = createApp({
          
          async enterAgentReport(agent) {
              try {
-                 // 設置載入狀態，避免短暫顯示「沒有資料」
+                 // 设置载入状态，避免短暫显示「沒有资料」
                  this.loading = true;
                  
                  // 添加到面包屑導航
@@ -5157,12 +5157,12 @@ const app = createApp({
                      viewType: 'agents'
                  });
                  
-                 console.log('🔍 進入代理報表:', agent.username, '層級:', agent.level);
+                 console.log('🔍 进入代理报表:', agent.username, '层级:', agent.level);
                  
-                 // 準備參數
+                 // 准备参数
                  const params = new URLSearchParams();
                  
-                 // 保持當前篩選條件
+                 // 保持当前筛选條件
                  if (this.reportFilters.startDate) {
                      params.append('startDate', this.reportFilters.startDate);
                  }
@@ -5194,12 +5194,12 @@ const app = createApp({
 
                  const data = await response.json();
                  
-                 console.log('📊 代理層級報表數據:', data);
+                 console.log('📊 代理层级报表数据:', data);
                  
-                 // 更新報表數據
+                 // 更新报表数据
                  this.reportData = {
                      success: data.success,
-                     reportData: data.reportData || [],                  // 統一的代理+會員列表
+                     reportData: data.reportData || [],                  // 統一的代理+会员列表
                      totalSummary: data.totalSummary || {
                          betCount: 0,
                          betAmount: 0.0,
@@ -5212,17 +5212,17 @@ const app = createApp({
                          finalProfitLoss: 0.0
                      },
                      hasData: data.hasData || false,
-                     agentInfo: data.agentInfo || {},                    // 代理信息：下級數量等
+                     agentInfo: data.agentInfo || {},                    // 代理信息：下級数量等
                      message: data.message
                  };
                  
-                 // 移除成功提示訊息，讓HTML模板來處理空數據顯示
+                 // 移除成功提示讯息，让HTML模板来处理空数据显示
                  
              } catch (error) {
-                 console.error('查看代理報表失敗:', error);
-                 this.showMessage('查看代理報表失敗: ' + error.message, 'error');
+                 console.error('查看代理报表失败:', error);
+                 this.showMessage('查看代理报表失败: ' + error.message, 'error');
              } finally {
-                 // 取消載入狀態
+                 // 取消载入状态
                  this.loading = false;
              }
          },
@@ -5234,17 +5234,17 @@ const app = createApp({
                  // 添加到面包屑導航
                  this.reportBreadcrumb.push({
                      username: agent.username,
-                     level: `${agent.level} - 會員列表`,
+                     level: `${agent.level} - 会员列表`,
                      agentId: agent.id || agent.username,
                      viewType: 'members'
                  });
                  
-                 console.log('👥 查看代理會員:', agent.username);
+                 console.log('👥 查看代理会员:', agent.username);
                  
-                 // 準備參數
+                 // 准备参数
                  const params = new URLSearchParams();
                  
-                 // 保持當前篩選條件
+                 // 保持当前筛选條件
                  if (this.reportFilters.startDate) {
                      params.append('startDate', this.reportFilters.startDate);
                  }
@@ -5258,7 +5258,7 @@ const app = createApp({
                      params.append('username', this.reportFilters.username.trim());
                  }
                  
-                 // 指定查看該代理的會員
+                 // 指定查看該代理的会员
                  params.append('targetAgent', agent.username);
                  params.append('viewType', 'members');
                  params.append('gameTypes', 'pk10');
@@ -5277,9 +5277,9 @@ const app = createApp({
 
                  const data = await response.json();
                  
-                 console.log('👥 會員報表數據:', data);
+                 console.log('👥 会员报表数据:', data);
                  
-                 // 更新報表數據
+                 // 更新报表数据
                  this.reportData = {
                      success: data.success,
                      reportData: data.reportData || [],
@@ -5306,12 +5306,12 @@ const app = createApp({
                  };
                  
                  if (data.hasData && data.reportData && data.reportData.length > 0) {
-                     this.showMessage(`查看 ${agent.username} 的會員報表完成`, 'success');
+                     this.showMessage(`查看 ${agent.username} 的会员报表完成`, 'success');
                  }
                  
              } catch (error) {
-                 console.error('查看會員報表失敗:', error);
-                 this.showMessage('查看會員報表失敗: ' + error.message, 'error');
+                 console.error('查看会员报表失败:', error);
+                 this.showMessage('查看会员报表失败: ' + error.message, 'error');
              } finally {
                  this.loading = false;
              }
@@ -5319,26 +5319,26 @@ const app = createApp({
          
          goBackToParentReport() {
              if (this.reportBreadcrumb.length === 0) {
-                 // 回到根報表
+                 // 回到根报表
                  this.searchReports();
                  return;
              }
              
-             // 移除最後一個層級
+             // 移除最后一个层级
              this.reportBreadcrumb.pop();
              
              if (this.reportBreadcrumb.length === 0) {
-                 // 回到根報表
+                 // 回到根报表
                  this.searchReports();
              } else {
-                 // 回到上一個層級
+                 // 回到上一个层级
                  const parentAgent = this.reportBreadcrumb[this.reportBreadcrumb.length - 1];
                  this.enterAgentReport(parentAgent);
              }
          },
          
          goBackToLevel(targetItem) {
-             // 直接進入該層級的報表
+             // 直接进入該层级的报表
              this.enterAgentReport(targetItem);
          },
 
@@ -5346,7 +5346,7 @@ const app = createApp({
              try {
                  this.loading = true;
                  
-                 // 準備篩選參數
+                 // 准备筛选参数
                  const params = new URLSearchParams({
                      startDate: this.reportFilters.startDate,
                      endDate: this.reportFilters.endDate,
@@ -5358,7 +5358,7 @@ const app = createApp({
                      export: 'true'
                  });
 
-                 // 處理遊戲類型篩選
+                 // 处理遊戲类型筛选
                  const selectedGameTypes = [];
                  if (!this.reportFilters.gameTypes.all) {
                      if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
@@ -5383,22 +5383,22 @@ const app = createApp({
                      throw new Error(`HTTP error! status: ${response.status}`);
                  }
 
-                 // 處理檔案下載
+                 // 处理檔案下载
                  const blob = await response.blob();
                  const url = window.URL.createObjectURL(blob);
                  const a = document.createElement('a');
                  a.href = url;
-                 a.download = `報表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
+                 a.download = `报表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
                  document.body.appendChild(a);
                  a.click();
                  window.URL.revokeObjectURL(url);
                  document.body.removeChild(a);
                  
-                 this.showMessage('報表匯出完成', 'success');
+                 this.showMessage('报表匯出完成', 'success');
                  
              } catch (error) {
-                 console.error('匯出報表失敗:', error);
-                 this.showMessage('匯出報表失敗: ' + error.message, 'error');
+                 console.error('匯出报表失败:', error);
+                 this.showMessage('匯出报表失败: ' + error.message, 'error');
              } finally {
                  this.loading = false;
              }
@@ -5409,7 +5409,7 @@ const app = createApp({
          formatGameType(gameType) {
              const gameTypeMap = {
                  'pk10': 'AR PK10',
-                 'ssc': 'AR 時時彩',
+                 'ssc': 'AR 时时彩',
                  'lottery539': 'AR 539',
                  'lottery': 'AR 六合彩',
                  'racing': 'FS赛车'
@@ -5428,7 +5428,7 @@ const app = createApp({
                  if (content.position) {
                      return `位置投注: ${content.position}`;
                  } else if (content.numbers) {
-                     return `號碼投注: ${content.numbers.join(', ')}`;
+                     return `号码投注: ${content.numbers.join(', ')}`;
                  } else if (content.type) {
                      return `${content.type}投注`;
                  }
@@ -5454,7 +5454,7 @@ const app = createApp({
              return `${(rate * 100).toFixed(1)}%`;
          },
 
-         // 登錄日誌相關方法
+         // 登录日誌相关方法
          async loadLoginLogs() {
              try {
                  this.loading = true;
@@ -5470,8 +5470,8 @@ const app = createApp({
                  this.calculateLoginLogPagination();
                  
              } catch (error) {
-                 console.error('載入登錄日誌失敗:', error);
-                 this.showMessage('載入登錄日誌失敗: ' + error.message, 'error');
+                 console.error('载入登录日誌失败:', error);
+                 this.showMessage('载入登录日誌失败: ' + error.message, 'error');
              } finally {
                  this.loading = false;
              }
@@ -5510,7 +5510,7 @@ const app = createApp({
                      this.loginLogFilters.endDate = today.toISOString().split('T')[0];
                      break;
              }
-             // 設定日期範圍後自動查詢
+             // 设定日期范围後自動查询
              this.loadLoginLogs();
          },
 
@@ -5579,7 +5579,7 @@ const app = createApp({
 
           formatUserType(userType) {
               const typeMap = {
-                  'member': '會員',
+                  'member': '会员',
                   'agent': '代理',
                   'admin': '管理員'
               };
@@ -5592,44 +5592,44 @@ const app = createApp({
               return ipAddress.replace(/^::ffff:/i, '');
           },
 
-          // 查看會員下注記錄
+          // 查看会员下注记录
           async viewMemberBets(memberUsername, dateRange = null) {
               try {
-                  console.log('🎯 查看會員下注記錄:', memberUsername, '期間:', dateRange);
+                  console.log('🎯 查看会员下注记录:', memberUsername, '期间:', dateRange);
                   
-                  // 切換到下注記錄頁面
+                  // 切換到下注记录页面
                   this.activeTab = 'stats';
                   
-                  // 等待頁面切換完成
+                  // 等待页面切換完成
                   await this.$nextTick();
                   
-                  // 設置篩選條件為該會員
+                  // 设置筛选條件为該会员
                   this.betFilters.member = memberUsername;
                   this.betFilters.viewScope = 'downline'; // 使用整條代理線模式確保能查到
                   
-                  // 如果有傳入期間範圍，設置期間篩選
+                  // 如果有傳入期间范围，设置期间筛选
                   if (dateRange && dateRange.startDate && dateRange.endDate) {
                       this.betFilters.startDate = dateRange.startDate;
                       this.betFilters.endDate = dateRange.endDate;
-                      // 清空單日查詢，使用期間查詢
+                      // 清空單日查询，使用期间查询
                       this.betFilters.date = '';
-                      console.log('📅 設置期間查詢:', dateRange.startDate, '至', dateRange.endDate);
+                      console.log('📅 设置期间查询:', dateRange.startDate, '至', dateRange.endDate);
                   }
                   
-                  // 載入直屬會員數據並搜索
+                  // 载入直屬会员数据並搜索
                   await this.loadDirectMembersForBets();
                   await this.searchBets();
                   
                   const dateMsg = dateRange ? ` (${dateRange.startDate} 至 ${dateRange.endDate})` : '';
-                  this.showMessage(`正在查看 ${memberUsername} 的下注記錄${dateMsg}`, 'info');
+                  this.showMessage(`正在查看 ${memberUsername} 的下注记录${dateMsg}`, 'info');
                   
               } catch (error) {
-                  console.error('查看會員下注記錄失敗:', error);
-                  this.showMessage('查看會員下注記錄失敗: ' + error.message, 'error');
+                  console.error('查看会员下注记录失败:', error);
+                  this.showMessage('查看会员下注记录失败: ' + error.message, 'error');
               }
           },
 
-          // 設置下注記錄期間查詢
+          // 设置下注记录期间查询
           setBetDateRange(type) {
               const today = new Date();
               let startDate, endDate;
@@ -5670,17 +5670,17 @@ const app = createApp({
               
               this.betFilters.startDate = startDate;
               this.betFilters.endDate = endDate;
-              this.betFilters.date = ''; // 清空單日查詢
+              this.betFilters.date = ''; // 清空單日查询
               
-              console.log('📅 設置下注記錄期間查詢:', type, startDate, '至', endDate);
+              console.log('📅 设置下注记录期间查询:', type, startDate, '至', endDate);
           },
 
-        // 調整會員限紅 - 使用v-if控制顯示
+        // 调整会员限红 - 使用v-if控制显示
         async adjustMemberBettingLimit(member) {
             try {
-                console.log('開始調整會員限紅:', member);
+                console.log('开始调整会员限红:', member);
                 
-                // 重置數據
+                // 重置数据
                 this.bettingLimitData = {
                     loading: true,
                     submitting: false,
@@ -5696,11 +5696,11 @@ const app = createApp({
                     reason: ''
                 };
                 
-                // 顯示Modal
+                // 显示Modal
                 this.showBettingLimitModal = true;
-                console.log('✅ 限紅調整Modal已顯示！');
+                console.log('✅ 限红调整Modal已显示！');
                 
-                // 並行載入數據
+                // 並行载入数据
                 const [memberResponse, configsResponse] = await Promise.all([
                     axios.get(`${API_BASE_URL}/member-betting-limit/${member.id}`),
                     axios.get(`${API_BASE_URL}/betting-limit-configs`)
@@ -5722,19 +5722,19 @@ const app = createApp({
                 this.bettingLimitData.loading = false;
                 
             } catch (error) {
-                console.error('載入限紅設定失敗:', error);
-                this.showMessage('載入限紅設定失敗，請稍後再試', 'error');
+                console.error('载入限红设定失败:', error);
+                this.showMessage('载入限红设定失败，请稍後再試', 'error');
                 this.bettingLimitData.loading = false;
                 this.showBettingLimitModal = false;
             }
         },
         
-        // 隱藏限紅調整Modal
+        // 隐藏限红调整Modal
         hideBettingLimitModal() {
             this.showBettingLimitModal = false;
         },
 
-        // 提交限紅調整
+        // 提交限红调整
         async submitBettingLimitAdjustment() {
             try {
                 this.bettingLimitData.submitting = true;
@@ -5747,59 +5747,59 @@ const app = createApp({
                 });
                 
                 if (response.data.success) {
-                    this.showMessage('限紅設定調整成功', 'success');
+                    this.showMessage('限红设定调整成功', 'success');
                     
-                    // 關閉Modal
+                    // 关闭Modal
                     this.showBettingLimitModal = false;
                     
-                    // 刷新會員列表
+                    // 刷新会员列表
                     if (this.activeTab === 'members') {
                         await this.searchMembers();
                     } else if (this.activeTab === 'hierarchical') {
                         await this.refreshHierarchicalMembers();
                     }
                 } else {
-                    this.showMessage(response.data.message || '調整限紅失敗', 'error');
+                    this.showMessage(response.data.message || '调整限红失败', 'error');
                 }
                 
             } catch (error) {
-                console.error('調整限紅失敗:', error);
-                this.showMessage('調整限紅失敗，請稍後再試', 'error');
+                console.error('调整限红失败:', error);
+                this.showMessage('调整限红失败，请稍後再試', 'error');
             } finally {
                 this.bettingLimitData.submitting = false;
             }
         },
 
-        // 格式化投注類型名稱
+        // 格式化投注类型名称
         formatBetTypeName(key) {
             const names = {
-                'number': '1-10車號',
-                'twoSide': '兩面',
-                'sumValueSize': '冠亞軍和大小',
-                'sumValueOddEven': '冠亞軍和單雙',
-                'sumValue': '冠亞軍和',
-                'dragonTiger': '龍虎'
+                'number': '1-10车號',
+                'twoSide': '两面',
+                'sumValueSize': '冠亚军和大小',
+                'sumValueOddEven': '冠亚军和單双',
+                'sumValue': '冠亚军和',
+                'dragonTiger': '龙虎'
             };
             return names[key] || key;
         }
     },
 
-    // 计算屬性
+    // 计算属性
     computed: {
-        // 分頁後的登錄日誌
+        // 分页後的登录日誌
         paginatedLoginLogs() {
             const start = (this.loginLogPagination.currentPage - 1) * this.loginLogPagination.limit;
             const end = start + this.loginLogPagination.limit;
             return this.loginLogs.slice(start, end);
         },
         
-        // 计算最终代理余额（会员点数转移用）- 作為计算屬性
+        // 计算最终代理余额（会员点数转移用）- 作为计算属性
         finalAgentBalance() {
             const currentBalance = parseFloat(this.agentCurrentBalance) || 0;
             const amount = parseFloat(this.transferAmount) || 0;
             
             if (this.transferType === 'deposit') {
-                // 代理存入点数給会员，代理余额減少
+                // 代理存入点数給会员，代理余额减少
                 return currentBalance - amount;
             } else {
                 // 代理從会员提领点数，代理余额增加
@@ -5829,53 +5829,53 @@ const app = createApp({
             const userBalance = parseFloat(this.user.balance) || 0;
             const agentBalance = parseFloat(this.agentBalanceData?.currentBalance) || 0;
             
-            console.log('驗證代理点数转移:', {
+            console.log('验证代理点数转移:', {
                 amount, 
                 userBalance, 
                 agentBalance, 
                 type: this.agentTransferType
             });
             
-            // 金额必須大於0
+            // 金额必须大於0
             if (amount <= 0) {
                 return false;
             }
             
             if (this.agentTransferType === 'deposit') {
-                // 存入時，检查上級代理(自己)余额是否足夠
+                // 存入时，检查上級代理(自己)余额是否足夠
                 return userBalance >= amount;
             } else if (this.agentTransferType === 'withdraw') {
-                // 提领時，检查下級代理余额是否足夠
+                // 提领时，检查下級代理余额是否足夠
                 return agentBalance >= amount;
             }
             
             return false;
         },
 
-        // 檢查會員點數轉移是否有效
+        // 检查会员点數转移是否有效
         isValidMemberTransfer() {
             // 確保數值正確
             const amount = parseFloat(this.memberTransferAmount) || 0;
             const userBalance = parseFloat(this.user.balance) || 0;
             const memberBalance = parseFloat(this.memberBalanceData?.currentBalance) || 0;
             
-            console.log('驗證會員點數轉移:', {
+            console.log('验证会员点數转移:', {
                 amount, 
                 userBalance, 
                 memberBalance, 
                 type: this.memberTransferType
             });
             
-            // 金額必須大於0
+            // 金额必须大於0
             if (amount <= 0) {
                 return false;
             }
             
             if (this.memberTransferType === 'deposit') {
-                // 存入時，檢查代理(自己)餘額是否足夠
+                // 存入时，检查代理(自己)余额是否足夠
                 return userBalance >= amount;
             } else if (this.memberTransferType === 'withdraw') {
-                // 提領時，檢查會員餘額是否足夠
+                // 提领时，检查会员余额是否足夠
                 return memberBalance >= amount;
             }
             
@@ -5888,9 +5888,9 @@ const app = createApp({
             if (amount <= 0) return false;
             
             if (this.modifyBalanceType === 'absolute') {
-                return true; // 絕對值模式下，只要金额大於0即可
+                return true; // 絕对值模式下，只要金额大於0即可
             } else {
-                // 相對值模式下，如果是減少，則不能超過当前余额
+                // 相对值模式下，如果是减少，則不能超过当前余额
                 if (this.balanceChangeDirection === 'decrease') {
                     const currentBalance = parseFloat(this.modifyBalanceData.currentBalance) || 0;
                     return amount <= currentBalance;
@@ -5905,9 +5905,9 @@ const app = createApp({
             if (amount <= 0) return false;
             
             if (this.agentModifyType === 'absolute') {
-                return true; // 絕對值模式下，只要金额大於0即可
+                return true; // 絕对值模式下，只要金额大於0即可
             } else {
-                // 相對值模式下，如果是減少，則不能超過当前余额
+                // 相对值模式下，如果是减少，則不能超过当前余额
                 if (this.agentChangeDirection === 'decrease') {
                     const currentBalance = parseFloat(this.agentBalanceData.currentBalance) || 0;
                     return amount <= currentBalance;
@@ -5929,7 +5929,7 @@ const app = createApp({
             return true;
         },
         
-        // 检查密碼重设是否有效
+        // 检查密码重设是否有效
         isPasswordResetValid() {
             return (
                 this.resetPasswordData.newPassword && 
@@ -5959,11 +5959,11 @@ const app = createApp({
             return '载入中...';
         },
         
-        // 過濾後的退水记录
+        // 过滤後的退水记录
         filteredRebateRecords() {
             let filtered = [...this.rebateRecords];
             
-            // 按会员名稱篩選
+            // 按会员名称筛选
             if (this.rebateFilters.member) {
                 const keyword = this.rebateFilters.member.toLowerCase();
                 filtered = filtered.filter(record => 
@@ -5971,7 +5971,7 @@ const app = createApp({
                 );
             }
             
-            // 按日期篩選
+            // 按日期筛选
             if (this.rebateFilters.date) {
                 const filterDate = this.rebateFilters.date;
                 filtered = filtered.filter(record => {
@@ -5984,14 +5984,14 @@ const app = createApp({
             return filtered;
         },
         
-        // 總下注金额（過濾後）
+        // 總下注金额（过滤後）
         totalFilteredBetAmount() {
             return this.filteredRebateRecords.reduce((sum, record) => {
                 return sum + (parseFloat(record.bet_amount) || 0);
             }, 0);
         },
         
-        // 總退水金额（過濾後）
+        // 總退水金额（过滤後）
         totalFilteredRebateAmount() {
             return this.filteredRebateRecords.reduce((sum, record) => {
                 return sum + (parseFloat(record.amount) || 0);
@@ -6009,7 +6009,7 @@ const app = createApp({
             return (totalPercentage / this.filteredRebateRecords.length).toFixed(1);
         },
         
-        // 计算選中的限紅配置
+        // 计算选中的限红配置
         selectedLimitConfig() {
             if (!this.bettingLimitData.newLimitLevel || !this.bettingLimitData.configs.length) {
                 return {};
@@ -6025,9 +6025,9 @@ const app = createApp({
 
 
     
-    // 監聽屬性
+    // 監聽属性
     watch: {
-        // 當活動分頁變更時，加載對應數據
+        // 當活動分页变更时，加载对應数据
         activeTab(newTab, oldTab) {
             if (newTab === 'dashboard' && oldTab !== 'dashboard') {
                 this.fetchDashboardData();
@@ -6042,7 +6042,7 @@ const app = createApp({
                 this.loadDrawHistory();
             }
             if (newTab === 'stats') {
-                // 載入下注記錄頁面時，先載入直屬會員列表（預設模式）
+                // 载入下注记录页面时，先载入直屬会员列表（预設模式）
                 this.loadDirectMembersForBets();
                 this.searchBets();
             }
@@ -6053,11 +6053,11 @@ const app = createApp({
                 this.loadPointTransfers();
             }
             if (newTab === 'reports') {
-                // 載入報表查詢頁面時，自動執行一次查詢（今日報表）
+                // 载入报表查询页面时，自動执行一次查询（今日报表）
                 this.searchReports();
             }
             if (newTab === 'login-logs') {
-                // 載入登錄日誌頁面時，自動執行一次查詢（最近7天）
+                // 载入登录日誌页面时，自動执行一次查询（最近7天）
                 this.loadLoginLogs();
             }
                                  if (newTab === 'customer-service' && this.user.level === 0) {
@@ -6078,22 +6078,22 @@ const app = createApp({
             }
         },
         
-        // 監聽輸贏控制模式變更
+        // 監聽输赢控制模式变更
         'newWinLossControl.control_mode'(newMode, oldMode) {
-            console.log('控制模式變更:', oldMode, '->', newMode);
+            console.log('控制模式变更:', oldMode, '->', newMode);
             
-            // 當切換到自動偵測模式時，重置相關設定
+            // 當切換到自動偵測模式时，重置相关设定
             if (newMode === 'auto_detect') {
-                // 自動偵測模式不需要手動設定比例和控制類型
-                this.newWinLossControl.control_percentage = 50; // 保留預設值但不顯示
+                // 自動偵測模式不需要手動设定比例和控制类型
+                this.newWinLossControl.control_percentage = 50; // 保留预設值但不显示
                 this.newWinLossControl.win_control = false;
                 this.newWinLossControl.loss_control = false;
                 this.newWinLossControl.target_type = '';
                 this.newWinLossControl.target_username = '';
-                console.log('✅ 自動偵測模式：已清空手動設定');
+                console.log('✅ 自動偵測模式：已清空手動设定');
             }
             
-            // 當切換到正常模式時，清空所有控制設定
+            // 當切換到正常模式时，清空所有控制设定
             if (newMode === 'normal') {
                 this.newWinLossControl.control_percentage = 50;
                 this.newWinLossControl.win_control = false;
@@ -6101,43 +6101,43 @@ const app = createApp({
                 this.newWinLossControl.target_type = '';
                 this.newWinLossControl.target_username = '';
                 this.newWinLossControl.start_period = null;
-                console.log('✅ 正常模式：已清空所有控制設定');
+                console.log('✅ 正常模式：已清空所有控制设定');
             }
             
-            // 當切換到其他模式時，確保有合理的預設值
+            // 當切換到其他模式时，確保有合理的预設值
             if (newMode === 'agent_line' || newMode === 'single_member') {
                 if (!this.newWinLossControl.control_percentage) {
                     this.newWinLossControl.control_percentage = 50;
                 }
-                console.log('✅', newMode, '模式：已設定預設比例');
+                console.log('✅', newMode, '模式：已设定预設比例');
             }
         }
     }
 });
 
-// 延遲掛載 Vue 应用，确保所有依賴都已载入
+// 延迟掛载 Vue 应用，确保所有依赖都已载入
 setTimeout(function() {
-    console.log('延遲掛載 Vue 应用');
+    console.log('延迟掛载 Vue 应用');
     console.log('Vue 可用性:', typeof Vue);
-    console.log('Document 狀態:', document.readyState);
+    console.log('Document 状态:', document.readyState);
     
     const appElement = document.getElementById('app');
     console.log('找到 app 元素:', appElement);
     
     if (appElement && typeof Vue !== 'undefined') {
         try {
-            // 检查是否已经掛載過
+            // 检查是否已经掛载过
             if (appElement.__vue_app__) {
-                console.log('Vue 应用已经掛載過，跳過');
+                console.log('Vue 应用已经掛载过，跳过');
                 return;
             }
             
             const mountedApp = app.mount('#app');
-            console.log('Vue 应用掛載成功:', mountedApp);
+            console.log('Vue 应用掛载成功:', mountedApp);
             // 暴露到全域方便除錯
             window.vueApp = mountedApp;
             
-            // 添加全域調試函數
+            // 添加全域调试函數
             window.debugVue = function() {
                 console.log('=== Vue 除錯资讯 ===');
                 console.log('Vue 實例:', mountedApp);
@@ -6145,27 +6145,27 @@ setTimeout(function() {
                 console.log('noticeForm:', mountedApp.noticeForm);
                 console.log('isCustomerService:', mountedApp.isCustomerService);
                 
-                // 测试顯示公告表單
-                console.log('测试顯示公告表單...');
+                // 测试显示公告表單
+                console.log('测试显示公告表單...');
                 mountedApp.startEditNotice({
                     id: 1,
                     title: '测试公告',
-                    content: '這是测试內容',
+                    content: '这是测试内容',
                     category: '最新公告'
                 });
             };
             
             window.closeForm = function() {
                 mountedApp.showNoticeForm = false;
-                console.log('強制关闭公告表單');
+                console.log('强制关闭公告表單');
             };
             
             console.log('全域除錯函數已添加：debugVue() 和 closeForm()');
             
-            // 額外检查：确保響應式變數正常工作
+            // 额外检查：确保响应式變數正常工作
             setTimeout(() => {
                 if (mountedApp && mountedApp.noticeForm) {
-                    console.log('Vue 響應式數據检查:', {
+                    console.log('Vue 响应式数据检查:', {
                         noticeForm: mountedApp.noticeForm,
                         showNoticeForm: mountedApp.showNoticeForm
                     });
@@ -6173,12 +6173,12 @@ setTimeout(function() {
             }, 1000);
             
         } catch (error) {
-            console.error('Vue 应用掛載失败:', error);
-            console.error('错误詳情:', error.stack);
+            console.error('Vue 应用掛载失败:', error);
+            console.error('错误详情:', error.stack);
             
-            // 嘗試重新整理頁面
+            // 嘗試重新整理页面
             setTimeout(() => {
-                if (confirm('系统载入失败，是否重新整理頁面？')) {
+                if (confirm('系统载入失败，是否重新整理页面？')) {
                     window.location.reload();
                 }
             }, 2000);
@@ -6189,7 +6189,7 @@ setTimeout(function() {
             Vue: typeof Vue
         });
         
-        // 嘗試等待更長时间
+        // 嘗試等待更长时间
         setTimeout(arguments.callee, 500);
     }
 }, 100);

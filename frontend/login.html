@@ -226,7 +226,7 @@
             text-decoration: underline;
         }
 
-        /* 響應式設計 */
+        /* 响应式设计 */
         @media (max-width: 480px) {
             .login-container {
                 padding: 30px 20px;
@@ -271,34 +271,34 @@
             </div>
 
             <div class="form-group">
-                <label for="password">登录密碼</label>
+                <label for="password">登录密码</label>
                 <input 
                     type="password" 
                     id="password" 
                     name="password" 
                     class="form-input" 
-                    placeholder="请输入您的密碼"
+                    placeholder="请输入您的密码"
                     required
                     autocomplete="current-password"
                 >
             </div>
 
             <div class="form-group">
-                <label for="captcha">驗證碼</label>
+                <label for="captcha">验证碼</label>
                 <div class="captcha-group">
                     <input 
                         type="text" 
                         id="captcha" 
                         name="captcha" 
                         class="form-input captcha-input" 
-                        placeholder="请输入驗證碼"
+                        placeholder="请输入验证碼"
                         required
                         maxlength="4"
                     >
                     <div class="captcha-display" id="captchaDisplay" onclick="refreshCaptcha()">
-                        <!-- 驗證碼將通過JavaScript生成 -->
+                        <!-- 验证碼將通过JavaScript生成 -->
                     </div>
-                    <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理驗證碼">
+                    <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理验证碼">
                         🔄
                     </button>
                 </div>
@@ -306,7 +306,7 @@
 
             <div class="remember-me">
                 <input type="checkbox" id="rememberMe" name="rememberMe">
-                <label for="rememberMe">記住我的登录狀態</label>
+                <label for="rememberMe">記住我的登录状态</label>
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
@@ -328,10 +328,10 @@
     </div>
 
     <script>
-        // 当前驗證碼答案
+        // 当前验证碼答案
         let currentCaptcha = '';
 
-        // 頁面载入時初始化
+        // 页面载入时初始化
         document.addEventListener('DOMContentLoaded', function() {
             refreshCaptcha();
             checkRememberedUser();
@@ -347,7 +347,7 @@
             });
         });
 
-        // 生成驗證碼
+        // 生成验证碼
         function generateCaptcha() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let result = '';
@@ -357,7 +357,7 @@
             return result;
         }
 
-        // 刷新驗證碼
+        // 刷新验证碼
         function refreshCaptcha() {
             currentCaptcha = generateCaptcha();
             document.getElementById('captchaDisplay').textContent = currentCaptcha;
@@ -385,27 +385,27 @@
             const captcha = document.getElementById('captcha').value.trim().toUpperCase();
             const rememberMe = document.getElementById('rememberMe').checked;
             
-            // 重置错误訊息
+            // 重置错误讯息
             hideError();
             
-            // 驗證表單
+            // 验证表單
             if (!username || !password || !captcha) {
-                showError('请填寫完整的登录资讯');
+                showError('请填写完整的登录资讯');
                 return;
             }
             
-            // 驗證驗證碼
+            // 验证验证碼
             if (captcha !== currentCaptcha) {
-                showError('驗證碼输入错误，请重新输入');
+                showError('验证碼输入错误，请重新输入');
                 refreshCaptcha();
                 return;
             }
             
-            // 顯示载入狀態
+            // 显示载入状态
             showLoading();
             
             try {
-                // 發送登录请求
+                // 发送登录请求
                 const response = await fetch(`${API_BASE_URL}/api/member/login`, {
                     method: 'POST',
                     headers: {
@@ -417,19 +417,19 @@
                     })
                 });
                 
-                // 检查響應狀態
+                // 检查响应状态
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API错误響應:', errorText);
+                    console.error('API错误响应:', errorText);
                     throw new Error(`服務器错误 (${response.status}): ${response.statusText}`);
                 }
                 
-                // 检查響應類型
+                // 检查响应类型
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const responseText = await response.text();
-                    console.error('非JSON響應:', responseText);
-                    throw new Error('服務器響應格式错误');
+                    console.error('非JSON响应:', responseText);
+                    throw new Error('服務器响应格式错误');
                 }
                 
                 const data = await response.json();
@@ -449,14 +449,14 @@
                     sessionStorage.setItem('balance', data.member.balance || 0);
                     sessionStorage.setItem('agentId', data.member.agent_id || '');
                     
-                    // 储存新的會話token
+                    // 储存新的会话token
                     if (data.sessionToken) {
                         sessionStorage.setItem('sessionToken', data.sessionToken);
-                        console.log('✅ 會話token已保存');
+                        console.log('✅ 会话token已保存');
                     }
                     
-                    // 顯示成功訊息並跳轉
-                    showSuccess('登录成功，正在跳轉到游戏...');
+                    // 显示成功讯息並跳转
+                    showSuccess('登录成功，正在跳转到游戏...');
                     
                     setTimeout(() => {
                         window.location.href = 'index.html';
@@ -464,7 +464,7 @@
                     
                 } else {
                     // 登录失败
-                    showError(data.message || '登录失败，请检查账号密碼');
+                    showError(data.message || '登录失败，请检查账号密码');
                     refreshCaptcha();
                 }
                 
@@ -477,7 +477,7 @@
             }
         }
 
-        // 顯示错误訊息
+        // 显示错误讯息
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
@@ -487,7 +487,7 @@
             errorDiv.style.borderLeft = '4px solid #e74c3c';
         }
 
-        // 顯示成功訊息
+        // 显示成功讯息
         function showSuccess(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
@@ -497,31 +497,31 @@
             errorDiv.style.borderLeft = '4px solid #27ae60';
         }
 
-        // 隱藏错误訊息
+        // 隐藏错误讯息
         function hideError() {
             document.getElementById('errorMessage').style.display = 'none';
         }
 
-        // 顯示载入狀態
+        // 显示载入状态
         function showLoading() {
             document.getElementById('loginBtn').disabled = true;
             document.getElementById('loading').style.display = 'block';
         }
 
-        // 隱藏载入狀態
+        // 隐藏载入状态
         function hideLoading() {
             document.getElementById('loginBtn').disabled = false;
             document.getElementById('loading').style.display = 'none';
         }
 
-        // 顯示联系资讯
+        // 显示联系资讯
         function showContactInfo() {
-            alert('客服联系方式：\n\nQQ: 123456789\nWeChat: customer_service\nTelegram: @customer_support\n\n服務时间：24小時全天候服務');
+            alert('客服联系方式：\n\nQQ: 123456789\nWeChat: customer_service\nTelegram: @customer_support\n\n服務时间：24小时全天候服務');
         }
 
-        // 顯示使用说明
+        // 显示使用说明
         function showHelp() {
-            alert('使用说明：\n\n1. 请使用代理為您開設的会员账号登录\n2. 首次登录请联系代理商获取密碼\n3. 如遇登录問題请联系客服\n4. 请妥善保管您的账号密碼');
+            alert('使用说明：\n\n1. 请使用代理为您开設的会员账号登录\n2. 首次登录请联系代理商获取密码\n3. 如遇登录问题请联系客服\n4. 请妥善保管您的账号密码');
         }
     </script>
 </body>

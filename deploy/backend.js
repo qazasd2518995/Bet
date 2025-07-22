@@ -1,4 +1,4 @@
-// backend.js - FS赛车遊戲後端
+// backend.js - FS金彩賽車遊戲後端
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -5522,7 +5522,7 @@ async function startServer() {
     
     // 啟動服務器
     app.listen(port, () => {
-      console.log(`FS赛车遊戲服務運行在端口 ${port}`);
+      console.log(`FS金彩賽車遊戲服務運行在端口 ${port}`);
       console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
       console.log(`API Base URL: ${AGENT_API_URL}`);
       

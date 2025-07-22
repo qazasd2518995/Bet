@@ -6,13 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return {
                 API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:3000' 
-                    : '', // 在production環境中使用相同域名
+                    : '', // 在production环境中使用相同域名
                 // 用戶相关
                 isLoggedIn: false,
                 username: '',
                 balance: 0,
                 balanceChanged: false,
-                userMarketType: 'D', // 用戶盤口類型，預設D盤
+                userMarketType: 'D', // 用戶盤口类型，预設D盤
                 
                 // 游戏状态
                 gameStatus: 'betting', // betting or drawing
@@ -25,14 +25,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastResults: [],
                 
                 // 投注相关
-                defaultBetAmount: 1, // 默認投注金额
+                defaultBetAmount: 1, // 默认投注金额
                 betAmount: 1,
                 selectedBets: [],
-                activeTab: 'combined', // 当前活躍的標籤頁
+                activeTab: 'combined', // 当前活躍的標籤页
                 
                 // 位置选择相关
                 selectedPosition: null,
-                selectedPositions: [], // 多選位置
+                selectedPositions: [], // 多选位置
                 positions: [
                     { value: 1, label: '第一名' },
                     { value: 2, label: '第二名' },
@@ -95,11 +95,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 自訂金额
                 customAmount: '',
                 
-                // 限紅相關
-                userLimits: null, // 用戶限紅配置
-                limitCheckCache: new Map(), // 限紅檢查緩存
+                // 限红相关
+                userLimits: null, // 用戶限红配置
+                limitCheckCache: new Map(), // 限红检查緩存
                 
-                // 赔率数据 - 包含退水0.41，與後端一致
+                // 赔率数据 - 包含退水0.41，与後端一致
                 odds: {
                     sumValue: {
                         '3': 39.319, '4': 20.139, '5': 15.344, '6': 12.467, '7': 10.549,
@@ -158,11 +158,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastBets: [],
                 showChips: false,
                 
-                // 新增缺失的数据屬性
-                dragonRankingVisible: false, // 控制長龙排行显示状态
-                themeSelectorVisible: false, // 控制主題选择器显示状态
+                // 新增缺失的数据属性
+                dragonRankingVisible: false, // 控制长龙排行显示状态
+                themeSelectorVisible: false, // 控制主题选择器显示状态
                 showRaceAnimation: false, // 控制赛车动画显示状态
-                selectedPositions: [], // 多選位置
+                selectedPositions: [], // 多选位置
                 
                 // 盈亏记录相关
                 profitTimeRange: 'thisWeek',
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     profit: 0
                 },
                 
-                // 長龙排行数据
+                // 长龙排行数据
                 dragonRankingData: {
                     champion: { type: '冠军', current: 0, max: 0, trend: [] },
                     runnerup: { type: '亚军', current: 0, max: 0, trend: [] },
@@ -183,15 +183,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     even: { type: '双', current: 0, max: 0, trend: [] }
                 },
                 
-                // 主題配置
+                // 主题配置
                 currentTheme: 'default',
                 themes: [
                     { id: 'default', name: '經典藍', primary: '#667eea', secondary: '#764ba2' },
-                    { id: 'red', name: '財運紅', primary: '#e74c3c', secondary: '#c0392b' },
+                    { id: 'red', name: '财运紅', primary: '#e74c3c', secondary: '#c0392b' },
                     { id: 'green', name: '翡翠綠', primary: '#27ae60', secondary: '#16a085' },
-                    { id: 'gold', name: '黃金色', primary: '#f39c12', secondary: '#e67e22' }
+                    { id: 'gold', name: '黄金色', primary: '#f39c12', secondary: '#e67e22' }
                 ],
-                roadBeadVisible: false, // 路珠走勢開關
+                roadBeadVisible: false, // 路珠走势开关
                 roadBeadRows: [] , // 路珠资料 6xN
             };
         },
@@ -218,17 +218,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return /Mobi|Android/i.test(navigator.userAgent);
             },
             isBetDisabled() {
-                // 檢查是否有選擇的投注
+                // 检查是否有选择的投注
                 if (this.selectedBets.length === 0) return true;
                 
-                // 檢查遊戲狀態
+                // 检查遊戲状态
                 if (this.gameStatus !== 'betting') return true;
                 
-                // 檢查投注金額
+                // 检查投注金额
                 if (this.betAmount < 1) return true;
                 
-                // 暫時先不檢查限紅，避免循環引用問題
-                // 限紅檢查會在 showBetConfirmation 中進行
+                // 暫时先不检查限红，避免循环引用问题
+                // 限红检查会在 showBetConfirmation 中进行
                 
                 return false;
             }
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔍 Vue检查登录状态 - isLoggedIn:', sessionStorage.getItem('isLoggedIn'), 'username:', sessionStorage.getItem('username'), 'balance:', sessionStorage.getItem('balance'));
                 console.log('🧹 登录检查时执行遮罩清理...');
                 
-                // 緊急清理任何遮罩
+                // 紧急清理任何遮罩
                 const overlaySelectors = [
                     '#login-overlay',
                     '.login-overlay',
@@ -293,18 +293,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.username = username;
                     this.balance = parseFloat(balance) || 0;
                     
-                    // 首先從sessionStorage讀取市場類型
+                    // 首先從sessionStorage读取市場类型
                     const savedMarketType = sessionStorage.getItem('userMarketType');
                     if (savedMarketType) {
                         this.userMarketType = savedMarketType;
-                        console.log(`✅ 從sessionStorage讀取盤口類型: ${this.userMarketType}`);
-                        this.updateOddsDisplay(); // 立即更新賠率顯示
+                        console.log(`✅ 從sessionStorage读取盤口类型: ${this.userMarketType}`);
+                        this.updateOddsDisplay(); // 立即更新赔率显示
                     } else {
-                        // 如果沒有保存的市場類型，獲取用戶盤口類型
+                        // 如果沒有保存的市場类型，获取用戶盤口类型
                         this.getUserMarketType();
                     }
                     
-                    // 載入用戶限紅配置
+                    // 载入用戶限红配置
                     this.loadUserLimits();
                 } else {
                     console.log('❌ 登录状态无效，显示登录表单');
@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(data => {
                         if (data.success && data.hotBets) {
                             this.hotBets = data.hotBets;
-                            console.log('热门投注数据获取成功，共有', this.hotBets.length, '個热门投注');
+                            console.log('热门投注数据获取成功，共有', this.hotBets.length, '个热门投注');
                         }
                     })
                     .catch(error => {
@@ -438,60 +438,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             },
             
-            // 獲取用戶盤口類型
+            // 获取用戶盤口类型
             getUserMarketType() {
                 if (!this.isLoggedIn || !this.username) return;
                 
-                console.log(`🔍 正在獲取用戶 ${this.username} 的盤口類型...`);
+                console.log(`🔍 正在获取用戶 ${this.username} 的盤口类型...`);
                 
-                // 調用代理系統API獲取會員盤口信息
+                // 調用代理系统API获取会员盤口信息
                 const agentApiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                     ? 'http://localhost:3003' 
-                    : '';  // 生產環境使用相對路徑
+                    : '';  // 生产环境使用相对路徑
                 
-                // 添加時間戳防止緩存
+                // 添加时间戳防止緩存
                 const timestamp = new Date().getTime();
                 fetch(`${agentApiUrl}/api/agent/member/info/${this.username}?t=${timestamp}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.member) {
                             this.userMarketType = data.member.market_type || 'D';
-                            console.log(`✅ 用戶 ${this.username} 盤口類型: ${this.userMarketType}`);
-                            // 更新賠率顯示
+                            console.log(`✅ 用戶 ${this.username} 盤口类型: ${this.userMarketType}`);
+                            // 更新赔率显示
                             this.updateOddsDisplay();
                             
-                            // 顯示成功通知
+                            // 显示成功通知
                             if (this.userMarketType === 'A') {
-                                this.showNotification(`✅ 已載入A盤賠率 (單號: 9.89, 兩面: 1.9)`);
+                                this.showNotification(`✅ 已载入A盤赔率 (单号: 9.89, 两面: 1.9)`);
                             } else {
-                                this.showNotification(`✅ 已載入D盤賠率 (單號: 9.59, 兩面: 1.88)`);
+                                this.showNotification(`✅ 已载入D盤赔率 (单号: 9.59, 两面: 1.88)`);
                             }
                         } else {
-                            console.warn('獲取用戶盤口信息失敗，使用預設D盤');
+                            console.warn('获取用戶盤口信息失败，使用预設D盤');
                             this.userMarketType = 'D';
                             this.updateOddsDisplay();
                         }
                     })
                     .catch(error => {
-                        console.error('獲取用戶盤口信息失敗:', error);
+                        console.error('获取用戶盤口信息失败:', error);
                         this.userMarketType = 'D';
                         this.updateOddsDisplay();
                     });
             },
             
-            // 強制重新載入賠率
+            // 强制重新载入赔率
             forceRefreshOdds() {
-                console.log('🔄 強制重新載入賠率...');
+                console.log('🔄 强制重新载入赔率...');
                 this.getUserMarketType();
             },
             
-            // 更新賠率顯示
+            // 更新赔率显示
             updateOddsDisplay() {
                 const rebateA = 0.011; // A盤1.1%退水
                 const rebateD = 0.041; // D盤4.1%退水
                 
                 if (this.userMarketType === 'A') {
-                    // A盤賠率：使用正確公式計算
+                    // A盤赔率：使用正確公式计算
                     const twoSideOdds = parseFloat((2 * (1 - rebateA)).toFixed(3)); // 1.978
                     const numberOdds = parseFloat((10 * (1 - rebateA)).toFixed(3)); // 9.89
                     
@@ -535,9 +535,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             sixth: numberOdds, seventh: numberOdds, eighth: numberOdds, ninth: numberOdds, tenth: numberOdds
                         }
                     };
-                    console.log(`✅ 已切換至A盤賠率 (1.1%退水) - 單號:${numberOdds} 兩面:${twoSideOdds}`);
+                    console.log(`✅ 已切換至A盤赔率 (1.1%退水) - 单号:${numberOdds} 两面:${twoSideOdds}`);
                 } else {
-                    // D盤賠率：使用正確公式計算
+                    // D盤赔率：使用正確公式计算
                     const twoSideOdds = parseFloat((2 * (1 - rebateD)).toFixed(3)); // 1.918
                     const numberOdds = parseFloat((10 * (1 - rebateD)).toFixed(3)); // 9.59
                     
@@ -581,13 +581,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             sixth: numberOdds, seventh: numberOdds, eighth: numberOdds, ninth: numberOdds, tenth: numberOdds
                         }
                     };
-                    console.log(`✅ 已切換至D盤賠率 (4.1%退水) - 單號:${numberOdds} 兩面:${twoSideOdds}`);
+                    console.log(`✅ 已切換至D盤赔率 (4.1%退水) - 单号:${numberOdds} 两面:${twoSideOdds}`);
                 }
             },
             
             // 选择热门投注
             selectHotBet(bet) {
-                // 實現选择热门投注的邏輯
+                // 實現选择热门投注的逻辑
                 console.log('选择热门投注:', bet);
                 this.showDropdownMenu = false;
             },
@@ -625,43 +625,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
 2.客户有责任确保自己的账户及登录资料的保密性。以用户名称及密码进行的任何网上投注將被视为有效。
 
-3.公佈赔率时出现的任何打字错误或非故意人为失誤，本公司保留改正错误和按正确赔率结算投注的權力。您居住所在地的法律有可能規定网络博弈不合法；若此情況屬實，本公司將不會批准您使用付賬卡进行交易。
+3.公佈赔率时出现的任何打字错误或非故意人为失误，本公司保留改正错误和按正确赔率结算投注的權力。您居住所在地的法律有可能规定网络博弈不合法；若此情况屬實，本公司將不会批准您使用付账卡进行交易。
 
-4.每次登录时客户都应该核对自己的账户結余额。如對余额有任何疑问，请在第一时间內通知本公司。
+4.每次登录时客户都应该核对自己的账户結余额。如对余额有任何疑问，请在第一时间內通知本公司。
 
 5.一旦投注被接受，則不得取消或修改。
 
 6.所有号码赔率將不时浮動，派彩时的赔率將以确认投注时之赔率为準。
 
-7.每注最高投注金额按不同[場次]及[投注項目]及[会员賬号]设定浮動。如投注金额超過上述设定，本公司有權取消超過之投注金额。
+7.每注最高投注金额按不同[場次]及[投注项目]及[会员账号]设定浮動。如投注金额超过上述设定，本公司有權取消超过之投注金额。
 
             8.所有投注都必须在开奖前时间内进行否则投注无效。
 
 9.所有投注派彩彩金皆含本金。
 
-具體游戏規則如下：
+具体游戏規則如下：
 
-1. 1～10 兩面：指 单、双；大、小。
+1. 1～10 两面：指 单、双；大、小。
 
 单、双：号码为双數叫双，如4、8；号码为单數叫单，如5、9。
 
-大、小：開出之号码大于或等于6为大，小于或等于5为小。
+大、小：开出之号码大于或等于6为大，小于或等于5为小。
 
-第一名～第十名 車号指定：每一個車号为一投注组合，开奖结果「投注車号」对应所投名次视为中奖，其余情形视为不中奖。
+第一名～第十名 车号指定：每一个车号为一投注组合，开奖结果「投注车号」对应所投名次视为中奖，其余情形视为不中奖。
 
 2. 1～5龙虎
 
-冠 军 龙/虎：「第一名」車号大于「第十名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
+冠 军 龙/虎：「第一名」车号大于「第十名」车号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-亞 军 龙/虎：「第二名」車号大于「第九名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
+亞 军 龙/虎：「第二名」车号大于「第九名」车号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-第三名 龙/虎：「第三名」車号大于「第八名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
+第三名 龙/虎：「第三名」车号大于「第八名」车号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-第四名 龙/虎：「第四名」車号大于「第七名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
+第四名 龙/虎：「第四名」车号大于「第七名」车号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-第五名 龙/虎：「第五名」車号大于「第六名」車号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
+第五名 龙/虎：「第五名」车号大于「第六名」车号视为【龙】中奖、反之小于视为【虎】中奖，其余情形视为不中奖。
 
-3. 冠军車号＋亚军車号＝冠亞和值（为3~19)
+3. 冠军车号＋亚军车号＝冠亞和值（为3~19)
 
 冠亞和单双：「冠亞和值」为单视为投注「单」的註单视为中奖，为双视为投注「双」的註单视为中奖，其余视为不中奖。
 
@@ -699,17 +699,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         sessionStorage.setItem('isLoggedIn', 'true');
                         sessionStorage.setItem('username', data.member.username);
                         sessionStorage.setItem('balance', data.member.balance);
-                        // 儲存市場類型到sessionStorage
+                        // 儲存市場类型到sessionStorage
                         if (data.member.market_type) {
                             sessionStorage.setItem('userMarketType', data.member.market_type);
                             this.userMarketType = data.member.market_type;
                         }
                         this.username = data.member.username;
                         this.balance = data.member.balance;
-                        this.isLoggedIn = true;  // 確保設定登錄狀態
-                        this.checkLoginStatus();  // 這會調用getUserMarketType()
+                        this.isLoggedIn = true;  // 確保设定登录状态
+                        this.checkLoginStatus();  // 这会調用getUserMarketType()
                         
-                        // 載入用戶限紅配置
+                        // 载入用戶限红配置
                         this.loadUserLimits();
                         
                         this.showNotification('登录成功！');
@@ -798,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         amount: this.betAmount
                     });
                     
-                    // 檢查新添加的投注是否超限
+                    // 检查新添加的投注是否超限
                     const limitCheck = await this.checkSingleBetLimit(betType, value, this.betAmount);
                     if (!limitCheck.valid) {
                         this.showNotification(limitCheck.message);
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 获取投注赔率
             getOddsForBet(betType, value) {
                 if (betType === 'dragonTiger') {
-                    // 龍虎投注值格式：dragon_1_10, tiger_1_10 等
+                    // 龙虎投注值格式：dragon_1_10, tiger_1_10 等
                     const dragonTigerType = value.startsWith('dragon') ? 'dragon' : 'tiger';
                     return this.odds.dragonTiger[dragonTigerType] || 1.88;
                 }
@@ -817,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (this.odds[betType] && this.odds[betType][value]) {
                     return this.odds[betType][value];
                 }
-                return 1.96; // 默認赔率
+                return 1.96; // 默认赔率
             },
             
             // 点击外部关闭
@@ -827,21 +827,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.showDropdownMenu = false;
                 }
                 
-                // 检查是否点击在籌碼選单外部
+                // 检查是否点击在筹码选单外部
                 const chipsDropdown = document.querySelector('.chips-dropdown');
                 if (chipsDropdown && !chipsDropdown.contains(event.target)) {
                     this.showChips = false;
                 }
             },
             
-            // 显示長龙排行
+            // 显示长龙排行
             showDragonRanking() {
                 this.dragonRankingVisible = true;
                 this.loadDragonRankingData();
                 this.showDropdownMenu = false;
             },
             
-            // 显示主題选择器
+            // 显示主题选择器
             showThemeSelector() {
                 this.themeSelectorVisible = true;
                 this.showDropdownMenu = false;
@@ -860,16 +860,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.betAmount = amount;
                 this.customAmount = '';
                 
-                // 同时更新所有已选择投注項目的金额
+                // 同时更新所有已选择投注项目的金额
                 this.selectedBets.forEach(bet => {
                     bet.amount = amount;
                 });
                 
-                // 檢查當前選擇的投注是否超限
+                // 检查当前选择的投注是否超限
                 await this.checkCurrentBetsLimits();
             },
             
-            // 檢查當前選擇的投注是否超限（用於實時提示）
+            // 检查当前选择的投注是否超限（用於實时提示）
             async checkCurrentBetsLimits() {
                 if (this.selectedBets.length === 0) return;
                 
@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (!limitCheck.valid) {
                         this.showNotification(limitCheck.message);
-                        break; // 只顯示第一個錯誤
+                        break; // 只显示第一个错误
                     }
                 }
             },
@@ -890,7 +890,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.selectedPositions = [];
             },
             
-            // 重複上次投注
+            // 重复上次投注
             repeatLastBets() {
                 if (this.hasLastBets && this.lastBets.length > 0) {
                     this.selectedBets = [...this.lastBets];
@@ -901,7 +901,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 显示投注确认彈窗
             async showBetConfirmation() {
                 if (this.selectedBets.length === 0) {
-                    this.showNotification('请选择投注項目');
+                    this.showNotification('请选择投注项目');
                     return;
                 }
                 if (this.betAmount < 1) {
@@ -909,7 +909,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // 先檢查限紅
+                // 先检查限红
                 const limitCheck = await this.validateBettingLimits();
                 if (!limitCheck.success) {
                     this.showNotification(limitCheck.message);
@@ -935,7 +935,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.lastBets = [...this.selectedBets];
                 this.hasLastBets = true;
                 
-                // 执行投注邏輯
+                // 执行投注逻辑
                 this.placeBets();
                 this.showBetModal = false;
             },
@@ -967,8 +967,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.clearBets();
                         this.updateBetHistory();
                     } else {
-                        // 检查是否为账号凍結信息
-                        if (data.message && data.message.includes('凍結')) {
+                        // 检查是否为账号冻结信息
+                        if (data.message && data.message.includes('冻结')) {
                             this.showNotification(`${data.message}`, 'warning');
                             // 禁用投注按钮或显示特殊提示
                             this.showFrozenAccountWarning();
@@ -983,7 +983,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             },
             
-            // 显示凍結账号警告
+            // 显示冻结账号警告
             showFrozenAccountWarning() {
                 // 可以在这里添加额外的UI处理
                 const warningEl = document.querySelector('.frozen-account-warning');
@@ -992,7 +992,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             
-            // 獲取用戶限紅配置
+            // 获取用戶限红配置
             async loadUserLimits() {
                 if (!this.isLoggedIn || !this.username) return;
                 
@@ -1006,18 +1006,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (data.success && data.config) {
                         this.userLimits = data.config;
-                        console.log('✅ 獲取用戶限紅配置成功:', this.userLimits);
+                        console.log('✅ 获取用戶限红配置成功:', this.userLimits);
                     } else {
-                        console.warn('獲取用戶限紅配置失敗，使用預設值');
+                        console.warn('获取用戶限红配置失败，使用预設值');
                         this.userLimits = this.getDefaultLimits();
                     }
                 } catch (error) {
-                    console.error('載入用戶限紅配置失敗:', error);
+                    console.error('载入用戶限红配置失败:', error);
                     this.userLimits = this.getDefaultLimits();
                 }
             },
             
-            // 獲取預設限紅配置
+            // 获取预設限红配置
             getDefaultLimits() {
                 return {
                     number: { maxBet: 2500, minBet: 1, periodLimit: 5000 },
@@ -1029,9 +1029,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             },
             
-            // 獲取下注類型分類
+            // 获取下注类型分類
             getBetCategory(betType, betValue, position) {
-                // 總和相關下注
+                // 總和相关下注
                 if (betType === 'sumValue') {
                     return 'sumValue';
                 }
@@ -1041,22 +1041,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     return 'number';
                 }
                 
-                // 龍虎下注
+                // 龙虎下注
                 if (betType === 'dragonTiger' || betType.includes('dragon') || betType.includes('tiger')) {
                     return 'dragonTiger';
                 }
                 
-                // 雙面下注 (大小單雙等)
+                // 双面下注 (大小單双等)
                 if (['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType) ||
                     (['big', 'small', 'odd', 'even'].includes(betValue) && betType !== 'sumValue')) {
                     return 'twoSide';
                 }
                 
-                // 預設為雙面下注
+                // 预設为双面下注
                 return 'twoSide';
             },
             
-            // 獲取當前期號已有下注
+            // 获取当前期號已有下注
             async getCurrentPeriodBets() {
                 if (!this.isLoggedIn || !this.currentPeriod) return [];
                 
@@ -1065,25 +1065,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = await response.json();
                     return data.success ? (data.bets || []) : [];
                 } catch (error) {
-                    console.error('獲取當前期號下注失敗:', error);
+                    console.error('获取当前期號下注失败:', error);
                     return [];
                 }
             },
             
-            // 驗證投注限紅
+            // 验证投注限红
             async validateBettingLimits() {
                 if (!this.userLimits) {
                     await this.loadUserLimits();
                 }
                 
                 if (!this.userLimits) {
-                    return { success: false, message: '無法獲取限紅配置，請稍後再試' };
+                    return { success: false, message: '無法获取限红配置，请稍後再試' };
                 }
                 
-                // 獲取當前期號已有下注
+                // 获取当前期號已有下注
                 const existingBets = await this.getCurrentPeriodBets();
                 
-                // 按下注類型分組計算已有下注金額
+                // 按下注类型分組计算已有下注金额
                 const periodTotals = {};
                 existingBets.forEach(bet => {
                     const betCategory = this.getBetCategory(bet.bet_type, bet.bet_value, bet.position);
@@ -1093,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     periodTotals[betCategory] += parseFloat(bet.amount);
                 });
                 
-                // 驗證新的下注
+                // 验证新的下注
                 for (const bet of this.selectedBets) {
                     const amount = parseFloat(bet.amount || this.betAmount);
                     const betCategory = this.getBetCategory(bet.betType, bet.value, bet.position);
@@ -1102,38 +1102,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!limits) {
                         return {
                             success: false,
-                            message: `未知的下注類型: ${bet.betType}/${bet.value}`
+                            message: `未知的下注类型: ${bet.betType}/${bet.value}`
                         };
                     }
                     
-                    // 檢查單注最高限制
+                    // 检查單注最高限制
                     if (amount > limits.maxBet) {
                         return {
                             success: false,
-                            message: `${betCategory} 單注金額不能超過 ${limits.maxBet} 元，當前: ${amount} 元`
+                            message: `${betCategory} 單注金额不能超过 ${limits.maxBet} 元，当前: ${amount} 元`
                         };
                     }
                     
-                    // 檢查最小下注限制
+                    // 检查最小下注限制
                     if (amount < limits.minBet) {
                         return {
                             success: false,
-                            message: `${betCategory} 單注金額不能少於 ${limits.minBet} 元，當前: ${amount} 元`
+                            message: `${betCategory} 單注金额不能少於 ${limits.minBet} 元，当前: ${amount} 元`
                         };
                     }
                     
-                    // 累加到期號總額中
+                    // 累加到期號總额中
                     if (!periodTotals[betCategory]) {
                         periodTotals[betCategory] = 0;
                     }
                     periodTotals[betCategory] += amount;
                     
-                    // 檢查單期限額
+                    // 检查單期限额
                     if (periodTotals[betCategory] > limits.periodLimit) {
                         const existingAmount = periodTotals[betCategory] - amount;
                         return {
                             success: false,
-                            message: `${betCategory} 單期限額為 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
+                            message: `${betCategory} 單期限额为 ${limits.periodLimit} 元，已投注 ${existingAmount} 元，無法再投注 ${amount} 元`
                         };
                     }
                 }
@@ -1141,7 +1141,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return { success: true };
             },
             
-            // 檢查單個投注項目是否超限 (用於實時顯示警告)
+            // 检查單个投注项目是否超限 (用於實时显示警告)
             async checkSingleBetLimit(betType, betValue, amount, position = null) {
                 if (!this.userLimits) {
                     await this.loadUserLimits();
@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!limits) return { valid: true };
                 
-                // 檢查單注最高
+                // 检查單注最高
                 if (amount > limits.maxBet) {
                     return {
                         valid: false,
@@ -1163,11 +1163,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                 }
                 
-                // 檢查單期限額 (這裡簡化處理，只做基本檢查)
+                // 检查單期限额 (这里簡化处理，只做基本检查)
                 if (amount > limits.periodLimit) {
                     return {
                         valid: false,
-                        message: `${betCategory} 單期限額 ${limits.periodLimit} 元`,
+                        message: `${betCategory} 單期限额 ${limits.periodLimit} 元`,
                         type: 'period_limit'
                     };
                 }
@@ -1181,7 +1181,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.loadProfitRecords();
             },
             
-            // 显示日期詳情
+            // 显示日期详情
             showDayDetail(date) {
                 this.selectedDate = date;
                 this.loadDayDetailRecords(date);
@@ -1231,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             },
             
-            // 载入長龙排行数据
+            // 载入长龙排行数据
             loadDragonRankingData() {
                 fetch(`${this.API_BASE_URL}/api/dragon-ranking`)
                     .then(response => response.json())
@@ -1241,42 +1241,42 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('载入長龙排行失败:', error);
+                        console.error('载入长龙排行失败:', error);
                     });
             },
             
             // 播放赛车动画
             playRaceAnimation() {
-                // 使用預先生成的结果播放赛车动画
+                // 使用预先生成的结果播放赛车动画
                 if (this.lastResult && this.lastResult.length > 0) {
                     this.animateRace(this.lastResult);
                 }
             },
             
-            // 赛车动画邏輯
+            // 赛车动画逻辑
             animateRace(result) {
-                // 實際的赛车动画邏輯
+                // 實际的赛车动画逻辑
                 console.log('播放赛车动画:', result);
-                // 这里可以添加具體的赛车动画實現
+                // 这里可以添加具体的赛车动画實現
             },
             
-            // 切換主題
+            // 切換主题
             changeTheme(themeId) {
                 this.currentTheme = themeId;
                 const theme = this.themes.find(t => t.id === themeId);
                 if (theme) {
-                    // 主要顏色變數
+                    // 主要颜色變數
                     document.documentElement.style.setProperty('--primary-color', theme.primary);
                     document.documentElement.style.setProperty('--secondary-color', theme.secondary);
 
-                    // 依主要顏色動態计算 hover 與淡色背景
+                    // 依主要颜色動態计算 hover 与淡色背景
                     const rgb = this.hexToRgb(theme.primary);
                     if (rgb) {
                         document.documentElement.style.setProperty('--primary-light', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`);
                         document.documentElement.style.setProperty('--primary-hover', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
                     }
 
-                    // 動態插入或更新互動樣式
+                    // 動態插入或更新互动樣式
                     const dynamicStylesId = 'dynamic-theme-styles';
                     let styleEl = document.getElementById(dynamicStylesId);
                     if (!styleEl) {
@@ -1309,16 +1309,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
 
                     localStorage.setItem('selectedTheme', themeId);
-                    this.showNotification(`已切換至${theme.name}主題`);
+                    this.showNotification(`已切換至${theme.name}主题`);
                 } else {
-                    // 若找不到主題，回退至預設主題
-                    this.showNotification('找不到指定主題，已切回預設');
+                    // 若找不到主题，回退至预設主题
+                    this.showNotification('找不到指定主题，已切回预設');
                     this.changeTheme('default');
                 }
                 this.themeSelectorVisible = false;
             },
 
-            // 新增：將 HEX 轉为 RGB
+            // 新增：將 HEX 转为 RGB
             hexToRgb(hex) {
                 const sanitized = hex.replace('#', '');
                 if (sanitized.length !== 6) return null;
@@ -1333,22 +1333,22 @@ document.addEventListener('DOMContentLoaded', function() {
             loadProfitRecords() {
                 if (!this.isLoggedIn) return;
                 
-                // 根據时间范围选择不同的API
+                // 根据时间范围选择不同的API
                 let apiUrl;
                 if (this.profitTimeRange === 'thisWeek' || this.profitTimeRange === 'lastWeek') {
-                    // 计算週的开始和结束日期
+                    // 计算周的开始和结束日期
                     const today = new Date();
                     const startDate = new Date();
                     const endDate = new Date();
                     
                     if (this.profitTimeRange === 'thisWeek') {
-                        // 本週（從星期一 00:00:00 开始）
+                        // 本周（從星期一 00:00:00 开始）
                         const dayOfWeek = today.getDay();
                         const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
                         startDate.setDate(diff);
                         endDate.setDate(diff + 6);
                     } else {
-                        // 上週（同樣取整天）
+                        // 上周（同樣取整天）
                         const dayOfWeek = today.getDay();
                         const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -13 : -6);
                         startDate.setDate(diff);
@@ -1381,7 +1381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             },
             
-            // 载入日期詳情记录
+            // 载入日期详情记录
             loadDayDetailRecords(date) {
                 if (!this.isLoggedIn) return;
                 
@@ -1394,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     })
                     .catch(error => {
-                        console.error('载入日期詳情失败:', error);
+                        console.error('载入日期详情失败:', error);
                     });
             },
             
@@ -1425,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             },
             
-            // 选择多位置屬性
+            // 选择多位置属性
             selectMultiPositionProperty(property) {
                 if (this.selectedPositions.length === 0) {
                     this.showNotification('请先选择位置');
@@ -1438,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             },
             
-            // 获取位置投注類型
+            // 获取位置投注类型
             getPositionBetType(position) {
                 const positionMap = {
                     1: 'champion',
@@ -1464,10 +1464,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(d=>{
                         if(d.success && Array.isArray(d.records)){
                             const numbersList = d.records.map(rec=>rec.result);
-                            // 轉置成 6 行
+                            // 转置成 6 行
                             const rows=[[],[],[],[],[],[]];
                             numbersList.forEach((nums, idx)=>{
-                                // nums 为 10 号，这里示範第一名号码
+                                // nums 为 10 号，这里示范第一名号码
                                 const val = nums[0];
                                 const rowIdx = idx % 6;
                                 rows[rowIdx].push(val);
@@ -1481,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mounted() {
             this.initCountdown();
             this.updateGameData();
-            this.fetchHotBets();  // 加載热门投注数据
+            this.fetchHotBets();  // 加载热门投注数据
             
             // 每隔10秒刷新一次游戏数据
             setInterval(() => {
@@ -1502,7 +1502,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 60000);
             
-            // 每隔5分鐘刷新一次热门投注数据
+            // 每隔5分钟刷新一次热门投注数据
             setInterval(() => {
                 this.fetchHotBets();
             }, 5 * 60 * 1000);
@@ -1514,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.updateDailyStats();
             this.updateHistoryRecords();
             
-            // 强制清理任何剩餘的遮罩
+            // 强制清理任何剩余的遮罩
             console.log('🚀 执行强制遮罩清理...');
             let cleanupCount = 0;
             const maxCleanupAttempts = 10;

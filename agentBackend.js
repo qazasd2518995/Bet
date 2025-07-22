@@ -12,6 +12,7 @@ import db from './db/config.js';
 import initDatabaseBase from './db/init.js';
 import SessionManager from './security/session-manager.js';
 import { generateBlockchainData } from './utils/blockchain.js';
+import bcrypt from 'bcrypt';
 
 // 初始化環境變量
 dotenv.config();
@@ -2426,30 +2427,95 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
   const { username, password } = req.body;
   
   try {
-    // 查詢代理
+    let user = null;
+    let isSubAccount = false;
+    
+    // 先嘗試查詢代理
     const agent = await AgentModel.findByUsername(username);
     
-    if (!agent) {
-      return res.json({
-        success: false,
-        message: '代理不存在'
-      });
-    }
-    
-    // 檢查密碼
-    if (agent.password !== password) {
-      return res.json({
-        success: false,
-        message: '密碼錯誤'
-      });
-    }
-    
-    // 檢查狀態
-    if (agent.status !== 1) {
-      return res.json({
-        success: false,
-        message: '代理帳號已被禁用'
-      });
+    if (agent) {
+      // 檢查密碼
+      let isValidPassword = false;
+      
+      // 檢查密碼是否已經是 bcrypt hash
+      if (agent.password.startsWith('$2b$') || agent.password.startsWith('$2a$')) {
+        // 使用 bcrypt 驗證
+        isValidPassword = await bcrypt.compare(password, agent.password);
+      } else {
+        // 明文密碼直接比較（向後兼容）
+        isValidPassword = (agent.password === password);
+      }
+      
+      if (!isValidPassword) {
+        return res.json({
+          success: false,
+          message: '密碼錯誤'
+        });
+      }
+      
+      // 檢查狀態
+      if (agent.status !== 1) {
+        return res.json({
+          success: false,
+          message: '代理帳號已被禁用'
+        });
+      }
+      
+      user = agent;
+    } else {
+      // 如果不是代理，嘗試查詢子帳號
+      const subAccount = await db.oneOrNone(`
+        SELECT sa.*, a.username as parent_agent_username, a.id as parent_agent_id, a.level as parent_agent_level
+        FROM sub_accounts sa
+        JOIN agents a ON sa.parent_agent_id = a.id
+        WHERE sa.username = $1
+      `, [username]);
+      
+      if (!subAccount) {
+        return res.json({
+          success: false,
+          message: '帳號不存在'
+        });
+      }
+      
+      // 驗證密碼
+      const isValidPassword = await bcrypt.compare(password, subAccount.password);
+      if (!isValidPassword) {
+        return res.json({
+          success: false,
+          message: '密碼錯誤'
+        });
+      }
+      
+      // 檢查狀態
+      if (subAccount.status !== 1) {
+        return res.json({
+          success: false,
+          message: '子帳號已被停用'
+        });
+      }
+      
+      // 更新最後登入時間
+      await db.none(`
+        UPDATE sub_accounts 
+        SET last_login = CURRENT_TIMESTAMP 
+        WHERE id = $1
+      `, [subAccount.id]);
+      
+      // 設置 user 為子帳號，但使用父代理的基本信息
+      user = {
+        id: subAccount.parent_agent_id,
+        username: subAccount.username,
+        level: subAccount.parent_agent_level, // 使用父代理的等級
+        balance: '0.00',
+        commission_balance: '0.00',
+        status: subAccount.status,
+        is_sub_account: true,
+        sub_account_id: subAccount.id,
+        parent_agent_username: subAccount.parent_agent_username
+      };
+      
+      isSubAccount = true;
     }
     
     // 獲取請求信息
@@ -2464,10 +2530,10 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
     }
     
     // 創建會話（這會自動登出其他裝置的會話）
-    const sessionToken = await SessionManager.createSession('agent', agent.id, ipAddress, userAgent);
+    const sessionToken = await SessionManager.createSession('agent', user.id, ipAddress, userAgent);
     
     // 生成向後兼容的token
-    const legacyToken = Buffer.from(`${agent.id}:${Date.now()}`).toString('base64');
+    const legacyToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
     
     // 記錄登錄日誌
     try {
@@ -2487,7 +2553,7 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       await db.none(`
         INSERT INTO user_login_logs (username, user_type, login_time, ip_address, ip_location, user_agent, session_token)
         VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6)
-      `, [username, 'agent', ipAddress, ipLocation, userAgent, sessionToken]);
+      `, [username, isSubAccount ? 'subaccount' : 'agent', ipAddress, ipLocation, userAgent, sessionToken]);
       
       console.log(`📝 登錄日誌已記錄: ${username}, IP: ${ipAddress}`);
     } catch (logError) {
@@ -2495,22 +2561,23 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       // 登錄日誌失敗不影響登錄流程
     }
     
-    console.log(`✅ 代理登入成功: ${username} (ID: ${agent.id}), IP: ${ipAddress}`);
+    console.log(`✅ ${isSubAccount ? '子帳號' : '代理'}登入成功: ${username} (ID: ${user.id}), IP: ${ipAddress}`);
     
     res.json({
       success: true,
       message: '登入成功',
       agent: {
-        id: agent.id,
-        username: agent.username,
-        level: agent.level,
-        balance: agent.balance,
-        commission_balance: agent.commission_balance,
-        rebate_percentage: agent.rebate_percentage,
-        max_rebate_percentage: agent.max_rebate_percentage,
-        rebate_mode: agent.rebate_mode,
-        market_type: agent.market_type || 'D', // 添加盤口類型
-        betting_limit_level: agent.betting_limit_level || 'level3' // 添加限紅等級
+        id: user.id,
+        username: user.username,
+        level: user.level,
+        balance: user.balance,
+        commission_balance: user.commission_balance,
+        rebate_percentage: user.rebate_percentage,
+        max_rebate_percentage: user.max_rebate_percentage,
+        rebate_mode: user.rebate_mode,
+        market_type: user.market_type || 'D', // 添加盤口類型
+        betting_limit_level: user.betting_limit_level || 'level3', // 添加限紅等級
+        is_sub_account: user.is_sub_account || false // 添加子帳號標記
       },
       token: legacyToken,
       sessionToken: sessionToken // 新的會話token
@@ -2629,7 +2696,7 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       });
     }
     
-    // 檢查用戶名是否已存在（檢查代理表和會員表）
+    // 檢查用戶名是否已存在（檢查代理表、會員表和子帳號表）
     const existingAgent = await AgentModel.findByUsername(username);
     if (existingAgent) {
       return res.json({
@@ -2643,6 +2710,18 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       return res.json({
         success: false,
         message: '該用戶名已被使用（會員）'
+      });
+    }
+    
+    // 檢查子帳號表
+    const existingSubAccount = await db.oneOrNone(`
+      SELECT id FROM sub_accounts WHERE username = $1
+    `, [username]);
+    
+    if (existingSubAccount) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用（子帳號）'
       });
     }
     
@@ -4532,7 +4611,7 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       });
     }
     
-    // 檢查用戶名是否已存在（檢查會員表和代理表）
+    // 檢查用戶名是否已存在（檢查會員表、代理表和子帳號表）
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
       return res.json({
@@ -4546,6 +4625,18 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       return res.json({
         success: false,
         message: '該用戶名已被使用（代理）'
+      });
+    }
+    
+    // 檢查子帳號表
+    const existingSubAccount = await db.oneOrNone(`
+      SELECT id FROM sub_accounts WHERE username = $1
+    `, [username]);
+    
+    if (existingSubAccount) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用（子帳號）'
       });
     }
     
@@ -4591,7 +4682,7 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
   try {
     console.log(`代為創建會員請求: 用戶名=${username}, 代理ID=${agentId}, 初始餘額=${initialBalance}, 創建者=${createdBy}`);
     
-    // 檢查用戶名是否已存在（檢查會員表和代理表）
+    // 檢查用戶名是否已存在（檢查會員表、代理表和子帳號表）
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
       return res.json({
@@ -4605,6 +4696,18 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
       return res.json({
         success: false,
         message: '該用戶名已被使用（代理）'
+      });
+    }
+    
+    // 檢查子帳號表
+    const existingSubAccount = await db.oneOrNone(`
+      SELECT id FROM sub_accounts WHERE username = $1
+    `, [username]);
+    
+    if (existingSubAccount) {
+      return res.json({
+        success: false,
+        message: '該用戶名已被使用（子帳號）'
       });
     }
     
@@ -6218,6 +6321,405 @@ async function startServer() {
         console.error('創建初始化標記文件失敗:', err);
       }
     }
+    
+    // 子帳號相關 API
+    
+    // 獲取子帳號列表
+    app.get(`${API_PREFIX}/subaccounts`, async (req, res) => {
+      try {
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+          return res.status(401).json(authResult);
+        }
+        
+        const agentId = authResult.agent.id;
+        
+        // 查詢該代理的所有子帳號
+        const subAccounts = await db.any(`
+          SELECT id, username, status, last_login, created_at
+          FROM sub_accounts
+          WHERE parent_agent_id = $1
+          ORDER BY created_at DESC
+        `, [agentId]);
+        
+        res.json({
+          success: true,
+          subAccounts
+        });
+      } catch (error) {
+        console.error('獲取子帳號列表失敗:', error);
+        res.status(500).json({
+          success: false,
+          message: '系統錯誤，請稍後再試'
+        });
+      }
+    });
+    
+    // 創建子帳號
+    app.post(`${API_PREFIX}/subaccounts`, async (req, res) => {
+      try {
+        console.log('📝 創建子帳號請求:', req.body);
+        
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+          console.log('❌ 認證失敗');
+          return res.status(401).json(authResult);
+        }
+        
+        const agentId = authResult.agent.id;
+        const { username, password } = req.body;
+        
+        console.log('📋 代理ID:', agentId, '子帳號名稱:', username);
+        
+        // 輸入驗證
+        if (!username || !password) {
+          return res.status(400).json({
+            success: false,
+            message: '請提供子帳號名稱和密碼'
+          });
+        }
+        
+        // 檢查是否已有 2 個子帳號
+        const count = await db.one(`
+          SELECT COUNT(*) as count
+          FROM sub_accounts
+          WHERE parent_agent_id = $1
+        `, [agentId]);
+        
+        console.log('📊 現有子帳號數量:', count.count);
+        
+        if (parseInt(count.count) >= 2) {
+          return res.json({
+            success: false,
+            message: '每個代理最多只能創建 2 個子帳號'
+          });
+        }
+        
+        // 檢查用戶名是否在三個表中都唯一
+        console.log('🔍 檢查用戶名唯一性:', username);
+        
+        // 檢查代理表
+        const existingAgent = await db.oneOrNone(`
+          SELECT id FROM agents WHERE username = $1
+        `, [username]);
+        
+        if (existingAgent) {
+          console.log('❌ 用戶名已被代理使用');
+          return res.json({
+            success: false,
+            message: '此用戶名已被代理使用，請選擇其他名稱'
+          });
+        }
+        
+        // 檢查會員表
+        const existingMember = await db.oneOrNone(`
+          SELECT id FROM members WHERE username = $1
+        `, [username]);
+        
+        if (existingMember) {
+          console.log('❌ 用戶名已被會員使用');
+          return res.json({
+            success: false,
+            message: '此用戶名已被會員使用，請選擇其他名稱'
+          });
+        }
+        
+        // 檢查子帳號表
+        const existingSubAccount = await db.oneOrNone(`
+          SELECT id FROM sub_accounts WHERE username = $1
+        `, [username]);
+        
+        if (existingSubAccount) {
+          console.log('❌ 用戶名已被其他子帳號使用');
+          return res.json({
+            success: false,
+            message: '此用戶名已被其他子帳號使用，請選擇其他名稱'
+          });
+        }
+        
+        console.log('✅ 用戶名可以使用');
+        
+        // 加密密碼
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // 創建子帳號
+        const newSubAccount = await db.one(`
+          INSERT INTO sub_accounts (parent_agent_id, username, password)
+          VALUES ($1, $2, $3)
+          RETURNING id, username, status, created_at
+        `, [agentId, username, hashedPassword]);
+        
+        console.log('✅ 子帳號創建成功:', newSubAccount);
+        
+        res.json({
+          success: true,
+          message: '子帳號創建成功',
+          subAccount: newSubAccount
+        });
+      } catch (error) {
+        console.error('❌ 創建子帳號失敗:', error);
+        console.error('錯誤詳情:', {
+          name: error.name,
+          message: error.message,
+          code: error.code,
+          detail: error.detail,
+          table: error.table,
+          constraint: error.constraint
+        });
+        
+        // 檢查是否是資料庫錯誤
+        if (error.code === '42P01') {
+          res.status(500).json({
+            success: false,
+            message: '資料表不存在，請聯繫系統管理員'
+          });
+        } else if (error.code === '23505') {
+          res.status(400).json({
+            success: false,
+            message: '子帳號名稱已存在'
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            message: '系統錯誤，請稍後再試'
+          });
+        }
+      }
+    });
+    
+    // 更新子帳號狀態
+    app.put(`${API_PREFIX}/subaccounts/:id/status`, async (req, res) => {
+      try {
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+          return res.status(401).json(authResult);
+        }
+        
+        const agentId = authResult.agent.id;
+        const subAccountId = req.params.id;
+        const { status } = req.body;
+        
+        // 確認子帳號屬於該代理
+        const subAccount = await db.oneOrNone(`
+          SELECT id FROM sub_accounts
+          WHERE id = $1 AND parent_agent_id = $2
+        `, [subAccountId, agentId]);
+        
+        if (!subAccount) {
+          return res.json({
+            success: false,
+            message: '找不到該子帳號'
+          });
+        }
+        
+        // 更新狀態
+        await db.none(`
+          UPDATE sub_accounts
+          SET status = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [status, subAccountId]);
+        
+        res.json({
+          success: true,
+          message: status === 1 ? '子帳號已啟用' : '子帳號已停用'
+        });
+      } catch (error) {
+        console.error('更新子帳號狀態失敗:', error);
+        res.status(500).json({
+          success: false,
+          message: '系統錯誤，請稍後再試'
+        });
+      }
+    });
+    
+    // 代理更改自己的密碼
+    app.put(`${API_PREFIX}/change-password`, async (req, res) => {
+      try {
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+          return res.status(401).json(authResult);
+        }
+        
+        const agentId = authResult.agent.id;
+        const { currentPassword, newPassword } = req.body;
+        
+        console.log('📝 代理更改密碼請求，代理ID:', agentId);
+        
+        // 驗證輸入
+        if (!currentPassword || !newPassword) {
+          return res.status(400).json({
+            success: false,
+            message: '請提供當前密碼和新密碼'
+          });
+        }
+        
+        if (newPassword.length < 6) {
+          return res.status(400).json({
+            success: false,
+            message: '新密碼長度至少需要 6 個字符'
+          });
+        }
+        
+        // 獲取代理當前密碼
+        const agent = await db.oneOrNone(`
+          SELECT id, username, password 
+          FROM agents 
+          WHERE id = $1
+        `, [agentId]);
+        
+        if (!agent) {
+          return res.status(404).json({
+            success: false,
+            message: '找不到代理資料'
+          });
+        }
+        
+        // 驗證當前密碼
+        let isValidPassword = false;
+        
+        // 檢查密碼是否已經是 bcrypt hash
+        if (agent.password.startsWith('$2b$') || agent.password.startsWith('$2a$')) {
+          // 使用 bcrypt 驗證
+          isValidPassword = await bcrypt.compare(currentPassword, agent.password);
+        } else {
+          // 明文密碼直接比較
+          isValidPassword = (agent.password === currentPassword);
+        }
+        
+        if (!isValidPassword) {
+          console.log('❌ 當前密碼驗證失敗');
+          return res.status(401).json({
+            success: false,
+            message: '當前密碼錯誤'
+          });
+        }
+        
+        // 加密新密碼
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // 更新密碼
+        await db.none(`
+          UPDATE agents 
+          SET password = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [hashedPassword, agentId]);
+        
+        console.log('✅ 代理密碼更改成功:', agent.username);
+        
+        res.json({
+          success: true,
+          message: '密碼已成功更改'
+        });
+      } catch (error) {
+        console.error('❌ 更改密碼失敗:', error);
+        res.status(500).json({
+          success: false,
+          message: '系統錯誤，請稍後再試'
+        });
+      }
+    });
+    
+    // 重設子帳號密碼
+    app.put(`${API_PREFIX}/subaccounts/:id/password`, async (req, res) => {
+      try {
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+          return res.status(401).json(authResult);
+        }
+        
+        const agentId = authResult.agent.id;
+        const subAccountId = req.params.id;
+        const { newPassword } = req.body;
+        
+        console.log('📝 重設子帳號密碼請求:', { subAccountId, agentId });
+        
+        // 驗證新密碼
+        if (!newPassword || newPassword.length < 6) {
+          return res.status(400).json({
+            success: false,
+            message: '密碼長度至少需要 6 個字符'
+          });
+        }
+        
+        // 確認子帳號屬於該代理
+        const subAccount = await db.oneOrNone(`
+          SELECT id, username FROM sub_accounts
+          WHERE id = $1 AND parent_agent_id = $2
+        `, [subAccountId, agentId]);
+        
+        if (!subAccount) {
+          return res.json({
+            success: false,
+            message: '找不到該子帳號'
+          });
+        }
+        
+        // 加密新密碼
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // 更新密碼
+        await db.none(`
+          UPDATE sub_accounts 
+          SET password = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `, [hashedPassword, subAccountId]);
+        
+        console.log('✅ 子帳號密碼重設成功:', subAccount.username);
+        
+        res.json({
+          success: true,
+          message: '密碼已成功重設'
+        });
+      } catch (error) {
+        console.error('❌ 重設子帳號密碼失敗:', error);
+        res.status(500).json({
+          success: false,
+          message: '系統錯誤，請稍後再試'
+        });
+      }
+    });
+    
+    // 刪除子帳號
+    app.delete(`${API_PREFIX}/subaccounts/:id`, async (req, res) => {
+      try {
+        const authResult = await authenticateAgent(req);
+        if (!authResult.success) {
+          return res.status(401).json(authResult);
+        }
+        
+        const agentId = authResult.agent.id;
+        const subAccountId = req.params.id;
+        
+        // 確認子帳號屬於該代理
+        const subAccount = await db.oneOrNone(`
+          SELECT id FROM sub_accounts
+          WHERE id = $1 AND parent_agent_id = $2
+        `, [subAccountId, agentId]);
+        
+        if (!subAccount) {
+          return res.json({
+            success: false,
+            message: '找不到該子帳號'
+          });
+        }
+        
+        // 刪除子帳號
+        await db.none(`
+          DELETE FROM sub_accounts WHERE id = $1
+        `, [subAccountId]);
+        
+        res.json({
+          success: true,
+          message: '子帳號已刪除'
+        });
+      } catch (error) {
+        console.error('刪除子帳號失敗:', error);
+        res.status(500).json({
+          success: false,
+          message: '系統錯誤，請稍後再試'
+        });
+      }
+    });
     
     // 先啟動Express服務器，確保 Render 能檢測到端口
     const PORT = process.env.PORT || 3003;
@@ -8208,10 +8710,13 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     
     console.log('📊 代理層級分析查詢:', { queryAgentId, startDate, endDate, username, targetAgent });
     
-    // 查詢本級下所有直屬代理
+    // 查詢本級下所有直屬代理（包含退水百分比）
     const agents = await db.any(`SELECT * FROM agents WHERE parent_id = $1 AND status = 1`, [queryAgentId]);
     // 查詢本級下所有直屬會員
     const members = await db.any(`SELECT * FROM members WHERE agent_id = $1 AND status = 1`, [queryAgentId]);
+    
+    // 獲取查詢代理的退水百分比
+    const queryAgentRebate = parseFloat(queryAgent.rebate_percentage || 0);
     
     console.log(`📈 查詢結果: ${agents.length}個代理, ${members.length}個會員`);
     
@@ -8247,6 +8752,11 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       }
       
+      // 計算賺水：查詢代理的退水% - 下級代理的退水%
+      const agentRebatePercentage = parseFloat(agent.rebate_percentage || 0);
+      const earnedRebatePercentage = queryAgentRebate - agentRebatePercentage;
+      const earnedRebateAmount = parseFloat(stats.betamount || 0) * earnedRebatePercentage;
+      
       return {
         id: agent.id,
         username: agent.username,
@@ -8257,6 +8767,9 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         betAmount: parseFloat(stats.betamount) || 0,
         validAmount: parseFloat(stats.betamount) || 0,
         memberWinLoss: parseFloat(stats.memberwinloss) || 0,
+        rebatePercentage: agentRebatePercentage,
+        earnedRebatePercentage: earnedRebatePercentage,
+        earnedRebateAmount: earnedRebateAmount,
         hasDownline: true
       };
     }));
@@ -8281,6 +8794,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       }
       
+      // 會員沒有退水，所以查詢代理賺取全部退水
+      const earnedRebatePercentage = queryAgentRebate;
+      const earnedRebateAmount = parseFloat(stats.betamount || 0) * earnedRebatePercentage;
+      
       return {
         id: member.id,
         username: member.username,
@@ -8291,6 +8808,9 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         betAmount: parseFloat(stats.betamount) || 0,
         validAmount: parseFloat(stats.betamount) || 0,
         memberWinLoss: parseFloat(stats.memberwinloss) || 0,
+        rebatePercentage: 0, // 會員沒有退水
+        earnedRebatePercentage: earnedRebatePercentage,
+        earnedRebateAmount: earnedRebateAmount,
         hasDownline: false
       };
     }));
@@ -8300,7 +8820,8 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       betCount: reportData.reduce((a, b) => a + (b.betCount || 0), 0),
       betAmount: reportData.reduce((a, b) => a + (b.betAmount || 0), 0),
       validAmount: reportData.reduce((a, b) => a + (b.validAmount || 0), 0),
-      memberWinLoss: reportData.reduce((a, b) => a + (b.memberWinLoss || 0), 0)
+      memberWinLoss: reportData.reduce((a, b) => a + (b.memberWinLoss || 0), 0),
+      earnedRebateAmount: reportData.reduce((a, b) => a + (b.earnedRebateAmount || 0), 0)
     };
     
     // 添加agentInfo字段
@@ -8327,39 +8848,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
   }
 });
 
-app.get(`${API_PREFIX}/reports/export`, async (req, res) => {
-  try {
-    // 使用通用認證中間件
-    const authResult = await authenticateAgent(req);
-    if (!authResult.success) {
-      return res.status(401).json(authResult);
-    }
 
-    const { agent } = authResult;
-
-    // 簡化版：返回CSV格式數據
-    const { startDate, endDate } = req.query;
-    
-    // 構建CSV內容
-    const headers = ['期號', '用戶名', '遊戲類型', '投注內容', '下注金額', '有效金額', '盈虧', '退水', '所屬代理', '佔成', '代理結果', '上交', '時間'];
-    let csvContent = headers.join(',') + '\n';
-    
-    // 由於需要Excel格式，這裡先返回CSV，實際應該使用xlsx庫
-    csvContent += `示例數據,${agent.username},AR PK10,單號投注,100,100,-100,2,ti2025,10%,-10,85,${new Date().toISOString()}\n`;
-    
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=report_${startDate}_${endDate}.csv`);
-    res.send(csvContent);
-
-  } catch (error) {
-    console.error('匯出報表失敗:', error);
-    res.status(500).json({
-      success: false,
-      message: '匯出報表失敗',
-      error: error.message
-    });
-  }
-});
 
 // 創建通用認證中間件
 async function authenticateAgent(req) {
@@ -8498,12 +8987,18 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
             ${whereClause.replace(/\$(\d+)/g, (match, p1) => `$${parseInt(p1) + 1}`)}
             GROUP BY am.agent_id, am.agent_username, am.level
           )
-          SELECT agent_id, agent_username, level, bet_count, total_bet_amount, total_win_amount
-          FROM bet_stats
-          WHERE bet_count > 0
-          ORDER BY agent_username
+          SELECT bs.agent_id, bs.agent_username, bs.level, bs.bet_count, bs.total_bet_amount, bs.total_win_amount,
+                 a.balance, a.rebate_percentage
+          FROM bet_stats bs
+          INNER JOIN agents a ON a.id = bs.agent_id
+          WHERE bs.bet_count > 0
+          ORDER BY bs.agent_username
         `;
         const agentStats = await db.any(agentQuery, [targetAgentId].concat(params));
+        
+        // 獲取當前查詢代理的退水百分比
+        const targetAgent = await db.oneOrNone('SELECT rebate_percentage FROM agents WHERE id = $1', [targetAgentId]);
+        const targetAgentRebate = parseFloat(targetAgent?.rebate_percentage || 0.041);
         
         // 2. 獲取直接會員的統計
         const memberQuery = `
@@ -8523,27 +9018,40 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         // 處理代理數據
         for (const agent of agentStats) {
           if (parseInt(agent.bet_count) > 0) {
+            const agentRebatePercentage = parseFloat(agent.rebate_percentage || 0);
+            const earnedRebatePercentage = targetAgentRebate - agentRebatePercentage;
+            const earnedRebateAmount = parseFloat(agent.total_bet_amount) * earnedRebatePercentage;
+            
             reportData.push({
               type: 'agent',
               id: agent.agent_id,
               username: agent.agent_username,
               level: agent.level,
+              balance: parseFloat(agent.balance || 0),
               betCount: parseInt(agent.bet_count),
               betAmount: parseFloat(agent.total_bet_amount),
               winAmount: parseFloat(agent.total_win_amount),
               memberWinLoss: parseFloat(agent.total_win_amount) - parseFloat(agent.total_bet_amount),
+              rebatePercentage: agentRebatePercentage,
+              earnedRebatePercentage: earnedRebatePercentage,
+              earnedRebateAmount: earnedRebateAmount,
               hasActivity: true
             });
             
             totalSummary.betCount += parseInt(agent.bet_count);
             totalSummary.betAmount += parseFloat(agent.total_bet_amount);
             totalSummary.memberWinLoss += parseFloat(agent.total_win_amount) - parseFloat(agent.total_bet_amount);
+            totalSummary.rebateProfit += earnedRebateAmount;
           }
         }
         
         // 處理會員數據
         for (const member of memberStats) {
           if (parseInt(member.bet_count) > 0) {
+            // 會員沒有退水，所以代理賺取全部退水
+            const earnedRebatePercentage = targetAgentRebate;
+            const earnedRebateAmount = parseFloat(member.total_bet_amount) * earnedRebatePercentage;
+            
             reportData.push({
               type: 'member',
               id: member.id,
@@ -8553,12 +9061,16 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
               betAmount: parseFloat(member.total_bet_amount),
               winAmount: parseFloat(member.total_win_amount),
               memberWinLoss: parseFloat(member.total_win_amount) - parseFloat(member.total_bet_amount),
+              rebatePercentage: 0, // 會員沒有退水
+              earnedRebatePercentage: earnedRebatePercentage,
+              earnedRebateAmount: earnedRebateAmount,
               hasActivity: true
             });
             
             totalSummary.betCount += parseInt(member.bet_count);
             totalSummary.betAmount += parseFloat(member.total_bet_amount);
             totalSummary.memberWinLoss += parseFloat(member.total_win_amount) - parseFloat(member.total_bet_amount);
+            totalSummary.rebateProfit += earnedRebateAmount;
           }
         }
         
@@ -8567,6 +9079,8 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         // 計算其他統計值
         totalSummary.validAmount = totalSummary.betAmount;
         totalSummary.profitLoss = -totalSummary.memberWinLoss; // 平台盈虧與會員輸贏相反
+        totalSummary.earnedRebateAmount = totalSummary.rebateProfit; // 賺水總額
+        totalSummary.finalProfitLoss = totalSummary.profitLoss + totalSummary.rebateProfit; // 最終盈虧（含退水）
         
       } catch (dbError) {
         console.log('統計查詢出錯，嘗試簡化查詢:', dbError.message);
