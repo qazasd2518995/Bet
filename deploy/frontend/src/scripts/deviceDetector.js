@@ -1,57 +1,57 @@
 /**
- * 設備檢測模組
- * 自動檢測用戶設備類型並應用相應CSS樣式
+ * 设备检测模組
+ * 自動检测用戶设备类型並應用相應CSS樣式
  */
 
-// 設備類型枚舉
+// 设备类型枚举
 const DeviceType = {
   MOBILE: 'mobile',
   DESKTOP: 'desktop'
 };
 
-// 設備檢測功能
+// 设备检测功能
 const DeviceDetector = {
   /**
-   * 檢測當前設備類型
-   * @returns {string} 設備類型: 'mobile' 或 'desktop'
+   * 检测当前设备类型
+   * @returns {string} 设备类型: 'mobile' 或 'desktop'
    */
   detectDevice: function() {
-    // 使用 navigator.userAgent 進行基本檢測
+    // 使用 navigator.userAgent 进行基本检测
     const userAgent = navigator.userAgent.toLowerCase();
     const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent);
     
-    // 檢查視窗寬度作為補充判斷
+    // 检查視窗寬度作为補充判断
     const isSmallScreen = window.innerWidth < 1024;
     
-    // 返回設備類型
+    // 返回设备类型
     return (isMobile || isSmallScreen) ? DeviceType.MOBILE : DeviceType.DESKTOP;
   },
   
   /**
-   * 應用設備相關類別到 body 元素
+   * 應用设备相关類別到 body 元素
    */
   applyDeviceClass: function() {
     const deviceType = this.detectDevice();
     const bodyElement = document.body;
     
-    // 移除所有設備相關類別
+    // 移除所有设备相关類別
     bodyElement.classList.remove('device-mobile', 'device-desktop');
     
-    // 添加當前設備類別
+    // 添加当前设备類別
     bodyElement.classList.add(`device-${deviceType}`);
     
-    // 返回檢測到的設備類型
+    // 返回检测到的设备类型
     return deviceType;
   },
   
   /**
-   * 在窗口大小改變時重新檢測
+   * 在窗口大小改變时重新检测
    */
   setupResizeListener: function() {
     let resizeTimeout;
     
     window.addEventListener('resize', () => {
-      // 防抖動處理，避免頻繁觸發
+      // 防抖動处理，避免频繁觸發
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         this.applyDeviceClass();
@@ -60,10 +60,10 @@ const DeviceDetector = {
   },
   
   /**
-   * 初始化設備檢測
+   * 初始化设备检测
    */
   init: function() {
-    // 頁面載入時，檢測並應用設備類型
+    // 页面载入时，检测並應用设备类型
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         this.applyDeviceClass();
@@ -81,5 +81,5 @@ const DeviceDetector = {
 // 立即初始化
 DeviceDetector.init();
 
-// 導出模組供外部使用
+// 导出模組供外部使用
 window.DeviceDetector = DeviceDetector; 

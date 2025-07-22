@@ -1,5 +1,5 @@
 // filepath: /Users/justin/Desktop/Bet/frontend/src/components/DrawHistory.js
-// 开奖历史組件 - 顯示历史开奖结果，支持多種視圖模式
+// 开奖历史組件 - 显示历史开奖结果，支持多種視圖模式
 Vue.component('draw-history', {
   template: /* html */`
     <div class="draw-history">
@@ -12,8 +12,8 @@ Vue.component('draw-history', {
         <div class="tabs">
           <div :class="['tab', viewMode === 'number' ? 'active' : '']" @click="viewMode = 'number'">号码</div>
           <div :class="['tab', viewMode === 'bigSmall' ? 'active' : '']" @click="viewMode = 'bigSmall'">大小</div>
-          <div :class="['tab', viewMode === 'oddEven' ? 'active' : '']" @click="viewMode = 'oddEven'">單雙</div>
-          <div :class="['tab', viewMode === 'dragonTiger' ? 'active' : '']" @click="viewMode = 'dragonTiger'">冠亞和/龍虎</div>
+          <div :class="['tab', viewMode === 'oddEven' ? 'active' : '']" @click="viewMode = 'oddEven'">單双</div>
+          <div :class="['tab', viewMode === 'dragonTiger' ? 'active' : '']" @click="viewMode = 'dragonTiger'">冠亞和/龙虎</div>
         </div>
       </div>
       
@@ -31,7 +31,7 @@ Vue.component('draw-history', {
           </div>
           
           <div class="weekdays">
-            <div class="weekday" v-for="day in ['週日', '週一', '週二', '週三', '週四', '週五', '週六']">{{ day }}</div>
+            <div class="weekday" v-for="day in ['周日', '周一', '周二', '周三', '周四', '周五', '周六']">{{ day }}</div>
           </div>
           
           <div class="days">
@@ -83,7 +83,7 @@ Vue.component('draw-history', {
           </div>
         </div>
         
-        <!-- 單雙視圖 -->
+        <!-- 單双視圖 -->
         <div v-if="viewMode === 'oddEven'" class="oddeven-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -93,13 +93,13 @@ Vue.component('draw-history', {
             <div class="result-indicators">
               <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
                    :class="['indicator', number % 2 === 1 ? 'odd' : 'even']">
-                {{ number % 2 === 1 ? '單' : '雙' }}
+                {{ number % 2 === 1 ? '單' : '双' }}
               </div>
             </div>
           </div>
         </div>
         
-        <!-- 冠亞和/龍虎視圖 -->
+        <!-- 冠亞和/龙虎視圖 -->
         <div v-if="viewMode === 'dragonTiger'" class="dragontiger-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -115,14 +115,14 @@ Vue.component('draw-history', {
               </div>
               <div class="dragon-tiger">
                 <span :class="record.result[0] > record.result[1] ? 'dragon' : 'tiger'">
-                  {{ record.result[0] > record.result[1] ? '龍' : '虎' }}
+                  {{ record.result[0] > record.result[1] ? '龙' : '虎' }}
                 </span>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- 加載更多按鈕 -->
+        <!-- 加载更多按钮 -->
         <div class="load-more" @click="loadMoreHistory" v-if="hasMoreHistory">
           查看更多开奖结果
         </div>
@@ -146,13 +146,13 @@ Vue.component('draw-history', {
     return {
       viewMode: 'number', // 視圖模式: number, bigSmall, oddEven, dragonTiger
       historyRecords: [], // 历史记录
-      selectedDate: new Date(), // 当前選中日期
+      selectedDate: new Date(), // 当前选中日期
       currentYear: new Date().getFullYear(), // 当前日曆年份
       currentMonth: new Date().getMonth() + 1, // 当前日曆月份
-      showDatePicker: false, // 是否顯示日期选择器
+      showDatePicker: false, // 是否显示日期选择器
       hasMoreHistory: true, // 是否有更多历史记录
-      page: 1, // 当前頁碼
-      itemsPerPage: 10 // 每頁记录數
+      page: 1, // 当前页碼
+      itemsPerPage: 10 // 每页记录數
     };
   },
   
@@ -169,11 +169,11 @@ Vue.component('draw-history', {
       // 获取当前月份第一天是星期幾
       const firstDayWeekday = firstDayOfMonth.getDay();
       
-      // 获取上個月的最后幾天
+      // 获取上个月的最后幾天
       const days = [];
       const prevMonthLastDay = new Date(year, month, 0).getDate();
       
-      // 添加上個月的日期
+      // 添加上个月的日期
       for (let i = 0; i < firstDayWeekday; i++) {
         const date = new Date(year, month - 1, prevMonthLastDay - firstDayWeekday + i + 1);
         days.push({ date, currentMonth: false });
@@ -185,7 +185,7 @@ Vue.component('draw-history', {
         days.push({ date, currentMonth: true });
       }
       
-      // 添加下個月的日期
+      // 添加下个月的日期
       const remainingDays = 42 - days.length;
       for (let i = 1; i <= remainingDays; i++) {
         const date = new Date(year, month + 1, i);
@@ -212,7 +212,7 @@ Vue.component('draw-history', {
     // 载入历史记录
     async loadHistoryRecords() {
       try {
-        // 格式化日期為YYYYMMDD格式
+        // 格式化日期为YYYYMMDD格式
         const dateStr = this.formatDateForApi(this.selectedDate);
         
         const response = await axios.get(`${API_BASE_URL}/history`, {
@@ -227,11 +227,11 @@ Vue.component('draw-history', {
           // 首次载入替換所有记录
           this.historyRecords = response.data || [];
         } else {
-          // 加載更多時追加记录
+          // 加载更多时追加记录
           this.historyRecords = [...this.historyRecords, ...(response.data || [])];
         }
         
-        // 判斷是否還有更多记录
+        // 判断是否还有更多记录
         this.hasMoreHistory = (response.data || []).length >= this.itemsPerPage;
       } catch (error) {
         console.error('获取历史记录失败:', error);
@@ -279,23 +279,23 @@ Vue.component('draw-history', {
       // 簡化版先不實現
     },
     
-    // 格式化日期顯示
+    // 格式化日期显示
     formatDate(date) {
       if (!date) return '';
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     },
     
-    // 格式化日期為API请求格式
+    // 格式化日期为API请求格式
     formatDateForApi(date) {
       if (!date) return '';
       return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
     },
     
-    // 格式化时间顯示
+    // 格式化时间显示
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      // 轉換為台北時區顯示 - 手動加8小時
+      // 转換为台北时區显示 - 手動加8小时
       const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
       const hours = taipeiTime.getHours().toString().padStart(2, '0');
       const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
@@ -332,7 +332,7 @@ Vue.component('draw-history', {
       if (sum % 2 === 1) {
         label += '單';
       } else {
-        label += '雙';
+        label += '双';
       }
       
       return label;
