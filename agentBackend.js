@@ -2503,16 +2503,37 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       `, [subAccount.id]);
       
       // 設置 user 為子帳號，但使用父代理的基本信息
+      console.log('子帳號登入 - 查詢結果:', {
+        subAccountUsername: subAccount.username,
+        parentAgentId: subAccount.parent_agent_id,
+        parentAgentLevel: subAccount.parent_agent_level,
+        parentAgentUsername: subAccount.parent_agent_username
+      });
+      
+      // 獲取父代理的完整信息
+      const parentAgent = await AgentModel.findById(subAccount.parent_agent_id);
+      if (!parentAgent) {
+        return res.json({
+          success: false,
+          message: '父代理不存在'
+        });
+      }
+      
       user = {
-        id: subAccount.parent_agent_id,
+        id: parentAgent.id,
         username: subAccount.username,
-        level: subAccount.parent_agent_level, // 使用父代理的等級
-        balance: '0.00',
-        commission_balance: '0.00',
+        level: parentAgent.level, // 使用父代理的等級
+        balance: parentAgent.balance,
+        commission_balance: parentAgent.commission_balance,
         status: subAccount.status,
+        rebate_percentage: parentAgent.rebate_percentage,
+        max_rebate_percentage: parentAgent.max_rebate_percentage,
+        rebate_mode: parentAgent.rebate_mode,
+        market_type: parentAgent.market_type,
+        betting_limit_level: parentAgent.betting_limit_level,
         is_sub_account: true,
         sub_account_id: subAccount.id,
-        parent_agent_username: subAccount.parent_agent_username
+        parent_agent_username: parentAgent.username
       };
       
       isSubAccount = true;
@@ -2563,22 +2584,32 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
     
     console.log(`✅ ${isSubAccount ? '子帳號' : '代理'}登入成功: ${username} (ID: ${user.id}), IP: ${ipAddress}`);
     
+    // 在返回之前記錄將要發送的數據
+    const responseAgent = {
+      id: user.id,
+      username: user.username,
+      level: user.level,
+      balance: user.balance,
+      commission_balance: user.commission_balance,
+      rebate_percentage: user.rebate_percentage,
+      max_rebate_percentage: user.max_rebate_percentage,
+      rebate_mode: user.rebate_mode,
+      market_type: user.market_type || 'D', // 添加盤口類型
+      betting_limit_level: user.betting_limit_level || 'level3', // 添加限紅等級
+      is_sub_account: user.is_sub_account || false // 添加子帳號標記
+    };
+    
+    console.log('登入響應 - 即將發送的代理數據:', {
+      id: responseAgent.id,
+      username: responseAgent.username,
+      level: responseAgent.level,
+      is_sub_account: responseAgent.is_sub_account
+    });
+    
     res.json({
       success: true,
       message: '登入成功',
-      agent: {
-        id: user.id,
-        username: user.username,
-        level: user.level,
-        balance: user.balance,
-        commission_balance: user.commission_balance,
-        rebate_percentage: user.rebate_percentage,
-        max_rebate_percentage: user.max_rebate_percentage,
-        rebate_mode: user.rebate_mode,
-        market_type: user.market_type || 'D', // 添加盤口類型
-        betting_limit_level: user.betting_limit_level || 'level3', // 添加限紅等級
-        is_sub_account: user.is_sub_account || false // 添加子帳號標記
-      },
+      agent: responseAgent,
       token: legacyToken,
       sessionToken: sessionToken // 新的會話token
     });

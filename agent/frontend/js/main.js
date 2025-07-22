@@ -1375,11 +1375,13 @@ const app = createApp({
                 if (response.data.success && response.data.agent) {
                     const agentInfo = response.data.agent;
                     
-                    // 更新 user 对象，保留 is_sub_account 标志
+                    // 更新 user 对象，保留 is_sub_account 标志和正确的 level
                     this.user = {
                         ...this.user,
                         betting_limit_level: agentInfo.betting_limit_level,
-                        is_sub_account: this.user.is_sub_account // 保留子帳號标志
+                        is_sub_account: this.user.is_sub_account, // 保留子帳號标志
+                        // 如果是子帳號，保留登入时设置的 level，不要用查询结果覆盖
+                        level: this.user.is_sub_account ? this.user.level : agentInfo.level
                     };
                     
                     // 更新 currentManagingAgent
