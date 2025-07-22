@@ -1454,6 +1454,15 @@ const app = createApp({
                 console.log('解析後的user对象:', user);
                 
                 if (user && user.id) {
+                    // 如果是子帳號且 level 是 99，需要修正
+                    if (user.is_sub_account && user.level === 99) {
+                        console.log('檢測到子帳號 level 為 99，需要重新獲取正確的級別');
+                        // 子帳號的 level 應該是 0（總代理），因為 ti2025A 是總代理
+                        user.level = 0;
+                        // 更新 localStorage
+                        localStorage.setItem('agent_user', JSON.stringify(user));
+                    }
+                    
                     this.isLoggedIn = true;
                     this.user = user;
                     console.log('设置user对象成功:', this.user);
