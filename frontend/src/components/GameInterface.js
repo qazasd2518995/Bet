@@ -18,7 +18,7 @@ Vue.component('game-interface', {
     <div class="game-interface game-container">
       <!-- 比赛结果显示區 -->
       <div class="race-result">
-        <h2 class="result-title">FS赛车 第{{currentPeriod}}期</h2>
+        <h2 class="result-title">FS金彩赛车 第{{currentPeriod}}期</h2>
         <div class="countdown">
           <div class="countdown-label">距离下期开奖:</div>
           <div class="countdown-timer">{{formatCountdown(countdown)}}</div>
