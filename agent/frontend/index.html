@@ -15,7 +15,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- 自定义樣式 - 添加版本號防止緩存 -->
-    <link rel="stylesheet" href="css/main.css?v=20250708006">
+    <link rel="stylesheet" href="css/main.css?v=20250723001">
     <style>
         /* 防止Vue模板闪現 */
         [v-cloak] {
@@ -179,6 +179,19 @@
     </style>
 </head>
 <body>
+    <script>
+        // 檢查是否應該使用新的登入頁面
+        const agentToken = localStorage.getItem('agent_token');
+        const agentUser = localStorage.getItem('agent_user');
+        
+        if (!agentToken || !agentUser) {
+            // 如果未登入，立即重定向到新的登入頁面
+            window.location.replace('/login.html');
+            // 停止執行後續代碼
+            throw new Error('Redirecting to login page');
+        }
+    </script>
+    
     <!-- 初始加载遮罩層 -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading-spinner"></div>
@@ -187,8 +200,8 @@
     </div>
     
     <div id="app" v-cloak>
-        <!-- 登录页面 -->
-        <div v-if="!isLoggedIn" class="container login-container">
+        <!-- 登录页面 (應該不會顯示，因為會重定向) -->
+        <div v-if="!isLoggedIn" class="container login-container" style="display: none;">
             <div class="row justify-content-center">
                 <div class="col-md-6 col-lg-5">
                     <div class="card shadow">
@@ -3900,7 +3913,7 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- 主要JS文件 - 添加版本號防止緩存 -->
-    <script src="js/main.js?v=20250722002"></script>
+    <script src="js/main.js?v=20250723001"></script>
     <script>
         async function updateProfile() {
             console.log('开始更新个人资料...');

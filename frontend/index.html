@@ -7307,7 +7307,7 @@
                 return {
                     API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
                         ? 'http://localhost:3000' 
-                        : '', // 在production环境中使用相同域名
+                        : window.location.origin, // 使用完整的origin確保API路徑正確
                     // 用戶相关
                     isLoggedIn: false,
                     username: '',

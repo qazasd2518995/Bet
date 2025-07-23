@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 連接診斷</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-item {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #ddd;
+        }
+        .test-item.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-item.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-item.pending {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .url {
+            font-family: monospace;
+            word-break: break-all;
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 3px;
+        }
+        .result {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .error-detail {
+            color: #721c24;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FS金彩賽車 API 連接診斷</h1>
+        <div id="tests"></div>
+        <button onclick="runTests()">重新測試</button>
+    </div>
+
+    <script>
+        const apiEndpoints = [
+            { name: '遊戲數據 API', url: '/api/game-data', method: 'GET' },
+            { name: '近期開獎結果 API', url: '/api/recent-results', method: 'GET' },
+            { name: '熱門投注 API', url: '/api/hot-bets', method: 'GET' },
+            { name: '歷史記錄 API', url: '/api/history?limit=1', method: 'GET' },
+            { name: '最新結果 API', url: '/api/results/latest', method: 'GET' },
+            { name: '長龍排行 API', url: '/api/dragon-ranking', method: 'GET' }
+        ];
+
+        async function testEndpoint(endpoint) {
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-item pending';
+            testDiv.innerHTML = `
+                <h3>${endpoint.name}</h3>
+                <div class="url">${endpoint.url}</div>
+                <div class="result">測試中...</div>
+            `;
+            document.getElementById('tests').appendChild(testDiv);
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(endpoint.url, {
+                    method: endpoint.method,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    testDiv.className = 'test-item success';
+                    testDiv.querySelector('.result').innerHTML = `
+                        ✅ 成功 (${response.status})
+                        <br>響應時間: ${responseTime}ms
+                        <br>數據: ${JSON.stringify(data).substring(0, 100)}...
+                    `;
+                } else {
+                    testDiv.className = 'test-item error';
+                    testDiv.querySelector('.result').innerHTML = `
+                        ❌ 失敗 (${response.status})
+                        <br>錯誤: ${data.message || '未知錯誤'}
+                    `;
+                }
+            } catch (error) {
+                testDiv.className = 'test-item error';
+                testDiv.querySelector('.result').innerHTML = `
+                    ❌ 連接失敗
+                    <div class="error-detail">
+                        錯誤類型: ${error.name}<br>
+                        錯誤訊息: ${error.message}<br>
+                        可能原因：<br>
+                        - 後端服務未啟動<br>
+                        - CORS 設置問題<br>
+                        - 網絡連接問題
+                    </div>
+                `;
+            }
+        }
+
+        async function runTests() {
+            document.getElementById('tests').innerHTML = '';
+            
+            // 先測試基本連接
+            const baseTest = document.createElement('div');
+            baseTest.className = 'test-item pending';
+            baseTest.innerHTML = `
+                <h3>基本連接測試</h3>
+                <div class="url">${window.location.origin}</div>
+                <div class="result">測試中...</div>
+            `;
+            document.getElementById('tests').appendChild(baseTest);
+            
+            try {
+                const response = await fetch('/');
+                if (response.ok) {
+                    baseTest.className = 'test-item success';
+                    baseTest.querySelector('.result').innerHTML = '✅ 網站可以訪問';
+                } else {
+                    baseTest.className = 'test-item error';
+                    baseTest.querySelector('.result').innerHTML = `❌ 網站訪問失敗 (${response.status})`;
+                }
+            } catch (error) {
+                baseTest.className = 'test-item error';
+                baseTest.querySelector('.result').innerHTML = `❌ 無法連接到網站: ${error.message}`;
+            }
+            
+            // 測試各個 API 端點
+            for (const endpoint of apiEndpoints) {
+                await testEndpoint(endpoint);
+                // 避免太快發送請求
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        // 頁面加載時自動運行測試
+        window.onload = runTests;
+    </script>
+</body>
+</html>

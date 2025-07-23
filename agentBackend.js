@@ -26,10 +26,10 @@ const port = process.env.PORT || 3003; // 使用不同於主遊戲系統的端�
 // 跨域設置 - 加強本地開發支持
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://bet-game.onrender.com', 'https://bet-agent.onrender.com'] 
+    ? ['https://bet-game.onrender.com', 'https://bet-game-vcje.onrender.com', 'https://bet-agent.onrender.com'] 
     : ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:3003', 'http://127.0.0.1:3003', 'http://localhost:8081', 'http://127.0.0.1:8081'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Session-Token'],
   credentials: true
 }));
 
