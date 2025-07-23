@@ -7378,6 +7378,7 @@
                     
                     // 投注记录
                     betRecords: [],
+                    betHistory: [], // 投注历史记录
                     betRecordsPagination: {
                         page: 1,
                         pageSize: 20,
@@ -7386,6 +7387,7 @@
                     
                     // 历史开奖记录
                     historyRecords: [],
+                    recentResults: [], // 最近开奖结果，用于显示在历史开奖弹窗中
                     historyPagination: {
                         page: 1,
                         pageSize: 20,
@@ -9187,15 +9189,19 @@
                             .then(data => {
                                 console.log('获取最近10期开奖记录:', data);
                                 if (data.success && Array.isArray(data.data)) {
-                                    // 过滤掉未来期數（期號大於当前期號的）
-                                    const currentPeriodNum = parseInt(this.currentPeriod);
-                                    const filteredRecords = data.data.filter(record => {
-                                        const recordPeriodNum = parseInt(record.period);
-                                        return recordPeriodNum < currentPeriodNum;
-                                    });
-                                    
-                                    this.recentResults = filteredRecords;
-                                    console.log('近期开奖记录更新成功，记录数量:', filteredRecords.length);
+                                    // 如果有當前期號，過濾掉未來期數
+                                    if (this.currentPeriod && this.currentPeriod !== '') {
+                                        const currentPeriodNum = parseInt(this.currentPeriod);
+                                        const filteredRecords = data.data.filter(record => {
+                                            const recordPeriodNum = parseInt(record.period);
+                                            return recordPeriodNum < currentPeriodNum;
+                                        });
+                                        this.recentResults = filteredRecords;
+                                    } else {
+                                        // 沒有當前期號時，直接使用所有數據
+                                        this.recentResults = data.data;
+                                    }
+                                    console.log('近期开奖记录更新成功，记录数量:', this.recentResults.length);
                                 } else {
                                     console.error('近期开奖API返回异常数据格式:', data);
                                     this.recentResults = [];
@@ -9218,15 +9224,19 @@
                                 console.log('开奖历史API返回数据:', JSON.stringify(data).substring(0, 200) + '...');
                                 // 更新历史记录 - 修正数据結構处理
                                 if (data.success && Array.isArray(data.records)) {
-                                    // 过滤掉未来期數（期號大於当前期號的）
-                                    const currentPeriodNum = parseInt(this.currentPeriod);
-                                    const filteredRecords = data.records.filter(record => {
-                                        const recordPeriodNum = parseInt(record.period);
-                                        return recordPeriodNum < currentPeriodNum;
-                                    });
-                                    
-                                    this.recentResults = filteredRecords;
-                                    console.log('开奖历史更新成功，记录数量:', filteredRecords.length);
+                                    // 如果有當前期號，過濾掉未來期數
+                                    if (this.currentPeriod && this.currentPeriod !== '') {
+                                        const currentPeriodNum = parseInt(this.currentPeriod);
+                                        const filteredRecords = data.records.filter(record => {
+                                            const recordPeriodNum = parseInt(record.period);
+                                            return recordPeriodNum < currentPeriodNum;
+                                        });
+                                        this.recentResults = filteredRecords;
+                                    } else {
+                                        // 沒有當前期號時，直接使用所有數據
+                                        this.recentResults = data.records;
+                                    }
+                                    console.log('开奖历史更新成功，记录数量:', this.recentResults.length);
                                 } else {
                                     // 當 API 返回格式不正确或为空时的处理
                                     console.error('开奖历史API返回异常数据格式:', data);
