@@ -592,7 +592,9 @@
         }
         
         .history-header {
-            background-color: #0e6f3d;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             padding: 10px 15px;
             display: flex;
@@ -830,7 +832,9 @@
         /* 盈亏记录模態框樣式 - 由外部CSS文件控制 */
         
         .detail-header {
-            background-color: #0e6f3d;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             padding: 20px 25px;
             display: flex;
@@ -1578,6 +1582,14 @@
             min-height: 45px;
             padding: 8px 4px;
             border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        /* 確保只有選中的數字選項才顯示選中樣式 */
+        .betting-options.numbers .option.selected {
+            background: linear-gradient(135deg, #ffd700, #ff6b6b) !important;
+            border-color: #ffd700 !important;
         }
         
         .betting-options.numbers .option span:first-child {
@@ -2132,12 +2144,15 @@
         }
 
         .draw-history-header {
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
+            color: white;
             padding: 15px 20px;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             border-radius: 15px 15px 0 0;
         }
 
@@ -3569,7 +3584,9 @@
 
         /* 簡潔标题欄樣式 */
         .simple-header {
-            background: #6c5ce7;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             padding: 20px;
             display: flex;
@@ -4426,7 +4443,9 @@
             justify-content: space-between;
             padding: 20px 24px;
             border-bottom: 2px solid #f0f2f5;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             border-radius: 12px 12px 0 0;
         }
@@ -4955,7 +4974,9 @@
         .login-header,
         .register-header,
         .road-bead-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             padding: 20px 25px;
             display: flex;
             justify-content: space-between;
@@ -5148,7 +5169,9 @@
         }
         
         .road-bead-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             padding: 20px;
             display: flex;
@@ -5729,7 +5752,9 @@
         }
 
         .bet-limits-header {
-            background: linear-gradient(135deg, #007bff, #0056b3);
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             padding: 20px;
             border-radius: 12px 12px 0 0;
@@ -5917,7 +5942,9 @@
         }
         
         .change-password-header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), url('cyberpunk-car-navbar.png');
+            background-size: cover;
+            background-position: center;
             color: white;
             padding: 20px;
             border-radius: 12px 12px 0 0;
@@ -6084,9 +6111,9 @@
                             <button class="dropdown-action" @click="showDragonRanking">
                                 <span>长龙排行</span>
                             </button>
-                            <button class="dropdown-action" @click="showThemeSelector">
+                            <!-- <button class="dropdown-action" @click="showThemeSelector">
                                 <span>換膚主题</span>
-                            </button>
+                            </button> -->
                             <button class="dropdown-action" @click="showRoadBead">
                                 <span>路珠走势</span>
                             </button>
