@@ -43,9 +43,15 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* 賽車背景圖片 - 使用您提供的圖片 */
-            background: url('cyberpunk-car.jpg') center/cover no-repeat;
-            filter: brightness(0.4) contrast(1.2);
+            /* 賽車背景圖片 - 賽博朋克風格 */
+            background: 
+                linear-gradient(
+                    rgba(138, 43, 226, 0.15) 0%, 
+                    rgba(0, 0, 0, 0.3) 50%, 
+                    rgba(255, 0, 110, 0.15) 100%
+                ),
+                url('cyberpunk-car.jpg') center/cover no-repeat;
+            filter: brightness(0.7) contrast(1.2) saturate(1.1);
             animation: zoomEffect 30s ease-in-out infinite;
         }
 
