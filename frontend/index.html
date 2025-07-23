@@ -7331,6 +7331,7 @@
                 racingInterval: null, // 赛车竞赛動畫计时器
                     lastResult: [],
                     lastResults: [],
+                    lastResultPeriod: '', // 記錄lastResult對應的期號
                     isRacing: false,
                     showWashingAnimation: false, // 控制是否显示洗球動畫
                     
@@ -8009,10 +8010,34 @@
                                 this.countdownSeconds = serverCountdown;
                                 this.gameStatus = serverStatus;
                                 
-                                // 新期开始时的处理
-                                
+                                // 新期开始时的处理 - 確保顯示正確的上一期結果
                                 if (serverStatus === 'betting') {
                                     console.log(`新一期开始: ${serverPeriod}`);
+                                    
+                                    // 當期號變更時，從歷史記錄獲取正確的上一期結果
+                                    const previousPeriod = (parseInt(serverPeriod) - 1).toString();
+                                    console.log(`獲取上一期 ${previousPeriod} 的結果...`);
+                                    
+                                    fetch(`${this.API_BASE_URL}/api/history?period=${previousPeriod}&limit=1`)
+                                        .then(response => response.json())
+                                        .then(historyData => {
+                                            if (historyData.success && historyData.records && historyData.records.length > 0) {
+                                                const previousResult = historyData.records[0].result;
+                                                console.log(`✅ 獲取到期號 ${previousPeriod} 的正確結果:`, previousResult);
+                                                this.lastResults = previousResult;
+                                                this.lastResult = previousResult;
+                                                
+                                                // 刷新顯示
+                                                this.$nextTick(() => {
+                                                    this.refreshBallColors();
+                                                });
+                                            } else {
+                                                console.log(`⚠️ 未能獲取期號 ${previousPeriod} 的結果`);
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('獲取上一期結果時出錯:', error);
+                                        });
                                     // 强制停止洗球動畫，確保显示數字而非问號
                                     if (this.showWashingAnimation) {
                                         console.log('⚠️ 新期开始时发现洗球動畫仍在播放，强制停止');
@@ -8101,23 +8126,29 @@
                             // 不在这里重置動畫標記，避免重复觸發
                             
                             // 更新其他数据 - 确保動畫使用最新结果
-                            // 總是更新 lastResult，但只在非开奖状态时更新显示结果
+                            // 注意：data.gameData.lastResult 是上一期的結果，不是當前期
                             if (data.gameData.lastResult && data.gameData.lastResult.length > 0) {
-                                // 總是保存最新的结果数据
-                                this.lastResult = data.gameData.lastResult;
-                                console.log(`📋 保存最新开奖结果到 lastResult: 期号=${serverPeriod}`, this.lastResult);
+                                // 計算這個結果對應的期號（當前期號-1）
+                                const resultPeriod = (parseInt(serverPeriod) - 1).toString();
                                 
-                                // 只有在非开奖状态时才更新显示结果
-                                if (!this.isDrawingInProgress) {
-                                    this.lastResults = data.gameData.lastResult;
-                                    console.log(`🎯 更新显示结果: 期号=${serverPeriod}`);
+                                // 檢查緩存的結果是否是正確的期號
+                                if (this.lastResultPeriod !== resultPeriod) {
+                                    console.log(`📋 更新開獎結果: 期號 ${resultPeriod}`, data.gameData.lastResult);
+                                    this.lastResult = data.gameData.lastResult;
+                                    this.lastResultPeriod = resultPeriod;
                                     
-                                    // 刷新球色显示
-                                    this.$nextTick(() => {
-                                        this.refreshBallColors();
-                                    });
-                                } else {
-                                    console.log(`⚠️ 开奖进行中，跳过更新显示结果，但已保存到 lastResult`);
+                                    // 只有在非开奖状态时才更新显示结果
+                                    if (!this.isDrawingInProgress) {
+                                        this.lastResults = data.gameData.lastResult;
+                                        console.log(`🎯 更新顯示結果: 期號 ${resultPeriod}`);
+                                        
+                                        // 刷新球色显示
+                                        this.$nextTick(() => {
+                                            this.refreshBallColors();
+                                        });
+                                    } else {
+                                        console.log(`⚠️ 开奖进行中，跳过更新显示结果，但已保存到 lastResult`);
+                                    }
                                 }
                             }
                             this.nextPeriod = (parseInt(serverPeriod) + 1).toString();
