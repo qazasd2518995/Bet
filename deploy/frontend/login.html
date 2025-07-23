@@ -43,16 +43,29 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* 賽車背景圖片 - 賽博朋克風格 */
+            /* 賽車背景圖片 - 賽博朋克風格 - 高清版本 */
             background: 
                 linear-gradient(
                     rgba(138, 43, 226, 0.15) 0%, 
                     rgba(0, 0, 0, 0.3) 50%, 
                     rgba(255, 0, 110, 0.15) 100%
                 ),
-                url('cyberpunk-car.jpg') center/cover no-repeat;
+                url('cyberpunk-car-hd.jpg') center/cover no-repeat;
             filter: brightness(0.7) contrast(1.2) saturate(1.1);
             animation: zoomEffect 30s ease-in-out infinite;
+            /* 確保高品質渲染 */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            /* 淡入效果 */
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .background-image.loaded {
+            opacity: 1;
         }
 
         @keyframes zoomEffect {
@@ -840,6 +853,14 @@
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
+        
+        // 預載入高清背景圖片
+        const preloadImage = new Image();
+        preloadImage.onload = function() {
+            // 圖片載入完成後，添加載入完成的類別
+            document.querySelector('.background-image').classList.add('loaded');
+        };
+        preloadImage.src = 'cyberpunk-car-hd.jpg';
     </script>
 </body>
 </html>

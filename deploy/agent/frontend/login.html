@@ -37,7 +37,7 @@
             z-index: -2;
         }
 
-        /* F1賽車背景圖片 */
+        /* F1賽車背景圖片 - 高清版本 */
         .background-image {
             position: absolute;
             top: 0;
@@ -46,9 +46,24 @@
             height: 100%;
             background: 
                 radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%),
-                url('f1-racing.jpg') center/cover no-repeat;
+                url('f1-racing-hd.jpg') center/cover no-repeat;
             filter: brightness(0.8) contrast(1.2);
             animation: zoomPulse 20s ease-in-out infinite;
+            /* 確保高品質渲染 */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            background-size: cover;
+            background-position: center center;
+            /* 淡入效果 */
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .background-image.loaded {
+            opacity: 1;
         }
 
         @keyframes zoomPulse {
@@ -786,6 +801,14 @@
 
         // 每隔一段時間生成新火花
         setInterval(createSpark, 300);
+        
+        // 預載入高清背景圖片
+        const preloadImage = new Image();
+        preloadImage.onload = function() {
+            // 圖片載入完成後，添加載入完成的類別
+            document.querySelector('.background-image').classList.add('loaded');
+        };
+        preloadImage.src = 'f1-racing-hd.jpg';
     </script>
 </body>
 </html>
