@@ -3431,9 +3431,14 @@ app.get(`${API_PREFIX}/stats`, async (req, res) => {
 
 // 輸贏控制相關API
   
-// 檢查操作權限 - 只有ti2025A和ti2025D可以使用
+// 檢查操作權限 - 只有特定的總代理帳號可以使用
 const checkWinLossControlPermission = (agent) => {
-  return agent.username === 'ti2025A' || agent.username === 'ti2025D';
+  // 舊帳號名稱（為了相容性）
+  const legacyUsernames = ['ti2025A', 'ti2025D'];
+  // 新帳號名稱
+  const newUsernames = ['MA@x9Kp#2025$zL7', 'MD@y7Rw#2025$qX4'];
+  
+  return legacyUsernames.includes(agent.username) || newUsernames.includes(agent.username);
 };
 
 // 安全記錄輸贏控制日誌的函數
