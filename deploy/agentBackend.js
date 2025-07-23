@@ -1428,6 +1428,7 @@ const AgentModel = {
       console.error('檢查客服權限出錯:', error);
       return false;
     }
+  }
   },
 
   // 更新代理密碼

@@ -1190,43 +1190,6 @@ const SafeDB = {
   }
 };
 
-
-// 安全查詢函數 - 避免 Multiple rows 錯誤
-const SafeDB = {
-  // 安全的單記錄查詢
-  async safeOne(query, params = []) {
-    try {
-      const results = await db.any(query + ' LIMIT 1', params);
-      return results.length > 0 ? results[0] : null;
-    } catch (error) {
-      console.error('SafeDB.safeOne 錯誤:', error);
-      throw error;
-    }
-  },
-  
-  // 安全的計數查詢
-  async safeCount(query, params = []) {
-    try {
-      const result = await db.one(query, params);
-      return parseInt(result.count || result.total || 0);
-    } catch (error) {
-      console.error('SafeDB.safeCount 錯誤:', error);
-      return 0;
-    }
-  },
-  
-  // 安全的存在性檢查
-  async exists(query, params = []) {
-    try {
-      const results = await db.any(query + ' LIMIT 1', params);
-      return results.length > 0;
-    } catch (error) {
-      console.error('SafeDB.exists 錯誤:', error);
-      return false;
-    }
-  }
-};
-
 // 模型: 代理
 const AgentModel = {
   // 獲取代理by用戶名
