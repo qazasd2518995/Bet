@@ -1515,26 +1515,26 @@
             align-items: center;
             justify-content: center;
             padding: 12px 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.1) !important;
             backdrop-filter: blur(5px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2) !important;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             min-height: 60px;
             font-weight: 600;
-            color: #ffffff;
+            color: #ffffff !important;
             text-align: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         
         .option:hover {
-            border-color: #ffd700;
-            background: rgba(255, 255, 255, 0.2);
+            border-color: #ffd700 !important;
+            background: rgba(255, 255, 255, 0.2) !important;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
-            color: #ffffff;
+            color: #ffffff !important;
         }
         
         .option.selected {
@@ -1584,12 +1584,22 @@
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.1) !important;
             border: 2px solid rgba(255, 255, 255, 0.2) !important;
+            color: #ffffff !important;
+        }
+        
+        /* 數字選項hover效果 */
+        .betting-options.numbers .option:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: #ffd700 !important;
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3) !important;
         }
         
         /* 確保只有選中的數字選項才顯示選中樣式 */
         .betting-options.numbers .option.selected {
             background: linear-gradient(135deg, #ffd700, #ff6b6b) !important;
             border-color: #ffd700 !important;
+            color: white !important;
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4) !important;
         }
         
         .betting-options.numbers .option span:first-child {
@@ -7706,8 +7716,8 @@
                 }
                 // 初始化历史开奖记录为空數組，防止undefined错误
                 this.recentResults = [];
-                // 载入主题偏好
-                this.loadThemePreference();
+                // 载入主题偏好 - 已禁用，使用統一的賽博朋克風格
+                // this.loadThemePreference();
                 this.checkLoginStatus();
             },
             computed: {
