@@ -6245,6 +6245,34 @@ app.get('/api/results/latest', async (req, res) => {
   }
 });
 
+// 跑馬燈訊息API
+app.get('/api/marquee-messages', async (req, res) => {
+  try {
+    console.log('收到跑馬燈訊息查詢請求');
+    
+    // 查詢活躍的跑馬燈訊息，按優先級排序
+    const messages = await db.any(`
+      SELECT id, message, priority 
+      FROM marquee_messages 
+      WHERE is_active = true 
+      ORDER BY priority DESC, created_at DESC
+    `);
+    
+    console.log(`返回 ${messages.length} 條跑馬燈訊息`);
+    
+    res.json({
+      success: true,
+      messages: messages
+    });
+  } catch (error) {
+    console.error('獲取跑馬燈訊息失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取跑馬燈訊息失敗'
+    });
+  }
+});
+
 // REST API端點 - 獲取熱門投注
 app.get('/api/hot-bets', (req, res) => {
   console.log('收到熱門投注API請求');

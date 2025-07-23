@@ -4377,6 +4377,126 @@ app.put(`${API_PREFIX}/win-loss-control/:id/deactivate`, async (req, res) => {
   }
 });
 
+// 跑馬燈API
+// 獲取跑馬燈訊息
+app.get(`${API_PREFIX}/marquee-messages`, async (req, res) => {
+  try {
+    console.log('獲取跑馬燈訊息');
+    
+    const messages = await db.any(`
+      SELECT id, message, priority, is_active, created_at 
+      FROM marquee_messages 
+      ORDER BY priority DESC, created_at DESC
+    `);
+    
+    res.json({
+      success: true,
+      messages: messages
+    });
+  } catch (error) {
+    console.error('獲取跑馬燈訊息錯誤:', error);
+    res.status(500).json({ success: false, message: '伺服器錯誤' });
+  }
+});
+
+// 新增跑馬燈訊息
+app.post(`${API_PREFIX}/marquee-messages`, async (req, res) => {
+  try {
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
+    }
+    const { agent } = authResult;
+    
+    // 檢查是否是總代理
+    if (agent.level !== 0) {
+      return res.status(403).json({ success: false, message: '只有總代理可以設定跑馬燈' });
+    }
+
+    const { message, priority = 0 } = req.body;
+    
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: '請提供訊息內容' });
+    }
+
+    const result = await db.one(`
+      INSERT INTO marquee_messages (message, priority, created_by) 
+      VALUES ($1, $2, $3) 
+      RETURNING *
+    `, [message.trim(), priority, agent.id]);
+
+    res.json({
+      success: true,
+      message: '跑馬燈訊息已新增',
+      data: result
+    });
+  } catch (error) {
+    console.error('新增跑馬燈訊息錯誤:', error);
+    res.status(500).json({ success: false, message: '伺服器錯誤' });
+  }
+});
+
+// 更新跑馬燈訊息狀態
+app.put(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
+  try {
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
+    }
+    const { agent } = authResult;
+    
+    // 檢查是否是總代理
+    if (agent.level !== 0) {
+      return res.status(403).json({ success: false, message: '只有總代理可以設定跑馬燈' });
+    }
+
+    const { id } = req.params;
+    const { is_active } = req.body;
+    
+    await db.none(`
+      UPDATE marquee_messages 
+      SET is_active = $1, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = $2
+    `, [is_active, id]);
+
+    res.json({
+      success: true,
+      message: `跑馬燈訊息已${is_active ? '啟用' : '停用'}`
+    });
+  } catch (error) {
+    console.error('更新跑馬燈訊息錯誤:', error);
+    res.status(500).json({ success: false, message: '伺服器錯誤' });
+  }
+});
+
+// 刪除跑馬燈訊息
+app.delete(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
+  try {
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
+    }
+    const { agent } = authResult;
+    
+    // 檢查是否是總代理
+    if (agent.level !== 0) {
+      return res.status(403).json({ success: false, message: '只有總代理可以設定跑馬燈' });
+    }
+
+    const { id } = req.params;
+    
+    await db.none('DELETE FROM marquee_messages WHERE id = $1', [id]);
+
+    res.json({
+      success: true,
+      message: '跑馬燈訊息已刪除'
+    });
+  } catch (error) {
+    console.error('刪除跑馬燈訊息錯誤:', error);
+    res.status(500).json({ success: false, message: '伺服器錯誤' });
+  }
+});
+
 // 獲取代理的會員列表
 app.get(`${API_PREFIX}/members`, async (req, res) => {
   try {

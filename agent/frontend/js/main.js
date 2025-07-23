@@ -430,6 +430,11 @@ const app = createApp({
                 control_mode: 'normal',
                 is_active: false
             },
+            
+            // 跑馬燈相關
+            marqueeMessages: [],
+            newMarqueeMessage: '',
+            newMarqueePriority: 0,
             newWinLossControl: {
                 control_mode: 'normal',
                 target_type: '',
@@ -4995,6 +5000,151 @@ const app = createApp({
             } catch (error) {
                 console.error('删除输赢控制错误:', error);
                 this.showMessage('删除时發生错误', 'error');
+            }
+        },
+        
+        // 跑馬燈相關方法
+        // 載入跑馬燈訊息
+        async loadMarqueeMessages() {
+            try {
+                console.log('載入跑馬燈訊息...');
+                
+                // 設置認證標頭
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.get(`${API_BASE_URL}/marquee-messages`, { headers });
+                
+                if (response.data.success) {
+                    this.marqueeMessages = response.data.messages || [];
+                    console.log('跑馬燈訊息載入成功:', this.marqueeMessages.length, '項');
+                } else {
+                    console.error('載入跑馬燈訊息失敗:', response.data.message);
+                }
+            } catch (error) {
+                console.error('載入跑馬燈訊息錯誤:', error);
+                this.showMessage('載入跑馬燈訊息失敗', 'error');
+            }
+        },
+        
+        // 新增跑馬燈訊息
+        async addMarqueeMessage() {
+            try {
+                if (!this.newMarqueeMessage.trim()) {
+                    this.showMessage('請輸入訊息內容', 'error');
+                    return;
+                }
+                
+                console.log('新增跑馬燈訊息:', this.newMarqueeMessage);
+                
+                // 設置認證標頭
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.post(`${API_BASE_URL}/marquee-messages`, {
+                    message: this.newMarqueeMessage,
+                    priority: this.newMarqueePriority || 0
+                }, { headers });
+                
+                if (response.data.success) {
+                    this.showMessage('跑馬燈訊息已新增', 'success');
+                    this.newMarqueeMessage = '';
+                    this.newMarqueePriority = 0;
+                    await this.loadMarqueeMessages();
+                } else {
+                    this.showMessage('新增失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('新增跑馬燈訊息錯誤:', error);
+                this.showMessage('新增時發生錯誤', 'error');
+            }
+        },
+        
+        // 切換跑馬燈訊息狀態
+        async toggleMarqueeMessage(messageId, isActive) {
+            try {
+                console.log('切換跑馬燈狀態:', messageId, isActive);
+                
+                // 設置認證標頭
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.put(`${API_BASE_URL}/marquee-messages/${messageId}`, {
+                    is_active: isActive
+                }, { headers });
+                
+                if (response.data.success) {
+                    this.showMessage(`跑馬燈訊息已${isActive ? '啟用' : '停用'}`, 'success');
+                    await this.loadMarqueeMessages();
+                } else {
+                    this.showMessage('更新失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('切換跑馬燈狀態錯誤:', error);
+                this.showMessage('更新時發生錯誤', 'error');
+            }
+        },
+        
+        // 刪除跑馬燈訊息
+        async deleteMarqueeMessage(messageId) {
+            try {
+                if (!confirm('確定要刪除此跑馬燈訊息嗎？')) {
+                    return;
+                }
+                
+                console.log('刪除跑馬燈訊息:', messageId);
+                
+                // 設置認證標頭
+                const headers = {};
+                const sessionToken = localStorage.getItem('agent_session_token');
+                const legacyToken = localStorage.getItem('agent_token');
+                
+                if (sessionToken) {
+                    headers['x-session-token'] = sessionToken;
+                    headers['X-Session-Token'] = sessionToken;
+                }
+                if (legacyToken) {
+                    headers['Authorization'] = legacyToken;
+                }
+                
+                const response = await axios.delete(`${API_BASE_URL}/marquee-messages/${messageId}`, { headers });
+                
+                if (response.data.success) {
+                    this.showMessage('跑馬燈訊息已刪除', 'success');
+                    await this.loadMarqueeMessages();
+                } else {
+                    this.showMessage('刪除失敗: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                console.error('刪除跑馬燈訊息錯誤:', error);
+                this.showMessage('刪除時發生錯誤', 'error');
             }
         },
         
