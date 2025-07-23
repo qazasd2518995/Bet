@@ -26,10 +26,10 @@ const port = process.env.PORT || 3003; // 使用不同於主遊戲系統的端�
 // 跨域設置 - 加強本地開發支持
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://bet-game.onrender.com', 'https://bet-agent.onrender.com'] 
+    ? ['https://bet-game.onrender.com', 'https://bet-game-vcje.onrender.com', 'https://bet-agent.onrender.com'] 
     : ['http://localhost:3002', 'http://localhost:3000', 'http://localhost:3003', 'http://127.0.0.1:3003', 'http://localhost:8081', 'http://127.0.0.1:8081'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Session-Token'],
   credentials: true
 }));
 
@@ -38,13 +38,8 @@ app.use(express.json());
 // 提供靜態文件
 app.use(express.static(path.join(__dirname, 'agent/frontend')));
 
-// 主頁面路由 - 直接顯示登入頁面
+// 主頁面路由
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'agent/frontend', 'login.html'));
-});
-
-// 舊的主頁面（系統管理界面）
-app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'agent/frontend', 'index.html'));
 });
 
