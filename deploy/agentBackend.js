@@ -38,8 +38,13 @@ app.use(express.json());
 // 提供靜態文件
 app.use(express.static(path.join(__dirname, 'agent/frontend')));
 
-// 主頁面路由
+// 主頁面路由 - 直接顯示登入頁面
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'agent/frontend', 'login.html'));
+});
+
+// 舊的主頁面（系統管理界面）
+app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'agent/frontend', 'index.html'));
 });
 

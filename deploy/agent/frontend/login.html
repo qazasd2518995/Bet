@@ -712,8 +712,8 @@
                         localStorage.removeItem('rememberedUsername');
                     }
                     
-                    // 跳轉到主頁
-                    window.location.href = '/';
+                    // 跳轉到管理系統主頁
+                    window.location.href = '/admin';
                 } else {
                     showError(data.message || '登录失败，请检查您的账号和密码');
                     refreshCaptcha();

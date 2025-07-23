@@ -180,13 +180,13 @@
 </head>
 <body>
     <script>
-        // 檢查是否應該使用新的登入頁面
+        // 檢查是否已登入
         const agentToken = localStorage.getItem('agent_token');
         const agentUser = localStorage.getItem('agent_user');
         
         if (!agentToken || !agentUser) {
-            // 如果未登入，立即重定向到新的登入頁面
-            window.location.replace('/login.html');
+            // 如果未登入，重定向到根路徑（登入頁面）
+            window.location.replace('/');
             // 停止執行後續代碼
             throw new Error('Redirecting to login page');
         }
