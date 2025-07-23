@@ -179,6 +179,19 @@
     </style>
 </head>
 <body>
+    <script>
+        // 檢查是否應該使用新的登入頁面
+        const agentToken = localStorage.getItem('agent_token');
+        const agentUser = localStorage.getItem('agent_user');
+        
+        if (!agentToken || !agentUser) {
+            // 如果未登入，立即重定向到新的登入頁面
+            window.location.replace('/login.html');
+            // 停止執行後續代碼
+            throw new Error('Redirecting to login page');
+        }
+    </script>
+    
     <!-- 初始加载遮罩層 -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading-spinner"></div>
@@ -187,8 +200,8 @@
     </div>
     
     <div id="app" v-cloak>
-        <!-- 登录页面 -->
-        <div v-if="!isLoggedIn" class="container login-container">
+        <!-- 登录页面 (應該不會顯示，因為會重定向) -->
+        <div v-if="!isLoggedIn" class="container login-container" style="display: none;">
             <div class="row justify-content-center">
                 <div class="col-md-6 col-lg-5">
                     <div class="card shadow">
