@@ -26,7 +26,7 @@
             position: relative;
         }
 
-        /* 背景圖片 */
+        /* 背景圖片容器 */
         .background-wrapper {
             position: fixed;
             top: 0;
@@ -43,83 +43,29 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                linear-gradient(135deg, 
-                    rgba(138, 43, 226, 0.3) 0%, 
-                    rgba(30, 144, 255, 0.2) 25%, 
-                    rgba(255, 0, 110, 0.3) 50%, 
-                    rgba(138, 43, 226, 0.2) 75%, 
-                    rgba(30, 144, 255, 0.3) 100%),
-                linear-gradient(to bottom, 
-                    #0a0a0f 0%, 
-                    #1a1a2e 50%, 
-                    #16213e 100%);
-            animation: backgroundShift 20s ease-in-out infinite;
+            /* 賽車背景圖片 - 使用您提供的圖片 */
+            background: url('cyberpunk-car.jpg') center/cover no-repeat;
+            filter: brightness(0.4) contrast(1.2);
+            animation: zoomEffect 30s ease-in-out infinite;
         }
-        
-        @keyframes backgroundShift {
-            0%, 100% { 
-                filter: hue-rotate(0deg) brightness(0.8);
-            }
-            25% { 
-                filter: hue-rotate(15deg) brightness(0.9);
-            }
-            50% { 
-                filter: hue-rotate(-15deg) brightness(0.7);
-            }
-            75% { 
-                filter: hue-rotate(30deg) brightness(0.85);
-            }
+
+        @keyframes zoomEffect {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.1) translateY(-20px); }
         }
-        
-        /* 賽博朋克網格背景 */
-        .background-image::before {
-            content: '';
+
+        /* 暗色覆蓋層 */
+        .background-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
-                repeating-linear-gradient(
-                    0deg,
-                    transparent,
-                    transparent 2px,
-                    rgba(138, 43, 226, 0.03) 2px,
-                    rgba(138, 43, 226, 0.03) 4px
-                ),
-                repeating-linear-gradient(
-                    90deg,
-                    transparent,
-                    transparent 2px,
-                    rgba(30, 144, 255, 0.03) 2px,
-                    rgba(30, 144, 255, 0.03) 4px
-                );
-            background-size: 50px 50px;
-            animation: gridMove 10s linear infinite;
-        }
-        
-        @keyframes gridMove {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-        }
-        
-        /* 霓虹城市剪影 */
-        .background-image::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 40%;
-            background: 
-                linear-gradient(to top, 
-                    rgba(10, 10, 15, 0.9) 0%, 
-                    transparent 100%);
-            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300'%3E%3Cpath d='M0,300 L0,250 L50,250 L50,200 L100,200 L100,150 L150,150 L150,250 L200,250 L200,100 L250,100 L250,200 L300,200 L300,50 L350,50 L350,150 L400,150 L400,100 L450,100 L450,200 L500,200 L500,250 L550,250 L550,180 L600,180 L600,80 L650,80 L650,220 L700,220 L700,150 L750,150 L750,250 L800,250 L800,120 L850,120 L850,200 L900,200 L900,250 L950,250 L950,180 L1000,180 L1000,100 L1050,100 L1050,250 L1100,250 L1100,200 L1150,200 L1150,300 Z' fill='white'/%3E%3C/svg%3E");
-            mask-size: 100% 100%;
-            mask-repeat: no-repeat;
-            mask-position: bottom;
+            background: linear-gradient(135deg, 
+                rgba(138, 43, 226, 0.4) 0%, 
+                rgba(0, 0, 0, 0.6) 50%, 
+                rgba(255, 0, 110, 0.4) 100%);
+            mix-blend-mode: multiply;
         }
 
         /* 動態雨滴效果 */
@@ -129,9 +75,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
-            opacity: 0.05;
-            animation: rain 0.5s linear infinite;
+            background-image: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.03) 2px,
+                rgba(255, 255, 255, 0.03) 3px
+            );
+            animation: rain 0.3s linear infinite;
             z-index: -1;
         }
 
@@ -146,32 +97,32 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 150%;
-            height: 150%;
+            width: 120%;
+            height: 120%;
             background: radial-gradient(circle at center, 
                 transparent 0%, 
-                rgba(138, 43, 226, 0.1) 40%, 
-                rgba(30, 144, 255, 0.1) 60%, 
+                rgba(138, 43, 226, 0.2) 40%, 
+                rgba(30, 144, 255, 0.2) 60%, 
                 transparent 100%);
-            filter: blur(100px);
+            filter: blur(80px);
             animation: pulse 4s ease-in-out infinite;
             z-index: -1;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.6; }
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
         }
 
         /* 登入容器 */
         .login-container {
-            background: rgba(20, 20, 30, 0.85);
-            backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(20, 20, 30, 0.9);
+            backdrop-filter: blur(20px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 24px;
             box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.8),
-                0 0 80px rgba(138, 43, 226, 0.3),
+                0 25px 50px rgba(0, 0, 0, 0.8),
+                0 0 100px rgba(138, 43, 226, 0.3),
                 inset 0 0 30px rgba(255, 255, 255, 0.05);
             padding: 50px;
             width: 100%;
@@ -181,26 +132,24 @@
             overflow: hidden;
         }
 
-        /* 內部霓虹邊框 */
+        /* 静态霓虹边框光效 */
         .login-container::before {
             content: '';
             position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, 
-                #ff006e, #8338ec, #3a86ff, #06ffa5, #ff006e);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             border-radius: 24px;
-            opacity: 0.8;
-            filter: blur(10px);
+            padding: 2px;
+            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff, #06ffa5);
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.6;
             z-index: -1;
-            animation: neonBorder 3s linear infinite;
-        }
-
-        @keyframes neonBorder {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         /* Logo樣式 */
@@ -520,26 +469,6 @@
             }
         }
 
-        /* 掃描線效果 */
-        .scan-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, 
-                transparent, 
-                rgba(138, 43, 226, 0.8), 
-                transparent);
-            animation: scan 3s linear infinite;
-            z-index: 1;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-        
         /* 粒子效果 */
         .particles {
             position: absolute;
@@ -670,6 +599,7 @@
     <!-- 背景 -->
     <div class="background-wrapper">
         <div class="background-image"></div>
+        <div class="background-overlay"></div>
         <div class="rain-overlay"></div>
         <div class="neon-glow"></div>
         
@@ -693,8 +623,6 @@
 
     <!-- 登入容器 -->
     <div class="login-container">
-        <div class="scan-line"></div>
-        
         <div class="logo">
             <h1><span class="fs-text">F<span style="font-size: 0.8em;">S</span></span>金彩赛车</h1>
             <p>会员登录系统</p>
