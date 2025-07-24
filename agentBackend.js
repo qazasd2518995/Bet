@@ -3494,29 +3494,11 @@ async function safeLogWinLossControl(controlId, action, oldValues = null, newVal
 // 獲取輸贏控制列表
 app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
   try {
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
+    const { agent } = authResult;
     if (!agent) {
       return res.status(401).json({ success: false, message: '代理不存在' });
     }
@@ -3567,32 +3549,11 @@ app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
 // 創建輸贏控制
 app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
   try {
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
@@ -3729,32 +3690,11 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
@@ -3826,32 +3766,11 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
@@ -3953,32 +3872,11 @@ app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
 // 獲取當前活躍的輸贏控制設定
 app.get(`${API_PREFIX}/win-loss-control/active`, async (req, res) => {
   try {
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
@@ -4016,32 +3914,11 @@ app.get(`${API_PREFIX}/win-loss-control/active`, async (req, res) => {
 // 獲取代理列表 - 用於輸贏控制目標選擇
 app.get(`${API_PREFIX}/win-loss-control/agents`, async (req, res) => {
   try {
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
@@ -4079,32 +3956,11 @@ app.get(`${API_PREFIX}/win-loss-control/agents`, async (req, res) => {
 // 獲取會員列表 - 用於輸贏控制目標選擇
 app.get(`${API_PREFIX}/win-loss-control/members`, async (req, res) => {
   try {
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
@@ -4144,32 +4000,11 @@ app.get(`${API_PREFIX}/win-loss-control/members`, async (req, res) => {
 // 獲取當前期數 - 用於設定控制開始期數
 app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
   try {
-    // 身份驗證 - 優先使用會話token
-    const sessionToken = req.headers['x-session-token'];
-    const authHeader = req.headers.authorization;
-    
-    if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+    const authResult = await authenticateAgent(req);
+    if (!authResult.success) {
+      return res.status(401).json(authResult);
     }
-
-    let sessionData;
-    if (sessionToken) {
-      // 使用會話token驗證
-      sessionData = await SessionManager.validateSession(sessionToken);
-    } else {
-      // 降級到舊的JWT token驗證
-      const token = authHeader.split(' ')[1];
-      sessionData = await SessionManager.validateSession(token);
-    }
-    
-    if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
-    }
-
-    const agent = await AgentModel.findById(sessionData.userId);
-    if (!agent) {
-      return res.status(401).json({ success: false, message: '代理不存在' });
-    }
+    const { agent } = authResult;
     
     // 檢查權限
     if (!checkWinLossControlPermission(agent)) {
