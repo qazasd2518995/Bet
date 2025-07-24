@@ -1637,7 +1637,7 @@
                                                 <td class="text-center">0%</td>
                                                 <td class="text-end">0.00</td>
                                                 <td class="text-end">0.00</td>
-                                                <td class="text-end">{{ formatMoney(item.earnedRebateAmount || 0) }}</td>
+                                                <td class="text-center">{{ ((item.earnedRebatePercentage || 0) * 100).toFixed(1) }}%</td>
                                                 <td class="text-end" :class="getProfitClass(item.earnedRebateAmount || 0)">{{ formatProfit(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end">{{ formatMoney(item.betAmount || 0) }}</td>
                                                 <td class="text-end" :class="getProfitClass((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0))">{{ formatProfit((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0)) }}</td>
@@ -1667,7 +1667,7 @@
                                                 <td class="text-center">0%</td>
                                                 <td class="text-end">0.00</td>
                                                 <td class="text-end">0.00</td>
-                                                <td class="text-end">{{ formatMoney(item.earnedRebateAmount || 0) }}</td>
+                                                <td class="text-center">{{ ((item.earnedRebatePercentage || 0) * 100).toFixed(1) }}%</td>
                                                 <td class="text-end" :class="getProfitClass(item.earnedRebateAmount || 0)">{{ formatProfit(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end">{{ formatMoney(item.betAmount || 0) }}</td>
                                                 <td class="text-end" :class="getProfitClass((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0))">{{ formatProfit((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0)) }}</td>
