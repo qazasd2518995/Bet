@@ -1611,16 +1611,16 @@
         }
         
         .option.selected {
-            background: linear-gradient(135deg, #ffd700, #ff6b6b);
-            border-color: #ffd700;
-            color: white;
+            background: linear-gradient(135deg, #ffd700, #ff6b6b) !important;
+            border-color: #ffd700 !important;
+            color: white !important;
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4) !important;
         }
         
         .option.selected:hover {
-            background: linear-gradient(135deg, #ff6b6b, #ffd700);
-            border-color: #ff6b6b;
+            background: linear-gradient(135deg, #ff6b6b, #ffd700) !important;
+            border-color: #ff6b6b !important;
         }
         
         /* 投注项目文字 */
@@ -1650,29 +1650,11 @@
             color: white;
         }
         
-        /* 數字按钮特殊樣式 */
+        /* 數字按钮特殊樣式 - 只調整大小，不覆蓋背景和邊框 */
         .betting-options.numbers .option {
             min-height: 45px;
             padding: 8px 4px;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1) !important;
-            border: 2px solid rgba(255, 255, 255, 0.2) !important;
-            color: #ffffff !important;
-        }
-        
-        /* 數字選項hover效果 */
-        .betting-options.numbers .option:hover {
-            background: rgba(255, 255, 255, 0.2) !important;
-            border-color: #ffd700 !important;
-            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3) !important;
-        }
-        
-        /* 確保所有選中的選項都顯示相同的金黃色樣式 */
-        .betting-options .option.selected {
-            background: linear-gradient(135deg, #ffd700, #ff6b6b) !important;
-            border-color: #ffd700 !important;
-            color: white !important;
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4) !important;
         }
         
         .betting-options.numbers .option span:first-child {
