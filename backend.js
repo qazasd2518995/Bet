@@ -5411,9 +5411,9 @@ app.post('/api/bet', async (req, res) => {
       return res.status(400).json({ success: false, message: '無效的下注選項' });
     }
     
-    // 獲取當前遊戲狀態
-    const gameState = await getGameData();
-    const { period, status } = gameState;
+    // 獲取當前遊戲狀態（使用不同的變數名避免衝突）
+    const currentGameData = await getGameData();
+    const { period, status } = currentGameData;
     
     // 檢查遊戲狀態
     if (status !== 'betting') {
@@ -5624,9 +5624,9 @@ app.post('/api/batch-bet', async (req, res) => {
       return res.status(400).json({ success: false, message: `單次最多只能下注 ${MAX_BATCH_SIZE} 筆` });
     }
     
-    // 獲取當前遊戲狀態
-    const gameState = await getGameData();
-    const { period, status } = gameState;
+    // 獲取當前遊戲狀態（使用不同的變數名避免衝突）
+    const currentGameData = await getGameData();
+    const { period, status } = currentGameData;
     
     // 檢查遊戲狀態
     if (status !== 'betting') {
