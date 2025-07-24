@@ -2617,6 +2617,7 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
     });
   } catch (error) {
     console.error('代理登入出錯:', error);
+    console.error('錯誤堆疊:', error.stack);
     res.status(500).json({
       success: false,
       message: '系統錯誤，請稍後再試'
@@ -8709,11 +8710,16 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     const { startDate, endDate, username, targetAgent } = req.query;
     let queryAgentId = currentAgent.id;
     let queryAgent = currentAgent;
+    
+    console.log(`🔍 當前登入代理: ${currentAgent.username} (退水: ${(currentAgent.rebate_percentage * 100).toFixed(1)}%)`);
+    console.log(`🎯 目標代理參數: ${targetAgent || '無'}`);
+    
     if (targetAgent) {
       const targetAgentData = await AgentModel.findByUsername(targetAgent);
       if (targetAgentData) {
         queryAgentId = targetAgentData.id;
         queryAgent = targetAgentData;
+        console.log(`✅ 找到目標代理: ${targetAgentData.username} (退水: ${(targetAgentData.rebate_percentage * 100).toFixed(1)}%)`);
       } else {
         return res.json({ success: true, reportData: [], hasData: false, currentAgent: queryAgent, totalSummary: {}, message: `目標代理 ${targetAgent} 不存在` });
       }
@@ -8730,6 +8736,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     const queryAgentRebate = parseFloat(queryAgent.rebate_percentage || 0);
     
     console.log(`📈 查詢結果: ${agents.length}個代理, ${members.length}個會員`);
+    console.log(`💰 查詢代理 ${queryAgent.username} 的退水設定: ${(queryAgentRebate * 100).toFixed(1)}%`);
     
     // 構建日期篩選條件
     let dateFilter = '';
@@ -8763,9 +8770,10 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       }
       
-      // 計算賺水：查詢代理的退水% - 下級代理的退水%
+      // 新退水邏輯：賺水顯示該代理的退水設定百分比
+      // 這只影響報表顯示，方便代理查看要給多少退水
       const agentRebatePercentage = parseFloat(agent.rebate_percentage || 0);
-      const earnedRebatePercentage = queryAgentRebate - agentRebatePercentage;
+      const earnedRebatePercentage = agentRebatePercentage; // 代理賺取自己設定的退水百分比
       const earnedRebateAmount = parseFloat(stats.betamount || 0) * earnedRebatePercentage;
       
       return {
@@ -8805,8 +8813,9 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       }
       
-      // 會員沒有退水，所以查詢代理賺取全部退水
-      const earnedRebatePercentage = queryAgentRebate;
+      // 新退水邏輯：會員的賺水使用直屬代理（查詢代理）的退水設定
+      // 這是為了顯示該會員能為代理帶來多少退水
+      const earnedRebatePercentage = queryAgentRebate; // 使用查詢代理的退水設定
       const earnedRebateAmount = parseFloat(stats.betamount || 0) * earnedRebatePercentage;
       
       return {
@@ -8827,12 +8836,21 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     }));
     
     const reportData = [...agentStats, ...memberStats];
+    
+    // 計算總計時，賺水金額應該基於查詢代理的退水設定
+    // 總下注金額 × 查詢代理的退水百分比
+    const totalBetAmount = reportData.reduce((a, b) => a + (b.betAmount || 0), 0);
+    const queryAgentRebatePercentage = parseFloat(queryAgent.rebate_percentage || 0);
+    const totalEarnedRebateAmount = totalBetAmount * queryAgentRebatePercentage;
+    
+    console.log(`💵 總計計算: 總下注 ${totalBetAmount} × 退水 ${(queryAgentRebatePercentage * 100).toFixed(1)}% = 賺水 ${totalEarnedRebateAmount.toFixed(2)}`);
+    
     const totalSummary = {
       betCount: reportData.reduce((a, b) => a + (b.betCount || 0), 0),
-      betAmount: reportData.reduce((a, b) => a + (b.betAmount || 0), 0),
+      betAmount: totalBetAmount,
       validAmount: reportData.reduce((a, b) => a + (b.validAmount || 0), 0),
       memberWinLoss: reportData.reduce((a, b) => a + (b.memberWinLoss || 0), 0),
-      earnedRebateAmount: reportData.reduce((a, b) => a + (b.earnedRebateAmount || 0), 0)
+      earnedRebateAmount: totalEarnedRebateAmount // 使用查詢代理的退水百分比計算
     };
     
     // 添加agentInfo字段
@@ -9030,7 +9048,8 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         for (const agent of agentStats) {
           if (parseInt(agent.bet_count) > 0) {
             const agentRebatePercentage = parseFloat(agent.rebate_percentage || 0);
-            const earnedRebatePercentage = targetAgentRebate - agentRebatePercentage;
+            // 新退水邏輯：代理賺取自己設定的退水百分比
+            const earnedRebatePercentage = agentRebatePercentage;
             const earnedRebateAmount = parseFloat(agent.total_bet_amount) * earnedRebatePercentage;
             
             reportData.push({
@@ -9059,7 +9078,7 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         // 處理會員數據
         for (const member of memberStats) {
           if (parseInt(member.bet_count) > 0) {
-            // 會員沒有退水，所以代理賺取全部退水
+            // 新退水邏輯：會員的賺水使用直屬代理的退水設定
             const earnedRebatePercentage = targetAgentRebate;
             const earnedRebateAmount = parseFloat(member.total_bet_amount) * earnedRebatePercentage;
             
@@ -9090,8 +9109,11 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         // 計算其他統計值
         totalSummary.validAmount = totalSummary.betAmount;
         totalSummary.profitLoss = -totalSummary.memberWinLoss; // 平台盈虧與會員輸贏相反
-        totalSummary.earnedRebateAmount = totalSummary.rebateProfit; // 賺水總額
-        totalSummary.finalProfitLoss = totalSummary.profitLoss + totalSummary.rebateProfit; // 最終盈虧（含退水）
+        
+        // 新退水邏輯：總計賺水基於查詢代理的退水設定
+        totalSummary.earnedRebateAmount = totalSummary.betAmount * targetAgentRebate; // 總下注金額 × 查詢代理退水百分比
+        totalSummary.rebateProfit = totalSummary.earnedRebateAmount; // 保持一致性
+        totalSummary.finalProfitLoss = totalSummary.profitLoss + totalSummary.earnedRebateAmount; // 最終盈虧（含退水）
         
       } catch (dbError) {
         console.log('統計查詢出錯，嘗試簡化查詢:', dbError.message);

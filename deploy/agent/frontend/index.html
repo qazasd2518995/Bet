@@ -1988,11 +1988,13 @@
                                 <i class="fas fa-money-bill-wave me-1"></i>提款记录
                             </a>
                         </li>
+                        <!-- 退水記錄功能暫時隱藏
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'rebate'}" href="#" @click="transactionTab = 'rebate'; loadRebateRecords()">
                                 <i class="fas fa-gift me-1"></i>退水记录
                             </a>
                         </li>
+                        -->
                         <li class="nav-item">
                             <a class="nav-link" :class="{active: transactionTab === 'transfers'}" href="#" @click="loadPointTransfers(); transactionTab = 'transfers'">
                                 <i class="fas fa-exchange-alt me-1"></i>点数转移记录
@@ -2097,7 +2099,7 @@
                         </div>
                     </div>
 
-                    <!-- 退水记录 -->
+                    <!-- 退水記錄功能暫時隱藏
                     <div v-if="transactionTab === 'rebate'" class="card">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
@@ -2116,7 +2118,6 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <!-- 筛选选项 -->
                             <div class="row mb-3">
                                 <div class="col-md-3">
                                     <div class="input-group input-group-sm">
@@ -2198,7 +2199,6 @@
                                 </table>
                             </div>
                             
-                            <!-- 统计信息 -->
                             <div v-if="rebateRecords.length > 0" class="border-top pt-3 mt-3">
                                 <div class="row text-center">
                                     <div class="col-md-3">
@@ -2229,6 +2229,7 @@
                             </div>
                         </div>
                     </div>
+                    -->
 
                     <!-- 点数转移记录 -->
                     <div v-if="transactionTab === 'transfers'" class="card">

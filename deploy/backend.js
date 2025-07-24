@@ -3451,63 +3451,61 @@ async function manuallyProcessPeriodRebates(period) {
 }
 
 async function processRebatesForBet(t, bet, period) {
-    // 獲取代理鏈
+    // 獲取代理鏈 - 新邏輯：只給總代理退水
     const agentChain = await t.any(`
         WITH RECURSIVE agent_chain AS (
-            SELECT id, username, parent_id, rebate_percentage, 0 as level
+            SELECT id, username, parent_id, rebate_percentage, market_type, 0 as level
             FROM agents 
             WHERE id = $1
             
             UNION ALL
             
-            SELECT a.id, a.username, a.parent_id, a.rebate_percentage, ac.level + 1
+            SELECT a.id, a.username, a.parent_id, a.rebate_percentage, a.market_type, ac.level + 1
             FROM agents a
             JOIN agent_chain ac ON a.id = ac.parent_id
             WHERE ac.level < 10
         )
-        SELECT * FROM agent_chain ORDER BY level
+        SELECT * FROM agent_chain ORDER BY level DESC
     `, [bet.agent_id]);
     
     if (agentChain.length === 0) return;
     
-    let previousRebate = 0;
+    // 找到總代理（最頂層的代理）
+    const topAgent = agentChain[0]; // DESC排序，第一個就是最頂層
+    const marketType = topAgent.market_type || 'D';
     
-    for (const agent of agentChain) {
-        const rebateDiff = (agent.rebate_percentage || 0) - previousRebate;
+    // 計算退水金額（根據盤口類型）
+    const rebatePercentage = marketType === 'A' ? 0.011 : 0.041; // A盤1.1%, D盤4.1%
+    const rebateAmount = Math.round(parseFloat(bet.amount) * rebatePercentage * 100) / 100;
+    
+    if (rebateAmount >= 0.01) {
+        const currentBalance = await t.oneOrNone(`
+            SELECT balance FROM agents WHERE id = $1
+        `, [topAgent.id]);
         
-        if (rebateDiff > 0) {
-            const rebateAmount = (parseFloat(bet.amount) * rebateDiff / 100);
+        if (currentBalance) {
+            const balanceBefore = parseFloat(currentBalance.balance);
+            const balanceAfter = balanceBefore + rebateAmount;
             
-            if (rebateAmount >= 0.01) {
-                const currentBalance = await t.oneOrNone(`
-                    SELECT balance FROM agents WHERE id = $1
-                `, [agent.id]);
-                
-                if (currentBalance) {
-                    const balanceBefore = parseFloat(currentBalance.balance);
-                    const balanceAfter = balanceBefore + rebateAmount;
-                    
-                    await t.none(`
-                        UPDATE agents SET balance = balance + $1 WHERE id = $2
-                    `, [rebateAmount, agent.id]);
-                    
-                    await t.none(`
-                        INSERT INTO transaction_records (
-                            user_type, user_id, transaction_type, amount, 
-                            balance_before, balance_after, description, 
-                            member_username, bet_amount, rebate_percentage, period
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                    `, [
-                        'agent', agent.id, 'rebate', rebateAmount,
-                        balanceBefore, balanceAfter,
-                        `退水 - 期號 ${period} 會員 ${bet.username} 下注 ${bet.amount} (補償)`,
-                        bet.username, parseFloat(bet.amount), rebateDiff, period.toString()
-                    ]);
-                }
-            }
+            await t.none(`
+                UPDATE agents SET balance = balance + $1 WHERE id = $2
+            `, [rebateAmount, topAgent.id]);
+            
+            await t.none(`
+                INSERT INTO transaction_records (
+                    user_type, user_id, transaction_type, amount, 
+                    balance_before, balance_after, description, 
+                    member_username, bet_amount, rebate_percentage, period
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            `, [
+                'agent', topAgent.id, 'rebate', rebateAmount,
+                balanceBefore, balanceAfter,
+                `退水 - 期號 ${period} 會員 ${bet.username} 下注 ${bet.amount} (${marketType}盤 ${(rebatePercentage*100).toFixed(1)}%)`,
+                bet.username, parseFloat(bet.amount), rebatePercentage, period.toString()
+            ]);
+            
+            console.log(`✅ 分配退水 ${rebateAmount} 給總代理 ${topAgent.username} (${marketType}盤)`);
         }
-        
-        previousRebate = agent.rebate_percentage || 0;
     }
 }
 
