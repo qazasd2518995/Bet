@@ -1196,7 +1196,7 @@
                                                 <div class="mb-3" v-if="newAgent.rebate_mode === 'percentage'">
                                                     <label class="form-label">退水比例 (%)</label>
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
-                                                           step="0.01" min="0" :max="availableMaxRebatePercentage * 100" required>
+                                                           step="0.01" min="0" required>
                                                     <small class="form-text text-muted">
                                                         可设定范围：0% - {{ (availableMaxRebatePercentage * 100).toFixed(1) }}% (直屬上級代理分配额度)
                                                     </small>
@@ -1257,7 +1257,7 @@
                                         <div class="mb-3" v-if="rebateSettings.rebate_mode === 'percentage'">
                                             <label class="form-label">退水比例 (%)</label>
                                             <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
-                                                   step="0.01" min="0" :max="availableMaxRebatePercentage * 100" required>
+                                                   step="0.01" min="0" required>
                                             <small class="form-text text-muted">
                                                 可设定范围：0% - {{ (availableMaxRebatePercentage * 100).toFixed(1) }}% (直屬上級代理分配额度)
                                             </small>

@@ -1074,19 +1074,9 @@ const app = createApp({
                 managingAgent = this.currentManagingAgent;
             }
             
-            // 确定盤口类型和选择权限
-            let marketType = 'D'; // 默认D盤
-            let canChooseMarket = false;
-            
-            if (this.user.level === 0 && managingAgent.id === this.user.id) {
-                // 总代理为自己创建一級代理，可自由选择
-                canChooseMarket = true;
-                marketType = 'D'; // 预設D盤
-            } else {
-                // 其他情况：固定繼承当前管理代理的盤口类型
-                canChooseMarket = false;
-                marketType = managingAgent.market_type || this.user.market_type || 'D';
-            }
+            // 确定盤口类型 - 必須繼承上級代理的盤口類型
+            const marketType = managingAgent.market_type || this.user.market_type || 'D';
+            const canChooseMarket = false; // 永遠不允許選擇，必須繼承
             
             // 根据盤口类型设定合适的默认退水比例
             const defaultRebatePercentage = marketType === 'A' ? 0.5 : 2.0; // A盤用0.5%，D盤用2.0%
@@ -1503,6 +1493,19 @@ const app = createApp({
                     // 检查是否为客服（总代理）
                     this.isCustomerService = this.user.level === 0;
                     console.log('checkAuth设定客服权限:', this.isCustomerService, '用戶级别:', this.user.level);
+                    
+                    // 初始化 currentManagingAgent 為當前用戶
+                    const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
+                    this.currentManagingAgent = {
+                        id: this.user.id,
+                        username: this.user.username,
+                        level: this.user.level,
+                        market_type: this.user.market_type,
+                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
+                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate,
+                        betting_limit_level: this.user.betting_limit_level || 'level3'
+                    };
+                    console.log('初始化 currentManagingAgent:', this.currentManagingAgent);
                     
                     // 检查是否为子帳號
                     this.isSubAccount = user.is_sub_account || false;
@@ -3254,10 +3257,35 @@ const app = createApp({
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
                 // 修復：使用当前管理代理的實际退水比例作为最大限制
                 const managingAgent = this.currentMemberManagingAgent || this.currentManagingAgent;
-                const actualRebate = managingAgent.rebate_percentage || managingAgent.max_rebate_percentage || (managingAgent.market_type === 'A' ? 0.011 : 0.041);
-                const maxRebate = actualRebate * 100;
                 
-                if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
+                // 使用管理代理的實際退水比例作為最大值
+                let maxRebateValue;
+                if (managingAgent.level === 0) {
+                    // 總代理：使用盤口的全部退水
+                    const agentMarketType = managingAgent.market_type || this.user.market_type || 'D';
+                    maxRebateValue = agentMarketType === 'A' ? 0.011 : 0.041;
+                } else {
+                    // 一般代理：使用管理代理的退水比例
+                    maxRebateValue = managingAgent.rebate_percentage || managingAgent.max_rebate_percentage || 0.041;
+                }
+                const maxRebate = maxRebateValue * 100;
+                
+                console.log('🔍 退水比例驗證詳情:', {
+                    輸入值: this.newAgent.rebate_percentage,
+                    解析後: rebatePercentage,
+                    最大值: maxRebate,
+                    maxRebateValue: maxRebateValue,
+                    比較結果: rebatePercentage > maxRebate,
+                    差值: rebatePercentage - maxRebate,
+                    管理代理: managingAgent.username,
+                    管理代理級別: managingAgent.level,
+                    新代理盤口: this.newAgent.market_type,
+                    管理代理盤口: managingAgent.market_type
+                });
+                
+                // 使用更寬鬆的精度容忍度
+                const tolerance = 0.001; // 允許 0.001% 的誤差
+                if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > (maxRebate + tolerance)) {
                     this.showMessage(`退水比例必须在 0% - ${maxRebate.toFixed(1)}% 之间`, 'error');
                     return;
                 }
@@ -8383,18 +8411,13 @@ const app = createApp({
         
         // 计算可用的最大退水比例（用於新增代理时的限制）
         availableMaxRebatePercentage() {
-            // 确定使用的管理代理
-            let managingAgent;
-            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
-                managingAgent = this.currentMemberManagingAgent;
-            } else {
-                managingAgent = this.currentManagingAgent;
+            // 如果沒有登入，返回 0
+            if (!this.user || !this.user.id) {
+                return 0;
             }
             
-            // 如果沒有管理代理，回退到用戶自己
-            if (!managingAgent || !managingAgent.id) {
-                managingAgent = this.user;
-            }
+            // 直接使用當前登入用戶的資料
+            const managingAgent = this.user;
             
             console.log('🔍 第一步 - 确定管理代理:', {
                 managingAgent: managingAgent.username,

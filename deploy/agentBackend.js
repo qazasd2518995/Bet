@@ -2798,8 +2798,15 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
           });
       }
 
-      // 設定最大退水比例（不能超過上級代理的退水比例）
-      maxRebatePercentage = parentAgent.rebate_percentage || 0.041;
+      // 設定最大退水比例
+      // 如果上級是總代理（level 0），根據新代理的盤口類型決定最大退水
+      if (parentAgent.level === 0) {
+        // 總代理創建下級時，根據新代理的盤口類型決定最大退水
+        maxRebatePercentage = market_type === 'A' ? 0.011 : 0.041;
+      } else {
+        // 一般代理創建下級時，不能超過自己的退水比例
+        maxRebatePercentage = parentAgent.rebate_percentage || 0.041;
+      }
       
       // 驗證限紅等級
       if (req.body.betting_limit_level) {
@@ -2846,28 +2853,32 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
       // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
-      if (parsedRebatePercentage > maxRebatePercentage) {
+      if (isNaN(parsedRebatePercentage) || parsedRebatePercentage < 0 || parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
           success: false,
-          message: `退水比例不能超過 ${(maxRebatePercentage * 100).toFixed(1)}%`
+          message: `退水比例必須在 0% - ${(maxRebatePercentage * 100).toFixed(1)}% 之間`
         });
       }
       finalRebatePercentage = parsedRebatePercentage;
     }
     
-    // 處理盤口類型繼承邏輯 - 自動繼承，無需選擇
+    // 處理盤口類型繼承邏輯 - 必須繼承上級代理的盤口類型
     let finalMarketType = 'D'; // 預設D盤
     
+    // 如果有上級代理，必須繼承其盤口類型
     if (parentAgent) {
-      // 所有代理都必須繼承上級的盤口類型
       finalMarketType = parentAgent.market_type || 'D';
-      console.log(`📋 代理 ${username} 自動繼承上級 ${parentAgent.username} 的盤口類型: ${finalMarketType}`);
-    } else if (parsedLevel === 0) {
-      // 不應該通過API創建總代理，總代理在系統初始化時創建
-      return res.json({
-        success: false,
-        message: '無法通過此API創建總代理，請聯繫系統管理員'
-      });
+      
+      // 驗證傳入的盤口類型必須與上級代理一致
+      if (market_type && market_type !== finalMarketType) {
+        return res.json({
+          success: false,
+          message: `必須使用與上級代理相同的盤口類型（${finalMarketType}盤）`
+        });
+      }
+    } else {
+      // 創建總代理時，使用傳入的盤口類型
+      finalMarketType = market_type || 'D';
     }
     
     // 創建代理 - 限紅等級需要參考父代理的限紅等級
@@ -2978,10 +2989,10 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
       // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
-      if (parsedRebatePercentage > maxRebatePercentage) {
+      if (isNaN(parsedRebatePercentage) || parsedRebatePercentage < 0 || parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
           success: false,
-          message: `退水比例不能超過 ${(maxRebatePercentage * 100).toFixed(1)}%`
+          message: `退水比例必須在 0% - ${(maxRebatePercentage * 100).toFixed(1)}% 之間`
         });
       }
       finalRebatePercentage = parsedRebatePercentage;
