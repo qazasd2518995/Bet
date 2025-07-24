@@ -10584,16 +10584,16 @@
                     finishLine.className = 'finish-line';
                     finishLine.style.cssText = `
                         position: absolute;
-                        right: 80px;
-                        top: 60px;
-                        bottom: 30px;
-                        width: 6px;
+                        right: ${isMobile ? '15px' : '80px'};
+                        top: ${isMobile ? '50px' : '60px'};
+                        bottom: ${isMobile ? '10px' : '30px'};
+                        width: ${isMobile ? '4px' : '6px'};
                         background: repeating-linear-gradient(
                             to bottom,
                             #ffffff 0px,
-                            #ffffff 20px,
-                            #000000 20px,
-                            #000000 40px
+                            #ffffff ${isMobile ? '15px' : '20px'},
+                            #000000 ${isMobile ? '15px' : '20px'},
+                            #000000 ${isMobile ? '30px' : '40px'}
                         );
                         border-radius: 3px;
                         box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
@@ -10685,7 +10685,8 @@
                     }
                     
                     const containerWidth = this.raceOverlay.querySelector('.race-animation-container')?.offsetWidth || 1200;
-                    const finishLinePosition = containerWidth - 120;
+                    const isMobile = window.innerWidth <= 768;
+                    const finishLinePosition = containerWidth - (isMobile ? 50 : 120);
                     
                     // 更新标题
                     const title = this.raceOverlay.querySelector('.race-animation-container > div');
@@ -10698,8 +10699,10 @@
                     results.forEach((carNumber, rank) => {
                         const car = this.racingCars.find(c => c.number === carNumber);
                         if (car) {
-                            // 第一名在终点線前80px，後面每名拉开30px
-                            const finalPos = finishLinePosition - 80 - (rank * 30);
+                            // 第一名在终点線前的距離，後面每名拉开距離
+                            const firstCarOffset = isMobile ? 40 : 80; // 手機版第一名更靠近終點
+                            const carSpacing = isMobile ? 20 : 30; // 手機版車子間距更小
+                            const finalPos = finishLinePosition - firstCarOffset - (rank * carSpacing);
                             
                             // 根据名次决定到达时间
                             const baseTime = 1000; // 基礎时间1秒
@@ -10743,46 +10746,6 @@
                     setTimeout(() => {
                         this.showResultPanel(results);
                     }, 4000);
-                    
-                    // 添加关闭按钮
-                    setTimeout(() => {
-                        const closeButton = document.createElement('button');
-                        closeButton.innerText = '✕ 关闭';
-                        closeButton.style.cssText = `
-                            position: absolute;
-                            top: 20px;
-                            right: 20px;
-                            background: rgba(255, 0, 0, 0.6);
-                            border: none;
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            font-size: 16px;
-                            font-weight: bold;
-                            z-index: 10001;
-                            transition: all 0.3s ease;
-                        `;
-                        
-                        closeButton.onmouseover = () => {
-                            closeButton.style.background = 'rgba(255, 0, 0, 0.8)';
-                            closeButton.style.transform = 'scale(1.1)';
-                        };
-                        
-                        closeButton.onmouseout = () => {
-                            closeButton.style.background = 'rgba(255, 0, 0, 0.6)';
-                            closeButton.style.transform = 'scale(1)';
-                        };
-                        
-                        closeButton.onclick = () => {
-                            if (this.raceOverlay) {
-                                this.raceOverlay.remove();
-                                this.raceOverlay = null;
-                            }
-                        };
-                        
-                        this.raceOverlay.querySelector('.race-animation-container').appendChild(closeButton);
-                    }, 5000);
                 },
                 
                 // 🏆 显示结果面板
@@ -11003,9 +10966,12 @@
                             // 根据速度移動位置
                             car.position += car.speed;
                             
-                            // 限制赛车在終点線前较远的位置，確保不会到达終点
-                            const maxPosition = (this.raceOverlay?.querySelector('.race-animation-container')?.offsetWidth || 1200) - 120;
-                            const competitionLimit = maxPosition * 0.7; // 只能到达賽道的 70%
+                            // 限制赛车在終点線前较远的位置，確保不会到达終點
+                            const containerWidth = this.raceOverlay?.querySelector('.race-animation-container')?.offsetWidth || 1200;
+                            const isMobile = window.innerWidth <= 768;
+                            const rightPadding = isMobile ? 50 : 120; // 手機版減少右邊padding
+                            const maxPosition = containerWidth - rightPadding;
+                            const competitionLimit = maxPosition * (isMobile ? 0.85 : 0.7); // 手機版可以跑更遠一點
                             
                             if (car.position > competitionLimit) {
                                 // 到达限制位置後，让赛车在这个區域內来回竞争
@@ -11057,7 +11023,8 @@
                     }
                     
                     const containerWidth = this.raceOverlay.querySelector('.race-animation-container')?.offsetWidth || 1200;
-                    const finishLinePosition = containerWidth - 120; // 调整为与終点線實际位置一致
+                    const isMobile = window.innerWidth <= 768;
+                    const finishLinePosition = containerWidth - (isMobile ? 50 : 120); // 调整为与終点線實际位置一致
                     
                     // 更新标题显示竞赛结束
                     const title = this.raceOverlay.querySelector('.race-animation-container div');
@@ -11070,8 +11037,10 @@
                     results.forEach((carNumber, rank) => {
                         const car = this.racingCars.find(c => c.number === carNumber);
                         if (car) {
-                            // 第一名在终点線前80px（確保号码球不超出），後面车子每名拉开30px距离
-                            const finalPos = finishLinePosition - 80 - (rank * 30);
+                            // 第一名在终点線前的距離（確保号码球不超出），後面车子每名拉开距离
+                            const firstCarOffset = isMobile ? 40 : 80;
+                            const carSpacing = isMobile ? 20 : 30;
+                            const finalPos = finishLinePosition - firstCarOffset - (rank * carSpacing);
                             
                             // 動畫移動到最终位置
                             setTimeout(() => {
