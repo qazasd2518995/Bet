@@ -731,6 +731,23 @@ const app = createApp({
     },
     
     methods: {
+        // 統一處理認證標頭
+        getAuthHeaders() {
+            const headers = {};
+            const sessionToken = localStorage.getItem('agent_session_token');
+            const legacyToken = localStorage.getItem('agent_token');
+            
+            if (sessionToken) {
+                headers['x-session-token'] = sessionToken;
+                headers['X-Session-Token'] = sessionToken;
+            }
+            if (legacyToken) {
+                headers['Authorization'] = `Bearer ${legacyToken}`;
+            }
+            
+            return headers;
+        },
+        
         // ========== 子帳號相关方法 ==========
         // 载入子帳號列表
         async loadSubAccounts() {
@@ -4904,19 +4921,7 @@ const app = createApp({
                 this.loading = true;
                 console.log('创建输赢控制:', this.newWinLossControl);
                 
-                // 添加認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
+                const headers = this.getAuthHeaders();
                 const response = await axios.post(`${API_BASE_URL}/win-loss-control`, this.newWinLossControl, { headers });
                 
                 if (response.data.success) {
@@ -4956,20 +4961,8 @@ const app = createApp({
             try {
                 console.log('启用输赢控制:', controlId);
                 
-                // 添加認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/activate`, {}, { headers });
+                const headers = this.getAuthHeaders();
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/activate`, null, { headers });
                 
                 if (response.data.success) {
                     this.showMessage('控制已启用', 'success');
@@ -4988,20 +4981,8 @@ const app = createApp({
             try {
                 console.log('停用输赢控制:', controlId);
                 
-                // 添加認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/deactivate`, {}, { headers });
+                const headers = this.getAuthHeaders();
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/deactivate`, null, { headers });
                 
                 if (response.data.success) {
                     this.showMessage('控制已停用', 'success');
@@ -5024,19 +5005,7 @@ const app = createApp({
                 
                 console.log('删除输赢控制:', controlId);
                 
-                // 添加認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
+                const headers = this.getAuthHeaders();
                 const response = await axios.delete(`${API_BASE_URL}/win-loss-control/${controlId}`, { headers });
                 
                 if (response.data.success) {
