@@ -7,6 +7,8 @@ import { dirname } from 'path';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import { createServer } from 'http';
+import wsManager from './websocket/ws-manager.js';
 
 // 導入數據庫模型
 import db from './db/config.js';
@@ -3752,12 +3754,21 @@ app.get('/api/balance', async (req, res) => {
   
   try {
     // 參數驗證
-  if (!username) {
-    return res.status(400).json({ 
-      success: false, 
+    if (!username) {
+      return res.status(400).json({ 
+        success: false, 
         message: '請提供用戶名' 
-    });
-  }
+      });
+    }
+    
+    // 驗證會話
+    const sessionToken = req.headers['x-session-token'];
+    if (sessionToken) {
+      const session = await SessionManager.validateSession(sessionToken);
+      if (!session) {
+        return res.status(401).json({ success: false, message: '會話已過期' });
+      }
+    }
 
     // 獲取用戶信息
     const user = await UserModel.findByUsername(username);
@@ -4331,8 +4342,15 @@ app.get('/api/game-data', async (req, res) => {
     const username = req.query.username;
     let userMarketType = 'D'; // 默認D盤
     
-    // 如果提供了用戶名，獲取用戶盤口類型
+    // 如果提供了用戶名，驗證會話
     if (username) {
+      const sessionToken = req.headers['x-session-token'];
+      if (sessionToken) {
+        const session = await SessionManager.validateSession(sessionToken);
+        if (!session) {
+          return res.status(401).json({ success: false, message: '會話已過期' });
+        }
+      }
       try {
         // 先嘗試作為會員查詢
         const memberResponse = await fetch(`${AGENT_API_URL}/api/agent/member/info/${username}`, {
@@ -5520,11 +5538,18 @@ async function startServer() {
       }
     });
     
+    // 創建 HTTP 服務器
+    const server = createServer(app);
+    
+    // 初始化 WebSocket
+    wsManager.initialize(server);
+    
     // 啟動服務器
-    app.listen(port, () => {
+    server.listen(port, () => {
       console.log(`FS金彩賽車遊戲服務運行在端口 ${port}`);
       console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
       console.log(`API Base URL: ${AGENT_API_URL}`);
+      console.log('WebSocket 服務已啟動');
       
       // 確認API端點可用
       console.log('已註冊 API 端點: /api/hot-bets');

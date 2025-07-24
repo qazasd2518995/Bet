@@ -873,7 +873,8 @@
 
                 if (data.success) {
                     // 登录成功 - 同時保存到 localStorage 和 sessionStorage
-                    localStorage.setItem('token', data.token);
+                    const token = data.sessionToken || data.token;
+                    localStorage.setItem('token', token);
                     localStorage.setItem('username', data.member.username);
                     
                     // 保存到 sessionStorage 以供主頁面使用
@@ -881,7 +882,8 @@
                     sessionStorage.setItem('username', data.member.username);
                     sessionStorage.setItem('memberId', data.member.id);
                     sessionStorage.setItem('balance', data.member.balance || '0');
-                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('token', token);
+                    sessionStorage.setItem('sessionToken', token);
                     
                     // 如果选择了记住我，保存到localStorage
                     if (rememberMe) {

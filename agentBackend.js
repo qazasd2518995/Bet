@@ -6,6 +6,8 @@ import fs from 'fs-extra';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import wsManager from './websocket/ws-manager.js';
 // 使用優化過的數據庫配置
 import db from './db/config.js';
 // 導入基本數據庫初始化函數
@@ -6712,10 +6714,17 @@ async function startServer() {
       }
     });
     
+    // 創建 HTTP 服務器
+    const server = createServer(app);
+    
+    // 初始化 WebSocket
+    wsManager.initialize(server);
+    
     // 先啟動Express服務器，確保 Render 能檢測到端口
     const PORT = process.env.PORT || 3003;
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`代理管理系統後端運行在端口 ${PORT}`);
+      console.log('WebSocket 服務已啟動');
       
       // 端口啟動後，異步執行開獎記錄同步，避免阻塞部署
       setImmediate(async () => {

@@ -7561,6 +7561,9 @@
                     // 历史开奖记录
                     historyRecords: [],
                     recentResults: [], // 最近开奖结果，用于显示在历史开奖弹窗中
+                    sessionMonitorInterval: null, // 會話監控定時器
+                    ws: null, // WebSocket 連接
+                    wsReconnectTimer: null, // WebSocket 重連定時器
                     historyPagination: {
                         page: 1,
                         pageSize: 20,
@@ -7880,9 +7883,7 @@
                         this.loadMemberBettingLimits();
                         
                         // 啟動会话监控
-                        if (typeof window.startSessionMonitoring === 'function') {
-                            window.startSessionMonitoring();
-                        }
+                        this.startSessionMonitoring();
                         
                         // 限红设定会通过遊戲数据更新自動同步，無需手動監聽器
                     } else {
@@ -7981,6 +7982,139 @@
                     console.log('盤口类型获取已整合到updateGameData()中，跳过單獨調用');
                     // 不再执行任何操作，盤口类型由updateGameData()統一处理
                     return Promise.resolve();
+                },
+                
+                // 啟動會話監控
+                startSessionMonitoring() {
+                    // 每5秒檢查一次會話狀態（更頻繁的檢查）
+                    this.sessionMonitorInterval = setInterval(() => {
+                        this.checkSessionValidity();
+                    }, 5000);
+                    
+                    // 立即檢查一次
+                    this.checkSessionValidity();
+                    
+                    // 初始化 WebSocket 連接
+                    this.initWebSocket();
+                },
+                
+                // 初始化 WebSocket 連接
+                initWebSocket() {
+                    const sessionToken = sessionStorage.getItem('sessionToken') || sessionStorage.getItem('token');
+                    if (!sessionToken) {
+                        console.log('No session token, skipping WebSocket connection');
+                        return;
+                    }
+                    
+                    // 建立 WebSocket 連接
+                    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsHost = window.location.host;
+                    const wsUrl = `${wsProtocol}//${wsHost}`;
+                    
+                    console.log('Connecting to WebSocket:', wsUrl);
+                    
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket 連接成功');
+                        
+                        // 發送認證訊息
+                        this.ws.send(JSON.stringify({
+                            type: 'auth',
+                            sessionToken: sessionToken
+                        }));
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            console.log('WebSocket 收到訊息:', message);
+                            
+                            if (message.type === 'auth_success') {
+                                console.log('WebSocket 認證成功');
+                            } else if (message.type === 'session_invalidated') {
+                                // 會話被強制失效
+                                console.log('會話失效:', message.message);
+                                alert(message.message);
+                                
+                                // 清除本地存儲
+                                sessionStorage.clear();
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('username');
+                                
+                                // 跳轉到登入頁面
+                                window.location.href = 'login.html';
+                            }
+                        } catch (error) {
+                            console.error('WebSocket 訊息處理錯誤:', error);
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket 錯誤:', error);
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket 連接關閉');
+                        
+                        // 5秒後嘗試重連
+                        if (this.wsReconnectTimer) {
+                            clearTimeout(this.wsReconnectTimer);
+                        }
+                        
+                        this.wsReconnectTimer = setTimeout(() => {
+                            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                                console.log('嘗試重新連接 WebSocket...');
+                                this.initWebSocket();
+                            }
+                        }, 5000);
+                    };
+                },
+                
+                // 檢查會話有效性
+                async checkSessionValidity() {
+                    const sessionToken = sessionStorage.getItem('sessionToken') || localStorage.getItem('token');
+                    if (!sessionToken) {
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch(`${this.API_BASE_URL}/api/check-session`, {
+                            method: 'GET',
+                            headers: {
+                                'x-session-token': sessionToken
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!data.success) {
+                            // 會話無效，強制登出
+                            console.log('會話已失效，強制登出');
+                            this.forceLogout('您的帳號已在其他裝置登入');
+                        }
+                    } catch (error) {
+                        console.error('檢查會話狀態失敗:', error);
+                    }
+                },
+                
+                // 強制登出
+                forceLogout(message = '您已被登出') {
+                    // 清除本地存儲
+                    sessionStorage.clear();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    
+                    // 清除定時器
+                    if (this.sessionMonitorInterval) {
+                        clearInterval(this.sessionMonitorInterval);
+                    }
+                    
+                    // 顯示提示信息
+                    alert(message);
+                    
+                    // 重定向到登入頁面
+                    window.location.href = 'login.html';
                 },
                 
                 // 强制刷新赔率
@@ -8146,13 +8280,25 @@
                     
                     // 構建API URL，如果有用戶名則包含在查询参数中
                     const username = sessionStorage.getItem('username') || '';
+                    const sessionToken = sessionStorage.getItem('sessionToken') || localStorage.getItem('token');
                     let apiUrl = `${this.API_BASE_URL}/api/game-data`;
                     if (username) {
                         apiUrl += `?username=${encodeURIComponent(username)}`;
                     }
                     
-                    return fetch(apiUrl)
-                        .then(response => response.json())
+                    return fetch(apiUrl, {
+                        headers: {
+                            'x-session-token': sessionToken || ''
+                        }
+                    })
+                        .then(response => {
+                            // 檢查是否返回401未授權
+                            if (response.status === 401) {
+                                this.forceLogout('您的帳號已在其他裝置登入');
+                                return Promise.reject('Session invalid');
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             const serverCountdown = data.gameData.countdownSeconds;
                             const serverPeriod = data.gameData.currentPeriod;
@@ -8347,13 +8493,24 @@
                 updateBalance() {
                     console.log('开始刷新余额...');
                     const username = sessionStorage.getItem('username');
+                    const sessionToken = sessionStorage.getItem('sessionToken') || localStorage.getItem('token');
                     if (!username) {
                         console.error('用戶未登录');
                         return;
                     }
                     
-                    fetch(`${this.API_BASE_URL}/api/member/balance/${username}`)
-                        .then(response => response.json())
+                    fetch(`${this.API_BASE_URL}/api/member/balance/${username}`, {
+                        headers: {
+                            'x-session-token': sessionToken || ''
+                        }
+                    })
+                        .then(response => {
+                            if (response.status === 401) {
+                                this.forceLogout('您的帳號已在其他裝置登入');
+                                return Promise.reject('Session invalid');
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             if (data.success) {
                                 // 检查余额是否有變化
@@ -12632,6 +12789,15 @@
             beforeDestroy() {
                 if (this.socket) {
                     this.socket.disconnect();
+                }
+                if (this.sessionMonitorInterval) {
+                    clearInterval(this.sessionMonitorInterval);
+                }
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.close();
+                }
+                if (this.wsReconnectTimer) {
+                    clearTimeout(this.wsReconnectTimer);
                 }
                 document.removeEventListener('click', this.handleClickOutside);
             },

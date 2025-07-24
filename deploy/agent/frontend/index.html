@@ -1640,7 +1640,7 @@
                                                 <td class="text-end">{{ formatMoney(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end" :class="getProfitClass(item.earnedRebateAmount || 0)">{{ formatProfit(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end">{{ formatMoney(item.betAmount || 0) }}</td>
-                                                <td class="text-end" :class="getProfitClass(item.memberWinLoss)">{{ formatProfit(item.memberWinLoss || 0) }}</td>
+                                                <td class="text-end" :class="getProfitClass((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0))">{{ formatProfit((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0)) }}</td>
                                             </tr>
                                             <!-- 会员行 -->
                                             <tr v-else-if="item.type === 'member' || item.userType === 'member'">
@@ -1670,7 +1670,7 @@
                                                 <td class="text-end">{{ formatMoney(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end" :class="getProfitClass(item.earnedRebateAmount || 0)">{{ formatProfit(item.earnedRebateAmount || 0) }}</td>
                                                 <td class="text-end">{{ formatMoney(item.betAmount || 0) }}</td>
-                                                <td class="text-end" :class="getProfitClass(item.memberWinLoss)">{{ formatProfit(item.memberWinLoss || 0) }}</td>
+                                                <td class="text-end" :class="getProfitClass((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0))">{{ formatProfit((item.memberWinLoss || 0) + (item.earnedRebateAmount || 0)) }}</td>
                                             </tr>
                                         </template>
                                         <!-- 总计行 -->
@@ -1690,7 +1690,7 @@
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.earnedRebateAmount || 0) }}</td>
                                             <td class="text-end fw-bold" :class="getProfitClass(reportData.totalSummary.earnedRebateAmount || 0)">{{ formatProfit(reportData.totalSummary.earnedRebateAmount || 0) }}</td>
                                             <td class="text-end">{{ formatMoney(reportData.totalSummary.betAmount || 0) }}</td>
-                                            <td class="text-end fw-bold" :class="getProfitClass(reportData.totalSummary.memberWinLoss)">{{ formatProfit(reportData.totalSummary.memberWinLoss || 0) }}</td>
+                                            <td class="text-end fw-bold" :class="getProfitClass((reportData.totalSummary.memberWinLoss || 0) + (reportData.totalSummary.earnedRebateAmount || 0))">{{ formatProfit((reportData.totalSummary.memberWinLoss || 0) + (reportData.totalSummary.earnedRebateAmount || 0)) }}</td>
                                         </tr>
                                         <tr v-if="loading">
                                             <td colspan="17" class="text-center text-muted py-4">

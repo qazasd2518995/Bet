@@ -1,6 +1,7 @@
 // security/session-manager.js - 會話管理系統
 import db from '../db/config.js';
 import crypto from 'crypto';
+import wsManager from '../websocket/ws-manager.js';
 
 /**
  * 會話管理器
@@ -28,6 +29,12 @@ class SessionManager {
       
       if (existingSessions.length > 0) {
         console.log(`用戶 ${userType}:${userId} 已有活躍會話，將強制登出其他裝置`);
+        
+        // 通知所有現有會話即時登出
+        for (const session of existingSessions) {
+          wsManager.notifySessionInvalidated(session.session_token);
+        }
+        
         // 強制登出所有現有會話
         await this.invalidateUserSessions(userType, userId);
       }
@@ -127,6 +134,21 @@ class SessionManager {
    */
   static async invalidateUserSessions(userType, userId) {
     try {
+      // 獲取所有活躍會話的 token
+      const sessions = await db.any(`
+        SELECT session_token 
+        FROM user_sessions 
+        WHERE user_type = $1 
+        AND user_id = $2 
+        AND is_active = true
+      `, [userType, userId]);
+      
+      // 通知每個會話被強制登出
+      for (const session of sessions) {
+        wsManager.notifySessionInvalidated(session.session_token);
+      }
+      
+      // 更新資料庫標記為無效
       await db.none(`
         UPDATE user_sessions 
         SET is_active = false 
