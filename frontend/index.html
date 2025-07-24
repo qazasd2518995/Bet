@@ -7564,6 +7564,7 @@
                     sessionMonitorInterval: null, // 會話監控定時器
                     ws: null, // WebSocket 連接
                     wsReconnectTimer: null, // WebSocket 重連定時器
+                    isLoggingOut: false, // 防止重複登出
                     historyPagination: {
                         page: 1,
                         pageSize: 20,
@@ -8034,16 +8035,37 @@
                                 console.log('WebSocket 認證成功');
                             } else if (message.type === 'session_invalidated') {
                                 // 會話被強制失效
-                                console.log('會話失效:', message.message);
-                                alert(message.message);
-                                
-                                // 清除本地存儲
-                                sessionStorage.clear();
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('username');
-                                
-                                // 跳轉到登入頁面
-                                window.location.href = 'login.html';
+                                if (!this.isLoggingOut) {
+                                    this.isLoggingOut = true;
+                                    console.log('會話失效:', message.message);
+                                    
+                                    // 關閉 WebSocket 連接，防止重連
+                                    if (this.ws) {
+                                        this.ws.close();
+                                        this.ws = null;
+                                    }
+                                    
+                                    // 清除所有定時器
+                                    if (this.wsReconnectTimer) {
+                                        clearTimeout(this.wsReconnectTimer);
+                                        this.wsReconnectTimer = null;
+                                    }
+                                    if (this.sessionMonitorInterval) {
+                                        clearInterval(this.sessionMonitorInterval);
+                                        this.sessionMonitorInterval = null;
+                                    }
+                                    
+                                    // 顯示提示訊息
+                                    alert(message.message);
+                                    
+                                    // 清除本地存儲
+                                    sessionStorage.clear();
+                                    localStorage.removeItem('token');
+                                    localStorage.removeItem('username');
+                                    
+                                    // 跳轉到登入頁面
+                                    window.location.href = 'login.html';
+                                }
                             }
                         } catch (error) {
                             console.error('WebSocket 訊息處理錯誤:', error);
@@ -8063,7 +8085,7 @@
                         }
                         
                         this.wsReconnectTimer = setTimeout(() => {
-                            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                            if (sessionStorage.getItem('isLoggedIn') === 'true' && !this.isLoggingOut) {
                                 console.log('嘗試重新連接 WebSocket...');
                                 this.initWebSocket();
                             }

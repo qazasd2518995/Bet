@@ -89,7 +89,7 @@ class WebSocketManager {
         if (ws && ws.readyState === 1) { // OPEN
             ws.send(JSON.stringify({
                 type: 'session_invalidated',
-                message: '您的帳號在另一個設備登入，您已被登出'
+                message: '您的账号在另一个设备登入，您已被登出'
             }));
             
             // 給客戶端一點時間接收消息後關閉連接
