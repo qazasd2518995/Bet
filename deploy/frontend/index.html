@@ -2266,6 +2266,21 @@
             flex-shrink: 0 !important;
         }
 
+        /* 歷史開獎視窗滑動修復 */
+        .draw-history {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 85vh;
+        }
+        
+        .draw-history .history-list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 200px;
+        }
+        
         /* 历史开奖彈窗球號樣式 */
         .draw-history .number-ball {
             width: 16px !important;
@@ -11778,7 +11793,11 @@
                 // 历史开奖记录展示
                 showDrawHistory() {
                     // 显示历史开奖记录彈窗
-                    this.updateHistoryRecords();
+                    // 預設顯示當天開獎
+                    const today = new Date().toISOString().split('T')[0];
+                    this.historySearchDate = today;
+                    this.historySearchPeriod = '';
+                    this.updateHistoryRecords(1, today, '');
                     this.showHistory = true;
                     this.showDropdownMenu = false; // 关闭选單
                 },

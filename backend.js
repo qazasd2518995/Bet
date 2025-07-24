@@ -4882,6 +4882,47 @@ function calculateWinAmount(bet, winResult) {
   }
 }
 
+// 獲取最近開獎結果（簡化版本）
+app.get('/api/recent-results', async (req, res) => {
+  try {
+    // 獲取最近100期開獎記錄，確保包含當天所有記錄
+    const query = `
+      SELECT 
+        period, 
+        result, 
+        created_at,
+        created_at as time
+      FROM result_history 
+      WHERE result IS NOT NULL 
+      ORDER BY period DESC 
+      LIMIT 100
+    `;
+    
+    const results = await db.any(query);
+    
+    // 格式化結果
+    const formattedResults = results.map(row => ({
+      period: row.period,
+      result: parseDrawResult(row.result),
+      time: row.time,
+      created_at: row.created_at
+    }));
+    
+    res.json({
+      success: true,
+      data: formattedResults,
+      count: formattedResults.length
+    });
+    
+  } catch (error) {
+    console.error('獲取近期開獎記錄失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取開獎記錄失敗'
+    });
+  }
+});
+
 // 獲取歷史開獎結果
 app.get('/api/history', async (req, res) => {
   try {
@@ -4889,7 +4930,8 @@ app.get('/api/history', async (req, res) => {
     
     const { page = 1, limit = 20, period = '', date = '' } = req.query;
     const pageNumber = parseInt(page);
-    const pageSize = parseInt(limit);
+    // 當有日期篩選時，返回所有記錄（最多500筆）
+    const pageSize = date ? 500 : parseInt(limit);
     
     // 構建查詢條件
     let whereClause = '';
