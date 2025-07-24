@@ -85,6 +85,24 @@
         });
     </script>
     <style>
+        /* 防止 Vue 模板閃現 */
+        [v-cloak] {
+            display: none !important;
+        }
+        
+        /* 使用 v-show 的模態框樣式 */
+        .modal[style*="display: none"] {
+            display: none !important;
+        }
+        
+        .modal {
+            display: flex !important;
+        }
+        
+        .notification-popup[style*="display: none"] {
+            display: none !important;
+        }
+        
         /* CSS變量 - 主题颜色 */
         :root {
             --primary-color: #667eea;
@@ -6189,7 +6207,7 @@
 </head>
 <body>
     <!-- 游戏主容器 -->
-    <div id="app" class="container">
+    <div id="app" class="container" v-cloak>
         <!-- 維修提示遮罩 -->
         <div v-if="gameStatus === 'maintenance' || gameStatus === 'waiting'" class="maintenance-overlay">
             <div class="maintenance-content">
@@ -6924,7 +6942,7 @@
         </div>
 
         <!-- 下注确认彈窗 -->
-        <div class="modal" v-if="showBetModal">
+        <div class="modal" v-show="showBetModal" style="display: none;">
             <div class="bet-confirmation">
                 <div class="bet-confirm-header">
                     <h3>下注清单</h3>
@@ -6964,7 +6982,7 @@
         </div>
         
         <!-- 派彩记录彈窗 -->
-        <div class="modal" v-if="showRecords">
+        <div class="modal" v-show="showRecords" style="display: none;">
             <bet-records 
                 :records="betRecords" 
                 @close="showRecords = false"
@@ -6972,7 +6990,7 @@
         </div>
 
         <!-- 盈亏记录彈窗 - 簡潔设计 -->
-        <div class="modal" v-if="showProfitModal">
+        <div class="modal" v-show="showProfitModal" style="display: none;">
             <div class="profit-records-simple">
                 <!-- 标题欄 -->
                 <div class="simple-header">
@@ -7076,7 +7094,7 @@
         </div>
 
         <!-- 單日详细记录彈窗 -->
-        <div class="modal" v-if="showDayDetailModal">
+        <div class="modal" v-show="showDayDetailModal" style="display: none;">
             <div class="day-detail">
                 <div class="detail-header">
                     <div class="title">{{ formatDateTitle(selectedDate) }} 注單详情</div>
@@ -7166,7 +7184,7 @@
         </div>
 
         <!-- 开奖历史彈窗 -->
-        <div class="modal" v-if="showHistory">
+        <div class="modal" v-show="showHistory" style="display: none;">
             <div class="draw-history">
                 <div class="history-header">
                     <div class="title">历史开奖</div>
@@ -7205,7 +7223,7 @@
         </div>
         
         <!-- 登录彈窗 - 根据爬蟲网站添加 -->
-        <div class="modal" v-if="showLoginModal">
+        <div class="modal" v-show="showLoginModal" style="display: none;">
             <div class="login-modal">
                 <div class="login-header">
                     <h3>用戶登录</h3>
@@ -7229,7 +7247,7 @@
         </div>
         
         <!-- 注册彈窗 - 根据爬蟲网站添加 -->
-        <div class="modal" v-if="showRegisterModal">
+        <div class="modal" v-show="showRegisterModal" style="display: none;">
             <div class="register-modal">
                 <div class="register-header">
                     <h3>用戶注册</h3>
@@ -7257,7 +7275,7 @@
         </div>
 
         <!-- 限红规定彈窗 -->
-        <div class="modal" v-if="showBetLimitsModal">
+        <div class="modal" v-show="showBetLimitsModal" style="display: none;">
             <div class="bet-limits-modal">
                 <div class="bet-limits-header">
                     <h3>限红规定</h3>
@@ -7315,7 +7333,7 @@
         </div>
 
         <!-- 修改密码彈窗 -->
-        <div class="modal" v-if="showChangePasswordModal">
+        <div class="modal" v-show="showChangePasswordModal" style="display: none;">
             <div class="change-password-modal">
                 <div class="change-password-header">
                     <h3>修改密码</h3>
@@ -7362,7 +7380,7 @@
         </div>
 
         <!-- 长龙排行彈窗 -->
-        <div class="modal" v-if="dragonRankingVisible">
+        <div class="modal" v-show="dragonRankingVisible" style="display: none;">
             <div class="dragon-ranking">
                 <div class="dragon-header">
                     <div class="title">长龙排行</div>
@@ -7414,7 +7432,7 @@
         </div>
 
         <!-- 主题选择器彈窗 -->
-        <div class="modal" v-if="themeSelectorVisible">
+        <div class="modal" v-show="themeSelectorVisible" style="display: none;">
             <div class="theme-selector">
                 <div class="theme-header">
                     <div class="title">选择主题</div>
@@ -7439,7 +7457,7 @@
         </div>
 
         <!-- 路珠走势彈窗 -->
-        <div class="modal" v-if="roadBeadVisible">
+        <div class="modal" v-show="roadBeadVisible" style="display: none;">
             <div class="road-bead-modal">
                 <div class="road-bead-header">
                     <div class="title">路珠走势分析</div>
@@ -7600,7 +7618,7 @@
 
         <!-- 显示通知的元素 -->
         <!-- 🎯 彈出式通知視窗 -->
-        <div v-if="notificationVisible" class="notification-popup" @click="notificationVisible = false">
+        <div v-show="notificationVisible" class="notification-popup" @click="notificationVisible = false" style="display: none;">
             <div class="notification-content" @click.stop>
                 <div class="notification-message">{{ notificationText }}</div>
                 <button class="notification-close" @click="notificationVisible = false">✕</button>
