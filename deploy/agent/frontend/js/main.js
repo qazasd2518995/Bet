@@ -4943,9 +4943,7 @@ const app = createApp({
             try {
                 console.log('启用输赢控制:', controlId);
                 
-                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
-                    is_active: true
-                });
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/activate`);
                 
                 if (response.data.success) {
                     this.showMessage('控制已启用', 'success');
@@ -4964,9 +4962,7 @@ const app = createApp({
             try {
                 console.log('停用输赢控制:', controlId);
                 
-                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
-                    is_active: false
-                });
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/deactivate`);
                 
                 if (response.data.success) {
                     this.showMessage('控制已停用', 'success');
