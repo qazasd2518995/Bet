@@ -10556,10 +10556,11 @@
                         left: 50%;
                         transform: translateX(-50%);
                         color: #ffff00;
-                        font-size: ${isMobile ? '18px' : '24px'};
+                        font-size: ${isMobile ? '14px' : '24px'};
                         font-weight: bold;
                         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
                         z-index: 10001;
+                        white-space: nowrap;
                     `;
                     title.textContent = `🏁 第${this.formattedCurrentPeriod}期 开奖中 🏁`;
                     animationContainer.appendChild(title);
@@ -10693,6 +10694,10 @@
                     if (title && title.style.zIndex === '10001') {
                         title.textContent = '🏁 比赛开始！ 🏁';
                         title.style.color = '#00ff00';
+                        // 手機版字體調小
+                        if (isMobile) {
+                            title.style.fontSize = '14px';
+                        }
                     }
                     
                     // 根据开奖结果设置每辆车的到达时间和最終位置
@@ -10884,7 +10889,6 @@
                     `;
                     waitingMessage.innerHTML = `
                         <div>⏳ 等待开奖中...</div>
-                        <div style="font-size: 14px; margin-top: 5px; color: #ffffff;">赛车已就位，即將开始比赛</div>
                     `;
                     
                     const container = this.raceOverlay.querySelector('.race-animation-container');
@@ -11090,19 +11094,8 @@
                             transition: all 0.3s ease;
                             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                         `;
-                        closeButton.innerHTML = '✕ 关闭赛车';
-                        closeButton.onclick = () => this.closeRaceCompetition();
-                        closeButton.onmouseover = () => {
-                            closeButton.style.background = 'rgba(255, 0, 0, 1)';
-                            closeButton.style.transform = 'scale(1.05)';
-                        };
-                        closeButton.onmouseout = () => {
-                            closeButton.style.background = 'rgba(255, 0, 0, 0.8)';
-                            closeButton.style.transform = 'scale(1)';
-                        };
-                        
-                        this.raceOverlay.querySelector('.race-animation-container').appendChild(closeButton);
-                    }, 4000); // 4秒後显示关闭按钮，給更多时间观看结果
+                        // 移除重複的關閉按鈕，右上角已有叉叉按鈕
+                    }, 4000); // 4秒後不再顯示額外的關閉按鈕
                 },
                 
                 // 🛑 强制停止赛车竞赛
