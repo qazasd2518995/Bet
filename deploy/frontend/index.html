@@ -643,9 +643,11 @@
         }
         
         .position-tab.active {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #ffd700, #ff6b6b);
+            border-color: #ffd700;
             color: white;
-            border-color: #4CAF50;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
         }
         
         .position-controls {
@@ -1647,8 +1649,8 @@
             box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3) !important;
         }
         
-        /* 確保只有選中的數字選項才顯示選中樣式 */
-        .betting-options.numbers .option.selected {
+        /* 確保所有選中的選項都顯示相同的金黃色樣式 */
+        .betting-options .option.selected {
             background: linear-gradient(135deg, #ffd700, #ff6b6b) !important;
             border-color: #ffd700 !important;
             color: white !important;
@@ -5422,9 +5424,11 @@
         }
         
         .option-btn.active {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, #ffd700, #ff6b6b);
+            border-color: #ffd700;
             color: white;
-            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
         }
         
         /* 路珠棋盤 */
