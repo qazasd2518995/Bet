@@ -812,6 +812,12 @@
                     localStorage.setItem('agent_token', data.token);
                     localStorage.setItem('agent_user', JSON.stringify(data.agent));
                     
+                    // 保存新的會話token
+                    if (data.sessionToken) {
+                        localStorage.setItem('agent_session_token', data.sessionToken);
+                        console.log('✓ 代理會話token已保存');
+                    }
+                    
                     // 也保存到 sessionStorage
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('token', data.token);
