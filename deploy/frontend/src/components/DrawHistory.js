@@ -225,14 +225,14 @@ Vue.component('draw-history', {
         
         if (this.page === 1) {
           // 首次载入替換所有记录
-          this.historyRecords = response.data || [];
+          this.historyRecords = response.data.records || [];
         } else {
           // 加载更多时追加记录
-          this.historyRecords = [...this.historyRecords, ...(response.data || [])];
+          this.historyRecords = [...this.historyRecords, ...(response.data.records || [])];
         }
         
         // 判断是否还有更多记录
-        this.hasMoreHistory = (response.data || []).length >= this.itemsPerPage;
+        this.hasMoreHistory = (response.data.records || []).length >= this.itemsPerPage;
       } catch (error) {
         console.error('获取历史记录失败:', error);
       }
@@ -288,17 +288,16 @@ Vue.component('draw-history', {
     // 格式化日期为API请求格式
     formatDateForApi(date) {
       if (!date) return '';
-      return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     },
     
     // 格式化时间显示
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      // 转換为台北时區显示 - 手動加8小时
-      const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-      const hours = taipeiTime.getHours().toString().padStart(2, '0');
-      const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
+      // 直接使用本地时间，不需要手动转换
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
       return `${hours}:${minutes}`;
     },
     

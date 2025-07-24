@@ -1244,6 +1244,59 @@
             z-index: 1001;
         }
         
+        /* 手機版下拉選單樣式 */
+        @media (max-width: 768px) {
+            .dropdown-panel {
+                position: fixed !important;
+                top: 70px !important;
+                right: 10px !important;
+                left: 10px !important;
+                width: auto !important;
+                max-height: calc(100vh - 100px) !important;
+                overflow-y: auto !important;
+                min-width: unset !important;
+            }
+            
+            .user-section-dropdown {
+                padding: 12px !important;
+            }
+            
+            .user-avatar {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 16px !important;
+            }
+            
+            .dropdown-action {
+                padding: 12px 16px !important;
+                font-size: 14px !important;
+            }
+            
+            .hot-bets-section {
+                padding: 12px !important;
+            }
+            
+            .hot-bet-item {
+                padding: 8px !important;
+                font-size: 12px !important;
+            }
+            
+            .logout-btn {
+                margin: 12px !important;
+                padding: 10px !important;
+                font-size: 14px !important;
+            }
+            
+            .dropdown-divider {
+                margin: 8px 0 !important;
+            }
+            
+            .section-title {
+                font-size: 13px !important;
+                margin-bottom: 8px !important;
+            }
+        }
+        
         .hot-bets-section {
             padding: 16px;
         }
@@ -1778,16 +1831,7 @@
                 justify-content: center;
             }
             
-            .dropdown-panel {
-                right: 0 !important;
-                left: auto !important;
-                transform: none !important;
-                z-index: 1002 !important;
-                max-width: 90vw !important;
-                margin-top: 12px !important;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
-                border: 1px solid rgba(0, 0, 0, 0.1) !important;
-            }
+            /* 移除重複的 dropdown-panel 樣式，使用上面定義的 */
             
             /* 投注选项响应式设计 */
             .betting-tabs {
@@ -2279,6 +2323,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             min-height: 200px;
+            max-height: 100%;
         }
         
         /* 历史开奖彈窗球號樣式 */
@@ -3316,7 +3361,6 @@
 
         /* === 历史紀錄列表 === */
         .history-list {
-            max-height: 400px;
             overflow-y: auto;
             padding: 8px 12px;
         }
@@ -6077,11 +6121,90 @@
                 width: 100%;
             }
         }
+        
+        /* 維修提示遮罩樣式 */
+        .maintenance-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .maintenance-content {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 204, 0, 0.3);
+        }
+        
+        .maintenance-icon {
+            font-size: 60px;
+            color: #ffcc00;
+            margin-bottom: 20px;
+            animation: rotate 3s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .maintenance-content h2 {
+            color: #fff;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .maintenance-content p {
+            color: #ecf0f1;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .maintenance-time {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #ffcc00;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
     <!-- 游戏主容器 -->
     <div id="app" class="container">
+        <!-- 維修提示遮罩 -->
+        <div v-if="gameStatus === 'maintenance' || gameStatus === 'waiting'" class="maintenance-overlay">
+            <div class="maintenance-content">
+                <i class="fas fa-wrench maintenance-icon"></i>
+                <h2>{{ gameStatus === 'maintenance' ? '系统维护中' : '等待下期开始' }}</h2>
+                <p v-if="gameStatus === 'maintenance'">
+                    每日维护时间：6:00 - 7:00<br>
+                    请在维护结束后再进行游戏
+                </p>
+                <p v-else>
+                    当前时段已结束<br>
+                    请等待早上7:00开始新的一天
+                </p>
+                <div class="maintenance-time">
+                    <i class="far fa-clock"></i>
+                    <span>当前时间：{{ currentTime }}</span>
+                </div>
+            </div>
+        </div>
         <!-- 顶部導航欄 -->
         <header class="modern-navbar">
             <div class="navbar-container">
@@ -6108,6 +6231,10 @@
                                 aria-label="打开菜單">
                             <i class="fas fa-bars" style="font-size: 18px;"></i>
                         </button>
+                        <!-- 手機版背景遮罩 -->
+                        <div v-if="showDropdownMenu && isMobileView" 
+                             @click="showDropdownMenu = false"
+                             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000;"></div>
                         <div class="dropdown-panel" v-show="showDropdownMenu" style="right: 0;">
                             <!-- User info moved inside dropdown -->
                             <div class="user-section-dropdown" style="padding: 16px; border-bottom: 1px solid #eee;">
@@ -6151,7 +6278,7 @@
 
                             <div class="dropdown-divider"></div>
 
-                            <div class="hot-bets-section" v-if="hotBets && hotBets.length > 0">
+                            <div class="hot-bets-section" v-if="hotBets && hotBets.length > 0 && !isMobileView">
                                 <div class="section-title">熱门投注</div>
                                 <div class="hot-bet-list">
                                     <div
@@ -6215,8 +6342,15 @@
                             </button>
                             <div class="countdown-section" :class="gameStatus">
                                 <div class="countdown-inline">
-                                    <span class="countdown-label">{{ gameStatus === 'betting' ? '封盘倒计时' : '开奖中' }}</span>
-                                    <span class="countdown-time">{{ formatTime(countdownSeconds) }}</span>
+                                    <span class="countdown-label">{{ 
+                                        gameStatus === 'betting' ? '封盘倒计时' : 
+                                        gameStatus === 'drawing' ? '开奖中' :
+                                        gameStatus === 'maintenance' ? '系统维护中' :
+                                        gameStatus === 'waiting' ? '等待开始' : '开奖中' 
+                                    }}</span>
+                                    <span class="countdown-time" v-if="gameStatus === 'betting' || gameStatus === 'drawing'">{{ formatTime(countdownSeconds) }}</span>
+                                    <span class="countdown-time" v-else-if="gameStatus === 'maintenance'">6:00-7:00</span>
+                                    <span class="countdown-time" v-else>--:--</span>
                                 </div>
                             </div>
                         </div>
@@ -6239,7 +6373,7 @@
         </div>
 
         <!-- 投注选项區域 -->
-        <section class="betting-tabs" :class="{ disabled: gameStatus !== 'betting' }">
+        <section class="betting-tabs" :class="{ disabled: gameStatus !== 'betting' }" v-show="gameStatus !== 'maintenance' && gameStatus !== 'waiting'">
             <div class="tabs">
                 <div class="tab" :class="{ active: activeTab === 'combined' }" @click="activeTab = 'combined'">两面</div>
                 <div class="tab" :class="{ active: activeTab === 'quick' }" @click="activeTab = 'quick'">快速</div>
@@ -6734,7 +6868,7 @@
         </section>
 
         <!-- 新的簡潔下注區域 -->
-        <section class="compact-betting-actions" :class="{ disabled: gameStatus !== 'betting' }">
+        <section class="compact-betting-actions" :class="{ disabled: gameStatus !== 'betting' }" v-show="gameStatus !== 'maintenance' && gameStatus !== 'waiting'">
             <div class="compact-bet-bar">
                 <!-- 左側：清除按钮 -->
                 <button class="compact-clear-btn" @click="clearBets">清除</button>
@@ -7052,7 +7186,7 @@
                     </div>
                     <div v-for="(record, index) in recentResults" :key="`history-${record.period}-${index}`" class="record">
                         <div class="rec-header">
-                            <span class="period">{{ record.period }}期</span>
+                            <span class="period">{{ formatPeriodDisplay(record.period) }}</span>
                             <span class="time">{{ formatHistoryTime(record.time || record.created_at) }}</span>
                         </div>
                         <div class="balls">
@@ -7501,12 +7635,13 @@
 
                     
                     // 游戏状态
-                    gameStatus: 'betting', // betting or drawing
+                    gameStatus: 'betting', // betting, drawing, maintenance, waiting
                     currentPeriod: '',
                     isAnimationEnabled: true, // 开奖動畫开关
                     nextPeriod: '',
                     countdownSeconds: 60,
                     drawingAnimationPlayed: false,
+                    currentTime: '', // 當前時間顯示
                     
                     // 跑馬燈訊息
                     marqueeMessages: [], // 追蹤开奖動畫是否已播放
@@ -7563,6 +7698,7 @@
                     
                     // 熱门投注
                     hotBets: [],
+                    isMobileView: window.innerWidth <= 768,
                     
                     // 投注记录
                     betRecords: [],
@@ -7755,7 +7891,47 @@
                     return this.currentPeriod.toString();
                 }
             },
+            mounted() {
+                this.updateCurrentTime();
+                // 每秒更新當前時間
+                setInterval(() => {
+                    this.updateCurrentTime();
+                }, 1000);
+                
+                // 監聽視窗大小變化
+                window.addEventListener('resize', () => {
+                    this.isMobileView = window.innerWidth <= 768;
+                });
+                
+                // 其他初始化邏輯...
+                this.checkLoginStatus();
+                this.initCountdown();
+                
+                // 初始加載遊戲數據
+                this.updateGameState();
+                
+                // 設置定時更新遊戲狀態
+                this.stateUpdateInterval = setInterval(() => {
+                    this.updateGameState();
+                }, 3000);
+                
+                // 如果有用戶登入，連接 WebSocket
+                const token = localStorage.getItem('token');
+                const username = localStorage.getItem('username');
+                if (token && username) {
+                    this.connectWebSocket();
+                }
+            },
             methods: {
+                // 更新當前時間
+                updateCurrentTime() {
+                    const now = new Date();
+                    const hours = now.getHours().toString().padStart(2, '0');
+                    const minutes = now.getMinutes().toString().padStart(2, '0');
+                    const seconds = now.getSeconds().toString().padStart(2, '0');
+                    this.currentTime = `${hours}:${minutes}:${seconds}`;
+                },
+                
                 // 初始化倒计时功能
                 initCountdown() {
                     // 每秒更新倒计时
@@ -8343,6 +8519,24 @@
                             
                             console.log(`服務器游戏数据: 期数=${serverPeriod}, 倒计时=${serverCountdown}, 状态=${serverStatus}`);
                             console.log(`本地游戏数据: 期数=${this.currentPeriod}, 倒计时=${this.countdownSeconds}, 状态=${this.gameStatus}`);
+                            
+                            // 檢查維修狀態
+                            if (serverStatus === 'maintenance') {
+                                this.gameStatus = 'maintenance';
+                                this.countdownSeconds = 0;
+                                this.currentPeriod = serverPeriod;
+                                console.log('🔧 系統進入維修模式');
+                                return;
+                            }
+                            
+                            // 檢查等待狀態（接近維修時間）
+                            if (serverStatus === 'waiting') {
+                                this.gameStatus = 'waiting';
+                                this.countdownSeconds = 0;
+                                this.currentPeriod = serverPeriod;
+                                console.log('⏸️ 系統等待下一期開始');
+                                return;
+                            }
                             
                             // 先更新盤口类型，再更新赔率显示
                             if (data.marketType) {
@@ -9716,28 +9910,38 @@
                     console.log('载入最近10期开奖紀錄...');
                     console.log('当前期號:', this.currentPeriod);
                     
-                    fetch(`${this.API_BASE_URL}/api/history?page=1&limit=10`)
+                    // 使用 recent-results API 替代 history，以獲取正確的期號格式
+                    fetch(`${this.API_BASE_URL}/api/recent-results`)
                         .then(response => response.json())
                         .then(data => {
                             console.log('API返回数据:', data);
                             
-                            if (data.success && Array.isArray(data.records)) {
-                                // 过滤掉未来期數（期號大於当前期號的）
-                                const currentPeriodNum = parseInt(this.currentPeriod);
-                                console.log('当前期號数字:', currentPeriodNum);
+                            if (data.success && Array.isArray(data.data)) {
+                                // recent-results API 使用 data 字段而不是 records
+                                // 获取当前日期 (从当前期号提取)
+                                const currentPeriodStr = this.currentPeriod ? String(this.currentPeriod) : '';
+                                const currentDate = currentPeriodStr.length >= 8 ? currentPeriodStr.substring(0, 8) : '';
+                                console.log('当前期号:', this.currentPeriod, '类型:', typeof this.currentPeriod);
+                                console.log('当前日期:', currentDate);
                                 
-                                const filteredRecords = data.records.filter(record => {
-                                    const recordPeriodNum = parseInt(record.period);
-                                    // 允许显示已经开奖的当前期
-                                    return recordPeriodNum <= currentPeriodNum && record.result && record.result.length > 0;
-                                });
+                                // 显示最近10条有结果的记录
+                                const records = data.data.filter(record => {
+                                    return record.period && record.result && record.result.length > 0;
+                                }).slice(0, 10);
                                 
-                                console.log('过滤前记录数:', data.records.length);
-                                console.log('过滤后记录数:', filteredRecords.length);
+                                console.log('从API获取记录数:', data.data.length);
+                                console.log('显示记录数:', records.length);
+                                if (records.length > 0) {
+                                    console.log('第一条记录示例:', {
+                                        period: records[0].period,
+                                        hasResult: !!records[0].result,
+                                        resultLength: records[0].result ? records[0].result.length : 0
+                                    });
+                                }
                                 
-                                this.recentDrawHistory = filteredRecords.map(record => ({
+                                this.recentDrawHistory = records.map(record => ({
                                     period: this.formatPeriodDisplay(record.period),
-                                    results: record.result || []  // 修正：使用 result 而不是 results
+                                    results: record.result || []
                                 }));
                                 console.log('开奖紀錄载入成功，记录数量:', this.recentDrawHistory.length);
                                 console.log('第一筆记录:', this.recentDrawHistory[0]);
@@ -10285,13 +10489,58 @@
                         justify-content: center;
                     `;
                     
-                    // 创建動畫容器
+                    // 添加關閉按鈕
+                    const closeButton = document.createElement('button');
+                    closeButton.style.cssText = `
+                        position: absolute;
+                        top: 20px;
+                        right: 20px;
+                        width: 40px;
+                        height: 40px;
+                        background: rgba(255, 255, 255, 0.2);
+                        border: 2px solid #fff;
+                        border-radius: 50%;
+                        color: #fff;
+                        font-size: 24px;
+                        cursor: pointer;
+                        z-index: 10002;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.3s ease;
+                    `;
+                    closeButton.innerHTML = '×';
+                    closeButton.onmouseover = () => {
+                        closeButton.style.background = 'rgba(255, 255, 255, 0.3)';
+                        closeButton.style.transform = 'scale(1.1)';
+                    };
+                    closeButton.onmouseout = () => {
+                        closeButton.style.background = 'rgba(255, 255, 255, 0.2)';
+                        closeButton.style.transform = 'scale(1)';
+                    };
+                    closeButton.onclick = () => {
+                        console.log('關閉賽車動畫');
+                        if (this.racingInterval) {
+                            clearInterval(this.racingInterval);
+                            this.racingInterval = null;
+                        }
+                        raceContainer.remove();
+                        this.raceOverlay = null;
+                    };
+                    raceContainer.appendChild(closeButton);
+                    
+                    // 创建動畫容器 - 響應式設計
                     const animationContainer = document.createElement('div');
                     animationContainer.className = 'race-animation-container';
+                    
+                    // 檢測是否為手機設備
+                    const isMobile = window.innerWidth <= 768;
+                    
                     animationContainer.style.cssText = `
-                        width: 90%;
-                        max-width: 1000px;
-                        height: 600px;
+                        width: ${isMobile ? '95%' : '90%'};
+                        max-width: ${isMobile ? '100%' : '1000px'};
+                        height: ${isMobile ? '70vh' : '600px'};
+                        max-height: ${isMobile ? '400px' : '600px'};
                         background: linear-gradient(135deg, #0f0f23, #1a1a2e);
                         border-radius: 15px;
                         position: relative;
@@ -10307,7 +10556,7 @@
                         left: 50%;
                         transform: translateX(-50%);
                         color: #ffff00;
-                        font-size: 24px;
+                        font-size: ${isMobile ? '18px' : '24px'};
                         font-weight: bold;
                         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
                         z-index: 10001;
@@ -10319,13 +10568,13 @@
                     const trackContainer = document.createElement('div');
                     trackContainer.style.cssText = `
                         position: absolute;
-                        top: 60px;
-                        left: 20px;
-                        right: 20px;
-                        bottom: 20px;
+                        top: ${isMobile ? '50px' : '60px'};
+                        left: ${isMobile ? '10px' : '20px'};
+                        right: ${isMobile ? '10px' : '20px'};
+                        bottom: ${isMobile ? '10px' : '20px'};
                         background: linear-gradient(180deg, #2a2a3e 0%, #1a1a2e 100%);
                         border-radius: 10px;
-                        padding: 20px 20px 40px 20px;
+                        padding: ${isMobile ? '10px 10px 20px 10px' : '20px 20px 40px 20px'};
                         overflow: visible;
                     `;
                     animationContainer.appendChild(trackContainer);
@@ -10579,15 +10828,18 @@
                         </div>
                     `;
                     
-                    const container = this.raceOverlay?.querySelector('.race-animation-container');
-                    if (container) {
-                        container.appendChild(resultPanel);
-                    }
+                    // 移除開獎結果顯示
+                    // const container = this.raceOverlay?.querySelector('.race-animation-container');
+                    // if (container) {
+                    //     container.appendChild(resultPanel);
+                    // }
                 },
                 
                 // 🏎️ 创建竞赛中的赛车
                 createCompetingCars(container) {
-                    const trackHeight = 480;
+                    const isMobile = window.innerWidth <= 768;
+                    const containerHeight = container.offsetHeight || (isMobile ? 300 : 480);
+                    const trackHeight = containerHeight - (isMobile ? 60 : 80);
                     const carCount = 10;
                     const spacing = trackHeight / carCount;
                     const containerWidth = container.offsetWidth || 1200;
@@ -10600,19 +10852,19 @@
                         car.dataset.carNumber = i;
                         car.style.cssText = `
                             position: absolute;
-                            left: 50px;
-                            top: ${40 + (i-1) * spacing}px;
-                            font-size: 28px;
+                            left: ${isMobile ? '20px' : '50px'};
+                            top: ${(isMobile ? 20 : 40) + (i-1) * spacing}px;
+                            font-size: ${isMobile ? '20px' : '28px'};
                             z-index: 1000;
                             transition: left 0.3s ease-out;
                             display: flex;
                             align-items: center;
-                            gap: 8px;
+                            gap: ${isMobile ? '4px' : '8px'};
                         `;
                         
                         car.innerHTML = `
                             <span style="
-                                font-size: 35px;
+                                font-size: ${isMobile ? '25px' : '35px'};
                                 transform: scaleX(-1);
                                 filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
                             ">🏎️</span>
@@ -10620,12 +10872,12 @@
                                 background: linear-gradient(135deg, #ffffff, #f0f0f0);
                                 color: #333;
                                 border-radius: 50%;
-                                width: 30px;
-                                height: 30px;
+                                width: ${isMobile ? '24px' : '30px'};
+                                height: ${isMobile ? '24px' : '30px'};
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
-                                font-size: 16px;
+                                font-size: ${isMobile ? '14px' : '16px'};
                                 font-weight: bold;
                                 border: 2px solid #666;
                                 box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -10636,7 +10888,7 @@
                         this.racingCars.push({
                             element: car,
                             number: i,
-                            position: 50,
+                            position: isMobile ? 20 : 50,
                             speed: 0,
                             finalPosition: null
                         });
@@ -10935,6 +11187,9 @@
                         existingOverlay.remove();
                     }
                     
+                    // 檢測是否為手機設備
+                    const isMobile = window.innerWidth <= 768;
+                    
                     // 创建新的赛车動畫复蓋層
                     const raceContainer = document.createElement('div');
                     raceContainer.className = 'race-animation-overlay';
@@ -10951,13 +11206,14 @@
                         justify-content: center;
                     `;
                     
-                    // 创建動畫容器
+                    // 创建動畫容器 - 響應式設計
                     const animationContainer = document.createElement('div');
                     animationContainer.className = 'race-animation-container';
                     animationContainer.style.cssText = `
-                        width: 90%;
-                        max-width: 1000px;
-                        height: 400px;
+                        width: ${isMobile ? '95%' : '90%'};
+                        max-width: ${isMobile ? '100%' : '1000px'};
+                        height: ${isMobile ? '70vh' : '400px'};
+                        max-height: ${isMobile ? '400px' : '400px'};
                         background: linear-gradient(135deg, #1a1a2e, #16213e);
                         border-radius: 15px;
                         position: relative;
@@ -10986,20 +11242,33 @@
                     
                     // 添加关闭按钮
                     const closeBtn = document.createElement('button');
-                    closeBtn.innerHTML = '✕ 关闭';
                     closeBtn.style.cssText = `
                         position: absolute;
                         top: 20px;
                         right: 20px;
+                        width: 40px;
+                        height: 40px;
                         background: rgba(255, 255, 255, 0.2);
-                        color: white;
-                        border: none;
-                        padding: 10px 15px;
-                        border-radius: 5px;
+                        border: 2px solid #fff;
+                        border-radius: 50%;
+                        color: #fff;
+                        font-size: 24px;
                         cursor: pointer;
-                        z-index: 10001;
-                        font-size: 14px;
+                        z-index: 10002;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.3s ease;
                     `;
+                    closeBtn.innerHTML = '×';
+                    closeBtn.onmouseover = () => {
+                        closeBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+                        closeBtn.style.transform = 'scale(1.1)';
+                    };
+                    closeBtn.onmouseout = () => {
+                        closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+                        closeBtn.style.transform = 'scale(1)';
+                    };
                     closeBtn.onclick = () => {
                         raceContainer.remove();
                     };
@@ -11135,13 +11404,52 @@
                         document.body.appendChild(raceContainer);
                     }
                     
-                    // 清空現有内容並创建動畫容器
+                    // 添加關閉按鈕
+                    const closeButton = document.createElement('button');
+                    closeButton.style.cssText = `
+                        position: absolute;
+                        top: 20px;
+                        right: 20px;
+                        width: 40px;
+                        height: 40px;
+                        background: rgba(255, 255, 255, 0.2);
+                        border: 2px solid #fff;
+                        border-radius: 50%;
+                        color: #fff;
+                        font-size: 24px;
+                        cursor: pointer;
+                        z-index: 10002;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.3s ease;
+                    `;
+                    closeButton.innerHTML = '×';
+                    closeButton.onmouseover = () => {
+                        closeButton.style.background = 'rgba(255, 255, 255, 0.3)';
+                        closeButton.style.transform = 'scale(1.1)';
+                    };
+                    closeButton.onmouseout = () => {
+                        closeButton.style.background = 'rgba(255, 255, 255, 0.2)';
+                        closeButton.style.transform = 'scale(1)';
+                    };
+                    closeButton.onclick = () => {
+                        console.log('關閉賽車動畫');
+                        raceContainer.remove();
+                    };
+                    raceContainer.appendChild(closeButton);
+                    
+                    // 檢測是否為手機設備
+                    const isMobile = window.innerWidth <= 768;
+                    
+                    // 清空現有内容並创建動畫容器 - 響應式設計
                     const animationContainer = document.createElement('div');
                     animationContainer.className = 'race-animation-container';
                     animationContainer.style.cssText = `
-                        width: 90%;
-                        max-width: 1000px;
-                        height: 400px;
+                        width: ${isMobile ? '95%' : '90%'};
+                        max-width: ${isMobile ? '100%' : '1000px'};
+                        height: ${isMobile ? '70vh' : '400px'};
+                        max-height: ${isMobile ? '400px' : '400px'};
                         background: linear-gradient(135deg, #1a1a2e, #16213e);
                         border-radius: 15px;
                         position: relative;

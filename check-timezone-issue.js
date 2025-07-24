@@ -1,72 +1,107 @@
-// check-timezone-issue.js - 檢查時區問題
 import db from './db/config.js';
 
 async function checkTimezoneIssue() {
+    console.log('🔍 檢查時區問題\n');
+    
     try {
-        console.log('🕐 檢查時區問題...\n');
+        // 1. 檢查資料庫時區設置
+        console.log('📊 資料庫時區設置:');
+        const dbTimezone = await db.one("SHOW TIMEZONE");
+        console.log(`資料庫時區: ${dbTimezone.timezone}`);
         
-        // 1. 檢查資料庫中的時間
-        const recentBet = await db.oneOrNone(`
-            SELECT id, created_at, created_at AT TIME ZONE 'Asia/Taipei' as taipei_time
-            FROM bet_history 
-            WHERE username = 'justin111'
-            ORDER BY created_at DESC 
-            LIMIT 1
-        `);
+        const currentDbTime = await db.one("SELECT NOW() as db_time, NOW() AT TIME ZONE 'Asia/Shanghai' as china_time");
+        console.log(`資料庫當前時間: ${currentDbTime.db_time}`);
+        console.log(`中國時間: ${currentDbTime.china_time}`);
         
-        if (recentBet) {
-            console.log('最近一筆投注的時間:');
-            console.log(`  資料庫原始時間: ${recentBet.created_at}`);
-            console.log(`  台北時間: ${recentBet.taipei_time}`);
-            console.log(`  JavaScript Date: ${new Date(recentBet.created_at).toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'})}`);
-        }
-        
-        // 2. 檢查系統時間
-        console.log('\n系統時間檢查:');
-        const now = new Date();
-        console.log(`  系統當前時間 (UTC): ${now.toISOString()}`);
-        console.log(`  系統當前時間 (Local): ${now.toString()}`);
-        console.log(`  台北時間: ${now.toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'})}`);
-        
-        // 3. 檢查時區設定
-        console.log('\n時區設定:');
-        console.log(`  系統時區偏移: ${now.getTimezoneOffset()} 分鐘`);
-        console.log(`  預期台北時間 (UTC+8): ${new Date().toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'})}`);
-        
-        // 4. 檢查最近的投注記錄
-        const recentBets = await db.any(`
+        // 2. 檢查最新的 result_history 記錄
+        console.log('\n📊 檢查 result_history 表的時間數據:');
+        const latestResults = await db.manyOrNone(`
             SELECT 
-                id, 
-                period, 
+                period::text as period,
                 created_at,
-                created_at AT TIME ZONE 'Asia/Taipei' as taipei_time
-            FROM bet_history 
-            WHERE username = 'justin111'
-                AND created_at >= NOW() - INTERVAL '1 hour'
-            ORDER BY created_at DESC
+                draw_time,
+                TO_CHAR(created_at AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS') as created_at_china,
+                TO_CHAR(draw_time AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI:SS') as draw_time_china,
+                SUBSTRING(period::text, 1, 8) as period_date,
+                SUBSTRING(period::text, 9, 3) as period_number
+            FROM result_history
+            WHERE result IS NOT NULL
+            ORDER BY period DESC
             LIMIT 5
         `);
         
-        console.log('\n最近一小時的投注記錄:');
-        recentBets.forEach(bet => {
-            const jsDate = new Date(bet.created_at);
-            console.log(`\nID ${bet.id} - 期號 ${bet.period}:`);
-            console.log(`  DB原始: ${bet.created_at}`);
-            console.log(`  DB台北: ${bet.taipei_time}`);
-            console.log(`  JS台北: ${jsDate.toLocaleString('zh-TW', {timeZone: 'Asia/Taipei'})}`);
+        console.log('最新5筆記錄:');
+        latestResults.forEach((row, index) => {
+            console.log(`\n${index + 1}. 期號: ${row.period}`);
+            console.log(`   期號日期: ${row.period_date}, 期號序號: ${row.period_number}`);
+            console.log(`   created_at (原始): ${row.created_at}`);
+            console.log(`   created_at (中國): ${row.created_at_china}`);
+            console.log(`   draw_time (原始): ${row.draw_time}`);
+            console.log(`   draw_time (中國): ${row.draw_time_china}`);
+            
+            // 檢查期號日期和實際時間是否匹配
+            const periodDate = row.period_date;
+            const actualDate = row.draw_time_china ? row.draw_time_china.substring(0, 10).replace(/-/g, '') : 'N/A';
+            if (periodDate !== actualDate) {
+                console.log(`   ⚠️  期號日期 (${periodDate}) 與實際時間 (${actualDate}) 不匹配!`);
+            }
         });
         
-        // 5. 建議修復方案
-        console.log('\n💡 修復建議:');
-        console.log('1. 前端顯示時應該使用 toLocaleString("zh-TW", {timeZone: "Asia/Taipei"})');
-        console.log('2. 或在後端API返回時就轉換為台北時間');
-        console.log('3. 確保所有時間顯示都統一使用台北時區');
+        // 3. 檢查今天應該有多少期
+        console.log('\n📊 檢查今天 (2025-07-24) 應該有的期數:');
+        const currentTime = new Date();
+        const taipeiTime = new Date(currentTime.toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+        const hours = taipeiTime.getHours();
+        const minutes = taipeiTime.getMinutes();
+        const expectedPeriods = Math.floor((hours * 60 + minutes) / 1.5); // 每1.5分鐘一期
         
-        await db.$pool.end();
+        console.log(`台北時間: ${taipeiTime.toLocaleString('zh-TW')}`);
+        console.log(`預計今天應該有約 ${expectedPeriods} 期`);
+        
+        // 4. 檢查實際有多少期
+        const todayPeriods = await db.one(`
+            SELECT COUNT(*) as count
+            FROM result_history
+            WHERE period::text LIKE '20250724%'
+            AND result IS NOT NULL
+        `);
+        
+        console.log(`實際找到今天的期數: ${todayPeriods.count}`);
+        
+        // 5. 找出時間錯誤的原因
+        console.log('\n📊 檢查時間設置問題:');
+        const problemPeriods = await db.manyOrNone(`
+            SELECT 
+                period::text as period,
+                draw_time,
+                created_at,
+                EXTRACT(EPOCH FROM (created_at - draw_time)) as time_diff_seconds
+            FROM result_history
+            WHERE period::text LIKE '20250724%'
+            AND draw_time IS NOT NULL
+            ORDER BY period DESC
+            LIMIT 5
+        `);
+        
+        problemPeriods.forEach((row) => {
+            console.log(`\n期號: ${row.period}`);
+            console.log(`draw_time: ${row.draw_time}`);
+            console.log(`created_at: ${row.created_at}`);
+            console.log(`時間差: ${Math.abs(row.time_diff_seconds)} 秒`);
+        });
+        
+        console.log('\n✅ 檢查完成');
+        
     } catch (error) {
-        console.error('檢查過程中發生錯誤:', error);
-        await db.$pool.end();
+        console.error('❌ 錯誤:', error.message);
+        console.error(error);
     }
 }
 
-checkTimezoneIssue();
+// 執行檢查
+checkTimezoneIssue().then(() => {
+    process.exit(0);
+}).catch(error => {
+    console.error('❌ 錯誤:', error);
+    process.exit(1);
+});

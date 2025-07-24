@@ -1247,6 +1247,44 @@ async function startGameCycle() {
     // 每秒更新內存狀態，減少數據庫寫入
     gameLoopInterval = setInterval(async () => {
       try {
+        // 檢查是否在維修時間
+        if (isMaintenanceTime()) {
+          // 如果在維修時間，停止遊戲循環
+          if (memoryGameState.status !== 'maintenance') {
+            memoryGameState.status = 'maintenance';
+            memoryGameState.countdown_seconds = 0;
+            console.log('🔧 系統進入維修時間（6:00-7:00）');
+            
+            await GameModel.updateState({
+              current_period: memoryGameState.current_period,
+              countdown_seconds: 0,
+              last_result: memoryGameState.last_result,
+              status: 'maintenance'
+            });
+          }
+          return; // 維修期間不執行任何遊戲邏輯
+        }
+        
+        // 如果剛從維修時間恢復（7點整）
+        if (memoryGameState.status === 'maintenance' && !isMaintenanceTime()) {
+          const hour = new Date().getHours();
+          if (hour === 7) {
+            console.log('🌅 維修結束，開始新的一天');
+            // 獲取新的期號
+            const nextPeriod = getNextPeriod(memoryGameState.current_period);
+            memoryGameState.current_period = nextPeriod;
+            memoryGameState.countdown_seconds = 60;
+            memoryGameState.status = 'betting';
+            
+            await GameModel.updateState({
+              current_period: memoryGameState.current_period,
+              countdown_seconds: 60,
+              last_result: memoryGameState.last_result,
+              status: 'betting'
+            });
+          }
+        }
+        
         if (memoryGameState.countdown_seconds > 0) {
           // 只更新內存計數器
           memoryGameState.countdown_seconds--;
@@ -1315,6 +1353,24 @@ async function startGameCycle() {
                 
                 // 立即更新最後開獎結果
                 memoryGameState.last_result = memoryGameState.pendingResult;
+                
+                // 檢查是否可以開始新的一期
+                if (!canStartNewPeriod()) {
+                  console.log('🔧 接近維修時間，停止開新期');
+                  memoryGameState.status = 'waiting';
+                  memoryGameState.countdown_seconds = 0;
+                  
+                  await GameModel.updateState({
+                    current_period: memoryGameState.current_period,
+                    countdown_seconds: 0,
+                    last_result: memoryGameState.last_result,
+                    status: 'waiting'
+                  });
+                  
+                  // 清理預存結果
+                  delete memoryGameState.pendingResult;
+                  return;
+                }
                 
                 // 更新期數和狀態
                 const nextPeriod = getNextPeriod(currentDrawPeriod);
@@ -1424,33 +1480,103 @@ function generateRaceResult() {
   return result;
 }
 
+// 檢查是否在維修時間內（每天早上6-7點）
+function isMaintenanceTime() {
+  const now = new Date();
+  const hour = now.getHours();
+  return hour === 6; // 6點整到7點整為維修時間
+}
+
+// 檢查當前時間是否可以開始新的一期
+function canStartNewPeriod() {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  
+  // 如果是早上6點之後，不能開始新期
+  if (hour === 6 || (hour === 5 && minute >= 58)) {
+    // 5:58之後不開始新期，因為一期需要75秒
+    return false;
+  }
+  
+  return true;
+}
+
+// 獲取遊戲日期（7:00 AM 為分界線）
+function getGameDate() {
+  const now = new Date();
+  const hour = now.getHours();
+  
+  // 如果是凌晨0點到早上7點之前，算作前一天的遊戲日
+  if (hour < 7) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday;
+  }
+  
+  // 7點之後算作當天的遊戲日
+  return now;
+}
+
 // 智能期號管理 - 確保期號正確遞增並在每日重置，支持超過999場
 function getNextPeriod(currentPeriod) {
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
-  
+  const now = new Date();
+  const hour = now.getHours();
   const currentPeriodStr = currentPeriod.toString();
   
-  // 檢查當前期號是否為今天
-  if (currentPeriodStr.startsWith(todayStr)) {
+  // 獲取遊戲日期
+  const gameDate = getGameDate();
+  const gameDateStr = `${gameDate.getFullYear()}${(gameDate.getMonth()+1).toString().padStart(2,'0')}${gameDate.getDate().toString().padStart(2,'0')}`;
+  
+  // 提取當前期號的日期部分
+  const currentDatePart = currentPeriodStr.substring(0, 8);
+  
+  // 檢查是否需要開始新的遊戲日
+  // 只在從維修狀態恢復時（7點後的第一次調用）重置期號
+  if (hour >= 7 && currentDatePart !== gameDateStr) {
+    // 額外檢查：確保不是昨天的遊戲日正在進行中
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}${(yesterday.getMonth()+1).toString().padStart(2,'0')}${yesterday.getDate().toString().padStart(2,'0')}`;
+    
+    // 如果當前期號是昨天的，說明需要切換到今天
+    if (currentDatePart === yesterdayStr) {
+      const newPeriod = parseInt(`${gameDateStr}001`);
+      console.log(`🌅 新的遊戲日開始，期號重置: ${currentPeriod} → ${newPeriod}`);
+      return newPeriod;
+    }
+  }
+  
+  // 如果當前期號的日期部分等於遊戲日期，則遞增
+  if (currentDatePart === gameDateStr) {
     // 提取期號後綴並遞增
     const suffix = parseInt(currentPeriodStr.substring(8)) + 1;
     
     // 如果超過999場，使用4位數字，但保持日期部分不變
     if (suffix > 999) {
-      const newPeriod = `${todayStr}${suffix.toString().padStart(4, '0')}`;
+      const newPeriod = `${gameDateStr}${suffix.toString().padStart(4, '0')}`;
       console.log(`🔄 期號遞增(超過999): ${currentPeriod} → ${newPeriod}`);
       return newPeriod;
     } else {
-      const newPeriod = parseInt(`${todayStr}${suffix.toString().padStart(3, '0')}`);
+      const newPeriod = parseInt(`${gameDateStr}${suffix.toString().padStart(3, '0')}`);
       console.log(`🔄 期號遞增: ${currentPeriod} → ${newPeriod}`);
       return newPeriod;
     }
   } else {
-    // 新的一天，重置期號為001
-    const newPeriod = parseInt(`${todayStr}001`);
-    console.log(`🌅 新的一天，期號重置: ${currentPeriod} → ${newPeriod}`);
-    return newPeriod;
+    // 如果日期不匹配，但不是7點整，繼續使用當前的遊戲日期遞增
+    // 這種情況發生在跨越午夜但還沒到7點的時候
+    const suffix = parseInt(currentPeriodStr.substring(8)) + 1;
+    const currentGameDatePart = currentPeriodStr.substring(0, 8);
+    
+    if (suffix > 999) {
+      const newPeriod = `${currentGameDatePart}${suffix.toString().padStart(4, '0')}`;
+      console.log(`🔄 期號遞增(保持遊戲日): ${currentPeriod} → ${newPeriod}`);
+      return newPeriod;
+    } else {
+      const newPeriod = parseInt(`${currentGameDatePart}${suffix.toString().padStart(3, '0')}`);
+      console.log(`🔄 期號遞增(保持遊戲日): ${currentPeriod} → ${newPeriod}`);
+      return newPeriod;
+    }
   }
 }
 
@@ -4882,7 +5008,8 @@ function calculateWinAmount(bet, winResult) {
   }
 }
 
-// 獲取最近開獎結果（簡化版本）
+// 獲取最近開獎結果（簡化版本） - 已被下面的優化版本取代
+/*
 app.get('/api/recent-results', async (req, res) => {
   try {
     // 獲取最近100期開獎記錄，確保包含當天所有記錄
@@ -4922,6 +5049,7 @@ app.get('/api/recent-results', async (req, res) => {
     });
   }
 });
+*/
 
 // 獲取歷史開獎結果
 app.get('/api/history', async (req, res) => {
@@ -4944,10 +5072,11 @@ app.get('/api/history', async (req, res) => {
       params.push(`%${period}%`);
     }
     
-    // 日期篩選
+    // 日期篩選 - 基於期號中的日期而非創建時間
     if (date) {
-      conditions.push('DATE(created_at) = $' + (params.length + 1));
-      params.push(date);
+      const dateStr = date.replace(/-/g, '');
+      conditions.push('period::text LIKE $' + (params.length + 1));
+      params.push(`${dateStr}%`);
     }
     
     if (conditions.length > 0) {
@@ -4957,9 +5086,18 @@ app.get('/api/history', async (req, res) => {
     console.log('查詢條件:', { whereClause, params });
     
     try {
-      // 添加基本過濾條件
-      const baseConditions = `result IS NOT NULL AND position_1 IS NOT NULL AND LENGTH(period::text) = 11`;
-      const fullWhereClause = whereClause 
+      // 添加基本過濾條件 - 只過濾掉測試數據（序號大於300的）
+      let baseConditions = `result IS NOT NULL AND position_1 IS NOT NULL AND CAST(SUBSTRING(period::text FROM 9) AS INTEGER) < 300`;
+      
+      // 如果是查詢今天的數據，才需要過濾未來期號
+      let fullWhereClause;
+      if (date === new Date().toISOString().split('T')[0]) {
+        const currentGameState = await db.oneOrNone('SELECT current_period FROM game_state ORDER BY id DESC LIMIT 1');
+        const currentPeriod = currentGameState?.current_period || 99999999999;
+        baseConditions = `${baseConditions} AND period < ${currentPeriod}`;
+      }
+      
+      fullWhereClause = whereClause 
         ? `WHERE ${baseConditions} AND ${whereClause.replace('WHERE ', '')}`
         : `WHERE ${baseConditions}`;
       
@@ -5224,6 +5362,25 @@ app.get('/api/bet-history', async (req, res) => {
 // 更新下注處理邏輯
 app.post('/api/bet', async (req, res) => {
   try {
+    // 檢查是否在維修時間
+    if (isMaintenanceTime()) {
+      console.log('下注失敗: 系統維修中');
+      return res.status(503).json({ 
+        success: false, 
+        message: '系统维护中（每日6:00-7:00），请稍后再试' 
+      });
+    }
+    
+    // 檢查遊戲狀態
+    const gameState = memoryGameState;
+    if (gameState.status === 'maintenance' || gameState.status === 'waiting') {
+      console.log('下注失敗: 系統不在投注狀態');
+      return res.status(503).json({ 
+        success: false, 
+        message: gameState.status === 'maintenance' ? '系统维护中' : '等待下一期开始' 
+      });
+    }
+    
     // 驗證必要參數
     const { username, amount, betType, value, position } = req.body;
     
