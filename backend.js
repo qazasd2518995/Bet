@@ -245,6 +245,41 @@ app.post('/api/member/logout', async (req, res) => {
   }
 });
 
+// 會員會話檢查API
+app.get('/api/member/check-session', async (req, res) => {
+  try {
+    const sessionToken = req.headers['x-session-token'] || req.headers['authorization']?.replace('Bearer ', '');
+    
+    if (!sessionToken) {
+      return res.json({
+        success: false,
+        message: '沒有提供會話令牌'
+      });
+    }
+    
+    // 驗證會話
+    const session = await SessionManager.validateSession(sessionToken);
+    if (!session) {
+      return res.json({
+        success: false,
+        message: '會話已過期或無效'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: '會話有效'
+    });
+    
+  } catch (error) {
+    console.error('檢查會員會話狀態錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '檢查會話狀態失敗'
+    });
+  }
+});
+
 // 會員登入API
 app.post('/api/member/login', async (req, res) => {
   try {
@@ -651,7 +686,42 @@ app.post('/api/member/change-password', async (req, res) => {
   }
 });
 
-// 會話狀態檢查API
+// 會話狀態檢查API (GET)
+app.get('/api/check-session', async (req, res) => {
+  try {
+    const sessionToken = req.headers['x-session-token'];
+    
+    if (!sessionToken) {
+      return res.json({
+        success: false,
+        message: '沒有提供會話令牌'
+      });
+    }
+    
+    // 驗證會話
+    const session = await SessionManager.validateSession(sessionToken);
+    if (!session) {
+      return res.json({
+        success: false,
+        message: '會話已過期或無效'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: '會話有效'
+    });
+    
+  } catch (error) {
+    console.error('檢查會話狀態錯誤:', error);
+    res.status(500).json({
+      success: false,
+      message: '檢查會話狀態失敗'
+    });
+  }
+});
+
+// 會話狀態檢查API (POST - 保留舊版本兼容)
 app.post('/api/check-session', async (req, res) => {
   try {
     const { username } = req.body;
