@@ -9714,16 +9714,26 @@
                 // 🔥 载入最近10期开奖紀錄
                 loadRecentDrawHistory() {
                     console.log('载入最近10期开奖紀錄...');
+                    console.log('当前期號:', this.currentPeriod);
+                    
                     fetch(`${this.API_BASE_URL}/api/history?page=1&limit=10`)
                         .then(response => response.json())
                         .then(data => {
+                            console.log('API返回数据:', data);
+                            
                             if (data.success && Array.isArray(data.records)) {
                                 // 过滤掉未来期數（期號大於当前期號的）
                                 const currentPeriodNum = parseInt(this.currentPeriod);
+                                console.log('当前期號数字:', currentPeriodNum);
+                                
                                 const filteredRecords = data.records.filter(record => {
                                     const recordPeriodNum = parseInt(record.period);
-                                    return recordPeriodNum < currentPeriodNum;
+                                    // 允许显示已经开奖的当前期
+                                    return recordPeriodNum <= currentPeriodNum && record.result && record.result.length > 0;
                                 });
+                                
+                                console.log('过滤前记录数:', data.records.length);
+                                console.log('过滤后记录数:', filteredRecords.length);
                                 
                                 this.recentDrawHistory = filteredRecords.map(record => ({
                                     period: this.formatPeriodDisplay(record.period),
