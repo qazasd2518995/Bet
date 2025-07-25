@@ -5138,7 +5138,7 @@ app.get('/api/history', async (req, res) => {
       // 獲取分頁數據
       const offset = (pageNumber - 1) * pageSize;
       const query = `
-        SELECT period, result, created_at,
+        SELECT period, result, created_at, draw_time,
                position_1, position_2, position_3, position_4, position_5,
                position_6, position_7, position_8, position_9, position_10
         FROM result_history 
@@ -5160,7 +5160,7 @@ app.get('/api/history', async (req, res) => {
       return {
         period: record.period,
         result: positionArray, // 使用正確的位置順序
-        time: record.created_at
+        time: record.draw_time || record.created_at  // 優先使用 draw_time，如果不存在則使用 created_at
       };
     });
     
