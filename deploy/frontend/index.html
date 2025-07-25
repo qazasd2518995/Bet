@@ -8003,17 +8003,31 @@
                 // 格式化历史开奖时间为 HH:MM:SS 格式
                 formatHistoryTime(dateStr) {
                     if (!dateStr) return 'NaN:NaN:NaN';
+                    
+                    console.log('formatHistoryTime 输入:', dateStr);
+                    
                     const date = new Date(dateStr);
                     if (isNaN(date.getTime())) return 'NaN:NaN:NaN';
-                    // 使用 toLocaleString 正確處理時區轉換
-                    const timeString = date.toLocaleString('en-US', {
-                        timeZone: 'Asia/Taipei',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    });
-                    return timeString;
+                    
+                    // 嘗試使用 toLocaleString
+                    try {
+                        const timeString = date.toLocaleString('en-US', {
+                            timeZone: 'Asia/Taipei',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                        console.log('toLocaleString 結果:', timeString);
+                        return timeString;
+                    } catch (e) {
+                        console.error('toLocaleString 失敗:', e);
+                        // 備用方案：手動計算 UTC+8
+                        const hours = date.getHours().toString().padStart(2, '0');
+                        const minutes = date.getMinutes().toString().padStart(2, '0');
+                        const seconds = date.getSeconds().toString().padStart(2, '0');
+                        return `${hours}:${minutes}:${seconds}`;
+                    }
                 },
                 formatOdds(odds) {
                     if (odds === undefined || odds === null) {
