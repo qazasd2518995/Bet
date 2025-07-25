@@ -5808,7 +5808,7 @@ app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
   }
 });
 
-// 獲取開獎結果歷史記錄
+// 獲取開獎結果歷史記錄 - 使用 result_history 表與遊戲端保持一致
 app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
   try {
     const { page = 1, limit = 20, period = '', date = '' } = req.query;
@@ -5816,49 +5816,86 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
     const parsedLimit = parseInt(limit);
     const offset = (parsedPage - 1) * parsedLimit;
 
-    let countQuery = 'SELECT COUNT(*) FROM draw_records';
-    let dataQuery = 'SELECT * FROM draw_records';
+    let whereConditions = [];
     const params = [];
-    const countParams = [];
 
-    let whereClause = '';
+    // 基本過濾條件 - 只過濾掉測試數據（序號大於300的）
+    whereConditions.push(`result IS NOT NULL`);
+    whereConditions.push(`position_1 IS NOT NULL`);
+    whereConditions.push(`CAST(SUBSTRING(period::text FROM 9) AS INTEGER) < 300`);
 
     if (period) {
-      whereClause += (whereClause ? ' AND ' : ' WHERE ') + `period = $${params.length + 1}`;
-      params.push(period);
-      countParams.push(period);
+      whereConditions.push(`period::text LIKE $${params.length + 1}`);
+      params.push(`%${period}%`);
     }
 
     if (date) {
-      whereClause += (whereClause ? ' AND ' : ' WHERE ') + `DATE(draw_time) = $${params.length + 1}`;
-      params.push(date);
-      countParams.push(date);
+      // 基於期號中的日期而非創建時間
+      const dateStr = date.replace(/-/g, '');
+      whereConditions.push(`period::text LIKE $${params.length + 1}`);
+      params.push(`${dateStr}%`);
     }
 
-    countQuery += whereClause;
-    dataQuery += whereClause;
+    // 如果是查詢今天的數據，過濾未來期號
+    if (date === new Date().toISOString().split('T')[0]) {
+      const currentGameState = await db.oneOrNone('SELECT current_period FROM game_state ORDER BY id DESC LIMIT 1');
+      const currentPeriod = currentGameState?.current_period || 99999999999;
+      whereConditions.push(`period < ${currentPeriod}`);
+    }
 
-    dataQuery += ` ORDER BY period DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(parsedLimit, offset);
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    console.log(`Executing count query: ${countQuery} with params: ${JSON.stringify(countParams)}`);
-    console.log(`Executing data query: ${dataQuery} with params: ${JSON.stringify(params)}`);
-
-    // 執行查詢
-    const totalResult = await db.one(countQuery, countParams);
+    // 計算總記錄數
+    const countQuery = `SELECT COUNT(*) FROM result_history ${whereClause}`;
+    console.log(`Executing count query: ${countQuery} with params: ${JSON.stringify(params)}`);
+    const totalResult = await db.one(countQuery, params);
     const totalRecords = parseInt(totalResult.count);
+
+    // 獲取分頁數據
+    const dataQuery = `
+      SELECT period, result, created_at, draw_time,
+             position_1, position_2, position_3, position_4, position_5,
+             position_6, position_7, position_8, position_9, position_10
+      FROM result_history 
+      ${whereClause}
+      ORDER BY period DESC 
+      LIMIT ${parsedLimit} OFFSET ${offset}
+    `;
+    
+    console.log(`Executing data query: ${dataQuery} with params: ${JSON.stringify(params)}`);
     const records = await db.any(dataQuery, params);
+
+    // 轉換格式使其與前端相容
+    const formattedRecords = records.map(record => {
+      // 使用位置欄位來建立正確的結果陣列
+      const positions = [];
+      for (let i = 1; i <= 10; i++) {
+        positions.push(record[`position_${i}`]);
+      }
+      
+      return {
+        period: record.period,
+        result: positions,
+        draw_time: record.draw_time || record.created_at,  // 優先使用 draw_time
+        positions: positions,
+        // 計算額外的遊戲結果
+        sum: positions[0] + positions[1],  // 冠亞和
+        dragon_tiger: positions[0] > positions[9] ? '龍' : '虎'  // 龍虎
+      };
+    });
 
     res.json({
       success: true,
-      records: records,
+      records: formattedRecords,
       totalPages: Math.ceil(totalRecords / parsedLimit),
       currentPage: parsedPage,
-      totalRecords: totalRecords
+      totalRecords: totalRecords,
+      page: parsedPage,
+      total: totalRecords
     });
 
   } catch (error) {
-    console.error('獲取開獎歷史出錯 (直接查詢數據庫):', error);
+    console.error('獲取開獎歷史出錯:', error);
     res.status(500).json({
       success: false,
       message: error.message || '獲取開獎歷史失敗'
