@@ -8416,10 +8416,11 @@ const app = createApp({
                 return 0;
             }
             
-            // 直接使用當前登入用戶的資料
-            const managingAgent = this.user;
+            // 確定要使用哪個代理的資料：如果有 currentManagingAgent 則使用它，否則使用登入用戶
+            const managingAgent = this.currentManagingAgent || this.user;
             
             console.log('🔍 第一步 - 确定管理代理:', {
+                isUsingCurrentManaging: !!this.currentManagingAgent,
                 managingAgent: managingAgent.username,
                 level: managingAgent.level,
                 rebate_percentage: managingAgent.rebate_percentage,
@@ -8449,11 +8450,11 @@ const app = createApp({
                     
                     // 確保值有效
                     if (isNaN(actualRebatePercentage) || actualRebatePercentage < 0) {
-                        console.log('⚠️ 退水值無效，設為當前代理的退水值');
+                        console.log('⚠️ 退水值無效，設為0');
                         actualRebatePercentage = 0;
                     }
                 } else {
-                    console.log('⚠️ 第三步 - rebate_percentage 為空，無法為下級設定退水');
+                    console.log('⚠️ 第三步 - rebate_percentage 為空，設為0');
                     actualRebatePercentage = 0;
                 }
             }
