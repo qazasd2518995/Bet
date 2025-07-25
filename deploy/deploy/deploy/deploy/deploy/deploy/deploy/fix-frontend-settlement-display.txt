@@ -1,0 +1,27 @@
+
+// 前端修復建議：在 frontend/js/main.js 中
+
+// 1. 在 updateBetHistory 函數中添加狀態檢查
+async updateBetHistory() {
+    // 如果當前是開獎狀態，延遲更新
+    if (this.gameState.status === 'drawing') {
+        console.log('開獎中，延遲更新投注記錄');
+        return;
+    }
+    
+    // 原有的更新邏輯...
+}
+
+// 2. 在遊戲狀態變更時控制顯示
+watch: {
+    'gameState.status'(newStatus, oldStatus) {
+        if (newStatus === 'drawing') {
+            // 進入開獎階段，隱藏最新的結算結果
+            this.hideRecentSettlements = true;
+        } else if (oldStatus === 'drawing' && newStatus === 'betting') {
+            // 開獎結束，顯示結算結果
+            this.hideRecentSettlements = false;
+            this.updateBetHistory(); // 更新投注記錄
+        }
+    }
+}

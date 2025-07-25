@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-geist-sans: 'Geist Sans', system-ui, sans-serif;
+  --font-geist-mono: 'Geist Mono', 'Courier New', monospace;
+}
+
+body {
+  font-family: var(--font-geist-sans);
+}
+
+/* Custom animations for number balls */
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.number-ball {
+  animation: bounce-in 0.6s ease-out;
+}
+
+/* Countdown timer styling */
+.countdown-timer {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+} 

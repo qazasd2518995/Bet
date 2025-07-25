@@ -1265,11 +1265,18 @@ async function startGameCycle() {
           return; // 維修期間不執行任何遊戲邏輯
         }
         
-        // 如果剛從維修時間恢復（7點整）
+        // 如果剛從維修時間恢復（台北時間7點或之後）
         if (memoryGameState.status === 'maintenance' && !isMaintenanceTime()) {
-          const hour = new Date().getHours();
-          if (hour === 7) {
-            console.log('🌅 維修結束，開始新的一天');
+          // 獲取台北時間的小時
+          const taipeiTime = new Date().toLocaleString('en-US', { 
+            timeZone: 'Asia/Taipei',
+            hour12: false,
+            hour: '2-digit'
+          });
+          const hour = parseInt(taipeiTime.split(':')[0]);
+          // 修改：7點或之後都可以恢復（不只是正好7點）
+          if (hour >= 7 || hour < 6) {  // 7點到隔天6點之間都可以恢復
+            console.log('🌅 維修結束，恢復遊戲運行');
             // 獲取新的期號
             const nextPeriod = getNextPeriod(memoryGameState.current_period);
             memoryGameState.current_period = nextPeriod;
@@ -1480,11 +1487,16 @@ function generateRaceResult() {
   return result;
 }
 
-// 檢查是否在維修時間內（每天早上6-7點）
+// 檢查是否在維修時間內（每天早上6-7點台北時間）
 function isMaintenanceTime() {
-  const now = new Date();
-  const hour = now.getHours();
-  return hour === 6; // 6點整到7點整為維修時間
+  // 獲取台北時間
+  const taipeiTime = new Date().toLocaleString('en-US', { 
+    timeZone: 'Asia/Taipei',
+    hour12: false,
+    hour: '2-digit'
+  });
+  const hour = parseInt(taipeiTime.split(':')[0]);
+  return hour === 6; // 台北時間6點整到7點整為維修時間
 }
 
 // 檢查當前時間是否可以開始新的一期
@@ -1502,26 +1514,43 @@ function canStartNewPeriod() {
   return true;
 }
 
-// 獲取遊戲日期（7:00 AM 為分界線）
+// 獲取遊戲日期（台北時間 7:00 AM 為分界線）
 function getGameDate() {
-  const now = new Date();
-  const hour = now.getHours();
+  // 獲取台北時間
+  const taipeiTime = new Date().toLocaleString('en-US', { 
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false
+  });
+  
+  const [date, time] = taipeiTime.split(', ');
+  const [month, day, year] = date.split('/');
+  const hour = parseInt(time.split(':')[0]);
+  
+  // 創建日期對象
+  const gameDate = new Date(year, month - 1, day);
   
   // 如果是凌晨0點到早上7點之前，算作前一天的遊戲日
   if (hour < 7) {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday;
+    gameDate.setDate(gameDate.getDate() - 1);
   }
   
   // 7點之後算作當天的遊戲日
-  return now;
+  return gameDate;
 }
 
 // 智能期號管理 - 確保期號正確遞增並在每日重置，支持超過999場
 function getNextPeriod(currentPeriod) {
-  const now = new Date();
-  const hour = now.getHours();
+  // 獲取台北時間的小時
+  const taipeiTime = new Date().toLocaleString('en-US', { 
+    timeZone: 'Asia/Taipei',
+    hour12: false,
+    hour: '2-digit'
+  });
+  const hour = parseInt(taipeiTime.split(':')[0]);
   const currentPeriodStr = currentPeriod.toString();
   
   // 獲取遊戲日期
@@ -1535,7 +1564,7 @@ function getNextPeriod(currentPeriod) {
   // 只在從維修狀態恢復時（7點後的第一次調用）重置期號
   if (hour >= 7 && currentDatePart !== gameDateStr) {
     // 額外檢查：確保不是昨天的遊戲日正在進行中
-    const yesterday = new Date(now);
+    const yesterday = new Date(gameDate);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = `${yesterday.getFullYear()}${(yesterday.getMonth()+1).toString().padStart(2,'0')}${yesterday.getDate().toString().padStart(2,'0')}`;
     

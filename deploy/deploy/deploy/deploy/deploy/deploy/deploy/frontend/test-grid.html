@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid测试页面 - 10颗球</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .results-grid {
+            display: grid !important;
+            grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+            gap: 4px;
+            min-width: 0 !important;
+            width: 100% !important;
+            margin: 20px auto;
+            padding: 10px;
+            border: 2px solid #333;
+            background: #222;
+        }
+        
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+        
+        .result-ball {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+            position: relative;
+            margin: 0 auto;
+        }
+        
+        .color-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #2c3e50; }
+        .color-2 { background: linear-gradient(135deg, #4A90E2, #357ABD); }
+        .color-3 { background: linear-gradient(135deg, #8E8E93, #636366); }
+        .color-4 { background: linear-gradient(135deg, #FF8C42, #FF6347); }
+        .color-5 { background: linear-gradient(135deg, #00CED1, #20B2AA); }
+        .color-6 { background: linear-gradient(135deg, #9966CC, #8A2BE2); }
+        .color-7 { background: linear-gradient(135deg, #A8A8A8, #808080); }
+        .color-8 { background: linear-gradient(135deg, #FF4757, #FF3838); }
+        .color-9 { background: linear-gradient(135deg, #C44569, #B71540); }
+        .color-10 { background: linear-gradient(135deg, #26de81, #20bf6b); }
+        
+        .position-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 6px;
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+        
+        /* 响应式测试 */
+        @media (max-width: 768px) {
+            .results-grid {
+                gap: 2px;
+                padding: 5px;
+            }
+            
+            .result-ball {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
+            .position-label {
+                font-size: 10px;
+                padding: 1px 3px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .results-grid {
+                gap: 1px;
+                padding: 2px;
+            }
+            
+            .result-ball {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            
+            .position-label {
+                font-size: 9px;
+                padding: 1px 2px;
+            }
+        }
+        
+        .info {
+            margin: 20px 0;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 5px;
+        }
+        
+        .viewport-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-info" id="viewportInfo">
+        視窗寬度: <span id="width"></span>px
+    </div>
+    
+    <div class="container">
+        <h1>CSS Grid 测试 - 10颗球显示</h1>
+        
+        <div class="info">
+            <strong>测试目标：</strong>在任何螢幕寬度下都應該看到完整的10颗球<br>
+            <strong>当前使用：</strong>CSS Grid 布局 - <code>grid-template-columns: repeat(10, minmax(0, 1fr))</code>
+        </div>
+        
+        <div class="results-grid">
+            <div class="result-item">
+                <div class="result-ball color-1">1</div>
+                <div class="position-label">冠军</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-2">2</div>
+                <div class="position-label">亚军</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-3">3</div>
+                <div class="position-label">第三</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-4">4</div>
+                <div class="position-label">第四</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-5">5</div>
+                <div class="position-label">第五</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-6">6</div>
+                <div class="position-label">第六</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-7">7</div>
+                <div class="position-label">第七</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-8">8</div>
+                <div class="position-label">第八</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-9">9</div>
+                <div class="position-label">第九</div>
+            </div>
+            <div class="result-item">
+                <div class="result-ball color-10">10</div>
+                <div class="position-label">第十</div>
+            </div>
+        </div>
+        
+        <div class="info">
+            <strong>测试步骤：</strong><br>
+            1. 调整浏览器寧度到430px（iPhone 14 Pro Max）<br>
+            2. 检查是否能看到所有10颗球<br>
+            3. 沒有球被推出螢幕外<br>
+            4. Grid自動调整球的大小
+        </div>
+    </div>
+    
+    <script>
+        function updateViewportInfo() {
+            document.getElementById('width').textContent = window.innerWidth;
+        }
+        
+        updateViewportInfo();
+        window.addEventListener('resize', updateViewportInfo);
+    </script>
+</body>
+</html> 

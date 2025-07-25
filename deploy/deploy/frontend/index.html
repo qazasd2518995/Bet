@@ -7550,7 +7550,7 @@
                                     :class="['bead-cell', { 'empty-cell': !cell }]"
                                 >
                                     <div v-if="cell" :class="['bead-item', getRoadBeadCellClass(cell)]">
-                                        <div class="period-info">{{ cell.period.toString().slice(-3) }}</div>
+                                        <div class="period-info">{{ cell.period.toString().substring(8) }}</div>
                                         <div class="main-value">{{ getRoadBeadCellValue(cell) }}</div>
                                         <div class="extra-info">{{ getRoadBeadExtraInfo(cell) }}</div>
                                     </div>
@@ -7927,6 +7927,15 @@
                 }
             },
             methods: {
+                // 提取期號的序號部分
+                extractPeriodNumber(period) {
+                    if (!period) return '';
+                    const periodStr = period.toString();
+                    if (periodStr.length > 8) {
+                        return periodStr.substring(8);
+                    }
+                    return periodStr;
+                },
                 // 更新當前時間
                 updateCurrentTime() {
                     const now = new Date();
@@ -9960,17 +9969,31 @@
                         });
                 },
                 // 🔥 格式化期號显示
-                formatPeriodDisplay(period) {
+                // 期號格式說明：
+                // - 完整期號：YYYYMMDDXXX (如 202507241372)
+                // - 顯示格式：MM/DD XXX期 (如 07/24 1372期)
+                // - 序號部分：XXX (通常是3位，但可能超過999達到4位)
+                formatPeriodDisplay(period, showFullPeriod = false) {
                     if (!period) return '';
                     const periodStr = period.toString();
+                    
+                    // 如果要顯示完整期號
+                    if (showFullPeriod) {
+                        return periodStr;
+                    }
+                    
+                    // 提取期號的各部分
                     if (periodStr.length >= 8) {
-                        // 將期號格式化为 YYYY-MM-DD-期數 的形式显示
                         const year = periodStr.substring(0, 4);
                         const month = periodStr.substring(4, 6);
                         const day = periodStr.substring(6, 8);
-                        const num = periodStr.substring(8);
+                        const num = periodStr.substring(8); // 獲取完整的序號部分，不限制位數
+                        
+                        // 返回格式化的顯示：MM/DD XXX期
                         return `${month}/${day} ${num}期`;
                     }
+                    return periodStr;
+                }
                     return periodStr;
                 },
                 // 動畫开关控制 - 在开奖阶段播放即时竞争動畫

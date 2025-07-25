@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ti2025A 代理層級分析測試</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>ti2025A 代理層級分析測試</h2>
+        
+        <div class="card">
+            <div class="card-header">
+                <button id="loginBtn" class="btn btn-primary">登錄 ti2025A</button>
+                <button id="testBtn" class="btn btn-success" disabled>測試報表API</button>
+                <span id="status" class="badge bg-secondary ms-2">未登錄</span>
+            </div>
+            <div class="card-body">
+                <div id="result"></div>
+                
+                <!-- 測試表格 -->
+                <div id="reportTable" class="mt-4" style="display: none;">
+                    <h5>代理層級分析報表</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr style="background-color: #2c3e50; color: white;">
+                                    <th>級別</th>
+                                    <th>用戶名</th>
+                                    <th>餘額</th>
+                                    <th>筆數</th>
+                                    <th>下注金額</th>
+                                    <th>會員輸贏</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3003/api/agent';
+        let authToken = '';
+        let sessionToken = '';
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'ti2025A',
+                        password: 'ti2025A'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    sessionToken = data.sessionToken;
+                    document.getElementById('status').textContent = '已登錄';
+                    document.getElementById('status').className = 'badge bg-success ms-2';
+                    document.getElementById('testBtn').disabled = false;
+                    document.getElementById('result').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>登錄成功！</strong><br>
+                            用戶: ${data.agent.username}<br>
+                            級別: ${data.agent.level}<br>
+                            餘額: ${data.agent.balance}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <div class="alert alert-danger">登錄失敗: ${data.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="alert alert-danger">登錄錯誤: ${error.message}</div>
+                `;
+            }
+        });
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/reports/agent-analysis`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': authToken,
+                        'x-session-token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>API 調用成功！</strong><br>
+                            返回項目數量: ${data.reportData ? data.reportData.length : 0}<br>
+                            總筆數: ${data.totalSummary.betCount}<br>
+                            總下注金額: ${data.totalSummary.betAmount}
+                        </div>
+                    `;
+
+                    // 顯示詳細報表
+                    if (data.reportData && data.reportData.length > 0) {
+                        const activeBetters = data.reportData.filter(item => 
+                            item && (item.betCount > 0 || item.betAmount > 0)
+                        );
+
+                        const tableBody = document.getElementById('reportTableBody');
+                        tableBody.innerHTML = '';
+
+                        if (activeBetters.length > 0) {
+                            activeBetters.forEach(item => {
+                                const row = tableBody.insertRow();
+                                row.innerHTML = `
+                                    <td>
+                                        <span class="badge ${item.userType === 'agent' ? 'bg-primary' : 'bg-success'}">
+                                            ${item.userType === 'agent' ? '代理' : '會員'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${item.userType === 'agent' ? 
+                                            `<strong class="text-primary">${item.username}</strong> <i class="fas fa-chevron-right"></i>` : 
+                                            `<span class="text-success">${item.username}</span>`
+                                        }
+                                    </td>
+                                    <td class="text-end">${(item.balance || 0).toLocaleString()}</td>
+                                    <td class="text-center">${item.betCount || 0}</td>
+                                    <td class="text-end">${(item.betAmount || 0).toLocaleString()}</td>
+                                    <td class="text-end ${item.memberWinLoss >= 0 ? 'text-danger' : 'text-success'}">
+                                        ${(item.memberWinLoss || 0).toLocaleString()}
+                                    </td>
+                                `;
+                            });
+
+                            // 添加總計行
+                            const totalRow = tableBody.insertRow();
+                            totalRow.className = 'fw-bold bg-light';
+                            totalRow.innerHTML = `
+                                <td colspan="2" class="text-center">總計</td>
+                                <td class="text-center">-</td>
+                                <td class="text-center">${data.totalSummary.betCount}</td>
+                                <td class="text-end">${data.totalSummary.betAmount.toLocaleString()}</td>
+                                <td class="text-end ${data.totalSummary.memberWinLoss >= 0 ? 'text-danger' : 'text-success'}">
+                                    ${data.totalSummary.memberWinLoss.toLocaleString()}
+                                </td>
+                            `;
+
+                            document.getElementById('reportTable').style.display = 'block';
+                        } else {
+                            document.getElementById('result').innerHTML += `
+                                <div class="alert alert-warning mt-2">
+                                    沒有有效下注資料（已篩選掉無下注記錄的項目）
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <div class="alert alert-danger">API 調用失敗: ${data.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="alert alert-danger">API 錯誤: ${error.message}</div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
