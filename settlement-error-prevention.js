@@ -1,11 +1,11 @@
-// 結算錯誤預防機制
+// 结算错误预防机制
 import db from './db/config.js';
 
 /**
- * 驗證開獎結果的完整性和正確性
+ * 验证开奖结果的完整性和正确性
  */
 export function validateDrawResult(drawResult) {
-    // 標準化開獎結果
+    // 标准化开奖结果
     let positions = null;
     
     if (drawResult.positions && Array.isArray(drawResult.positions)) {
@@ -21,50 +21,50 @@ export function validateDrawResult(drawResult) {
         positions = drawResult;
     }
     
-    // 驗證結果
+    // 验证结果
     if (!positions || positions.length !== 10) {
-        throw new Error('開獎結果格式錯誤：必須包含10個位置');
+        throw new Error('开奖结果格式错误：必须包含10个位置');
     }
     
-    // 檢查每個號碼是否在有效範圍內
+    // 检查每个号码是否在有效范围内
     const usedNumbers = new Set();
     for (let i = 0; i < 10; i++) {
         const num = parseInt(positions[i]);
         
         if (isNaN(num) || num < 1 || num > 10) {
-            throw new Error(`第${i + 1}名的開獎號碼無效：${positions[i]}`);
+            throw new Error(`第${i + 1}名的开奖号码无效：${positions[i]}`);
         }
         
         if (usedNumbers.has(num)) {
-            throw new Error(`開獎號碼重複：${num} 出現多次`);
+            throw new Error(`开奖号码重复：${num} 出现多次`);
         }
         
         usedNumbers.add(num);
     }
     
-    // 確保1-10每個號碼都出現一次
+    // 确保1-10每个号码都出现一次
     if (usedNumbers.size !== 10) {
-        throw new Error('開獎結果錯誤：必須包含1-10所有號碼');
+        throw new Error('开奖结果错误：必须包含1-10所有号码');
     }
     
     return { positions: positions.map(n => parseInt(n)) };
 }
 
 /**
- * 雙重驗證中獎判定
+ * 双重验证中奖判定
  */
 export function doubleCheckWinning(bet, drawResult) {
     const { positions } = drawResult;
     
     if (bet.bet_type !== 'number' || !bet.position) {
-        return null; // 不是號碼投注，跳過
+        return null; // 不是号码投注，跳过
     }
     
     const position = parseInt(bet.position);
     const betValue = parseInt(bet.bet_value);
     const winningNumber = parseInt(positions[position - 1]);
     
-    // 多種比較方式
+    // 多种比较方式
     const checks = {
         strictEqual: winningNumber === betValue,
         looseEqual: winningNumber == betValue,
@@ -72,10 +72,10 @@ export function doubleCheckWinning(bet, drawResult) {
         trimEqual: String(winningNumber).trim() === String(betValue).trim()
     };
     
-    // 如果有任何不一致，記錄警告
+    // 如果有任何不一致，记录警告
     const allChecks = Object.values(checks);
     if (!allChecks.every(v => v === allChecks[0])) {
-        console.warn(`⚠️ 中獎判定不一致: 投注ID=${bet.id}, 檢查結果=${JSON.stringify(checks)}`);
+        console.warn(`⚠️ 中奖判定不一致: 投注ID=${bet.id}, 检查结果=${JSON.stringify(checks)}`);
     }
     
     return {
@@ -88,36 +88,36 @@ export function doubleCheckWinning(bet, drawResult) {
 }
 
 /**
- * 結算前的完整性檢查
+ * 结算前的完整性检查
  */
 export async function preSettlementCheck(period) {
-    console.log(`🔍 執行結算前檢查: 期號 ${period}`);
+    console.log(`🔍 执行结算前检查: 期号 ${period}`);
     
     try {
-        // 1. 檢查開獎結果是否存在
+        // 1. 检查开奖结果是否存在
         const drawResult = await db.oneOrNone(`
             SELECT * FROM result_history
             WHERE period = $1
         `, [period]);
         
         if (!drawResult) {
-            throw new Error(`期號 ${period} 的開獎結果不存在`);
+            throw new Error(`期号 ${period} 的开奖结果不存在`);
         }
         
-        // 2. 驗證開獎結果
+        // 2. 验证开奖结果
         const validatedResult = validateDrawResult(drawResult);
-        console.log(`✅ 開獎結果驗證通過: ${JSON.stringify(validatedResult.positions)}`);
+        console.log(`✅ 开奖结果验证通过: ${JSON.stringify(validatedResult.positions)}`);
         
-        // 3. 檢查是否有未結算的投注
+        // 3. 检查是否有未结算的投注
         const unsettledCount = await db.one(`
             SELECT COUNT(*) as count
             FROM bet_history
             WHERE period = $1 AND settled = false
         `, [period]);
         
-        console.log(`📊 未結算投注數: ${unsettledCount.count}`);
+        console.log(`📊 未结算投注数: ${unsettledCount.count}`);
         
-        // 4. 檢查是否已經結算過
+        // 4. 检查是否已经结算过
         const settledCount = await db.one(`
             SELECT COUNT(*) as count
             FROM bet_history
@@ -125,10 +125,10 @@ export async function preSettlementCheck(period) {
         `, [period]);
         
         if (parseInt(settledCount.count) > 0) {
-            console.warn(`⚠️ 期號 ${period} 已有 ${settledCount.count} 筆已結算投注`);
+            console.warn(`⚠️ 期号 ${period} 已有 ${settledCount.count} 笔已结算投注`);
         }
         
-        // 5. 檢查號碼投注的預期結果
+        // 5. 检查号码投注的预期结果
         const numberBets = await db.manyOrNone(`
             SELECT id, username, position, bet_value, amount, odds
             FROM bet_history
@@ -139,13 +139,13 @@ export async function preSettlementCheck(period) {
         `, [period]);
         
         if (numberBets.length > 0) {
-            console.log(`\n📋 號碼投注預覽 (共${numberBets.length}筆):`);
+            console.log(`\n📋 号码投注预览 (共${numberBets.length}笔):`);
             let previewCount = 0;
             
             for (const bet of numberBets) {
                 const check = doubleCheckWinning(bet, validatedResult);
                 if (check && previewCount < 5) {
-                    console.log(`- ${bet.username} 投注第${check.position}名號碼${check.betNumber}: ${check.shouldWin ? '將中獎' : '未中獎'} (開出${check.winningNumber})`);
+                    console.log(`- ${bet.username} 投注第${check.position}名号码${check.betNumber}: ${check.shouldWin ? '将中奖' : '未中奖'} (开出${check.winningNumber})`);
                     previewCount++;
                 }
             }
@@ -159,7 +159,7 @@ export async function preSettlementCheck(period) {
         };
         
     } catch (error) {
-        console.error(`❌ 結算前檢查失敗: ${error.message}`);
+        console.error(`❌ 结算前检查失败: ${error.message}`);
         return {
             success: false,
             error: error.message
@@ -167,37 +167,37 @@ export async function preSettlementCheck(period) {
     }
 }
 
-// 如果直接執行此文件，進行測試
+// 如果直接执行此文件，进行测试
 if (import.meta.url === `file://${process.argv[1]}`) {
-    // 測試驗證函數
-    console.log('🧪 測試結算錯誤預防機制\n');
+    // 测试验证函数
+    console.log('🧪 测试结算错误预防机制\n');
     
-    // 測試開獎結果驗證
+    // 测试开奖结果验证
     try {
         const testResult1 = { positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
         validateDrawResult(testResult1);
-        console.log('✅ 測試1通過：正常開獎結果');
+        console.log('✅ 测试1通过：正常开奖结果');
         
         const testResult2 = { result: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] };
         validateDrawResult(testResult2);
-        console.log('✅ 測試2通過：不同格式的開獎結果');
+        console.log('✅ 测试2通过：不同格式的开奖结果');
         
         try {
-            const testResult3 = { positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 9] }; // 重複號碼
+            const testResult3 = { positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 9] }; // 重复号码
             validateDrawResult(testResult3);
         } catch (e) {
-            console.log('✅ 測試3通過：正確檢測到重複號碼');
+            console.log('✅ 测试3通过：正确检测到重复号码');
         }
         
         try {
-            const testResult4 = { positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 11] }; // 超出範圍
+            const testResult4 = { positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 11] }; // 超出范围
             validateDrawResult(testResult4);
         } catch (e) {
-            console.log('✅ 測試4通過：正確檢測到無效號碼');
+            console.log('✅ 测试4通过：正确检测到无效号码');
         }
         
     } catch (error) {
-        console.error('測試失敗：', error);
+        console.error('测试失败：', error);
     }
     
     process.exit(0);

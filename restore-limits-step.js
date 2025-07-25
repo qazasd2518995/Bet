@@ -2,28 +2,28 @@ import db from './db/config.js';
 
 async function restoreLimits() {
   try {
-    console.log('開始恢復舊的限紅配置...\n');
+    console.log('开始恢复旧的限红配置...\n');
     
-    // 步驟1: 備份現有資料
-    console.log('步驟1: 備份現有資料...');
+    // 步骤1: 备份现有资料
+    console.log('步骤1: 备份现有资料...');
     await db.none(`
       CREATE TABLE IF NOT EXISTS betting_limit_configs_backup AS 
       SELECT * FROM betting_limit_configs
     `);
     
-    // 步驟2: 清空現有配置
-    console.log('步驟2: 清空現有配置...');
+    // 步骤2: 清空现有配置
+    console.log('步骤2: 清空现有配置...');
     await db.none('TRUNCATE TABLE betting_limit_configs');
     
-    // 步驟3: 插入新配置
-    console.log('步驟3: 插入舊的6級限紅配置...');
+    // 步骤3: 插入新配置
+    console.log('步骤3: 插入旧的6级限红配置...');
     
     const configs = [
       {
         level_name: 'level1',
-        level_display_name: '新手限紅',
+        level_display_name: '新手限红',
         level_order: 1,
-        description: '適合新手玩家的最低限額',
+        description: '适合新手玩家的最低限额',
         config: {
           number: {minBet: 1, maxBet: 500, periodLimit: 1000},
           twoSide: {minBet: 1, maxBet: 1000, periodLimit: 1000},
@@ -35,9 +35,9 @@ async function restoreLimits() {
       },
       {
         level_name: 'level2',
-        level_display_name: '一般限紅',
+        level_display_name: '一般限红',
         level_order: 2,
-        description: '一般會員標準限額',
+        description: '一般会员标准限额',
         config: {
           number: {minBet: 1, maxBet: 1000, periodLimit: 2000},
           twoSide: {minBet: 1, maxBet: 2000, periodLimit: 2000},
@@ -49,9 +49,9 @@ async function restoreLimits() {
       },
       {
         level_name: 'level3',
-        level_display_name: '標準限紅',
+        level_display_name: '标准限红',
         level_order: 3,
-        description: '標準會員限額',
+        description: '标准会员限额',
         config: {
           number: {minBet: 1, maxBet: 2500, periodLimit: 5000},
           twoSide: {minBet: 1, maxBet: 5000, periodLimit: 5000},
@@ -63,9 +63,9 @@ async function restoreLimits() {
       },
       {
         level_name: 'level4',
-        level_display_name: '進階限紅',
+        level_display_name: '进阶限红',
         level_order: 4,
-        description: '進階會員限額',
+        description: '进阶会员限额',
         config: {
           number: {minBet: 1, maxBet: 5000, periodLimit: 10000},
           twoSide: {minBet: 1, maxBet: 10000, periodLimit: 10000},
@@ -77,9 +77,9 @@ async function restoreLimits() {
       },
       {
         level_name: 'level5',
-        level_display_name: '高級限紅',
+        level_display_name: '高级限红',
         level_order: 5,
-        description: '高級會員限額',
+        description: '高级会员限额',
         config: {
           number: {minBet: 1, maxBet: 10000, periodLimit: 20000},
           twoSide: {minBet: 1, maxBet: 20000, periodLimit: 20000},
@@ -91,9 +91,9 @@ async function restoreLimits() {
       },
       {
         level_name: 'level6',
-        level_display_name: 'VIP限紅',
+        level_display_name: 'VIP限红',
         level_order: 6,
-        description: 'VIP會員最高限額',
+        description: 'VIP会员最高限额',
         config: {
           number: {minBet: 1, maxBet: 20000, periodLimit: 40000},
           twoSide: {minBet: 1, maxBet: 40000, periodLimit: 40000},
@@ -112,8 +112,8 @@ async function restoreLimits() {
       `, [config.level_name, config.level_display_name, config.level_order, config.description, JSON.stringify(config.config)]);
     }
     
-    // 步驟4: 更新現有會員和代理的限紅等級
-    console.log('步驟4: 更新現有會員和代理的限紅等級...');
+    // 步骤4: 更新现有会员和代理的限红等级
+    console.log('步骤4: 更新现有会员和代理的限红等级...');
     
     await db.none(`
       UPDATE members 
@@ -141,31 +141,31 @@ async function restoreLimits() {
       WHERE betting_limit_level IS NOT NULL
     `);
     
-    console.log('\n✅ 舊的限紅配置已成功恢復！\n');
+    console.log('\n✅ 旧的限红配置已成功恢复！\n');
     
-    // 顯示恢復後的配置
+    // 显示恢复后的配置
     const restoredConfigs = await db.any(`
       SELECT * FROM betting_limit_configs 
       ORDER BY level_order
     `);
     
-    console.log('恢復後的限紅配置:');
+    console.log('恢复后的限红配置:');
     console.log('=====================================');
     restoredConfigs.forEach(config => {
       console.log(`\n${config.level_order}. ${config.level_display_name} (${config.level_name})`);
       console.log(`   描述: ${config.description}`);
-      console.log('   限額設定:');
+      console.log('   限额设定:');
       const limits = config.config;
-      console.log(`     • 1-10車號: 單注最高 $${limits.number.maxBet}, 單期限額 $${limits.number.periodLimit}`);
-      console.log(`     • 兩面: 單注最高 $${limits.twoSide.maxBet}, 單期限額 $${limits.twoSide.periodLimit}`);
-      console.log(`     • 冠亞軍和大小/單雙: 單注最高 $${limits.sumValueSize.maxBet}, 單期限額 $${limits.sumValueSize.periodLimit}`);
-      console.log(`     • 冠亞軍和值: 單注最高 $${limits.sumValue.maxBet}, 單期限額 $${limits.sumValue.periodLimit}`);
-      console.log(`     • 龍虎: 單注最高 $${limits.dragonTiger.maxBet}, 單期限額 $${limits.dragonTiger.periodLimit}`);
+      console.log(`     • 1-10车号: 单注最高 $${limits.number.maxBet}, 单期限额 $${limits.number.periodLimit}`);
+      console.log(`     • 两面: 单注最高 $${limits.twoSide.maxBet}, 单期限额 $${limits.twoSide.periodLimit}`);
+      console.log(`     • 冠亚军和大小/单双: 单注最高 $${limits.sumValueSize.maxBet}, 单期限额 $${limits.sumValueSize.periodLimit}`);
+      console.log(`     • 冠亚军和值: 单注最高 $${limits.sumValue.maxBet}, 单期限额 $${limits.sumValue.periodLimit}`);
+      console.log(`     • 龙虎: 单注最高 $${limits.dragonTiger.maxBet}, 单期限额 $${limits.dragonTiger.periodLimit}`);
     });
     
     process.exit(0);
   } catch (error) {
-    console.error('錯誤:', error);
+    console.error('错误:', error);
     process.exit(1);
   }
 }

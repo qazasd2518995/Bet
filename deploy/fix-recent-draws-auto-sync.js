@@ -1,12 +1,12 @@
-// 自動同步近期開獎記錄 - 完整解決方案
+// 自动同步近期开奖记录 - 完整解决方案
 import db from './db/config.js';
 
 async function fixRecentDrawsAutoSync() {
-    console.log('🔧 設置自動同步近期開獎記錄（保持最新10期）\n');
+    console.log('🔧 设置自动同步近期开奖记录（保持最新10期）\n');
 
     try {
-        // 1. 創建 recent_draws 表
-        console.log('📌 步驟1：創建 recent_draws 表...');
+        // 1. 创建 recent_draws 表
+        console.log('📌 步骤1：创建 recent_draws 表...');
         await db.none(`
             CREATE TABLE IF NOT EXISTS recent_draws (
                 id SERIAL PRIMARY KEY,
@@ -28,18 +28,18 @@ async function fixRecentDrawsAutoSync() {
             );
         `);
         
-        // 創建索引
+        // 创建索引
         await db.none(`
             CREATE INDEX IF NOT EXISTS idx_recent_draws_period ON recent_draws(period DESC);
             CREATE INDEX IF NOT EXISTS idx_recent_draws_draw_time ON recent_draws(draw_time DESC);
         `);
         
-        console.log('✅ recent_draws 表創建成功');
+        console.log('✅ recent_draws 表创建成功');
 
-        // 2. 清理 result_history 中的無效數據
-        console.log('\n📌 步驟2：清理無效開獎記錄...');
+        // 2. 清理 result_history 中的无效数据
+        console.log('\n📌 步骤2：清理无效开奖记录...');
         
-        // 刪除結果為空或期號格式錯誤的記錄
+        // 删除结果为空或期号格式错误的记录
         const deletedInvalid = await db.result(`
             DELETE FROM result_history 
             WHERE result IS NULL 
@@ -47,15 +47,15 @@ async function fixRecentDrawsAutoSync() {
             OR LENGTH(period::text) != 11
             RETURNING period
         `);
-        console.log(`刪除了 ${deletedInvalid.rowCount} 筆無效記錄`);
+        console.log(`删除了 ${deletedInvalid.rowCount} 笔无效记录`);
 
         // 3. 初始化 recent_draws 表
-        console.log('\n📌 步驟3：初始化 recent_draws 表...');
+        console.log('\n📌 步骤3：初始化 recent_draws 表...');
         
         // 清空表
         await db.none('TRUNCATE TABLE recent_draws');
         
-        // 插入最新10筆有效記錄
+        // 插入最新10笔有效记录
         await db.none(`
             INSERT INTO recent_draws (
                 period, result,
@@ -77,10 +77,10 @@ async function fixRecentDrawsAutoSync() {
         `);
         
         const count = await db.one('SELECT COUNT(*) FROM recent_draws');
-        console.log(`✅ 初始化完成，已同步 ${count.count} 筆記錄`);
+        console.log(`✅ 初始化完成，已同步 ${count.count} 笔记录`);
 
-        // 4. 創建自動維護函數
-        console.log('\n📌 步驟4：創建自動維護函數...');
+        // 4. 创建自动维护函数
+        console.log('\n📌 步骤4：创建自动维护函数...');
         
         await db.none(`
             CREATE OR REPLACE FUNCTION auto_sync_recent_draws()
@@ -88,7 +88,7 @@ async function fixRecentDrawsAutoSync() {
             DECLARE
                 min_period BIGINT;
             BEGIN
-                -- 只處理有效的新記錄
+                -- 只处理有效的新记录
                 IF NEW.result IS NOT NULL 
                    AND NEW.position_1 IS NOT NULL 
                    AND LENGTH(NEW.period::text) = 11 THEN
@@ -120,13 +120,13 @@ async function fixRecentDrawsAutoSync() {
                         position_10 = EXCLUDED.position_10,
                         draw_time = EXCLUDED.draw_time;
                     
-                    -- 獲取第10筆記錄的期號
+                    -- 获取第10笔记录的期号
                     SELECT period INTO min_period
                     FROM recent_draws
                     ORDER BY period DESC
                     LIMIT 1 OFFSET 9;
                     
-                    -- 刪除超過10筆的舊記錄
+                    -- 删除超过10笔的旧记录
                     IF min_period IS NOT NULL THEN
                         DELETE FROM recent_draws
                         WHERE period < min_period;
@@ -138,10 +138,10 @@ async function fixRecentDrawsAutoSync() {
             $$ LANGUAGE plpgsql;
         `);
         
-        console.log('✅ 自動維護函數創建成功');
+        console.log('✅ 自动维护函数创建成功');
 
-        // 5. 創建觸發器
-        console.log('\n📌 步驟5：創建自動同步觸發器...');
+        // 5. 创建触发器
+        console.log('\n📌 步骤5：创建自动同步触发器...');
         
         await db.none(`
             DROP TRIGGER IF EXISTS auto_sync_recent_draws_trigger ON result_history;
@@ -152,10 +152,10 @@ async function fixRecentDrawsAutoSync() {
             EXECUTE FUNCTION auto_sync_recent_draws();
         `);
         
-        console.log('✅ 觸發器創建成功');
+        console.log('✅ 触发器创建成功');
 
-        // 6. 創建優化的 API 視圖
-        console.log('\n📌 步驟6：創建 API 視圖...');
+        // 6. 创建优化的 API 视图
+        console.log('\n📌 步骤6：创建 API 视图...');
         
         await db.none(`
             CREATE OR REPLACE VIEW v_api_recent_draws AS
@@ -171,21 +171,21 @@ async function fixRecentDrawsAutoSync() {
             ORDER BY period DESC;
         `);
         
-        console.log('✅ API 視圖創建成功');
+        console.log('✅ API 视图创建成功');
 
-        // 7. 驗證結果
-        console.log('\n📊 驗證最新10期記錄：');
+        // 7. 验证结果
+        console.log('\n📊 验证最新10期记录：');
         const recentDraws = await db.manyOrNone(`
             SELECT * FROM v_api_recent_draws
         `);
         
         recentDraws.forEach((draw) => {
-            console.log(`${draw.row_num}. 期號：${draw.period} | 時間：${draw.formatted_time} | 第1名：${draw.position_1} | 第5名：${draw.position_5} | 第10名：${draw.position_10}`);
+            console.log(`${draw.row_num}. 期号：${draw.period} | 时间：${draw.formatted_time} | 第1名：${draw.position_1} | 第5名：${draw.position_5} | 第10名：${draw.position_10}`);
         });
 
-        // 8. 提供 API 更新建議
-        console.log('\n💡 後端 API 更新建議：');
-        console.log('在 backend.js 中修改 /api/recent-results 端點：');
+        // 8. 提供 API 更新建议
+        console.log('\n💡 后端 API 更新建议：');
+        console.log('在 backend.js 中修改 /api/recent-results 端点：');
         console.log(`
 // 方法1：使用 recent_draws 表
 app.get('/api/recent-results', async (req, res) => {
@@ -199,34 +199,34 @@ app.get('/api/recent-results', async (req, res) => {
             data: results
         });
     } catch (error) {
-        console.error('獲取近期開獎記錄失敗：', error);
+        console.error('获取近期开奖记录失败：', error);
         res.status(500).json({
             success: false,
-            message: '獲取近期開獎記錄失敗'
+            message: '获取近期开奖记录失败'
         });
     }
 });
 
-// 方法2：修改現有 /api/history 端點
-// 在查詢中加入有效性檢查
+// 方法2：修改现有 /api/history 端点
+// 在查询中加入有效性检查
 const validConditions = "result IS NOT NULL AND position_1 IS NOT NULL AND LENGTH(period::text) = 11";
 `);
 
-        console.log('\n✅ 自動同步系統設置完成！');
-        console.log('系統將自動維護最新10期開獎記錄');
-        console.log('每次新增開獎時會自動更新');
+        console.log('\n✅ 自动同步系统设置完成！');
+        console.log('系统将自动维护最新10期开奖记录');
+        console.log('每次新增开奖时会自动更新');
 
     } catch (error) {
-        console.error('設置失敗：', error);
+        console.error('设置失败：', error);
         throw error;
     }
 }
 
-// 執行設置
+// 执行设置
 fixRecentDrawsAutoSync().then(() => {
-    console.log('\n✅ 所有設置完成');
+    console.log('\n✅ 所有设置完成');
     process.exit(0);
 }).catch(error => {
-    console.error('❌ 錯誤：', error);
+    console.error('❌ 错误：', error);
     process.exit(1);
 });

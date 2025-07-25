@@ -1,14 +1,14 @@
-// check-settlement-system.js - 檢查整個結算系統
+// check-settlement-system.js - 检查整个结算系统
 import db from './db/config.js';
 
 async function checkSettlementSystem() {
-    console.log('🔍 檢查整個結算系統的運作狀態...\n');
+    console.log('🔍 检查整个结算系统的运作状态...\n');
     
     try {
-        // 1. 檢查期號234的狀態
-        console.log('📊 檢查期號234的詳細狀態：');
+        // 1. 检查期号234的状态
+        console.log('📊 检查期号234的详细状态：');
         
-        // 檢查是否已開獎
+        // 检查是否已开奖
         const result234 = await db.oneOrNone(`
             SELECT period, result, created_at
             FROM result_history
@@ -16,8 +16,8 @@ async function checkSettlementSystem() {
         `);
         
         if (result234) {
-            console.log(`✅ 期號234已開獎: ${result234.created_at}`);
-            console.log(`開獎結果: ${result234.result}`);
+            console.log(`✅ 期号234已开奖: ${result234.created_at}`);
+            console.log(`开奖结果: ${result234.result}`);
             
             // 解析第4名
             let positions = [];
@@ -28,13 +28,13 @@ async function checkSettlementSystem() {
             }
             
             if (positions.length >= 4) {
-                console.log(`第4名開出: ${positions[3]}號`);
+                console.log(`第4名开出: ${positions[3]}号`);
             }
         } else {
-            console.log('❌ 期號234尚未開獎');
+            console.log('❌ 期号234尚未开奖');
         }
         
-        // 檢查投注記錄
+        // 检查投注记录
         const bets234 = await db.any(`
             SELECT id, username, bet_type, bet_value, position, amount, odds,
                    win, win_amount, settled, settled_at, created_at
@@ -43,14 +43,14 @@ async function checkSettlementSystem() {
             ORDER BY created_at ASC
         `);
         
-        console.log(`\n📋 期號234投注記錄 (${bets234.length}筆):`);
+        console.log(`\n📋 期号234投注记录 (${bets234.length}笔):`);
         bets234.forEach(bet => {
-            const status = bet.settled ? '已結算' : '⚠️ 未結算';
-            console.log(`ID ${bet.id}: ${bet.username} 第${bet.position}名=${bet.bet_value}號, $${bet.amount}, ${status}`);
+            const status = bet.settled ? '已结算' : '⚠️ 未结算';
+            console.log(`ID ${bet.id}: ${bet.username} 第${bet.position}名=${bet.bet_value}号, $${bet.amount}, ${status}`);
         });
         
-        // 2. 檢查最近幾期的結算情況
-        console.log('\n📈 檢查最近幾期的結算情況：');
+        // 2. 检查最近几期的结算情况
+        console.log('\n📈 检查最近几期的结算情况：');
         
         const recentPeriods = await db.any(`
             SELECT bh.period, 
@@ -65,22 +65,22 @@ async function checkSettlementSystem() {
             ORDER BY bh.period DESC
         `);
         
-        console.log('期號 | 總投注 | 已結算 | 開獎時間 | 最後投注時間');
+        console.log('期号 | 总投注 | 已结算 | 开奖时间 | 最后投注时间');
         console.log('-'.repeat(60));
         recentPeriods.forEach(period => {
             const unsettled = period.total_bets - period.settled_count;
-            const drawStatus = period.draw_time ? '已開獎' : '未開獎';
-            const settlementStatus = unsettled > 0 ? `❌ ${unsettled}未結算` : '✅ 全部結算';
+            const drawStatus = period.draw_time ? '已开奖' : '未开奖';
+            const settlementStatus = unsettled > 0 ? `❌ ${unsettled}未结算` : '✅ 全部结算';
             
             console.log(`${period.period} | ${period.total_bets} | ${period.settled_count} | ${drawStatus} | ${settlementStatus}`);
             if (period.draw_time && period.latest_bet) {
                 const timeDiff = Math.round((new Date(period.draw_time) - new Date(period.latest_bet)) / 1000);
-                console.log(`  時間差: ${timeDiff}秒 (投注到開獎)`);
+                console.log(`  时间差: ${timeDiff}秒 (投注到开奖)`);
             }
         });
         
-        // 3. 檢查結算日誌
-        console.log('\n📝 檢查結算日誌記錄：');
+        // 3. 检查结算日志
+        console.log('\n📝 检查结算日志记录：');
         
         const settlementLogs = await db.any(`
             SELECT period, settled_count, total_win_amount, created_at
@@ -90,25 +90,25 @@ async function checkSettlementSystem() {
         `);
         
         if (settlementLogs.length > 0) {
-            console.log('有結算日誌的期號：');
+            console.log('有结算日志的期号：');
             settlementLogs.forEach(log => {
-                console.log(`  期號 ${log.period}: ${log.settled_count}注, $${log.total_win_amount}, ${log.created_at}`);
+                console.log(`  期号 ${log.period}: ${log.settled_count}注, $${log.total_win_amount}, ${log.created_at}`);
             });
             
-            // 找出缺少結算日誌的期號
+            // 找出缺少结算日志的期号
             const loggedPeriods = settlementLogs.map(log => log.period);
             const allPeriods = recentPeriods.map(p => p.period);
             const missingLogs = allPeriods.filter(period => !loggedPeriods.includes(period));
             
             if (missingLogs.length > 0) {
-                console.log(`\n⚠️ 缺少結算日誌的期號: ${missingLogs.join(', ')}`);
+                console.log(`\n⚠️ 缺少结算日志的期号: ${missingLogs.join(', ')}`);
             }
         } else {
-            console.log('❌ 最近期號都沒有結算日誌記錄');
+            console.log('❌ 最近期号都没有结算日志记录');
         }
         
-        // 4. 檢查當前遊戲狀態
-        console.log('\n🎮 檢查當前遊戲狀態：');
+        // 4. 检查当前游戏状态
+        console.log('\n🎮 检查当前游戏状态：');
         
         const gameState = await db.oneOrNone(`
             SELECT current_period, status, countdown_seconds, last_result
@@ -118,22 +118,22 @@ async function checkSettlementSystem() {
         `);
         
         if (gameState) {
-            console.log(`當前期號: ${gameState.current_period}`);
-            console.log(`當前狀態: ${gameState.status}`);
-            console.log(`倒計時: ${gameState.countdown_seconds}秒`);
+            console.log(`当前期号: ${gameState.current_period}`);
+            console.log(`当前状态: ${gameState.status}`);
+            console.log(`倒计时: ${gameState.countdown_seconds}秒`);
             
-            // 檢查遊戲是否正常循環
+            // 检查游戏是否正常循环
             if (gameState.current_period <= 20250714234) {
-                console.log('⚠️ 遊戲期號推進可能有問題');
+                console.log('⚠️ 游戏期号推进可能有问题');
             } else {
-                console.log('✅ 遊戲正常推進到新期號');
+                console.log('✅ 游戏正常推进到新期号');
             }
         }
         
-        // 5. 檢查後端服務狀態（通過最近的活動）
-        console.log('\n🔧 檢查後端服務活動狀態：');
+        // 5. 检查后端服务状态（通过最近的活动）
+        console.log('\n🔧 检查后端服务活动状态：');
         
-        // 檢查最近的開獎活動
+        // 检查最近的开奖活动
         const recentDraws = await db.any(`
             SELECT period, created_at
             FROM result_history
@@ -143,16 +143,16 @@ async function checkSettlementSystem() {
         `);
         
         if (recentDraws.length > 0) {
-            console.log('最近30分鐘的開獎活動：');
+            console.log('最近30分钟的开奖活动：');
             recentDraws.forEach(draw => {
-                console.log(`  期號 ${draw.period}: ${draw.created_at}`);
+                console.log(`  期号 ${draw.period}: ${draw.created_at}`);
             });
-            console.log('✅ 後端服務正在正常開獎');
+            console.log('✅ 后端服务正在正常开奖');
         } else {
-            console.log('❌ 最近30分鐘沒有開獎活動');
+            console.log('❌ 最近30分钟没有开奖活动');
         }
         
-        // 檢查最近的投注活動
+        // 检查最近的投注活动
         const recentBets = await db.any(`
             SELECT period, COUNT(*) as bet_count, MAX(created_at) as latest_bet
             FROM bet_history
@@ -162,17 +162,17 @@ async function checkSettlementSystem() {
         `);
         
         if (recentBets.length > 0) {
-            console.log('\n最近30分鐘的投注活動：');
+            console.log('\n最近30分钟的投注活动：');
             recentBets.forEach(bet => {
-                console.log(`  期號 ${bet.period}: ${bet.bet_count}筆投注, 最後: ${bet.latest_bet}`);
+                console.log(`  期号 ${bet.period}: ${bet.bet_count}笔投注, 最后: ${bet.latest_bet}`);
             });
-            console.log('✅ 投注系統正常工作');
+            console.log('✅ 投注系统正常工作');
         } else {
-            console.log('\n❌ 最近30分鐘沒有投注活動');
+            console.log('\n❌ 最近30分钟没有投注活动');
         }
         
-        // 6. 檢查結算鎖狀態
-        console.log('\n🔒 檢查結算鎖狀態：');
+        // 6. 检查结算锁状态
+        console.log('\n🔒 检查结算锁状态：');
         
         const activeLocks = await db.any(`
             SELECT lock_key, locked_at, expires_at
@@ -181,63 +181,63 @@ async function checkSettlementSystem() {
         `);
         
         if (activeLocks.length > 0) {
-            console.log('發現活躍的結算鎖：');
+            console.log('发现活跃的结算锁：');
             activeLocks.forEach(lock => {
                 console.log(`  ${lock.lock_key}: ${lock.locked_at} -> ${lock.expires_at}`);
             });
         } else {
-            console.log('✅ 沒有活躍的結算鎖');
+            console.log('✅ 没有活跃的结算锁');
         }
         
-        // 7. 診斷結算失敗的可能原因
-        console.log('\n🔍 診斷結算系統問題：');
+        // 7. 诊断结算失败的可能原因
+        console.log('\n🔍 诊断结算系统问题：');
         
         const problemsFound = [];
         
-        // 檢查是否有系統性的結算失敗
+        // 检查是否有系统性的结算失败
         const unsettledPeriods = recentPeriods.filter(p => 
             p.draw_time && (p.total_bets - p.settled_count) > 0
         );
         
         if (unsettledPeriods.length > 0) {
-            problemsFound.push(`${unsettledPeriods.length}個期號有未結算注單`);
+            problemsFound.push(`${unsettledPeriods.length}个期号有未结算注单`);
         }
         
-        // 檢查是否缺少結算日誌
+        // 检查是否缺少结算日志
         const periodsWithBets = recentPeriods.filter(p => p.total_bets > 0);
         const periodsWithLogs = settlementLogs.length;
         
         if (periodsWithBets.length > periodsWithLogs) {
-            problemsFound.push(`${periodsWithBets.length - periodsWithLogs}個期號缺少結算日誌`);
+            problemsFound.push(`${periodsWithBets.length - periodsWithLogs}个期号缺少结算日志`);
         }
         
         if (problemsFound.length > 0) {
-            console.log('❌ 發現的問題：');
+            console.log('❌ 发现的问题：');
             problemsFound.forEach(problem => console.log(`  - ${problem}`));
             
             console.log('\n🔧 可能的原因：');
-            console.log('1. 後端服務在開獎後沒有正確調用結算函數');
-            console.log('2. improved-settlement-system.js 的 total_win 欄位問題導致結算失敗');
-            console.log('3. 結算過程中發生異常但沒有重試機制');
-            console.log('4. 數據庫連接或事務問題');
-            console.log('5. 結算鎖機制阻止了結算執行');
+            console.log('1. 后端服务在开奖后没有正确调用结算函数');
+            console.log('2. improved-settlement-system.js 的 total_win 栏位问题导致结算失败');
+            console.log('3. 结算过程中发生异常但没有重试机制');
+            console.log('4. 数据库连接或事务问题');
+            console.log('5. 结算锁机制阻止了结算执行');
             
-            console.log('\n💡 建議的修復措施：');
-            console.log('1. 重啟後端服務確保使用最新的代碼');
-            console.log('2. 手動觸發未結算期號的結算');
-            console.log('3. 添加結算失敗重試機制');
-            console.log('4. 增強結算日誌和異常處理');
-            console.log('5. 實施結算狀態監控');
+            console.log('\n💡 建议的修复措施：');
+            console.log('1. 重启后端服务确保使用最新的代码');
+            console.log('2. 手动触发未结算期号的结算');
+            console.log('3. 添加结算失败重试机制');
+            console.log('4. 增强结算日志和异常处理');
+            console.log('5. 实施结算状态监控');
         } else {
-            console.log('✅ 沒有發現明顯的系統性問題');
+            console.log('✅ 没有发现明显的系统性问题');
         }
         
     } catch (error) {
-        console.error('檢查過程中發生錯誤:', error);
+        console.error('检查过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行檢查
+// 执行检查
 checkSettlementSystem();

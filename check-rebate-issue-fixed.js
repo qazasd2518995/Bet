@@ -1,12 +1,12 @@
-// 檢查退水問題 - 修正版
+// 检查退水问题 - 修正版
 import db from './db/config.js';
 
 async function checkRebateIssue() {
-    console.log('🔍 檢查退水問題...\n');
+    console.log('🔍 检查退水问题...\n');
     
     try {
-        // 1. 檢查會員代理關係
-        console.log('=== 1. 檢查 justin111 的代理關係 ===');
+        // 1. 检查会员代理关系
+        console.log('=== 1. 检查 justin111 的代理关系 ===');
         const memberInfo = await db.oneOrNone(`
             SELECT 
                 m.username,
@@ -22,21 +22,21 @@ async function checkRebateIssue() {
         `);
         
         if (memberInfo) {
-            console.log(`會員: ${memberInfo.username}`);
-            console.log(`直屬代理: ${memberInfo.agent_username} (ID: ${memberInfo.agent_id})`);
-            console.log(`代理層級: ${memberInfo.agent_level}`);
+            console.log(`会员: ${memberInfo.username}`);
+            console.log(`直属代理: ${memberInfo.agent_username} (ID: ${memberInfo.agent_id})`);
+            console.log(`代理层级: ${memberInfo.agent_level}`);
             console.log(`代理退水: ${(parseFloat(memberInfo.rebate_percentage) * 100).toFixed(1)}%`);
-            console.log(`盤口類型: ${memberInfo.market_type}`);
-            console.log(`代理餘額: ${memberInfo.agent_balance}`);
+            console.log(`盘口类型: ${memberInfo.market_type}`);
+            console.log(`代理余额: ${memberInfo.agent_balance}`);
             
-            // 檢查為什麼退水比例只有 0.5%
+            // 检查为什么退水比例只有 0.5%
             if (memberInfo.market_type === 'A' && parseFloat(memberInfo.rebate_percentage) < 0.011) {
-                console.log('\n❗ 問題發現: A盤代理退水比例只有 0.5%，應該至少有 1.1%');
+                console.log('\n❗ 问题发现: A盘代理退水比例只有 0.5%，应该至少有 1.1%');
             }
         }
         
-        // 2. 檢查最近結算的期號是否有處理退水
-        console.log('\n=== 2. 檢查最近結算期號的退水處理 ===');
+        // 2. 检查最近结算的期号是否有处理退水
+        console.log('\n=== 2. 检查最近结算期号的退水处理 ===');
         const recentSettledBets = await db.any(`
             SELECT 
                 DISTINCT period,
@@ -51,11 +51,11 @@ async function checkRebateIssue() {
             LIMIT 5
         `);
         
-        console.log(`最近24小時內 justin111 的已結算期號:`);
+        console.log(`最近24小时内 justin111 的已结算期号:`);
         for (const record of recentSettledBets) {
-            console.log(`期號: ${record.period}, 注單數: ${record.bet_count}, 總金額: ${record.total_amount}`);
+            console.log(`期号: ${record.period}, 注单数: ${record.bet_count}, 总金额: ${record.total_amount}`);
             
-            // 檢查這期是否有退水記錄
+            // 检查这期是否有退水记录
             const rebateRecord = await db.oneOrNone(`
                 SELECT * FROM transaction_records 
                 WHERE transaction_type = 'rebate' 
@@ -65,43 +65,43 @@ async function checkRebateIssue() {
             `);
             
             if (rebateRecord) {
-                console.log(`  ✅ 找到退水記錄: ${rebateRecord.rebate_amount}元`);
+                console.log(`  ✅ 找到退水记录: ${rebateRecord.rebate_amount}元`);
             } else {
-                console.log(`  ❌ 沒有找到退水記錄`);
+                console.log(`  ❌ 没有找到退水记录`);
             }
         }
         
-        // 3. 計算預期的退水金額
-        console.log('\n=== 3. 計算預期的退水金額 ===');
+        // 3. 计算预期的退水金额
+        console.log('\n=== 3. 计算预期的退水金额 ===');
         if (memberInfo && memberInfo.market_type === 'A') {
             const betAmount = 1000;
-            const expectedRebatePool = betAmount * 0.011; // A盤 1.1%
+            const expectedRebatePool = betAmount * 0.011; // A盘 1.1%
             const agentRebatePercentage = parseFloat(memberInfo.rebate_percentage);
             const expectedAgentRebate = betAmount * agentRebatePercentage;
             
-            console.log(`下注金額: ${betAmount}元`);
-            console.log(`A盤退水池: ${expectedRebatePool.toFixed(2)}元 (1.1%)`);
+            console.log(`下注金额: ${betAmount}元`);
+            console.log(`A盘退水池: ${expectedRebatePool.toFixed(2)}元 (1.1%)`);
             console.log(`代理退水比例: ${(agentRebatePercentage * 100).toFixed(1)}%`);
-            console.log(`代理應得退水: ${expectedAgentRebate.toFixed(2)}元`);
+            console.log(`代理应得退水: ${expectedAgentRebate.toFixed(2)}元`);
             
             if (agentRebatePercentage < 0.011) {
-                console.log(`\n❗ 問題: 代理退水比例(${(agentRebatePercentage * 100).toFixed(1)}%)低於A盤標準(1.1%)`);
-                console.log(`這表示代理只能拿到部分退水，上級代理會拿到差額`);
+                console.log(`\n❗ 问题: 代理退水比例(${(agentRebatePercentage * 100).toFixed(1)}%)低于A盘标准(1.1%)`);
+                console.log(`这表示代理只能拿到部分退水，上级代理会拿到差额`);
             }
         }
         
-        // 4. 檢查退水是否在結算時被調用
-        console.log('\n=== 4. 診斷結果 ===');
-        console.log('發現的問題:');
-        console.log('1. justin2025A 的退水比例只有 0.5%，而不是 A盤標準的 1.1%');
-        console.log('2. 這表示 justin2025A 只能獲得下注金額的 0.5% 作為退水');
-        console.log('3. 剩餘的 0.6% (1.1% - 0.5%) 會分配給上級代理');
-        console.log('\n解決方案:');
-        console.log('1. 如果要讓 justin2025A 獲得全部退水，需要將其退水比例設置為 1.1%');
-        console.log('2. 或者檢查上級代理是否收到了剩餘的 0.6% 退水');
+        // 4. 检查退水是否在结算时被调用
+        console.log('\n=== 4. 诊断结果 ===');
+        console.log('发现的问题:');
+        console.log('1. justin2025A 的退水比例只有 0.5%，而不是 A盘标准的 1.1%');
+        console.log('2. 这表示 justin2025A 只能获得下注金额的 0.5% 作为退水');
+        console.log('3. 剩余的 0.6% (1.1% - 0.5%) 会分配给上级代理');
+        console.log('\n解决方案:');
+        console.log('1. 如果要让 justin2025A 获得全部退水，需要将其退水比例设置为 1.1%');
+        console.log('2. 或者检查上级代理是否收到了剩余的 0.6% 退水');
         
-        // 5. 查找 justin2025A 的上級代理
-        console.log('\n=== 5. 檢查代理鏈 ===');
+        // 5. 查找 justin2025A 的上级代理
+        console.log('\n=== 5. 检查代理链 ===');
         const agentChain = await db.any(`
             WITH RECURSIVE agent_tree AS (
                 SELECT id, username, parent_id, level, rebate_percentage, market_type, 0 as depth
@@ -116,14 +116,14 @@ async function checkRebateIssue() {
             SELECT * FROM agent_tree ORDER BY depth
         `);
         
-        console.log('代理鏈:');
+        console.log('代理链:');
         agentChain.forEach(agent => {
             const indent = '  '.repeat(agent.depth);
             console.log(`${indent}${agent.username} (L${agent.level}, ${(parseFloat(agent.rebate_percentage) * 100).toFixed(1)}%)`);
         });
         
     } catch (error) {
-        console.error('檢查時發生錯誤:', error);
+        console.error('检查时发生错误:', error);
     } finally {
         process.exit(0);
     }

@@ -1,11 +1,11 @@
-// 分析期號 20250717375 的開獎情況和權重日誌
+// 分析期号 20250717375 的开奖情况和权重日志
 import db from './db/config.js';
 
 async function analyzePeriod375() {
-    console.log('🔍 分析期號 20250717375 的開獎情況\n');
+    console.log('🔍 分析期号 20250717375 的开奖情况\n');
 
     try {
-        // 1. 查詢該期的下注記錄
+        // 1. 查询该期的下注记录
         const bets = await db.manyOrNone(`
             SELECT * FROM bet_history 
             WHERE period = '20250717375'
@@ -13,27 +13,27 @@ async function analyzePeriod375() {
             ORDER BY position, bet_value
         `);
 
-        console.log('📊 justin111 的下注情況：');
+        console.log('📊 justin111 的下注情况：');
         if (bets.length > 0) {
             const position5Bets = bets.filter(b => b.position === '5');
             if (position5Bets.length > 0) {
                 const betNumbers = position5Bets.map(b => b.bet_value).sort((a, b) => a - b);
                 console.log(`位置：第5名`);
-                console.log(`下注號碼：${betNumbers.join(', ')}`);
-                console.log(`下注數量：${betNumbers.length}個`);
-                console.log(`覆蓋率：${betNumbers.length}/10 = ${betNumbers.length * 10}%`);
-                console.log(`總下注金額：$${position5Bets.reduce((sum, b) => sum + parseFloat(b.amount), 0)}`);
+                console.log(`下注号码：${betNumbers.join(', ')}`);
+                console.log(`下注数量：${betNumbers.length}个`);
+                console.log(`覆盖率：${betNumbers.length}/10 = ${betNumbers.length * 10}%`);
+                console.log(`总下注金额：$${position5Bets.reduce((sum, b) => sum + parseFloat(b.amount), 0)}`);
             }
         }
 
-        // 2. 查詢開獎結果
+        // 2. 查询开奖结果
         const result = await db.oneOrNone(`
             SELECT * FROM result_history 
             WHERE period = '20250717375'
         `);
 
         if (result) {
-            console.log('\n🎯 開獎結果：');
+            console.log('\n🎯 开奖结果：');
             console.log(`第1名：${result.position_1}`);
             console.log(`第2名：${result.position_2}`);
             console.log(`第3名：${result.position_3}`);
@@ -44,26 +44,26 @@ async function analyzePeriod375() {
             console.log(`第8名：${result.position_8}`);
             console.log(`第9名：${result.position_9}`);
             console.log(`第10名：${result.position_10}`);
-            console.log(`開獎時間：${result.draw_time}`);
+            console.log(`开奖时间：${result.draw_time}`);
 
-            // 檢查是否中獎
+            // 检查是否中奖
             const position5Bets = bets.filter(b => b.position === '5');
             if (position5Bets.length > 0) {
                 const betNumbers = position5Bets.map(b => b.bet_value);
                 const isWin = betNumbers.includes(result.position_5.toString());
-                console.log(`\n💰 結果：${isWin ? '中獎' : '未中獎'}（第5名開出：${result.position_5}）`);
+                console.log(`\n💰 结果：${isWin ? '中奖' : '未中奖'}（第5名开出：${result.position_5}）`);
                 
                 if (isWin) {
                     const winBet = position5Bets.find(b => b.bet_value === result.position_5.toString());
                     if (winBet) {
                         const winAmount = parseFloat(winBet.amount) * parseFloat(winBet.odds);
-                        console.log(`中獎金額：$${winAmount.toFixed(2)}`);
+                        console.log(`中奖金额：$${winAmount.toFixed(2)}`);
                     }
                 }
             }
         }
 
-        // 3. 查詢當時的控制設定
+        // 3. 查询当时的控制设定
         const control = await db.oneOrNone(`
             SELECT * FROM win_loss_control
             WHERE target_username = 'justin111'
@@ -74,20 +74,20 @@ async function analyzePeriod375() {
         `);
 
         if (control) {
-            console.log('\n🎮 控制設定：');
+            console.log('\n🎮 控制设定：');
             console.log(`控制模式：${control.control_mode}`);
-            console.log(`目標用戶：${control.target_username}`);
+            console.log(`目标用户：${control.target_username}`);
             console.log(`控制百分比：${control.control_percentage}%`);
-            console.log(`操作員：${control.operator_username}`);
-            console.log(`開始期號：${control.start_period}`);
+            console.log(`操作员：${control.operator_username}`);
+            console.log(`开始期号：${control.start_period}`);
         } else {
-            console.log('\n🎮 控制設定：無活躍控制');
+            console.log('\n🎮 控制设定：无活跃控制');
         }
 
-        // 4. 查詢權重日誌（如果有記錄）
-        console.log('\n📝 查詢權重生成日誌...');
+        // 4. 查询权重日志（如果有记录）
+        console.log('\n📝 查询权重生成日志...');
         
-        // 檢查是否有專門的權重日誌表
+        // 检查是否有专门的权重日志表
         const hasWeightTable = await db.oneOrNone(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -104,16 +104,16 @@ async function analyzePeriod375() {
             `);
 
             if (weightLogs && weightLogs.length > 0) {
-                console.log('\n🎲 權重生成日誌：');
+                console.log('\n🎲 权重生成日志：');
                 weightLogs.forEach(log => {
-                    console.log(`時間：${log.created_at}`);
-                    console.log(`內容：${JSON.stringify(log.weight_data, null, 2)}`);
+                    console.log(`时间：${log.created_at}`);
+                    console.log(`内容：${JSON.stringify(log.weight_data, null, 2)}`);
                 });
             } else {
-                console.log('未找到該期的權重日誌');
+                console.log('未找到该期的权重日志');
             }
         } else {
-            console.log('系統未記錄權重日誌（無 draw_weight_logs 表）');
+            console.log('系统未记录权重日志（无 draw_weight_logs 表）');
         }
 
         // 5. 分析可能的原因
@@ -124,23 +124,23 @@ async function analyzePeriod375() {
             const coverage = position5Bets.length;
             
             if (coverage >= 8) {
-                console.log(`1. 高覆蓋率下注（${coverage}/10 = ${coverage * 10}%）`);
-                console.log('   - 當覆蓋率達到80%以上時，控制系統效果有限');
-                console.log('   - 即使90%輸控制，仍有較高機率中獎');
+                console.log(`1. 高覆盖率下注（${coverage}/10 = ${coverage * 10}%）`);
+                console.log('   - 当覆盖率达到80%以上时，控制系统效果有限');
+                console.log('   - 即使90%输控制，仍有较高机率中奖');
             }
             
             if (!control || !control.is_active) {
-                console.log('2. 控制可能未啟用或已過期');
+                console.log('2. 控制可能未启用或已过期');
             } else {
-                console.log('2. 控制已啟用，但可能：');
-                console.log('   - 屬於10%的"讓用戶贏"的機率');
-                console.log('   - 或因高覆蓋率導致控制失效');
+                console.log('2. 控制已启用，但可能：');
+                console.log('   - 属于10%的"让用户赢"的机率');
+                console.log('   - 或因高覆盖率导致控制失效');
             }
             
-            console.log('3. 建議查看後端運行日誌以了解詳細的控制決策過程');
+            console.log('3. 建议查看后端运行日志以了解详细的控制决策过程');
         }
 
-        // 6. 統計最近的中獎情況
+        // 6. 统计最近的中奖情况
         const recentWins = await db.manyOrNone(`
             SELECT 
                 bh.period,
@@ -161,22 +161,22 @@ async function analyzePeriod375() {
         `);
 
         if (recentWins && recentWins.length > 0) {
-            console.log(`\n📊 最近第5名中獎記錄（最近10次）：`);
+            console.log(`\n📊 最近第5名中奖记录（最近10次）：`);
             recentWins.forEach(win => {
-                console.log(`期號：${win.period}, 中獎號碼：${win.bet_value}, 金額：$${win.amount}, 賠率：${win.odds}`);
+                console.log(`期号：${win.period}, 中奖号码：${win.bet_value}, 金额：$${win.amount}, 赔率：${win.odds}`);
             });
         }
 
     } catch (error) {
-        console.error('分析失敗：', error);
+        console.error('分析失败：', error);
     }
 }
 
-// 執行分析
+// 执行分析
 analyzePeriod375().then(() => {
     console.log('\n✅ 分析完成');
     process.exit(0);
 }).catch(error => {
-    console.error('❌ 分析錯誤：', error);
+    console.error('❌ 分析错误：', error);
     process.exit(1);
 });

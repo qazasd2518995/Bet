@@ -1,48 +1,48 @@
-// analyze-data-format.js - 分析數據格式問題
+// analyze-data-format.js - 分析数据格式问题
 import db from './db/config.js';
 
 async function analyzeDataFormat() {
-    console.log('🔍 深入分析期號219的數據格式問題...\n');
+    console.log('🔍 深入分析期号219的数据格式问题...\n');
     
     try {
-        // 1. 分析開獎結果的數據格式
-        console.log('📊 分析開獎結果數據格式：');
+        // 1. 分析开奖结果的数据格式
+        console.log('📊 分析开奖结果数据格式：');
         const result = await db.one(`
             SELECT period, result, created_at
             FROM result_history
             WHERE period = 20250714219
         `);
         
-        console.log(`期號: ${result.period}`);
-        console.log(`原始結果: ${result.result}`);
-        console.log(`數據類型: ${typeof result.result}`);
-        console.log(`是否為字符串: ${typeof result.result === 'string'}`);
+        console.log(`期号: ${result.period}`);
+        console.log(`原始结果: ${result.result}`);
+        console.log(`数据类型: ${typeof result.result}`);
+        console.log(`是否为字符串: ${typeof result.result === 'string'}`);
         
-        // 解析結果的多種方式
-        console.log('\n🔧 嘗試不同的解析方式：');
+        // 解析结果的多种方式
+        console.log('\n🔧 尝试不同的解析方式：');
         
         let parsedResults = [];
         
-        // 方式1: 直接使用（如果是數組）
+        // 方式1: 直接使用（如果是数组）
         if (Array.isArray(result.result)) {
             parsedResults.push({
-                method: '直接數組',
+                method: '直接数组',
                 result: result.result,
                 position7: result.result[6]
             });
         }
         
-        // 方式2: 字符串逗號分割
+        // 方式2: 字符串逗号分割
         if (typeof result.result === 'string' && result.result.includes(',')) {
             try {
                 const commaSplit = result.result.split(',').map(n => parseInt(n.trim()));
                 parsedResults.push({
-                    method: '逗號分割',
+                    method: '逗号分割',
                     result: commaSplit,
                     position7: commaSplit[6]
                 });
             } catch (e) {
-                console.log(`逗號分割錯誤: ${e.message}`);
+                console.log(`逗号分割错误: ${e.message}`);
             }
         }
         
@@ -57,62 +57,62 @@ async function analyzeDataFormat() {
                 });
             }
         } catch (e) {
-            console.log(`JSON解析錯誤: ${e.message}`);
+            console.log(`JSON解析错误: ${e.message}`);
         }
         
-        // 顯示所有解析結果
+        // 显示所有解析结果
         parsedResults.forEach((parsed, idx) => {
             console.log(`方式 ${idx + 1} (${parsed.method}):`);
-            console.log(`  完整結果: [${parsed.result.join(',')}]`);
-            console.log(`  第7名 (索引6): ${parsed.position7}號`);
+            console.log(`  完整结果: [${parsed.result.join(',')}]`);
+            console.log(`  第7名 (索引6): ${parsed.position7}号`);
             console.log('');
         });
         
-        // 2. 檢查結算系統實際接收到的數據格式
-        console.log('🎯 模擬結算系統的數據處理：');
+        // 2. 检查结算系统实际接收到的数据格式
+        console.log('🎯 模拟结算系统的数据处理：');
         
-        // 模擬backend.js中的數據傳遞
-        console.log('Backend.js 傳遞格式:');
-        console.log('- 修復前: settleBets(period, newResult)  // newResult是數組');
-        console.log('- 修復後: settleBets(period, { positions: newResult })  // 包裝成對象');
+        // 模拟backend.js中的数据传递
+        console.log('Backend.js 传递格式:');
+        console.log('- 修复前: settleBets(period, newResult)  // newResult是数组');
+        console.log('- 修复后: settleBets(period, { positions: newResult })  // 包装成对象');
         
-        // 檢查當前的開獎結果會如何被處理
+        // 检查当前的开奖结果会如何被处理
         const simulateOldFormat = parsedResults[0]?.result || [];
         const simulateNewFormat = { positions: simulateOldFormat };
         
-        console.log('\n模擬數據傳遞：');
-        console.log(`舊格式 (數組): [${simulateOldFormat.join(',')}]`);
-        console.log(`新格式 (對象): ${JSON.stringify(simulateNewFormat)}`);
+        console.log('\n模拟数据传递：');
+        console.log(`旧格式 (数组): [${simulateOldFormat.join(',')}]`);
+        console.log(`新格式 (对象): ${JSON.stringify(simulateNewFormat)}`);
         
-        // 3. 檢查improved-settlement-system.js的checkWin函數
-        console.log('\n🔍 分析checkWin函數的邏輯：');
-        console.log('checkWin函數期望的格式: winResult.positions[position-1]');
-        console.log('對於第7名投注，使用索引: winResult.positions[7-1] = winResult.positions[6]');
+        // 3. 检查improved-settlement-system.js的checkWin函数
+        console.log('\n🔍 分析checkWin函数的逻辑：');
+        console.log('checkWin函数期望的格式: winResult.positions[position-1]');
+        console.log('对于第7名投注，使用索引: winResult.positions[7-1] = winResult.positions[6]');
         
         if (parsedResults.length > 0) {
             const testData = parsedResults[0].result;
-            console.log(`\n使用實際數據測試:`);
+            console.log(`\n使用实际数据测试:`);
             console.log(`winResult = { positions: [${testData.join(',')}] }`);
-            console.log(`第7名號碼: positions[6] = ${testData[6]}`);
+            console.log(`第7名号码: positions[6] = ${testData[6]}`);
             
-            // 測試各個投注的中獎邏輯
+            // 测试各个投注的中奖逻辑
             const testBets = [
-                { bet_value: '2', position: 7, desc: '投注2號' },
-                { bet_value: '3', position: 7, desc: '投注3號' },
-                { bet_value: '9', position: 7, desc: '投注9號' }
+                { bet_value: '2', position: 7, desc: '投注2号' },
+                { bet_value: '3', position: 7, desc: '投注3号' },
+                { bet_value: '9', position: 7, desc: '投注9号' }
             ];
             
-            console.log('\n投注中獎測試：');
+            console.log('\n投注中奖测试：');
             testBets.forEach(bet => {
                 const shouldWin = testData[bet.position - 1] === parseInt(bet.bet_value);
-                console.log(`${bet.desc}: ${shouldWin ? '應該中獎 ✅' : '應該未中獎 ❌'}`);
+                console.log(`${bet.desc}: ${shouldWin ? '应该中奖 ✅' : '应该未中奖 ❌'}`);
             });
         }
         
-        // 4. 檢查可能的數據格式混淆問題
-        console.log('\n⚠️ 可能的問題源頭：');
+        // 4. 检查可能的数据格式混淆问题
+        console.log('\n⚠️ 可能的问题源头：');
         
-        // 檢查result_history中的數據是否一致
+        // 检查result_history中的数据是否一致
         const recentResults = await db.any(`
             SELECT period, result, created_at
             FROM result_history
@@ -121,13 +121,13 @@ async function analyzeDataFormat() {
             LIMIT 3
         `);
         
-        console.log('\n最近幾期的結果格式：');
+        console.log('\n最近几期的结果格式：');
         recentResults.forEach(r => {
-            console.log(`期號 ${r.period}:`);
-            console.log(`  結果: ${r.result}`);
-            console.log(`  類型: ${typeof r.result}`);
+            console.log(`期号 ${r.period}:`);
+            console.log(`  结果: ${r.result}`);
+            console.log(`  类型: ${typeof r.result}`);
             
-            // 嘗試解析第7名
+            // 尝试解析第7名
             try {
                 let positions = [];
                 if (typeof r.result === 'string' && r.result.includes(',')) {
@@ -137,18 +137,18 @@ async function analyzeDataFormat() {
                 }
                 
                 if (positions.length >= 7) {
-                    console.log(`  第7名: ${positions[6]}號`);
+                    console.log(`  第7名: ${positions[6]}号`);
                 } else {
-                    console.log(`  第7名: 無法解析`);
+                    console.log(`  第7名: 无法解析`);
                 }
             } catch (e) {
-                console.log(`  第7名: 解析錯誤 - ${e.message}`);
+                console.log(`  第7名: 解析错误 - ${e.message}`);
             }
             console.log('');
         });
         
-        // 5. 檢查是否有時間差問題
-        console.log('⏰ 檢查時間相關問題：');
+        // 5. 检查是否有时间差问题
+        console.log('⏰ 检查时间相关问题：');
         
         const betCreationTimes = await db.any(`
             SELECT id, bet_value, created_at, settled_at
@@ -158,27 +158,27 @@ async function analyzeDataFormat() {
             ORDER BY id ASC
         `);
         
-        console.log('投注創建時間 vs 開獎時間：');
-        console.log(`開獎時間: ${result.created_at}`);
-        console.log('投注時間：');
+        console.log('投注创建时间 vs 开奖时间：');
+        console.log(`开奖时间: ${result.created_at}`);
+        console.log('投注时间：');
         betCreationTimes.forEach(bet => {
             const timeDiff = new Date(result.created_at) - new Date(bet.created_at);
-            console.log(`  ID ${bet.id} (${bet.bet_value}號): ${bet.created_at}, 時差: ${Math.round(timeDiff/1000)}秒`);
+            console.log(`  ID ${bet.id} (${bet.bet_value}号): ${bet.created_at}, 时差: ${Math.round(timeDiff/1000)}秒`);
         });
         
-        console.log('\n🔍 結論和建議：');
-        console.log('1. 檢查數據格式轉換是否正確');
-        console.log('2. 確認checkWin函數使用的數據格式');
-        console.log('3. 驗證位置索引計算 (0-based vs 1-based)');
-        console.log('4. 檢查是否有多個結算進程同時運行');
-        console.log('5. 確認結算時間點的數據一致性');
+        console.log('\n🔍 结论和建议：');
+        console.log('1. 检查数据格式转换是否正确');
+        console.log('2. 确认checkWin函数使用的数据格式');
+        console.log('3. 验证位置索引计算 (0-based vs 1-based)');
+        console.log('4. 检查是否有多个结算进程同时运行');
+        console.log('5. 确认结算时间点的数据一致性');
         
     } catch (error) {
-        console.error('分析過程中發生錯誤:', error);
+        console.error('分析过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行分析
+// 执行分析
 analyzeDataFormat();

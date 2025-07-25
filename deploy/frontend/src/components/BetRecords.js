@@ -1,6 +1,6 @@
-// 投注记录組件 - 显示用戶的下注记录和派彩结果
+// 投注记录组件 - 显示用户的下注记录和派彩结果
 Vue.component('bet-records', {
-  // 使用render函數而不是template字符串，避免TypeScript错误提示
+  // 使用render函数而不是template字符串，避免TypeScript错误提示
   props: {
     records: {
       type: Array,
@@ -32,7 +32,7 @@ Vue.component('bet-records', {
     
     getBetTypeDesc(bet) {
       const typeMap = {
-        'sumValue': '冠亞和',
+        'sumValue': '冠亚和',
         'champion': '冠军',
         'runnerup': '亚军',
         'third': '第三名',
@@ -47,7 +47,7 @@ Vue.component('bet-records', {
         'dragonTiger': '龙虎',
         'dragon_tiger': '龙虎',
         '龙虎': '龙虎',
-        'position': '快速大小單双'  // 修復position类型显示
+        'position': '快速大小单双'  // 修复position类型显示
       };
       return typeMap[bet.betType || bet.type] || (bet.betType || bet.type);
     },
@@ -59,7 +59,7 @@ Vue.component('bet-records', {
       if (betType === 'sumValue') {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           const valueMap = {
-            'big': '大', 'small': '小', 'odd': '單', 'even': '双'
+            'big': '大', 'small': '小', 'odd': '单', 'even': '双'
           };
           return valueMap[value];
         } else {
@@ -67,7 +67,7 @@ Vue.component('bet-records', {
         }
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         const valueMap = {
-          'big': '大', 'small': '小', 'odd': '單', 'even': '双'
+          'big': '大', 'small': '小', 'odd': '单', 'even': '双'
         };
         return valueMap[value] || `号码 ${value}`;
       } else if (betType === 'number') {
@@ -85,9 +85,9 @@ Vue.component('bet-records', {
         }
         return value === 'dragon' ? '龙' : '虎';
       } else if (betType === 'position') {
-        // 处理position类型（快速大小單双）
+        // 处理position类型（快速大小单双）
         const valueMap = {
-          'big': '大', 'small': '小', 'odd': '單', 'even': '双'
+          'big': '大', 'small': '小', 'odd': '单', 'even': '双'
         };
         return valueMap[value] || value;
       }
@@ -97,7 +97,7 @@ Vue.component('bet-records', {
     formatTime(time) {
       if (!time) return '';
       const date = new Date(time);
-      // 转換为台北时區显示 - 手動加8小时
+      // 转换为台北时区显示 - 手动加8小时
       const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
       const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
       const day = taipeiTime.getDate().toString().padStart(2, '0');
@@ -111,30 +111,30 @@ Vue.component('bet-records', {
       return parseFloat(odds).toFixed(2);
     },
 
-    // 根据投注类型和值获取正确的赔率 - 動態支持A盤D盤
+    // 根据投注类型和值获取正确的赔率 - 动态支持A盘D盘
     getCorrectOdds(bet) {
       const betType = bet.betType || bet.type;
       const value = bet.value;
       
-      // 如果bet对象已经有正确的赔率，直接使用（優先級最高）
+      // 如果bet对象已经有正确的赔率，直接使用（优先级最高）
       if (bet.odds && bet.odds > 0) {
         return bet.odds;
       }
       
-      // 根据用戶盤口类型设置退水比例和基礎赔率
+      // 根据用户盘口类型设置退水比例和基础赔率
       const userMarketType = this.$parent?.userMarketType || sessionStorage.getItem('userMarketType') || 'D';
       
       let rebatePercentage, baseNumberOdds, baseTwoSideOdds;
       if (userMarketType === 'A') {
-        // A盤配置：1.1%退水
+        // A盘配置：1.1%退水
         rebatePercentage = 0.011;
-        baseNumberOdds = 10.0;  // A盤基礎单号赔率
-        baseTwoSideOdds = 2.0; // A盤基礎两面赔率：2×(1-0.011)=1.978
+        baseNumberOdds = 10.0;  // A盘基础单号赔率
+        baseTwoSideOdds = 2.0; // A盘基础两面赔率：2×(1-0.011)=1.978
       } else {
-        // D盤配置：4.1%退水  
+        // D盘配置：4.1%退水  
         rebatePercentage = 0.041;
-        baseNumberOdds = 10.0;  // D盤基礎单号赔率
-        baseTwoSideOdds = 2.0; // D盤基礎两面赔率：2×(1-0.041)=1.918
+        baseNumberOdds = 10.0;  // D盘基础单号赔率
+        baseTwoSideOdds = 2.0; // D盘基础两面赔率：2×(1-0.041)=1.918
       }
       
       // 根据投注类型计算赔率
@@ -142,7 +142,7 @@ Vue.component('bet-records', {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
-          // 冠亞和值赔率表 (扣除退水) - 使用新的基礎赔率表
+          // 冠亚和值赔率表 (扣除退水) - 使用新的基础赔率表
           const baseOdds = {
             '3': 45.0, '4': 23.0, '5': 15.0, '6': 11.5, '7': 9.0,
             '8': 7.5, '9': 6.5, '10': 5.7, '11': 5.7, '12': 6.5,
@@ -157,21 +157,21 @@ Vue.component('bet-records', {
       } else if (betType === 'dragonTiger') {
         return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
       } else if (betType === 'position') {
-        // position类型（快速大小單双）的赔率
+        // position类型（快速大小单双）的赔率
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
-          return 1.0; // 无效值返回预設赔率
+          return 1.0; // 无效值返回预设赔率
         }
       } else if (['champion', 'runnerup', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'].includes(betType)) {
         if (['big', 'small', 'odd', 'even'].includes(value)) {
           return parseFloat((baseTwoSideOdds * (1 - rebatePercentage)).toFixed(3));
         } else {
-          return parseFloat((baseNumberOdds * (1 - rebatePercentage)).toFixed(3)); // 單号投注
+          return parseFloat((baseNumberOdds * (1 - rebatePercentage)).toFixed(3)); // 单号投注
         }
       }
       
-      return 1.0; // 预設赔率
+      return 1.0; // 预设赔率
     },
     
     formatMoney(amount) {
@@ -181,7 +181,7 @@ Vue.component('bet-records', {
   },
   
   render(h) {
-    // 使用render函數创建模板，避免TypeScript检查错误
+    // 使用render函数创建模板，避免TypeScript检查错误
     return h('div', { class: 'bet-records' }, [
       // 头部
       h('div', { class: 'record-header' }, [
@@ -192,7 +192,7 @@ Vue.component('bet-records', {
         }, '×')
       ]),
       
-      // 標籤页
+      // 标签页
       h('div', { class: 'record-tabs' }, [
         h('div', { 
           class: ['tab', this.activeTab === 'ongoing' ? 'active' : ''],
@@ -217,7 +217,7 @@ Vue.component('bet-records', {
                   }, this.getBetStatus(bet))
                 ]),
                 
-                // 投注资讯區域：投注类型和选项
+                // 投注资讯区域：投注类型和选项
                 h('div', { class: 'record-bet-info' }, [
                   h('div', { class: 'bet-detail-row' }, [
                     h('span', { class: 'bet-label' }, '投注类型:'),
@@ -269,7 +269,7 @@ Vue.component('bet-records', {
               ])
             )
           )
-        : h('div', { class: 'no-records' }, '暫無记录')
+        : h('div', { class: 'no-records' }, '暂无记录')
     ]);
   }
 });

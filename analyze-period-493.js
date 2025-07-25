@@ -15,8 +15,8 @@ async function analyzePeriod493() {
         await client.connect();
         console.log('Connected to database');
 
-        // 1. 查詢開獎結果
-        console.log('\n=== 1. 開獎結果 ===');
+        // 1. 查询开奖结果
+        console.log('\n=== 1. 开奖结果 ===');
         const resultQuery = await client.query(
             "SELECT * FROM result_history WHERE period = $1",
             ['20250718493']
@@ -24,27 +24,27 @@ async function analyzePeriod493() {
         
         if (resultQuery.rows.length > 0) {
             const result = resultQuery.rows[0];
-            console.log('期號:', result.period);
-            console.log('開獎時間:', result.created_at);
-            console.log('開獎結果:', result.result);
-            console.log('完整記錄:', JSON.stringify(result, null, 2));
+            console.log('期号:', result.period);
+            console.log('开奖时间:', result.created_at);
+            console.log('开奖结果:', result.result);
+            console.log('完整记录:', JSON.stringify(result, null, 2));
             
-            // 解析開獎結果
+            // 解析开奖结果
             try {
                 const positions = JSON.parse(result.result);
-                console.log('\n解析後的位置:');
+                console.log('\n解析后的位置:');
                 positions.forEach((num, idx) => {
                     console.log(`第${idx + 1}名: ${num}`);
                 });
             } catch (e) {
-                console.log('解析開獎結果失敗:', e.message);
+                console.log('解析开奖结果失败:', e.message);
             }
         } else {
-            console.log('未找到該期開獎結果');
+            console.log('未找到该期开奖结果');
         }
 
-        // 2. 查詢第1名相關投注
-        console.log('\n=== 2. 第1名相關投注記錄 ===');
+        // 2. 查询第1名相关投注
+        console.log('\n=== 2. 第1名相关投注记录 ===');
         const firstPlaceBets = await client.query(`
             SELECT id, username, bet_type, bet_value, position, amount, odds, win, win_amount, settled, created_at
             FROM bet_history 
@@ -58,36 +58,36 @@ async function analyzePeriod493() {
             ORDER BY id
         `, ['20250718493']);
 
-        console.log(`找到 ${firstPlaceBets.rows.length} 筆第1名相關投注`);
+        console.log(`找到 ${firstPlaceBets.rows.length} 笔第1名相关投注`);
         if (firstPlaceBets.rows.length > 0) {
             firstPlaceBets.rows.forEach(bet => {
                 console.log('\n投注ID:', bet.id);
-                console.log('用戶:', bet.username);
-                console.log('投注類型:', bet.bet_type);
+                console.log('用户:', bet.username);
+                console.log('投注类型:', bet.bet_type);
                 console.log('投注值:', bet.bet_value);
                 console.log('位置:', bet.position);
-                console.log('金額:', bet.amount);
-                console.log('賠率:', bet.odds);
-                console.log('是否中獎:', bet.win);
-                console.log('中獎金額:', bet.win_amount);
-                console.log('是否結算:', bet.settled);
+                console.log('金额:', bet.amount);
+                console.log('赔率:', bet.odds);
+                console.log('是否中奖:', bet.win);
+                console.log('中奖金额:', bet.win_amount);
+                console.log('是否结算:', bet.settled);
                 
-                // 分析為什麼會中獎或不中獎
+                // 分析为什么会中奖或不中奖
                 if (bet.bet_type === 'number' && bet.position === 1) {
-                    console.log(`分析: 下注第1名號碼${bet.bet_value}，開獎第1名號碼是2`);
+                    console.log(`分析: 下注第1名号码${bet.bet_value}，开奖第1名号码是2`);
                     if (bet.bet_value === '2' && bet.win) {
-                        console.log('✅ 正確中獎');
+                        console.log('✅ 正确中奖');
                     } else if (bet.bet_value !== '2' && !bet.win) {
-                        console.log('✅ 正確未中獎');
+                        console.log('✅ 正确未中奖');
                     } else {
-                        console.log('❌ 結算可能有誤');
+                        console.log('❌ 结算可能有误');
                     }
                 }
             });
         }
 
-        // 3. 查詢所有投注統計
-        console.log('\n=== 3. 所有投注統計 ===');
+        // 3. 查询所有投注统计
+        console.log('\n=== 3. 所有投注统计 ===');
         const allBets = await client.query(`
             SELECT bet_type, position, COUNT(*) as count, 
                    SUM(amount) as total_amount,
@@ -99,35 +99,35 @@ async function analyzePeriod493() {
             ORDER BY bet_type, position
         `, ['20250718493']);
 
-        console.log('各類型投注統計:');
+        console.log('各类型投注统计:');
         allBets.rows.forEach(stat => {
-            console.log(`\n類型: ${stat.bet_type}, 位置: ${stat.position || 'N/A'}`);
-            console.log(`  投注數: ${stat.count}`);
-            console.log(`  總金額: ${stat.total_amount}`);
-            console.log(`  中獎數: ${stat.win_count}`);
-            console.log(`  總派彩: ${stat.total_win_amount || 0}`);
+            console.log(`\n类型: ${stat.bet_type}, 位置: ${stat.position || 'N/A'}`);
+            console.log(`  投注数: ${stat.count}`);
+            console.log(`  总金额: ${stat.total_amount}`);
+            console.log(`  中奖数: ${stat.win_count}`);
+            console.log(`  总派彩: ${stat.total_win_amount || 0}`);
         });
 
-        // 4. 查詢結算日誌
-        console.log('\n=== 4. 結算日誌 ===');
+        // 4. 查询结算日志
+        console.log('\n=== 4. 结算日志 ===');
         const settlementLogs = await client.query(
             "SELECT * FROM settlement_logs WHERE period = $1 ORDER BY created_at",
             ['20250718493']
         );
 
         if (settlementLogs.rows.length > 0) {
-            console.log(`找到 ${settlementLogs.rows.length} 筆結算日誌`);
+            console.log(`找到 ${settlementLogs.rows.length} 笔结算日志`);
             settlementLogs.rows.forEach(log => {
-                console.log('\n時間:', log.created_at);
+                console.log('\n时间:', log.created_at);
                 console.log('操作:', log.action);
-                console.log('詳情:', log.details);
+                console.log('详情:', log.details);
             });
         } else {
-            console.log('未找到該期結算日誌');
+            console.log('未找到该期结算日志');
         }
 
-        // 5. 查詢用戶餘額變化
-        console.log('\n=== 5. 用戶餘額變化 ===');
+        // 5. 查询用户余额变化
+        console.log('\n=== 5. 用户余额变化 ===');
         const userBalance = await client.query(`
             SELECT username, 
                    SUM(CASE WHEN transaction_type = 'bet' THEN -amount ELSE 0 END) as bet_amount,
@@ -139,18 +139,18 @@ async function analyzePeriod493() {
         `, ['20250718493']);
 
         if (userBalance.rows.length > 0) {
-            console.log('用戶交易統計:');
+            console.log('用户交易统计:');
             userBalance.rows.forEach(user => {
-                console.log(`\n用戶: ${user.username}`);
+                console.log(`\n用户: ${user.username}`);
                 console.log(`  下注: ${user.bet_amount}`);
-                console.log(`  中獎: ${user.win_amount}`);
+                console.log(`  中奖: ${user.win_amount}`);
                 console.log(`  退水: ${user.rebate_amount}`);
-                console.log(`  淨值: ${parseFloat(user.bet_amount) + parseFloat(user.win_amount) + parseFloat(user.rebate_amount)}`);
+                console.log(`  净值: ${parseFloat(user.bet_amount) + parseFloat(user.win_amount) + parseFloat(user.rebate_amount)}`);
             });
         }
 
     } catch (error) {
-        console.error('查詢錯誤:', error);
+        console.error('查询错误:', error);
     } finally {
         await client.end();
     }

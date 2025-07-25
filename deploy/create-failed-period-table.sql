@@ -1,5 +1,5 @@
 
--- 創建失敗期號結果表
+-- 创建失败期号结果表
 CREATE TABLE IF NOT EXISTS failed_period_results (
     id SERIAL PRIMARY KEY,
     period VARCHAR(20) UNIQUE NOT NULL,

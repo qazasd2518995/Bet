@@ -1,25 +1,25 @@
 #!/bin/bash
 
-# 同步關鍵檔案到 deploy 資料夾
-# 這確保 deploy 資料夾包含最新的生產環境檔案
+# 同步关键档案到 deploy 资料夹
+# 这确保 deploy 资料夹包含最新的生产环境档案
 
-echo "🔄 開始同步檔案到 deploy 資料夾..."
+echo "🔄 开始同步档案到 deploy 资料夹..."
 
-# 顏色定義
+# 颜色定义
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 同步後端檔案
-echo -e "${YELLOW}同步後端檔案...${NC}"
+# 同步后端档案
+echo -e "${YELLOW}同步后端档案...${NC}"
 cp backend.js deploy/backend.js && echo -e "${GREEN}✓ backend.js${NC}"
 cp agentBackend.js deploy/agentBackend.js && echo -e "${GREEN}✓ agentBackend.js${NC}"
 cp package.json deploy/package.json && echo -e "${GREEN}✓ package.json${NC}"
 cp package-lock.json deploy/package-lock.json 2>/dev/null && echo -e "${GREEN}✓ package-lock.json${NC}"
 
-# 同步遊戲前端檔案
-echo -e "\n${YELLOW}同步遊戲前端檔案...${NC}"
+# 同步游戏前端档案
+echo -e "\n${YELLOW}同步游戏前端档案...${NC}"
 mkdir -p deploy/frontend/src/scripts
 mkdir -p deploy/frontend/src/components
 mkdir -p deploy/frontend/css
@@ -35,8 +35,8 @@ cp -r frontend/sounds deploy/frontend/ 2>/dev/null && echo -e "${GREEN}✓ front
 cp frontend/favicon.svg deploy/frontend/ 2>/dev/null && echo -e "${GREEN}✓ frontend/favicon.svg${NC}"
 cp frontend/cyberpunk-car.jpg deploy/frontend/ 2>/dev/null && echo -e "${GREEN}✓ frontend/cyberpunk-car.jpg${NC}"
 
-# 同步代理前端檔案
-echo -e "\n${YELLOW}同步代理前端檔案...${NC}"
+# 同步代理前端档案
+echo -e "\n${YELLOW}同步代理前端档案...${NC}"
 mkdir -p deploy/agent/frontend/css
 mkdir -p deploy/agent/frontend/js
 
@@ -48,31 +48,31 @@ cp agent/frontend/favicon.svg deploy/agent/frontend/ 2>/dev/null && echo -e "${G
 cp agent/frontend/f1-racing.jpg deploy/agent/frontend/ 2>/dev/null && echo -e "${GREEN}✓ agent/frontend/f1-racing.jpg${NC}"
 cp agent/frontend/.htaccess deploy/agent/frontend/ 2>/dev/null && echo -e "${GREEN}✓ agent/frontend/.htaccess${NC}"
 
-# 同步資料庫相關檔案
-echo -e "\n${YELLOW}同步資料庫檔案...${NC}"
+# 同步资料库相关档案
+echo -e "\n${YELLOW}同步资料库档案...${NC}"
 mkdir -p deploy/db/models
 cp -r db/config.js deploy/db/ && echo -e "${GREEN}✓ db/config.js${NC}"
 cp -r db/init.js deploy/db/ && echo -e "${GREEN}✓ db/init.js${NC}"
 cp -r db/models/* deploy/db/models/ 2>/dev/null && echo -e "${GREEN}✓ db/models/${NC}"
 
-# 同步安全相關檔案
-echo -e "\n${YELLOW}同步安全檔案...${NC}"
+# 同步安全相关档案
+echo -e "\n${YELLOW}同步安全档案...${NC}"
 mkdir -p deploy/security
 cp -r security/* deploy/security/ 2>/dev/null && echo -e "${GREEN}✓ security/${NC}"
 
-# 同步工具檔案
-echo -e "\n${YELLOW}同步工具檔案...${NC}"
+# 同步工具档案
+echo -e "\n${YELLOW}同步工具档案...${NC}"
 mkdir -p deploy/utils
 cp -r utils/* deploy/utils/ 2>/dev/null && echo -e "${GREEN}✓ utils/${NC}"
 
-# 同步重要的設定檔案
-echo -e "\n${YELLOW}同步設定檔案...${NC}"
+# 同步重要的设定档案
+echo -e "\n${YELLOW}同步设定档案...${NC}"
 cp .env deploy/.env 2>/dev/null && echo -e "${GREEN}✓ .env${NC}"
 cp render.yaml deploy/render.yaml 2>/dev/null && echo -e "${GREEN}✓ render.yaml${NC}"
 cp CLAUDE.md deploy/CLAUDE.md 2>/dev/null && echo -e "${GREEN}✓ CLAUDE.md${NC}"
 
-# 同步重要的修復檔案
-echo -e "\n${YELLOW}同步重要修復檔案...${NC}"
+# 同步重要的修复档案
+echo -e "\n${YELLOW}同步重要修复档案...${NC}"
 cp comprehensive-settlement-system.js deploy/ 2>/dev/null && echo -e "${GREEN}✓ comprehensive-settlement-system.js${NC}"
 cp enhanced-settlement-system.js deploy/ 2>/dev/null && echo -e "${GREEN}✓ enhanced-settlement-system.js${NC}"
 cp improved-settlement-system.js deploy/ 2>/dev/null && echo -e "${GREEN}✓ improved-settlement-system.js${NC}"
@@ -82,6 +82,6 @@ cp ensure-database-constraints.js deploy/ 2>/dev/null && echo -e "${GREEN}✓ en
 
 echo -e "\n${GREEN}✅ 同步完成！${NC}"
 echo -e "${YELLOW}提示：${NC}"
-echo "1. 如果要部署到 Render，請 cd 到 deploy 資料夾"
-echo "2. 執行 git add -A && git commit -m '同步最新版本'"
-echo "3. 執行 git push 來觸發 Render 自動部署"
+echo "1. 如果要部署到 Render，请 cd 到 deploy 资料夹"
+echo "2. 执行 git add -A && git commit -m '同步最新版本'"
+echo "3. 执行 git push 来触发 Render 自动部署"

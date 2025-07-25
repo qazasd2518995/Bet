@@ -2,16 +2,16 @@ import db from './db/config.js';
 
 async function simpleRebateComparison() {
   try {
-    console.log('=== 比較期號 20250716109 和 20250716121 的退水金額 ===\n');
+    console.log('=== 比较期号 20250716109 和 20250716121 的退水金额 ===\n');
     
     const periods = ['20250716109', '20250716121'];
     const results = {};
     
     for (const period of periods) {
-      console.log(`\n期號 ${period}:`);
+      console.log(`\n期号 ${period}:`);
       console.log('='.repeat(50));
       
-      // 1. 檢查下注記錄
+      // 1. 检查下注记录
       const bets = await db.any(`
         SELECT 
           id,
@@ -26,15 +26,15 @@ async function simpleRebateComparison() {
         WHERE period = $1
       `, [period]);
       
-      console.log(`下注記錄: ${bets.length} 筆`);
+      console.log(`下注记录: ${bets.length} 笔`);
       let totalBetAmount = 0;
       bets.forEach(bet => {
-        console.log(`  - ${bet.username}: $${bet.amount} (${bet.bet_type}-${bet.bet_value}) ${bet.win ? '贏' : '輸'}`);
+        console.log(`  - ${bet.username}: $${bet.amount} (${bet.bet_type}-${bet.bet_value}) ${bet.win ? '赢' : '输'}`);
         totalBetAmount += parseFloat(bet.amount);
       });
-      console.log(`總下注金額: $${totalBetAmount.toFixed(2)}`);
+      console.log(`总下注金额: $${totalBetAmount.toFixed(2)}`);
       
-      // 2. 檢查退水記錄
+      // 2. 检查退水记录
       const rebates = await db.any(`
         SELECT 
           tr.user_id,
@@ -49,19 +49,19 @@ async function simpleRebateComparison() {
         ORDER BY tr.amount DESC
       `, [period]);
       
-      console.log(`\n退水記錄: ${rebates.length} 筆`);
+      console.log(`\n退水记录: ${rebates.length} 笔`);
       let totalRebateAmount = 0;
       rebates.forEach(rebate => {
-        console.log(`  - ${rebate.agent_username} (層級 ${rebate.agent_level}): $${rebate.amount}`);
+        console.log(`  - ${rebate.agent_username} (层级 ${rebate.agent_level}): $${rebate.amount}`);
         totalRebateAmount += parseFloat(rebate.amount);
       });
-      console.log(`總退水金額: $${totalRebateAmount.toFixed(2)}`);
+      console.log(`总退水金额: $${totalRebateAmount.toFixed(2)}`);
       
-      // 計算退水率
+      // 计算退水率
       const rebateRate = totalBetAmount > 0 ? (totalRebateAmount / totalBetAmount * 100).toFixed(2) : 0;
       console.log(`退水率: ${rebateRate}%`);
       
-      // 保存結果
+      // 保存结果
       results[period] = {
         bets: bets.length,
         totalBet: totalBetAmount,
@@ -72,55 +72,55 @@ async function simpleRebateComparison() {
       };
     }
     
-    // 比較分析
-    console.log('\n\n=== 分析結果 ===');
-    console.log('\n1. 退水金額比較:');
+    // 比较分析
+    console.log('\n\n=== 分析结果 ===');
+    console.log('\n1. 退水金额比较:');
     periods.forEach(period => {
       const r = results[period];
-      console.log(`   期號 ${period}: 退水 $${r.totalRebate.toFixed(2)} / 下注 $${r.totalBet.toFixed(2)} = ${r.rebateRate}%`);
+      console.log(`   期号 ${period}: 退水 $${r.totalRebate.toFixed(2)} / 下注 $${r.totalBet.toFixed(2)} = ${r.rebateRate}%`);
     });
     
-    console.log('\n2. 退水計算錯誤分析:');
+    console.log('\n2. 退水计算错误分析:');
     
-    // 檢查每個代理的退水是否正確
+    // 检查每个代理的退水是否正确
     for (const period of periods) {
       if (results[period].rebateDetails.length > 0) {
-        console.log(`\n   期號 ${period} 各代理退水明細:`);
+        console.log(`\n   期号 ${period} 各代理退水明细:`);
         results[period].rebateDetails.forEach(rebate => {
-          // 根據層級計算預期退水
+          // 根据层级计算预期退水
           let expectedRate = 0;
           switch(rebate.agent_level) {
-            case 0: expectedRate = 0.6; break;  // 總代理
-            case 1: expectedRate = 0.5; break;  // 大股東
-            case 2: expectedRate = 0.4; break;  // 股東
-            case 3: expectedRate = 0.3; break;  // 總代理
+            case 0: expectedRate = 0.6; break;  // 总代理
+            case 1: expectedRate = 0.5; break;  // 大股东
+            case 2: expectedRate = 0.4; break;  // 股东
+            case 3: expectedRate = 0.3; break;  // 总代理
             case 4: expectedRate = 0.2; break;  // 代理
           }
           
           const expectedRebate = (results[period].totalBet * expectedRate / 100).toFixed(2);
           const isCorrect = Math.abs(parseFloat(rebate.amount) - parseFloat(expectedRebate)) < 0.01;
           
-          console.log(`     ${rebate.agent_username} (層級${rebate.agent_level}): `);
-          console.log(`       實際退水: $${rebate.amount}`);
-          console.log(`       預期退水: $${expectedRebate} (${expectedRate}%)`);
-          console.log(`       ${isCorrect ? '✅ 正確' : '❌ 錯誤'}`);
+          console.log(`     ${rebate.agent_username} (层级${rebate.agent_level}): `);
+          console.log(`       实际退水: $${rebate.amount}`);
+          console.log(`       预期退水: $${expectedRebate} (${expectedRate}%)`);
+          console.log(`       ${isCorrect ? '✅ 正确' : '❌ 错误'}`);
         });
       }
     }
     
-    console.log('\n3. 問題總結:');
+    console.log('\n3. 问题总结:');
     if (results['20250716109'].totalRebate > 0 && results['20250716121'].totalRebate === 0) {
-      console.log('   - 期號 20250716121 沒有退水記錄，可能是退水處理失敗');
+      console.log('   - 期号 20250716121 没有退水记录，可能是退水处理失败');
     } else if (results['20250716109'].rebateRate !== results['20250716121'].rebateRate) {
-      console.log('   - 兩個期號的退水率不同，可能存在計算錯誤');
+      console.log('   - 两个期号的退水率不同，可能存在计算错误');
     } else {
-      console.log('   - 兩個期號的退水計算看起來一致');
+      console.log('   - 两个期号的退水计算看起来一致');
     }
     
     process.exit(0);
     
   } catch (error) {
-    console.error('查詢過程中發生錯誤:', error);
+    console.error('查询过程中发生错误:', error);
     process.exit(1);
   }
 }

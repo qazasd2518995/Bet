@@ -1,11 +1,11 @@
-// draw-result-cache.js - 開獎結果緩存管理
+// draw-result-cache.js - 开奖结果缓存管理
 
-// 緩存最近的開獎結果，確保每期對應正確的結果
+// 缓存最近的开奖结果，确保每期对应正确的结果
 const resultCache = new Map();
 const MAX_CACHE_SIZE = 20;
 
 /**
- * 設置期號的開獎結果
+ * 设置期号的开奖结果
  */
 export function setDrawResult(period, result) {
     const periodStr = String(period);
@@ -14,24 +14,24 @@ export function setDrawResult(period, result) {
         timestamp: Date.now()
     });
     
-    // 限制緩存大小
+    // 限制缓存大小
     if (resultCache.size > MAX_CACHE_SIZE) {
         const oldestKey = resultCache.keys().next().value;
         resultCache.delete(oldestKey);
     }
     
-    console.log(`📦 [結果緩存] 期號 ${periodStr} 的結果已緩存`);
+    console.log(`📦 [结果缓存] 期号 ${periodStr} 的结果已缓存`);
 }
 
 /**
- * 獲取期號的開獎結果
+ * 获取期号的开奖结果
  */
 export function getDrawResult(period) {
     const periodStr = String(period);
     const cached = resultCache.get(periodStr);
     
     if (cached) {
-        console.log(`📦 [結果緩存] 從緩存獲取期號 ${periodStr} 的結果`);
+        console.log(`📦 [结果缓存] 从缓存获取期号 ${periodStr} 的结果`);
         return cached.result;
     }
     
@@ -39,12 +39,12 @@ export function getDrawResult(period) {
 }
 
 /**
- * 獲取最新的開獎結果（不管期號）
+ * 获取最新的开奖结果（不管期号）
  */
 export function getLatestResult() {
     if (resultCache.size === 0) return null;
     
-    // 獲取最新的結果
+    // 获取最新的结果
     let latest = null;
     let latestTime = 0;
     
@@ -59,16 +59,16 @@ export function getLatestResult() {
 }
 
 /**
- * 清理過期的緩存
+ * 清理过期的缓存
  */
 export function cleanExpiredCache() {
     const now = Date.now();
-    const EXPIRE_TIME = 10 * 60 * 1000; // 10分鐘
+    const EXPIRE_TIME = 10 * 60 * 1000; // 10分钟
     
     for (const [period, data] of resultCache.entries()) {
         if (now - data.timestamp > EXPIRE_TIME) {
             resultCache.delete(period);
-            console.log(`🗑️ [結果緩存] 清理過期緩存: 期號 ${period}`);
+            console.log(`🗑️ [结果缓存] 清理过期缓存: 期号 ${period}`);
         }
     }
 }

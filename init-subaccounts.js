@@ -3,17 +3,17 @@ import fs from 'fs/promises';
 
 async function initSubAccounts() {
   try {
-    console.log('開始創建子帳號表...\n');
+    console.log('开始创建子帐号表...\n');
     
-    // 讀取 SQL 文件
+    // 读取 SQL 文件
     const sql = await fs.readFile('./create-subaccounts-table.sql', 'utf-8');
     
-    // 執行 SQL
+    // 执行 SQL
     await db.none(sql);
     
-    console.log('✅ 子帳號表創建成功！\n');
+    console.log('✅ 子帐号表创建成功！\n');
     
-    // 檢查表是否存在
+    // 检查表是否存在
     const tableExists = await db.oneOrNone(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -23,9 +23,9 @@ async function initSubAccounts() {
     `);
     
     if (tableExists?.exists) {
-      console.log('確認子帳號表已創建');
+      console.log('确认子帐号表已创建');
       
-      // 顯示表結構
+      // 显示表结构
       const columns = await db.any(`
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns
@@ -33,7 +33,7 @@ async function initSubAccounts() {
         ORDER BY ordinal_position
       `);
       
-      console.log('\n表結構:');
+      console.log('\n表结构:');
       console.log('=====================================');
       columns.forEach(col => {
         console.log(`${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? 'NOT NULL' : ''} ${col.column_default || ''}`);
@@ -42,7 +42,7 @@ async function initSubAccounts() {
     
     process.exit(0);
   } catch (error) {
-    console.error('創建子帳號表失敗:', error);
+    console.error('创建子帐号表失败:', error);
     process.exit(1);
   }
 }

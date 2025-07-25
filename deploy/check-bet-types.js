@@ -1,12 +1,12 @@
-// check-bet-types.js - 檢查下注類型
+// check-bet-types.js - 检查下注类型
 import db from './db/config.js';
 
 async function checkBetTypes() {
-    console.log('🔍 檢查下注類型...\n');
+    console.log('🔍 检查下注类型...\n');
     
     try {
         // 1. 查看所有不同的 bet_type
-        console.log('1️⃣ 所有的 bet_type 類型:');
+        console.log('1️⃣ 所有的 bet_type 类型:');
         const betTypes = await db.any(`
             SELECT DISTINCT bet_type, COUNT(*) as count
             FROM bet_history
@@ -15,11 +15,11 @@ async function checkBetTypes() {
         `);
         
         betTypes.forEach(type => {
-            console.log(`  ${type.bet_type}: ${type.count} 筆`);
+            console.log(`  ${type.bet_type}: ${type.count} 笔`);
         });
         
-        // 2. 查看 champion 類型的下注
-        console.log('\n2️⃣ champion 類型的下注範例:');
+        // 2. 查看 champion 类型的下注
+        console.log('\n2️⃣ champion 类型的下注范例:');
         const championBets = await db.any(`
             SELECT 
                 id,
@@ -40,18 +40,18 @@ async function checkBetTypes() {
         
         championBets.forEach(bet => {
             console.log(`\nID: ${bet.id}`);
-            console.log(`  期號: ${bet.period}`);
-            console.log(`  用戶: ${bet.username}`);
-            console.log(`  類型: ${bet.bet_type}`);
+            console.log(`  期号: ${bet.period}`);
+            console.log(`  用户: ${bet.username}`);
+            console.log(`  类型: ${bet.bet_type}`);
             console.log(`  值: ${bet.bet_value}`);
             console.log(`  位置: ${bet.position}`);
-            console.log(`  金額: ${bet.amount}`);
-            console.log(`  賠率: ${bet.odds}`);
-            console.log(`  中獎: ${bet.win ? '是' : '否'}`);
+            console.log(`  金额: ${bet.amount}`);
+            console.log(`  赔率: ${bet.odds}`);
+            console.log(`  中奖: ${bet.win ? '是' : '否'}`);
         });
         
-        // 3. 分析 bet_type 和 position 的關係
-        console.log('\n3️⃣ bet_type 和 position 的關係:');
+        // 3. 分析 bet_type 和 position 的关系
+        console.log('\n3️⃣ bet_type 和 position 的关系:');
         const typePositionRelation = await db.any(`
             SELECT 
                 bet_type,
@@ -70,31 +70,31 @@ async function checkBetTypes() {
                 currentType = rel.bet_type;
                 console.log(`\n${currentType}:`);
             }
-            console.log(`  position ${rel.position}: ${rel.count} 筆`);
+            console.log(`  position ${rel.position}: ${rel.count} 笔`);
         });
         
-        // 4. 檢查結算邏輯對應
-        console.log('\n4️⃣ 結算邏輯分析:');
-        console.log('根據 checkWin 函數:');
-        console.log('  - "number" 類型使用 position 欄位判斷位置');
-        console.log('  - "champion" 類型沒有處理邏輯');
-        console.log('\n可能的解決方案:');
-        console.log('  1. 將 "champion" 映射為 "number" + position=1');
-        console.log('  2. 在 checkWin 中添加 "champion" 的處理邏輯');
-        console.log('  3. 統一使用位置名稱作為 bet_type（first, second, third...）');
+        // 4. 检查结算逻辑对应
+        console.log('\n4️⃣ 结算逻辑分析:');
+        console.log('根据 checkWin 函数:');
+        console.log('  - "number" 类型使用 position 栏位判断位置');
+        console.log('  - "champion" 类型没有处理逻辑');
+        console.log('\n可能的解决方案:');
+        console.log('  1. 将 "champion" 映射为 "number" + position=1');
+        console.log('  2. 在 checkWin 中添加 "champion" 的处理逻辑');
+        console.log('  3. 统一使用位置名称作为 bet_type（first, second, third...）');
         
     } catch (error) {
-        console.error('❌ 檢查過程中發生錯誤:', error);
+        console.error('❌ 检查过程中发生错误:', error);
     }
 }
 
-// 執行
+// 执行
 checkBetTypes()
     .then(() => {
-        console.log('\n檢查完成');
+        console.log('\n检查完成');
         process.exit(0);
     })
     .catch(error => {
-        console.error('執行失敗:', error);
+        console.error('执行失败:', error);
         process.exit(1);
     });

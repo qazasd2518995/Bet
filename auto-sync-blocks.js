@@ -1,4 +1,4 @@
-// auto-sync-blocks.js - 自動同步區塊資料的背景服務
+// auto-sync-blocks.js - 自动同步区块资料的背景服务
 import db from './db/config.js';
 import { generateBlockchainData } from './utils/blockchain.js';
 
@@ -6,7 +6,7 @@ const SYNC_INTERVAL = 10000; // 每10秒同步一次
 
 async function syncBlockData() {
   try {
-    // 查詢沒有區塊高度的記錄
+    // 查询没有区块高度的记录
     const missingBlockRecords = await db.any(`
       SELECT period, result 
       FROM draw_records 
@@ -15,7 +15,7 @@ async function syncBlockData() {
     `);
     
     if (missingBlockRecords.length > 0) {
-      console.log(`[${new Date().toLocaleTimeString()}] 發現 ${missingBlockRecords.length} 筆需要同步的記錄`);
+      console.log(`[${new Date().toLocaleTimeString()}] 发现 ${missingBlockRecords.length} 笔需要同步的记录`);
       
       for (const record of missingBlockRecords) {
         const blockData = generateBlockchainData(record.period, record.result);
@@ -27,18 +27,18 @@ async function syncBlockData() {
           WHERE period = $3
         `, [blockData.blockHeight, blockData.blockHash, record.period]);
         
-        // 同時更新 result_history
+        // 同时更新 result_history
         await db.none(`
           UPDATE result_history 
           SET block_height = $1, block_hash = $2
           WHERE period = $3
         `, [blockData.blockHeight, blockData.blockHash, record.period]);
         
-        console.log(`✅ 同步期號 ${record.period} 區塊高度: ${blockData.blockHeight}`);
+        console.log(`✅ 同步期号 ${record.period} 区块高度: ${blockData.blockHeight}`);
       }
     }
     
-    // 更新當前遊戲狀態的區塊資料
+    // 更新当前游戏状态的区块资料
     const gameState = await db.oneOrNone(`
       SELECT current_period, last_result 
       FROM game_state 
@@ -55,33 +55,33 @@ async function syncBlockData() {
         WHERE id = 1
       `, [blockData.blockHeight, blockData.blockHash]);
       
-      console.log(`✅ 更新 game_state 區塊高度: ${blockData.blockHeight}`);
+      console.log(`✅ 更新 game_state 区块高度: ${blockData.blockHeight}`);
     }
     
   } catch (error) {
-    console.error('❌ 同步區塊資料失敗:', error);
+    console.error('❌ 同步区块资料失败:', error);
   }
 }
 
-// 主循環
+// 主循环
 async function startAutoSync() {
-  console.log('🚀 區塊資料自動同步服務已啟動');
-  console.log(`⏰ 同步間隔: ${SYNC_INTERVAL / 1000} 秒`);
+  console.log('🚀 区块资料自动同步服务已启动');
+  console.log(`⏰ 同步间隔: ${SYNC_INTERVAL / 1000} 秒`);
   
-  // 立即執行一次
+  // 立即执行一次
   await syncBlockData();
   
-  // 設定定時器
+  // 设定定时器
   setInterval(async () => {
     await syncBlockData();
   }, SYNC_INTERVAL);
 }
 
-// 啟動服務
+// 启动服务
 startAutoSync().catch(console.error);
 
-// 優雅關閉
+// 优雅关闭
 process.on('SIGINT', () => {
-  console.log('\n🛑 區塊資料自動同步服務已停止');
+  console.log('\n🛑 区块资料自动同步服务已停止');
   process.exit(0);
 });

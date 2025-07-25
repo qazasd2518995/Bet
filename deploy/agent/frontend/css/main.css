@@ -1,11 +1,11 @@
-/* 代理管理系統主要樣式 */
+/* 代理管理系统主要样式 */
 
-/* 登入頁面樣式 */
+/* 登入页面样式 */
 .login-container {
     margin-top: 100px;
 }
 
-/* 導航欄調整 */
+/* 导航栏调整 */
 .navbar .nav-link {
     padding: 0.5rem 1rem;
     transition: all 0.3s;
@@ -16,7 +16,7 @@
     border-radius: 4px;
 }
 
-/* 儀表板卡片效果 */
+/* 仪表板卡片效果 */
 .card {
     transition: transform 0.3s, box-shadow 0.3s;
 }
@@ -26,7 +26,7 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* 表格樣式優化 */
+/* 表格样式优化 */
 .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -39,18 +39,18 @@
     z-index: 1;
 }
 
-/* 按鈕組樣式 */
+/* 按钮组样式 */
 .btn-group .btn {
     margin: 0 2px;
 }
 
-/* 代理狀態標籤 */
+/* 代理状态标签 */
 .badge {
     padding: 6px 10px;
     border-radius: 15px;
 }
 
-/* 模態框樣式 */
+/* 模态框样式 */
 .modal-content {
     border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -64,12 +64,12 @@
     border-top: 1px solid #eee;
 }
 
-/* 分頁器樣式 */
+/* 分页器样式 */
 .pagination {
     margin-top: 20px;
 }
 
-/* 響應式調整 */
+/* 响应式调整 */
 @media (max-width: 768px) {
     .card {
         margin-bottom: 15px;
@@ -80,7 +80,7 @@
     }
 }
 
-/* 自訂滾動條 */
+/* 自订滚动条 */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -99,7 +99,7 @@
     background: #555;
 }
 
-/* 表單驗證視覺提示 */
+/* 表单验证视觉提示 */
 .form-control:focus {
     border-color: #80bdff;
     box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
@@ -115,7 +115,7 @@
     background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
 }
 
-/* 添加開獎球樣式 */
+/* 添加开奖球样式 */
 .draw-ball {
     display: inline-flex;
     justify-content: center;
@@ -128,7 +128,7 @@
     margin: 0 2px;
 }
 
-/* 開獎號碼顯示樣式 - 與遊戲端一致 */
+/* 开奖号码显示样式 - 与游戏端一致 */
 .draw-number-badge {
     display: inline-flex;
     justify-content: center;
@@ -144,7 +144,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* 新增開獎號碼球樣式 */
+/* 新增开奖号码球样式 */
 .number-ball {
     display: inline-flex;
     justify-content: center;
@@ -168,21 +168,21 @@
     border-color: #0d6efd;
 }
 
-/* 修改顏色與遊戲端實際顯示一致 */
-/* 與游戏前端一致的顏色 */
-.color-1 { background-color: #ffcc00; color: #000; } /* 金黃色 */
-.color-2 { background-color: #3399ff; color: #fff; } /* 鮮藍色 */
+/* 修改颜色与游戏端实际显示一致 */
+/* 与游戏前端一致的颜色 */
+.color-1 { background-color: #ffcc00; color: #000; } /* 金黄色 */
+.color-2 { background-color: #3399ff; color: #fff; } /* 鲜蓝色 */
 .color-3 { background-color: #777777; color: #fff; } /* 深灰色 */
 .color-4 { background-color: #ff9933; color: #fff; } /* 橙色 */
-.color-5 { background-color: #00ccff; color: #fff; } /* 天藍色 */
+.color-5 { background-color: #00ccff; color: #fff; } /* 天蓝色 */
 .color-6 { background-color: #9966cc; color: #fff; } /* 紫色 */
 .color-7 { background-color: #aaaaaa; color: #fff; } /* 灰色 */
-.color-8 { background-color: #ff3333; color: #fff; } /* 紅色 */
-.color-9 { background-color: #990000; color: #fff; } /* 深紅色 */
-.color-10 { background-color: #33cc33; color: #fff; } /* 綠色 */
-.color-0 { background-color: #33cc33; color: #fff; } /* 綠色 (0與10同色) */
+.color-8 { background-color: #ff3333; color: #fff; } /* 红色 */
+.color-9 { background-color: #990000; color: #fff; } /* 深红色 */
+.color-10 { background-color: #33cc33; color: #fff; } /* 绿色 */
+.color-0 { background-color: #33cc33; color: #fff; } /* 绿色 (0与10同色) */
 
-/* 投注類型標籤 */
+/* 投注类型标签 */
 .bet-type-badge {
     display: inline-block;
     padding: 0.25em 0.6em;
@@ -194,13 +194,13 @@
     vertical-align: baseline;
 }
 
-.bet-number { background-color: #17a2b8; color: white; } /* 號碼投注 */
+.bet-number { background-color: #17a2b8; color: white; } /* 号码投注 */
 .bet-bs { background-color: #6c757d; color: white; }     /* 大小投注 */
-.bet-oe { background-color: #fd7e14; color: white; }     /* 單雙投注 */
-.bet-dt { background-color: #20c997; color: white; }     /* 龍虎投注 */
-.bet-sum { background-color: #6f42c1; color: white; }    /* 冠亞和投注 */
+.bet-oe { background-color: #fd7e14; color: white; }     /* 单双投注 */
+.bet-dt { background-color: #20c997; color: white; }     /* 龙虎投注 */
+.bet-sum { background-color: #6f42c1; color: white; }    /* 冠亚和投注 */
 
-/* 統計表格強調 */
+/* 统计表格强调 */
 .stats-card {
     transition: all 0.3s;
 }
@@ -210,12 +210,12 @@
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
-/* 投注記錄表格行樣式 */
+/* 投注记录表格行样式 */
 .bet-row-win {
     background-color: rgba(40, 167, 69, 0.1) !important;
 }
 
-/* 系統公告樣式 */
+/* 系统公告样式 */
 .notice-item {
     transition: all 0.3s ease;
     background-color: #fff;
@@ -242,7 +242,7 @@
     color: #666;
 }
 
-/* 公告分類按鈕樣式 */
+/* 公告分类按钮样式 */
 .btn-check:checked + .btn-outline-primary {
     background-color: #0d6efd;
     border-color: #0d6efd;
@@ -263,7 +263,7 @@
     border-color: #198754;
 }
 
-/* 公告內容區域 */
+/* 公告内容区域 */
 .notice-content {
     border-left: 4px solid transparent;
     padding-left: 1rem;
@@ -273,11 +273,11 @@
     border-left-color: #0dcaf0;
 }
 
-.notice-content.category-維修 {
+.notice-content.category-维修 {
     border-left-color: #ffc107;
 }
 
-.notice-content.category-活動 {
+.notice-content.category-活动 {
     border-left-color: #198754;
 }
 
@@ -285,7 +285,7 @@
     background-color: rgba(220, 53, 69, 0.1) !important;
 }
 
-/* 移動適配 */
+/* 移动适配 */
 @media (max-width: 768px) {
     .draw-ball, .number-ball {
         width: 25px;
@@ -299,7 +299,7 @@
     }
 }
 
-/* 個人資料模態框樣式 */
+/* 个人资料模态框样式 */
 .profile-modal .modal-content {
     border-radius: 15px;
     border: none;
@@ -348,7 +348,7 @@
     font-weight: 500;
 }
 
-/* 個人資料統計卡片動畫 */
+/* 个人资料统计卡片动画 */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -369,7 +369,7 @@
 .profile-modal .card:nth-child(3) { animation-delay: 0.3s; }
 .profile-modal .card:nth-child(4) { animation-delay: 0.4s; }
 
-/* 盤口選擇器禁用選項樣式 */
+/* 盘口选择器禁用选项样式 */
 select option:disabled {
     color: #999 !important;
     background-color: #f8f9fa !important;
@@ -381,21 +381,21 @@ select option:disabled::before {
     content: "🚫 ";
 }
 
-/* 盤口選擇器整體禁用樣式 */
+/* 盘口选择器整体禁用样式 */
 select:disabled {
     background-color: #e9ecef !important;
     opacity: 0.65 !important;
     cursor: not-allowed !important;
 }
 
-/* 專門針對創建代理模態框的盤口選擇器 */
+/* 专门针对创建代理模态框的盘口选择器 */
 #createAgentModal select[v-model="newAgent.market_type"]:disabled {
     background-color: #f8f9fa;
     border-color: #dee2e6;
     color: #6c757d;
 }
 
-/* 確保限紅Modal顯示在最上層 */
+/* 确保限红Modal显示在最上层 */
 #adjustBettingLimitModal {
     z-index: 2000 !important;
 }

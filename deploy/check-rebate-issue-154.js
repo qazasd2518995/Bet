@@ -2,10 +2,10 @@ import db from './db/config.js';
 
 async function checkRebateIssue154() {
     try {
-        console.log('=== 檢查期號 20250716154 的退水問題 ===\n');
+        console.log('=== 检查期号 20250716154 的退水问题 ===\n');
         
-        // 1. 檢查該期的所有投注
-        console.log('1. 檢查期號 20250716154 的所有投注...');
+        // 1. 检查该期的所有投注
+        console.log('1. 检查期号 20250716154 的所有投注...');
         const allBets = await db.any(`
             SELECT 
                 bh.id,
@@ -27,27 +27,27 @@ async function checkRebateIssue154() {
             ORDER BY bh.created_at
         `);
         
-        console.log(`找到 ${allBets.length} 筆投注：`);
+        console.log(`找到 ${allBets.length} 笔投注：`);
         allBets.forEach(bet => {
-            console.log(`ID: ${bet.id}, 用戶: ${bet.username}, 金額: ${bet.amount}, 已結算: ${bet.settled}, 代理: ${bet.agent_username}`);
+            console.log(`ID: ${bet.id}, 用户: ${bet.username}, 金额: ${bet.amount}, 已结算: ${bet.settled}, 代理: ${bet.agent_username}`);
         });
         
-        // 2. 檢查該期的開獎結果
-        console.log('\n2. 檢查開獎結果...');
+        // 2. 检查该期的开奖结果
+        console.log('\n2. 检查开奖结果...');
         const drawResult = await db.oneOrNone(`
             SELECT * FROM result_history 
             WHERE period = '20250716154'
         `);
         
         if (drawResult) {
-            console.log(`開獎結果: ${drawResult.result}`);
-            console.log(`開獎時間: ${drawResult.created_at}`);
+            console.log(`开奖结果: ${drawResult.result}`);
+            console.log(`开奖时间: ${drawResult.created_at}`);
         } else {
-            console.log('⚠️ 沒有找到開獎結果');
+            console.log('⚠️ 没有找到开奖结果');
         }
         
-        // 3. 檢查交易記錄
-        console.log('\n3. 檢查交易記錄...');
+        // 3. 检查交易记录
+        console.log('\n3. 检查交易记录...');
         const transactions = await db.any(`
             SELECT 
                 tr.id,
@@ -69,16 +69,16 @@ async function checkRebateIssue154() {
         `);
         
         if (transactions.length > 0) {
-            console.log(`找到 ${transactions.length} 筆交易記錄：`);
+            console.log(`找到 ${transactions.length} 笔交易记录：`);
             transactions.forEach(tx => {
-                console.log(`用戶: ${tx.username}, 類型: ${tx.transaction_type}, 金額: ${tx.amount}, 時間: ${tx.created_at}`);
+                console.log(`用户: ${tx.username}, 类型: ${tx.transaction_type}, 金额: ${tx.amount}, 时间: ${tx.created_at}`);
             });
         } else {
-            console.log('⚠️ 沒有找到任何交易記錄！');
+            console.log('⚠️ 没有找到任何交易记录！');
         }
         
-        // 4. 檢查是否有結算相關的記錄
-        console.log('\n4. 檢查結算記錄...');
+        // 4. 检查是否有结算相关的记录
+        console.log('\n4. 检查结算记录...');
         const settlementRecords = await db.any(`
             SELECT * FROM settlement_logs 
             WHERE period = '20250716154'
@@ -86,21 +86,21 @@ async function checkRebateIssue154() {
         `);
         
         if (settlementRecords.length > 0) {
-            console.log(`找到 ${settlementRecords.length} 筆結算記錄：`);
+            console.log(`找到 ${settlementRecords.length} 笔结算记录：`);
             settlementRecords.forEach(log => {
-                console.log(`狀態: ${log.status}, 訊息: ${log.message}, 時間: ${log.created_at}`);
+                console.log(`状态: ${log.status}, 讯息: ${log.message}, 时间: ${log.created_at}`);
             });
         } else {
-            console.log('⚠️ 沒有找到結算記錄');
+            console.log('⚠️ 没有找到结算记录');
         }
         
-        // 5. 手動檢查退水計算
-        console.log('\n5. 手動計算退水...');
+        // 5. 手动检查退水计算
+        console.log('\n5. 手动计算退水...');
         if (allBets.length > 0) {
             for (const bet of allBets.filter(b => b.settled)) {
                 console.log(`\n投注 ${bet.id} (${bet.username}):`);
                 
-                // 獲取代理鏈
+                // 获取代理链
                 const agentChain = await db.any(`
                     WITH RECURSIVE agent_chain AS (
                         SELECT id, username, parent_id, rebate_percentage, 0 as level
@@ -117,7 +117,7 @@ async function checkRebateIssue154() {
                     SELECT * FROM agent_chain ORDER BY level
                 `, [bet.agent_id]);
                 
-                console.log('代理鏈:');
+                console.log('代理链:');
                 let previousRebate = 0;
                 for (const agent of agentChain) {
                     const rebateDiff = (agent.rebate_percentage || 0) - previousRebate;
@@ -130,8 +130,8 @@ async function checkRebateIssue154() {
             }
         }
         
-        // 6. 檢查最近期數的退水處理情況作為對比
-        console.log('\n6. 檢查最近期數的退水處理情況作為對比...');
+        // 6. 检查最近期数的退水处理情况作为对比
+        console.log('\n6. 检查最近期数的退水处理情况作为对比...');
         const recentPeriodsWithRebates = await db.any(`
             SELECT 
                 tr.period,
@@ -146,13 +146,13 @@ async function checkRebateIssue154() {
             LIMIT 5
         `);
         
-        console.log('最近期數的退水情況：');
+        console.log('最近期数的退水情况：');
         recentPeriodsWithRebates.forEach(r => {
-            console.log(`期號: ${r.period}, 退水筆數: ${r.rebate_count}, 總退水: ${r.total_rebate}`);
+            console.log(`期号: ${r.period}, 退水笔数: ${r.rebate_count}, 总退水: ${r.total_rebate}`);
         });
         
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

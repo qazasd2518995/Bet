@@ -1,15 +1,15 @@
-// compare-712-generation-vs-storage.js - 比較期號 712 生成與儲存的差異
+// compare-712-generation-vs-storage.js - 比较期号 712 生成与储存的差异
 import db from './db/config.js';
 
 async function comparePeriod712() {
     try {
-        console.log('比較期號 712 生成與儲存的差異...\n');
+        console.log('比较期号 712 生成与储存的差异...\n');
         
-        // 從日誌中看到的生成結果
+        // 从日志中看到的生成结果
         const logGeneratedResult = [10, 5, 4, 7, 9, 2, 1, 3, 6, 8];
-        console.log('日誌顯示的生成結果:', logGeneratedResult);
+        console.log('日志显示的生成结果:', logGeneratedResult);
         
-        // 查詢資料庫中的儲存結果
+        // 查询资料库中的储存结果
         const dbResult = await db.oneOrNone(`
             SELECT period, 
                    position_1, position_2, position_3, position_4, position_5,
@@ -24,11 +24,11 @@ async function comparePeriod712() {
             for (let i = 1; i <= 10; i++) {
                 storedPositions.push(dbResult[`position_${i}`]);
             }
-            console.log('資料庫儲存的結果:', storedPositions);
+            console.log('资料库储存的结果:', storedPositions);
             
-            // 比較差異
-            console.log('\n比較差異：');
-            console.log('位置 | 生成的 | 儲存的');
+            // 比较差异
+            console.log('\n比较差异：');
+            console.log('位置 | 生成的 | 储存的');
             console.log('-----|-------|-------');
             for (let i = 0; i < 10; i++) {
                 const position = i + 1;
@@ -40,15 +40,15 @@ async function comparePeriod712() {
             
             // 分析可能的原因
             console.log('\n\n分析：');
-            console.log('1. 生成的結果和儲存的結果完全不同');
-            console.log('2. 這不是簡單的順序錯誤或映射問題');
+            console.log('1. 生成的结果和储存的结果完全不同');
+            console.log('2. 这不是简单的顺序错误或映射问题');
             console.log('3. 可能的原因：');
-            console.log('   - 在儲存前結果被其他邏輯修改了');
-            console.log('   - 有並發問題，儲存了錯誤期號的結果');
-            console.log('   - 日誌和實際執行的程式碼不一致');
+            console.log('   - 在储存前结果被其他逻辑修改了');
+            console.log('   - 有并发问题，储存了错误期号的结果');
+            console.log('   - 日志和实际执行的程式码不一致');
             
-            // 檢查其他期號是否也有類似問題
-            console.log('\n\n檢查其他最近的期號...');
+            // 检查其他期号是否也有类似问题
+            console.log('\n\n检查其他最近的期号...');
             const recentPeriods = await db.manyOrNone(`
                 SELECT period, 
                        position_1, position_2, position_3, position_4, position_5,
@@ -63,15 +63,15 @@ async function comparePeriod712() {
                 for (let i = 1; i <= 10; i++) {
                     positions.push(record[`position_${i}`]);
                 }
-                console.log(`期號 ${record.period}: [${positions.join(', ')}]`);
+                console.log(`期号 ${record.period}: [${positions.join(', ')}]`);
             }
             
         } else {
-            console.log('找不到期號 712 的資料');
+            console.log('找不到期号 712 的资料');
         }
         
     } catch (error) {
-        console.error('比較錯誤:', error);
+        console.error('比较错误:', error);
     } finally {
         process.exit();
     }

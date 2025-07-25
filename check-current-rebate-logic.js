@@ -1,4 +1,4 @@
-// 檢查當前退水邏輯是否符合要求
+// 检查当前退水逻辑是否符合要求
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -11,11 +11,11 @@ const pool = new Pool({
 });
 
 async function checkRebateLogic() {
-  console.log('🔍 檢查退水邏輯是否符合要求...\n');
+  console.log('🔍 检查退水逻辑是否符合要求...\n');
   
   try {
-    // 1. 檢查總代理的基本退水設置
-    console.log('=== 1. 檢查總代理基本退水設置 ===');
+    // 1. 检查总代理的基本退水设置
+    console.log('=== 1. 检查总代理基本退水设置 ===');
     const totalAgents = await pool.query(`
       SELECT 
         username, 
@@ -27,21 +27,21 @@ async function checkRebateLogic() {
       ORDER BY market_type
     `);
     
-    console.log('總代理設置:');
+    console.log('总代理设置:');
     totalAgents.rows.forEach(agent => {
       const expectedRebate = agent.market_type === 'A' ? 0.011 : 0.041;
       const actualRebate = parseFloat(agent.rebate_percentage);
       const isCorrect = Math.abs(actualRebate - expectedRebate) < 0.001;
       
-      console.log(`  ${agent.username} (${agent.market_type}盤): ${(actualRebate*100).toFixed(1)}% ${isCorrect ? '✅' : '❌'}`);
-      console.log(`    預期: ${(expectedRebate*100).toFixed(1)}%`);
+      console.log(`  ${agent.username} (${agent.market_type}盘): ${(actualRebate*100).toFixed(1)}% ${isCorrect ? '✅' : '❌'}`);
+      console.log(`    预期: ${(expectedRebate*100).toFixed(1)}%`);
     });
     
-    // 2. 檢查代理鏈結構和退水分配邏輯
-    console.log('\n=== 2. 檢查代理鏈結構 ===');
+    // 2. 检查代理链结构和退水分配逻辑
+    console.log('\n=== 2. 检查代理链结构 ===');
     const agentChains = await pool.query(`
       WITH RECURSIVE agent_hierarchy AS (
-        -- 起始：找所有會員
+        -- 起始：找所有会员
         SELECT 
           m.username as member_username,
           m.parent_agent_id,
@@ -57,7 +57,7 @@ async function checkRebateLogic() {
         
         UNION ALL
         
-        -- 遞迴：向上找上級代理
+        -- 递回：向上找上级代理
         SELECT 
           ah.member_username,
           ah.parent_agent_id,
@@ -83,19 +83,19 @@ async function checkRebateLogic() {
       memberChains[row.member_username].push(row);
     });
     
-    console.log('會員的代理鏈:');
+    console.log('会员的代理链:');
     Object.entries(memberChains).forEach(([member, chain]) => {
-      console.log(`\n  會員: ${member}`);
+      console.log(`\n  会员: ${member}`);
       chain.forEach((agent, index) => {
-        console.log(`    ${index === 0 ? '直屬' : `L${index}`}: ${agent.agent_username} (L${agent.level}, ${(parseFloat(agent.rebate_percentage)*100).toFixed(1)}%, ${agent.market_type}盤)`);
+        console.log(`    ${index === 0 ? '直属' : `L${index}`}: ${agent.agent_username} (L${agent.level}, ${(parseFloat(agent.rebate_percentage)*100).toFixed(1)}%, ${agent.market_type}盘)`);
       });
     });
     
-    // 3. 模擬退水分配邏輯
-    console.log('\n=== 3. 模擬退水分配邏輯 ===');
+    // 3. 模拟退水分配逻辑
+    console.log('\n=== 3. 模拟退水分配逻辑 ===');
     
     for (const [memberUsername, chain] of Object.entries(memberChains)) {
-      console.log(`\n會員 ${memberUsername} 下注 1000元的退水分配:`);
+      console.log(`\n会员 ${memberUsername} 下注 1000元的退水分配:`);
       
       const betAmount = 1000;
       const marketType = chain[0].market_type;
@@ -104,28 +104,28 @@ async function checkRebateLogic() {
       let remainingRebate = totalRebatePool;
       let distributedPercentage = 0;
       
-      console.log(`  總退水池: ${totalRebatePool.toFixed(2)}元 (${marketType}盤 ${(maxRebatePercentage*100).toFixed(1)}%)`);
+      console.log(`  总退水池: ${totalRebatePool.toFixed(2)}元 (${marketType}盘 ${(maxRebatePercentage*100).toFixed(1)}%)`);
       
-      // 從下往上分配（從直屬代理開始）
+      // 从下往上分配（从直属代理开始）
       for (let i = 0; i < chain.length; i++) {
         const agent = chain[i];
         const rebatePercentage = parseFloat(agent.rebate_percentage);
         
         if (remainingRebate <= 0.01) {
-          console.log(`    ${agent.agent_username}: 退水池已空，獲得 0元`);
+          console.log(`    ${agent.agent_username}: 退水池已空，获得 0元`);
           continue;
         }
         
         if (rebatePercentage <= 0) {
-          console.log(`    ${agent.agent_username}: 退水比例0%，獲得 0元，全部上交`);
+          console.log(`    ${agent.agent_username}: 退水比例0%，获得 0元，全部上交`);
           continue;
         }
         
-        // 計算實際能拿的退水比例
+        // 计算实际能拿的退水比例
         const actualRebatePercentage = Math.max(0, rebatePercentage - distributedPercentage);
         
         if (actualRebatePercentage <= 0) {
-          console.log(`    ${agent.agent_username}: 比例${(rebatePercentage*100).toFixed(1)}%已被下級分完，獲得 0元`);
+          console.log(`    ${agent.agent_username}: 比例${(rebatePercentage*100).toFixed(1)}%已被下级分完，获得 0元`);
           continue;
         }
         
@@ -133,11 +133,11 @@ async function checkRebateLogic() {
         remainingRebate -= agentRebateAmount;
         distributedPercentage += actualRebatePercentage;
         
-        console.log(`    ${agent.agent_username}: 獲得 ${agentRebateAmount.toFixed(2)}元 (實際${(actualRebatePercentage*100).toFixed(1)}%)`);
+        console.log(`    ${agent.agent_username}: 获得 ${agentRebateAmount.toFixed(2)}元 (实际${(actualRebatePercentage*100).toFixed(1)}%)`);
         
-        // 如果拿了全部退水，結束分配
+        // 如果拿了全部退水，结束分配
         if (rebatePercentage >= maxRebatePercentage) {
-          console.log(`      └─ 全拿模式，結束分配`);
+          console.log(`      └─ 全拿模式，结束分配`);
           remainingRebate = 0;
           break;
         }
@@ -148,8 +148,8 @@ async function checkRebateLogic() {
       }
     }
     
-    // 4. 檢查最近的實際退水記錄
-    console.log('\n=== 4. 檢查最近的實際退水記錄 ===');
+    // 4. 检查最近的实际退水记录
+    console.log('\n=== 4. 检查最近的实际退水记录 ===');
     const recentRebates = await pool.query(`
       SELECT 
         agent_username,
@@ -165,32 +165,32 @@ async function checkRebateLogic() {
     `);
     
     if (recentRebates.rows.length > 0) {
-      console.log('最近10筆退水記錄:');
+      console.log('最近10笔退水记录:');
       recentRebates.rows.forEach((record, index) => {
         const rebateRate = (parseFloat(record.rebate_amount) / parseFloat(record.bet_amount) * 100).toFixed(2);
-        console.log(`  ${index + 1}. ${record.agent_username} 獲得 ${record.rebate_amount}元 (${record.member_username}下注${record.bet_amount}元, ${rebateRate}%)`);
-        console.log(`     時間: ${new Date(record.created_at).toLocaleString()}`);
+        console.log(`  ${index + 1}. ${record.agent_username} 获得 ${record.rebate_amount}元 (${record.member_username}下注${record.bet_amount}元, ${rebateRate}%)`);
+        console.log(`     时间: ${new Date(record.created_at).toLocaleString()}`);
       });
     } else {
-      console.log('❌ 沒有找到退水記錄');
+      console.log('❌ 没有找到退水记录');
     }
     
-    // 5. 總結和建議
-    console.log('\n=== 5. 退水邏輯檢查總結 ===');
-    console.log('✅ 當前退水邏輯符合以下要求:');
-    console.log('1. A盤總代理自帶1.1%退水，D盤總代理自帶4.1%退水');
-    console.log('2. 當總代理設定下級代理時，退水會按層級分配');
-    console.log('3. 只有結算後才會分配退水');
-    console.log('4. 會員不會獲得退水，只有代理會獲得');
-    console.log('5. 退水基於下注金額計算，不論輸贏');
+    // 5. 总结和建议
+    console.log('\n=== 5. 退水逻辑检查总结 ===');
+    console.log('✅ 当前退水逻辑符合以下要求:');
+    console.log('1. A盘总代理自带1.1%退水，D盘总代理自带4.1%退水');
+    console.log('2. 当总代理设定下级代理时，退水会按层级分配');
+    console.log('3. 只有结算后才会分配退水');
+    console.log('4. 会员不会获得退水，只有代理会获得');
+    console.log('5. 退水基于下注金额计算，不论输赢');
     
-    console.log('\n❗ 需要注意的情況:');
-    console.log('- 如果總代理設定一級代理為1.1%，代表全部下放退水');
-    console.log('- 一級代理設定二級代理0.5%時，二級獲得0.5%，一級獲得0.6%');
-    console.log('- 這個邏輯是通過 actualRebatePercentage = rebatePercentage - distributedPercentage 實現的');
+    console.log('\n❗ 需要注意的情况:');
+    console.log('- 如果总代理设定一级代理为1.1%，代表全部下放退水');
+    console.log('- 一级代理设定二级代理0.5%时，二级获得0.5%，一级获得0.6%');
+    console.log('- 这个逻辑是通过 actualRebatePercentage = rebatePercentage - distributedPercentage 实现的');
     
   } catch (error) {
-    console.error('檢查退水邏輯時發生錯誤:', error);
+    console.error('检查退水逻辑时发生错误:', error);
   } finally {
     await pool.end();
   }

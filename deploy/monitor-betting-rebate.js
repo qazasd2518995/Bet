@@ -2,14 +2,14 @@ import db from './db/config.js';
 
 async function monitorBettingAndRebate() {
     try {
-        console.log('=== 開始監控下注和退水機制 ===\n');
-        console.log('請使用 justin111 / aaaa00 進行下注測試\n');
-        console.log('監控中... (按 Ctrl+C 結束)\n');
+        console.log('=== 开始监控下注和退水机制 ===\n');
+        console.log('请使用 justin111 / aaaa00 进行下注测试\n');
+        console.log('监控中... (按 Ctrl+C 结束)\n');
         
         let lastBetId = 0;
         let lastRebateId = 0;
         
-        // 獲取最新的ID
+        // 获取最新的ID
         const latestBet = await db.oneOrNone(`
             SELECT MAX(id) as max_id FROM bet_history
         `);
@@ -25,10 +25,10 @@ async function monitorBettingAndRebate() {
             lastRebateId = latestRebate.max_id;
         }
         
-        // 每3秒檢查一次
+        // 每3秒检查一次
         setInterval(async () => {
             try {
-                // 檢查新的下注
+                // 检查新的下注
                 const newBets = await db.any(`
                     SELECT * FROM bet_history
                     WHERE id > $1
@@ -36,14 +36,14 @@ async function monitorBettingAndRebate() {
                 `, [lastBetId]);
                 
                 if (newBets.length > 0) {
-                    console.log(`\n🎲 發現 ${newBets.length} 筆新下注：`);
+                    console.log(`\n🎲 发现 ${newBets.length} 笔新下注：`);
                     newBets.forEach(bet => {
-                        console.log(`  - [${new Date(bet.created_at).toLocaleTimeString()}] ${bet.username} 下注 ${bet.amount}元 於 ${bet.bet_type}/${bet.bet_value} (期號: ${bet.period})`);
+                        console.log(`  - [${new Date(bet.created_at).toLocaleTimeString()}] ${bet.username} 下注 ${bet.amount}元 于 ${bet.bet_type}/${bet.bet_value} (期号: ${bet.period})`);
                         lastBetId = bet.id;
                     });
                 }
                 
-                // 檢查新的退水
+                // 检查新的退水
                 const newRebates = await db.any(`
                     SELECT 
                         tr.*,
@@ -56,14 +56,14 @@ async function monitorBettingAndRebate() {
                 `, [lastRebateId]);
                 
                 if (newRebates.length > 0) {
-                    console.log(`\n💰 發現 ${newRebates.length} 筆新退水：`);
+                    console.log(`\n💰 发现 ${newRebates.length} 笔新退水：`);
                     newRebates.forEach(rebate => {
-                        console.log(`  - [${new Date(rebate.created_at).toLocaleTimeString()}] ${rebate.agent_name} 獲得 ${rebate.amount}元 退水 (期號: ${rebate.period}, 會員: ${rebate.member_username})`);
+                        console.log(`  - [${new Date(rebate.created_at).toLocaleTimeString()}] ${rebate.agent_name} 获得 ${rebate.amount}元 退水 (期号: ${rebate.period}, 会员: ${rebate.member_username})`);
                         lastRebateId = rebate.id;
                     });
                 }
                 
-                // 檢查最新的結算狀態
+                // 检查最新的结算状态
                 const recentSettled = await db.any(`
                     SELECT 
                         period,
@@ -78,19 +78,19 @@ async function monitorBettingAndRebate() {
                 `);
                 
                 if (recentSettled.length > 0) {
-                    console.log(`\n📊 最近1分鐘結算的期號：`);
+                    console.log(`\n📊 最近1分钟结算的期号：`);
                     recentSettled.forEach(s => {
-                        console.log(`  - 期號 ${s.period}: ${s.count}筆, 總金額 ${s.total_amount}元`);
+                        console.log(`  - 期号 ${s.period}: ${s.count}笔, 总金额 ${s.total_amount}元`);
                     });
                 }
                 
             } catch (error) {
-                console.error('監控錯誤:', error);
+                console.error('监控错误:', error);
             }
         }, 3000);
         
-        // 顯示初始狀態
-        console.log('📊 初始狀態：');
+        // 显示初始状态
+        console.log('📊 初始状态：');
         const agentBalances = await db.any(`
             SELECT username, balance
             FROM agents
@@ -102,18 +102,18 @@ async function monitorBettingAndRebate() {
             console.log(`  - ${a.username}: ${a.balance}元`);
         });
         
-        // 保持程序運行
+        // 保持程序运行
         process.stdin.resume();
         
     } catch (error) {
-        console.error('啟動監控錯誤:', error);
+        console.error('启动监控错误:', error);
         process.exit(1);
     }
 }
 
-// 優雅退出
+// 优雅退出
 process.on('SIGINT', () => {
-    console.log('\n\n監控結束');
+    console.log('\n\n监控结束');
     process.exit(0);
 });
 

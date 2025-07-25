@@ -1,89 +1,89 @@
-# 結算邏輯驗證報告
+# 结算逻辑验证报告
 
-## ✅ 系統邏輯正確確認
+## ✅ 系统逻辑正确确认
 
-### 流程圖
+### 流程图
 
 ```
-【開獎流程】
+【开奖流程】
 
-1. 控制系統檢查
+1. 控制系统检查
    ↓
    checkActiveControl()
-   - 讀取輸贏控制設定
-   - 例：justin111 設定 100% 輸率
+   - 读取输赢控制设定
+   - 例：justin111 设定 100% 输率
    
 2. 分析下注
    ↓
    analyzePeriodBets()
-   - 統計當期所有投注
-   - 分析目標用戶的下注
+   - 统计当期所有投注
+   - 分析目标用户的下注
    
-3. 生成開獎結果
+3. 生成开奖结果
    ↓
    generateFinalResult()
-   - 根據控制機率決定輸贏
-   - 例：100% 輸率 → 生成避開用戶下注號碼的結果
+   - 根据控制机率决定输赢
+   - 例：100% 输率 → 生成避开用户下注号码的结果
    
-4. 保存開獎結果
+4. 保存开奖结果
    ↓
    saveDrawResult()
-   - 將結果存入 result_history 表
+   - 将结果存入 result_history 表
    - 例：[1,6,3,10,5,4,8,7,9,2]
 
-【結算流程】
+【结算流程】
 
-5. 執行結算
+5. 执行结算
    ↓
    enhancedSettlement(period, { positions: [1,6,3,10,5,4,8,7,9,2] })
-   - 接收實際開獎結果
+   - 接收实际开奖结果
    
-6. 檢查中獎
+6. 检查中奖
    ↓
    checkBetWinEnhanced()
-   - 比對投注與開獎結果
-   - 例：第10名投注10，開獎2 → 未中獎
+   - 比对投注与开奖结果
+   - 例：第10名投注10，开奖2 → 未中奖
    
-7. 更新餘額
+7. 更新余额
    ↓
-   - 中獎：發放獎金
-   - 未中獎：扣除投注金額
+   - 中奖：发放奖金
+   - 未中奖：扣除投注金额
 ```
 
-### 實際案例分析
+### 实际案例分析
 
-#### 期號 20250717422
+#### 期号 20250717422
 
-**控制設定**
-- 目標用戶：justin111
-- 控制機率：100% 輸率
+**控制设定**
+- 目标用户：justin111
+- 控制机率：100% 输率
 
-**投注內容**
+**投注内容**
 - 位置：第10名
-- 號碼：10
+- 号码：10
 
-**開獎結果生成**
+**开奖结果生成**
 ```javascript
 // fixed-draw-system.js - generateLosingResultFixed()
-// 因為設定 100% 輸率，系統會：
-1. 發現用戶在第10名投注號碼10
-2. 生成結果時避開號碼10
-3. 最終第10名開出號碼2
+// 因为设定 100% 输率，系统会：
+1. 发现用户在第10名投注号码10
+2. 生成结果时避开号码10
+3. 最终第10名开出号码2
 ```
 
-**結算判定**
+**结算判定**
 ```javascript
 // enhanced-settlement-system.js - checkBetWinEnhanced()
 const position = 10;
 const betNumber = 10;
 const winningNumber = positions[9]; // = 2
 const isWin = (10 === 2); // false
-// 結果：未中獎 ✓
+// 结果：未中奖 ✓
 ```
 
-### 關鍵程式碼驗證
+### 关键程式码验证
 
-#### 1. 開獎結果生成（fixed-draw-system.js）
+#### 1. 开奖结果生成（fixed-draw-system.js）
 
 ```javascript
 // 第273-301行
@@ -92,7 +92,7 @@ generateTargetMemberResult(period, controlConfig, betAnalysis) {
     const shouldLose = Math.random() < controlPercentage;
     
     if (shouldLose) {
-        // 控制輸率決定生成讓用戶輸的結果
+        // 控制输率决定生成让用户输的结果
         return this.generateLosingResultFixed(targetBets, betAnalysis.positionBets);
     } else {
         return this.generateWinningResultFixed(targetBets, betAnalysis.positionBets);
@@ -100,7 +100,7 @@ generateTargetMemberResult(period, controlConfig, betAnalysis) {
 }
 ```
 
-#### 2. 結算判定（enhanced-settlement-system.js）
+#### 2. 结算判定（enhanced-settlement-system.js）
 
 ```javascript
 // 第290-328行
@@ -108,30 +108,30 @@ if (betType === 'number' && bet.position) {
     const position = parseInt(bet.position);
     const betNumber = parseInt(betValue);
     
-    // 從實際開獎結果獲取號碼
+    // 从实际开奖结果获取号码
     const winningNumber = positions[position - 1];
     
-    // 比對實際開獎與投注
+    // 比对实际开奖与投注
     const isWin = winNum === betNum;
     
-    // 返回結果，完全基於實際開獎
+    // 返回结果，完全基于实际开奖
     return {
         isWin: isWin,
-        reason: `位置${position}開出${winningNumber}，投注${betNumber}${isWin ? '中獎' : '未中'}`,
+        reason: `位置${position}开出${winningNumber}，投注${betNumber}${isWin ? '中奖' : '未中'}`,
         odds: bet.odds || 9.85
     };
 }
 ```
 
-### 結論
+### 结论
 
-✅ **系統邏輯完全正確**
+✅ **系统逻辑完全正确**
 
-1. **控制系統**只負責根據機率生成開獎結果
-2. **結算系統**純粹根據實際開獎結果判斷輸贏
-3. 兩個系統**分離且獨立**，結算不受控制機率影響
+1. **控制系统**只负责根据机率生成开奖结果
+2. **结算系统**纯粹根据实际开奖结果判断输赢
+3. 两个系统**分离且独立**，结算不受控制机率影响
 
-這種設計確保：
-- 公平性：結算始終基於實際開獎
-- 可控性：通過控制開獎結果達到控制輸贏
-- 透明性：開獎和結算邏輯清晰分離
+这种设计确保：
+- 公平性：结算始终基于实际开奖
+- 可控性：通过控制开奖结果达到控制输赢
+- 透明性：开奖和结算逻辑清晰分离

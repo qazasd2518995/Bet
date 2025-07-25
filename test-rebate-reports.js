@@ -5,14 +5,14 @@ import db from './db/config.js';
 const AGENT_API_URL = 'http://localhost:3003/api/agent';
 
 async function testAgentReports() {
-    console.log('=== 測試代理報表系統 ===\n');
+    console.log('=== 测试代理报表系统 ===\n');
     
     try {
-        // 1. 查找有下注記錄的代理層級
-        console.log('1. 查找代理層級結構...');
+        // 1. 查找有下注记录的代理层级
+        console.log('1. 查找代理层级结构...');
         const agentHierarchy = await db.any(`
             WITH RECURSIVE agent_tree AS (
-                -- 找到有會員的代理
+                -- 找到有会员的代理
                 SELECT DISTINCT a.id, a.username, a.parent_id, a.rebate_percentage, a.level, a.market_type
                 FROM agents a
                 INNER JOIN members m ON m.agent_id = a.id
@@ -20,7 +20,7 @@ async function testAgentReports() {
                 
                 UNION
                 
-                -- 遞歸找到所有上級
+                -- 递归找到所有上级
                 SELECT p.id, p.username, p.parent_id, p.rebate_percentage, p.level, p.market_type
                 FROM agents p
                 INNER JOIN agent_tree at ON p.id = at.parent_id
@@ -31,35 +31,35 @@ async function testAgentReports() {
         `);
         
         if (agentHierarchy.length === 0) {
-            console.log('找不到有效的代理層級結構');
+            console.log('找不到有效的代理层级结构');
             return;
         }
         
-        console.log('找到代理層級:');
+        console.log('找到代理层级:');
         agentHierarchy.forEach(agent => {
             console.log(`  ${' '.repeat(agent.level * 2)}L${agent.level} ${agent.username} (退水: ${(agent.rebate_percentage * 100).toFixed(1)}%)`);
         });
         console.log('');
         
-        // 2. 為每個代理查詢層級分析報表
-        console.log('2. 檢查各層代理報表...');
+        // 2. 为每个代理查询层级分析报表
+        console.log('2. 检查各层代理报表...');
         const today = new Date().toISOString().split('T')[0];
         
         for (const agent of agentHierarchy) {
-            console.log(`\n=== ${agent.username} (L${agent.level}) 的層級分析報表 ===`);
+            console.log(`\n=== ${agent.username} (L${agent.level}) 的层级分析报表 ===`);
             
             try {
-                // 模擬代理登入獲取報表
+                // 模拟代理登入获取报表
                 const reportData = await db.any(`
                     WITH RECURSIVE downline AS (
-                        -- 起始：查詢的代理本身
+                        -- 起始：查询的代理本身
                         SELECT id, username, parent_id, rebate_percentage, 0 as depth
                         FROM agents
                         WHERE id = $1
                         
                         UNION ALL
                         
-                        -- 遞歸：所有下級代理
+                        -- 递归：所有下级代理
                         SELECT a.id, a.username, a.parent_id, a.rebate_percentage, d.depth + 1
                         FROM agents a
                         INNER JOIN downline d ON a.parent_id = d.id
@@ -93,7 +93,7 @@ async function testAgentReports() {
                 `, [agent.id, today]);
                 
                 if (reportData.length > 0) {
-                    console.log('代理名稱\t會員數\t下注金額\t輸贏金額\t退水%\t賺水金額');
+                    console.log('代理名称\t会员数\t下注金额\t输赢金额\t退水%\t赚水金额');
                     console.log('-'.repeat(70));
                     
                     let totalBetAmount = 0;
@@ -112,28 +112,28 @@ async function testAgentReports() {
                     });
                     
                     console.log('-'.repeat(70));
-                    console.log(`總計\t\t${totalBetAmount.toFixed(2)}\t${totalWinAmount.toFixed(2)}\t\t${totalEarnedRebate.toFixed(2)}`);
+                    console.log(`总计\t\t${totalBetAmount.toFixed(2)}\t${totalWinAmount.toFixed(2)}\t\t${totalEarnedRebate.toFixed(2)}`);
                     
-                    // 驗證賺水計算
+                    // 验证赚水计算
                     const expectedEarnedRebate = totalBetAmount * agent.rebate_percentage;
-                    console.log(`\n預期賺水 (${(agent.rebate_percentage * 100).toFixed(1)}%): ${expectedEarnedRebate.toFixed(2)}`);
+                    console.log(`\n预期赚水 (${(agent.rebate_percentage * 100).toFixed(1)}%): ${expectedEarnedRebate.toFixed(2)}`);
                     
                     if (Math.abs(totalEarnedRebate - expectedEarnedRebate) < 0.01) {
-                        console.log('✓ 賺水計算正確');
+                        console.log('✓ 赚水计算正确');
                     } else {
-                        console.log('✗ 賺水計算異常');
+                        console.log('✗ 赚水计算异常');
                     }
                 } else {
-                    console.log('該代理今日無下注記錄');
+                    console.log('该代理今日无下注记录');
                 }
                 
             } catch (error) {
-                console.error(`查詢 ${agent.username} 報表失敗:`, error.message);
+                console.error(`查询 ${agent.username} 报表失败:`, error.message);
             }
         }
         
-        // 3. 檢查實際退水分配
-        console.log('\n\n3. 檢查今日退水分配記錄...');
+        // 3. 检查实际退水分配
+        console.log('\n\n3. 检查今日退水分配记录...');
         const rebateRecords = await db.any(`
             SELECT 
                 tr.user_id,
@@ -153,8 +153,8 @@ async function testAgentReports() {
         `, [today]);
         
         if (rebateRecords.length > 0) {
-            console.log('找到', rebateRecords.length, '筆退水記錄:');
-            console.log('總代理\t級別\t會員\t下注金額\t退水%\t退水金額');
+            console.log('找到', rebateRecords.length, '笔退水记录:');
+            console.log('总代理\t级别\t会员\t下注金额\t退水%\t退水金额');
             console.log('-'.repeat(70));
             
             rebateRecords.forEach(record => {
@@ -163,25 +163,25 @@ async function testAgentReports() {
                 );
             });
             
-            // 驗證所有退水都給了總代理
+            // 验证所有退水都给了总代理
             const nonTopAgentRebates = rebateRecords.filter(r => r.agent_level > 0);
             if (nonTopAgentRebates.length === 0) {
-                console.log('\n✓ 所有退水都正確分配給總代理（L0）');
+                console.log('\n✓ 所有退水都正确分配给总代理（L0）');
             } else {
-                console.log('\n✗ 發現非總代理收到退水:', nonTopAgentRebates.length, '筆');
+                console.log('\n✗ 发现非总代理收到退水:', nonTopAgentRebates.length, '笔');
             }
         } else {
-            console.log('今日無退水記錄');
+            console.log('今日无退水记录');
         }
         
-        console.log('\n=== 測試完成 ===');
+        console.log('\n=== 测试完成 ===');
         
     } catch (error) {
-        console.error('測試失敗:', error);
+        console.error('测试失败:', error);
     } finally {
         process.exit(0);
     }
 }
 
-// 執行測試
+// 执行测试
 testAgentReports();

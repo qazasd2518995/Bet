@@ -1,4 +1,4 @@
--- 修復 result_history 表的所有問題
+-- 修复 result_history 表的所有问题
 
 -- 1. 添加所有 position 列
 ALTER TABLE result_history ADD COLUMN IF NOT EXISTS position_1 INTEGER;
@@ -15,7 +15,7 @@ ALTER TABLE result_history ADD COLUMN IF NOT EXISTS position_10 INTEGER;
 -- 2. 添加 draw_time 列
 ALTER TABLE result_history ADD COLUMN IF NOT EXISTS draw_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- 3. 從現有的 result JSON 欄位更新 position 值（如果有的話）
+-- 3. 从现有的 result JSON 栏位更新 position 值（如果有的话）
 UPDATE result_history 
 SET 
   position_1 = (result::json->0)::int,
@@ -33,5 +33,5 @@ WHERE result IS NOT NULL
   AND jsonb_array_length(result::jsonb) = 10
   AND position_1 IS NULL;
 
--- 4. 查看表結構確認
+-- 4. 查看表结构确认
 \d result_history

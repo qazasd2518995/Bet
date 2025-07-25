@@ -62,14 +62,14 @@ async function checkAgentRebateSettings() {
             if (allProfiles.length > 0) {
                 console.log('Sample profiles:');
                 allProfiles.slice(0, 5).forEach(p => {
-                    console.log(`- ${p.username}: A盤退水=${p.a_rebate_rate}%, D盤退水=${p.d_rebate_rate}%`);
+                    console.log(`- ${p.username}: A盘退水=${p.a_rebate_rate}%, D盘退水=${p.d_rebate_rate}%`);
                 });
             }
         } else {
             console.log('Agent profiles found:');
             profiles.forEach(p => {
                 const agent = hierarchy.find(h => h.id === p.agent_id);
-                console.log(`- ${agent?.username || 'Unknown'}: A盤退水=${p.a_rebate_rate}%, D盤退水=${p.d_rebate_rate}%`);
+                console.log(`- ${agent?.username || 'Unknown'}: A盘退水=${p.a_rebate_rate}%, D盘退水=${p.d_rebate_rate}%`);
             });
         }
         

@@ -1,17 +1,17 @@
-// init-settlement-system.js - 初始化結算系統
+// init-settlement-system.js - 初始化结算系统
 import db from './db/config.js';
 import { createSettlementTables } from './improved-settlement-system.js';
 
 async function initializeSettlementSystem() {
-    console.log('🚀 開始初始化結算系統...');
+    console.log('🚀 开始初始化结算系统...');
     
     try {
-        // 1. 創建結算相關表
-        console.log('📋 創建結算系統表...');
+        // 1. 创建结算相关表
+        console.log('📋 创建结算系统表...');
         await createSettlementTables();
         
-        // 2. 檢查現有的未結算注單
-        console.log('🔍 檢查未結算的注單...');
+        // 2. 检查现有的未结算注单
+        console.log('🔍 检查未结算的注单...');
         const unsettledBets = await db.oneOrNone(`
             SELECT COUNT(*) as count, MIN(period) as min_period, MAX(period) as max_period
             FROM bet_history
@@ -19,14 +19,14 @@ async function initializeSettlementSystem() {
         `);
         
         if (unsettledBets && parseInt(unsettledBets.count) > 0) {
-            console.log(`⚠️ 發現 ${unsettledBets.count} 筆未結算注單`);
-            console.log(`   期號範圍: ${unsettledBets.min_period} - ${unsettledBets.max_period}`);
+            console.log(`⚠️ 发现 ${unsettledBets.count} 笔未结算注单`);
+            console.log(`   期号范围: ${unsettledBets.min_period} - ${unsettledBets.max_period}`);
         } else {
-            console.log('✅ 沒有未結算的注單');
+            console.log('✅ 没有未结算的注单');
         }
         
-        // 3. 檢查重複結算的情況
-        console.log('🔍 檢查重複結算情況...');
+        // 3. 检查重复结算的情况
+        console.log('🔍 检查重复结算情况...');
         const duplicateSettlements = await db.manyOrNone(`
             SELECT period, username, COUNT(*) as count, SUM(win_amount) as total_win
             FROM bet_history
@@ -38,38 +38,38 @@ async function initializeSettlementSystem() {
         `);
         
         if (duplicateSettlements && duplicateSettlements.length > 0) {
-            console.log(`⚠️ 發現可能的重複結算情況：`);
+            console.log(`⚠️ 发现可能的重复结算情况：`);
             duplicateSettlements.forEach(dup => {
-                console.log(`   期號: ${dup.period}, 用戶: ${dup.username}, 重複次數: ${dup.count}, 總中獎: ${dup.total_win}`);
+                console.log(`   期号: ${dup.period}, 用户: ${dup.username}, 重复次数: ${dup.count}, 总中奖: ${dup.total_win}`);
             });
         } else {
-            console.log('✅ 沒有發現重複結算的情況');
+            console.log('✅ 没有发现重复结算的情况');
         }
         
-        // 4. 清理過期的結算鎖
-        console.log('🧹 清理過期的結算鎖...');
+        // 4. 清理过期的结算锁
+        console.log('🧹 清理过期的结算锁...');
         const cleanedLocks = await db.result(`
             DELETE FROM settlement_locks 
             WHERE expires_at < NOW()
         `);
-        console.log(`   清理了 ${cleanedLocks.rowCount} 個過期鎖`);
+        console.log(`   清理了 ${cleanedLocks.rowCount} 个过期锁`);
         
-        // 5. 創建測試數據（可選）
+        // 5. 创建测试数据（可选）
         const createTestData = process.argv.includes('--test');
         if (createTestData) {
-            console.log('📝 創建測試數據...');
+            console.log('📝 创建测试数据...');
             await createTestBets();
         }
         
-        console.log('✅ 結算系統初始化完成！');
+        console.log('✅ 结算系统初始化完成！');
         
     } catch (error) {
-        console.error('❌ 初始化結算系統時發生錯誤:', error);
+        console.error('❌ 初始化结算系统时发生错误:', error);
         throw error;
     }
 }
 
-// 創建測試注單（用於測試）
+// 创建测试注单（用于测试）
 async function createTestBets() {
     const testPeriod = Date.now();
     const testUsers = ['test_user1', 'test_user2', 'test_user3'];
@@ -90,18 +90,18 @@ async function createTestBets() {
         }
     }
     
-    console.log(`   創建了 ${testUsers.length * betTypes.length} 筆測試注單，期號: ${testPeriod}`);
+    console.log(`   创建了 ${testUsers.length * betTypes.length} 笔测试注单，期号: ${testPeriod}`);
 }
 
-// 如果直接執行此文件
+// 如果直接执行此文件
 if (process.argv[1] === new URL(import.meta.url).pathname) {
     initializeSettlementSystem()
         .then(() => {
-            console.log('程序執行完畢');
+            console.log('程序执行完毕');
             process.exit(0);
         })
         .catch(error => {
-            console.error('程序執行失敗:', error);
+            console.error('程序执行失败:', error);
             process.exit(1);
         });
 }

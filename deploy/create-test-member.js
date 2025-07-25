@@ -1,4 +1,4 @@
-// create-test-member.js - 創建測試會員
+// create-test-member.js - 创建测试会员
 import db from './db/config.js';
 import dotenv from 'dotenv';
 
@@ -6,53 +6,53 @@ dotenv.config();
 
 async function createTestMember() {
   try {
-    console.log('開始創建測試會員...');
+    console.log('开始创建测试会员...');
     
-    // 1. 查找總代理
+    // 1. 查找总代理
     const adminAgent = await db.oneOrNone('SELECT * FROM agents WHERE level = 0 LIMIT 1');
     
     if (!adminAgent) {
-      console.error('未找到總代理，請先初始化代理系統');
+      console.error('未找到总代理，请先初始化代理系统');
       return;
     }
     
-    console.log(`找到總代理: ${adminAgent.username} (ID: ${adminAgent.id})`);
+    console.log(`找到总代理: ${adminAgent.username} (ID: ${adminAgent.id})`);
     
-    // 2. 檢查測試會員是否已存在
+    // 2. 检查测试会员是否已存在
     const existingMember = await db.oneOrNone('SELECT * FROM members WHERE username = $1', ['testuser']);
     
     if (existingMember) {
-      console.log('測試會員已存在，更新密碼和餘額...');
+      console.log('测试会员已存在，更新密码和余额...');
       
-      // 更新密碼和餘額
+      // 更新密码和余额
       await db.none(`
         UPDATE members 
         SET password = $1, balance = $2, status = 1
         WHERE username = $3
       `, ['123456', 10000, 'testuser']);
       
-      console.log('測試會員已更新：');
-      console.log('帳號: testuser');
-      console.log('密碼: 123456');
-      console.log('餘額: 10000');
+      console.log('测试会员已更新：');
+      console.log('帐号: testuser');
+      console.log('密码: 123456');
+      console.log('余额: 10000');
       
     } else {
-      console.log('創建新的測試會員...');
+      console.log('创建新的测试会员...');
       
-      // 創建測試會員
+      // 创建测试会员
       await db.none(`
         INSERT INTO members (username, password, agent_id, balance, status)
         VALUES ($1, $2, $3, $4, $5)
       `, ['testuser', '123456', adminAgent.id, 10000, 1]);
       
-      console.log('測試會員創建成功：');
-      console.log('帳號: testuser');
-      console.log('密碼: 123456');
-      console.log('餘額: 10000');
+      console.log('测试会员创建成功：');
+      console.log('帐号: testuser');
+      console.log('密码: 123456');
+      console.log('余额: 10000');
       console.log(`代理: ${adminAgent.username}`);
     }
     
-    // 3. 創建更多測試會員
+    // 3. 创建更多测试会员
     const testMembers = [
       { username: 'member001', password: 'pass001', balance: 5000 },
       { username: 'member002', password: 'pass002', balance: 8000 },
@@ -68,37 +68,37 @@ async function createTestMember() {
           VALUES ($1, $2, $3, $4, $5)
         `, [member.username, member.password, adminAgent.id, member.balance, 1]);
         
-        console.log(`創建會員: ${member.username} (密碼: ${member.password}, 餘額: ${member.balance})`);
+        console.log(`创建会员: ${member.username} (密码: ${member.password}, 余额: ${member.balance})`);
       } else {
-        console.log(`會員已存在: ${member.username}`);
+        console.log(`会员已存在: ${member.username}`);
       }
     }
     
-    // 4. 顯示所有會員
+    // 4. 显示所有会员
     const allMembers = await db.any('SELECT username, balance, status FROM members ORDER BY id');
     
-    console.log('\n所有會員列表：');
+    console.log('\n所有会员列表：');
     console.log('='.repeat(50));
     allMembers.forEach(member => {
-      console.log(`${member.username} - 餘額: ${member.balance} - 狀態: ${member.status === 1 ? '啟用' : '停用'}`);
+      console.log(`${member.username} - 余额: ${member.balance} - 状态: ${member.status === 1 ? '启用' : '停用'}`);
     });
     console.log('='.repeat(50));
     
-    console.log('\n✅ 測試會員創建完成！');
-    console.log('\n可以使用以下帳號登入遊戲：');
-    console.log('帳號: testuser, 密碼: 123456');
-    console.log('帳號: member001, 密碼: pass001');
-    console.log('帳號: member002, 密碼: pass002');
-    console.log('帳號: player123, 密碼: player123');
+    console.log('\n✅ 测试会员创建完成！');
+    console.log('\n可以使用以下帐号登入游戏：');
+    console.log('帐号: testuser, 密码: 123456');
+    console.log('帐号: member001, 密码: pass001');
+    console.log('帐号: member002, 密码: pass002');
+    console.log('帐号: player123, 密码: player123');
     
   } catch (error) {
-    console.error('創建測試會員失敗:', error);
+    console.error('创建测试会员失败:', error);
   } finally {
     process.exit(0);
   }
 }
 
-// 如果直接運行此腳本
+// 如果直接运行此脚本
 if (import.meta.url === `file://${process.argv[1]}`) {
   createTestMember();
 }

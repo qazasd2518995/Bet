@@ -3,56 +3,56 @@ import { enhancedSettlement } from './enhanced-settlement-system.js';
 
 async function manualTestRebate() {
     try {
-        console.log('=== 手動測試退水分配 ===\n');
+        console.log('=== 手动测试退水分配 ===\n');
 
-        // 選擇一個最近的已開獎期號
+        // 选择一个最近的已开奖期号
         const testPeriod = '20250714546';
         
-        // 獲取該期的開獎結果
+        // 获取该期的开奖结果
         const drawResult = await db.oneOrNone(`
             SELECT * FROM result_history 
             WHERE period = $1
         `, [testPeriod]);
 
         if (!drawResult) {
-            console.log(`期號 ${testPeriod} 沒有開獎結果`);
+            console.log(`期号 ${testPeriod} 没有开奖结果`);
             return;
         }
 
-        console.log(`測試期號: ${testPeriod}`);
-        console.log(`開獎結果: ${drawResult.result}\n`);
+        console.log(`测试期号: ${testPeriod}`);
+        console.log(`开奖结果: ${drawResult.result}\n`);
 
-        // 先檢查該期是否有未結算的注單
+        // 先检查该期是否有未结算的注单
         const unsettledBets = await db.any(`
             SELECT * FROM bet_history 
             WHERE period = $1 AND settled = false
         `, [testPeriod]);
 
         if (unsettledBets.length > 0) {
-            console.log(`發現 ${unsettledBets.length} 筆未結算注單，將進行結算...`);
+            console.log(`发现 ${unsettledBets.length} 笔未结算注单，将进行结算...`);
             
-            // 將注單標記為未結算以便測試
+            // 将注单标记为未结算以便测试
             await db.none(`
                 UPDATE bet_history 
                 SET settled = false, win = null, win_amount = null, settled_at = null
                 WHERE period = $1
             `, [testPeriod]);
             
-            console.log('已將注單重置為未結算狀態\n');
+            console.log('已将注单重置为未结算状态\n');
         }
 
-        // 調用增強結算系統
-        console.log('開始結算並處理退水...\n');
+        // 调用增强结算系统
+        console.log('开始结算并处理退水...\n');
         const result = await enhancedSettlement(testPeriod, {
             period: testPeriod,
             result: drawResult.result,
             drawnAt: new Date()
         });
 
-        console.log('\n結算結果:', result);
+        console.log('\n结算结果:', result);
 
-        // 檢查退水記錄
-        console.log('\n\n=== 檢查退水記錄 ===');
+        // 检查退水记录
+        console.log('\n\n=== 检查退水记录 ===');
         const rebateRecords = await db.any(`
             SELECT 
                 tr.*,
@@ -67,20 +67,20 @@ async function manualTestRebate() {
         `, [testPeriod]);
 
         if (rebateRecords.length > 0) {
-            console.log(`找到 ${rebateRecords.length} 筆退水記錄：`);
+            console.log(`找到 ${rebateRecords.length} 笔退水记录：`);
             for (const record of rebateRecords) {
                 console.log(`\n代理: ${record.username}`);
-                console.log(`金額: ${record.amount}`);
-                console.log(`餘額變化: ${record.balance_before} -> ${record.balance_after}`);
+                console.log(`金额: ${record.amount}`);
+                console.log(`余额变化: ${record.balance_before} -> ${record.balance_after}`);
                 console.log(`描述: ${record.description}`);
-                console.log(`時間: ${record.created_at}`);
+                console.log(`时间: ${record.created_at}`);
             }
         } else {
-            console.log('沒有找到退水記錄');
+            console.log('没有找到退水记录');
         }
 
-        // 檢查代理餘額
-        console.log('\n\n=== 檢查代理餘額 ===');
+        // 检查代理余额
+        console.log('\n\n=== 检查代理余额 ===');
         const agents = await db.any(`
             SELECT username, balance, rebate_percentage
             FROM agents
@@ -88,11 +88,11 @@ async function manualTestRebate() {
         `);
 
         for (const agent of agents) {
-            console.log(`${agent.username}: 餘額 ${agent.balance}, 退水率 ${agent.rebate_percentage}%`);
+            console.log(`${agent.username}: 余额 ${agent.balance}, 退水率 ${agent.rebate_percentage}%`);
         }
 
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

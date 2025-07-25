@@ -8,22 +8,22 @@ const db = pgp({
 });
 
 async function fixCascadeUpdate() {
-    console.log('=== 修復級聯更新 ===\n');
+    console.log('=== 修复级联更新 ===\n');
     
     try {
-        // 獲取 A02agent 的資料
+        // 获取 A02agent 的资料
         const a02 = await db.one(`
             SELECT id, username, rebate_percentage, max_rebate_percentage
             FROM agents
             WHERE username = 'A02agent'
         `);
         
-        console.log(`A02agent 當前狀態:`);
+        console.log(`A02agent 当前状态:`);
         console.log(`  退水: ${a02.rebate_percentage} (${a02.rebate_percentage * 100}%)`);
         console.log(`  最大退水: ${a02.max_rebate_percentage} (${a02.max_rebate_percentage * 100}%)`);
         
-        // 觸發 API 更新來執行級聯
-        console.log('\n透過 API 重新設定 A02agent 的退水，觸發級聯更新...');
+        // 触发 API 更新来执行级联
+        console.log('\n透过 API 重新设定 A02agent 的退水，触发级联更新...');
         
         const response = await axios.put(
             `http://localhost:3003/api/agent/update-rebate-settings/${a02.id}`,
@@ -41,7 +41,7 @@ async function fixCascadeUpdate() {
         if (response.data.success) {
             console.log('✅ API 更新成功');
             
-            // 檢查 A03agent 的更新結果
+            // 检查 A03agent 的更新结果
             const a03After = await db.oneOrNone(`
                 SELECT id, username, rebate_percentage, max_rebate_percentage
                 FROM agents
@@ -49,22 +49,22 @@ async function fixCascadeUpdate() {
             `);
             
             if (a03After) {
-                console.log(`\nA03agent 更新後:`);
+                console.log(`\nA03agent 更新后:`);
                 console.log(`  退水: ${a03After.rebate_percentage} (${a03After.rebate_percentage * 100}%)`);
                 console.log(`  最大退水: ${a03After.max_rebate_percentage} (${a03After.max_rebate_percentage * 100}%)`);
                 
                 if (a03After.max_rebate_percentage === a02.rebate_percentage) {
-                    console.log(`  ✅ 級聯更新成功`);
+                    console.log(`  ✅ 级联更新成功`);
                 } else {
-                    console.log(`  ❌ 級聯更新失敗`);
+                    console.log(`  ❌ 级联更新失败`);
                 }
             }
         } else {
-            console.log('❌ API 更新失敗:', response.data.message);
+            console.log('❌ API 更新失败:', response.data.message);
         }
         
     } catch (error) {
-        console.error('修復過程中發生錯誤:', error.message);
+        console.error('修复过程中发生错误:', error.message);
     } finally {
         await db.$pool.end();
     }

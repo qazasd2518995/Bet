@@ -3,7 +3,7 @@ import axios from 'axios';
 const AGENT_API = 'https://bet-agent.onrender.com/api/agent';
 const GAME_API = 'https://bet-game-vcje.onrender.com';
 
-// 測試結果記錄
+// 测试结果记录
 let testResults = {
   marketTypeInheritance: { success: 0, total: 0 },
   actualBetting: { success: 0, total: 0 },
@@ -15,25 +15,25 @@ let testResults = {
   performanceTest: { success: 0, total: 0 }
 };
 
-// 通用函數
+// 通用函数
 async function agentLogin(username, password) {
   const response = await axios.post(`${AGENT_API}/login`, { username, password });
-  if (!response.data.success) throw new Error(`${username} 登入失敗`);
+  if (!response.data.success) throw new Error(`${username} 登入失败`);
   return response.data;
 }
 
 async function memberLogin(username, password) {
   const response = await axios.post(`${GAME_API}/api/member/login`, { username, password });
-  if (!response.data.success) throw new Error(`${username} 登入失敗`);
+  if (!response.data.success) throw new Error(`${username} 登入失败`);
   return response.data;
 }
 
-// 嘗試給會員充值
+// 尝试给会员充值
 async function attemptMemberTopUp() {
   try {
-    console.log('🔄 嘗試給A01member充值...');
+    console.log('🔄 尝试给A01member充值...');
     
-    // 嘗試多種充值方式
+    // 尝试多种充值方式
     const topUpMethods = [
       { endpoint: '/adjust-balance', method: 'POST' },
       { endpoint: '/transfer-points', method: 'POST' },
@@ -50,7 +50,7 @@ async function attemptMemberTopUp() {
           targetUsername: 'A01member',
           amount: 1000,
           type: 'deposit',
-          description: '測試充值'
+          description: '测试充值'
         }, {
           headers: { 'Cookie': `sessionToken=${loginResult.sessionToken}` }
         });
@@ -64,39 +64,39 @@ async function attemptMemberTopUp() {
       }
     }
     
-    console.log('⚠️  所有充值方式都不可用，將測試現有餘額');
+    console.log('⚠️  所有充值方式都不可用，将测试现有余额');
     return false;
   } catch (error) {
-    console.log(`⚠️  充值嘗試失敗: ${error.message}`);
+    console.log(`⚠️  充值尝试失败: ${error.message}`);
     return false;
   }
 }
 
-// 進階測試1：市場類型繼承深度檢查
+// 进阶测试1：市场类型继承深度检查
 async function testMarketTypeInheritance() {
-  console.log('\n🔍 進階測試1: 市場類型繼承深度檢查');
+  console.log('\n🔍 进阶测试1: 市场类型继承深度检查');
   testResults.marketTypeInheritance.total++;
   
   try {
-    // 檢查A盤代理創建的會員市場類型
+    // 检查A盘代理创建的会员市场类型
     const aAgentLogin = await agentLogin('A01agent', 'A01pass');
-    console.log(`A01agent 市場類型: ${aAgentLogin.agent.market_type}`);
+    console.log(`A01agent 市场类型: ${aAgentLogin.agent.market_type}`);
     
-    // 檢查D盤代理創建的會員市場類型  
+    // 检查D盘代理创建的会员市场类型  
     const dAgentLogin = await agentLogin('D01agent', 'D01pass');
-    console.log(`D01agent 市場類型: ${dAgentLogin.agent.market_type}`);
+    console.log(`D01agent 市场类型: ${dAgentLogin.agent.market_type}`);
     
-    // 檢查會員登入時是否獲得正確的市場類型
+    // 检查会员登入时是否获得正确的市场类型
     const aMemberLogin = await memberLogin('A01member', 'A01mem');
-    console.log(`A01member 登入回應:`, Object.keys(aMemberLogin));
+    console.log(`A01member 登入回应:`, Object.keys(aMemberLogin));
     
     if (aMemberLogin.market_type) {
-      console.log(`✅ A01member 市場類型: ${aMemberLogin.market_type}`);
+      console.log(`✅ A01member 市场类型: ${aMemberLogin.market_type}`);
       testResults.marketTypeInheritance.success++;
     } else {
-      console.log(`⚠️  A01member 登入回應中未包含市場類型資訊`);
+      console.log(`⚠️  A01member 登入回应中未包含市场类型资讯`);
       
-      // 檢查會員數據庫記錄是否包含市場類型
+      // 检查会员数据库记录是否包含市场类型
       try {
         const agentMembersResponse = await axios.get(`${AGENT_API}/members`, {
           headers: { 'Cookie': `sessionToken=${aAgentLogin.sessionToken}` }
@@ -106,53 +106,53 @@ async function testMarketTypeInheritance() {
           const members = agentMembersResponse.data.members || [];
           const a01member = members.find(m => m.username === 'A01member');
           if (a01member && a01member.market_type) {
-            console.log(`✅ 代理系統中A01member市場類型: ${a01member.market_type}`);
+            console.log(`✅ 代理系统中A01member市场类型: ${a01member.market_type}`);
             testResults.marketTypeInheritance.success++;
           } else {
-            console.log(`⚠️  代理系統中也沒有市場類型資訊`);
+            console.log(`⚠️  代理系统中也没有市场类型资讯`);
           }
         }
       } catch (error) {
-        console.log(`⚠️  無法查詢代理系統會員資料`);
+        console.log(`⚠️  无法查询代理系统会员资料`);
       }
     }
     
-    // 檢查遊戲數據API是否返回正確的賠率
+    // 检查游戏数据API是否返回正确的赔率
     const gameData = await axios.get(`${GAME_API}/api/game-data`);
     if (gameData.data.gameData) {
-      console.log(`遊戲賠率數據:`, {
-        大小賠率: gameData.data.gameData.odds?.bigSmall || '未設置',
-        單雙賠率: gameData.data.gameData.odds?.oddEven || '未設置',
-        號碼賠率: gameData.data.gameData.odds?.number || '未設置'
+      console.log(`游戏赔率数据:`, {
+        大小赔率: gameData.data.gameData.odds?.bigSmall || '未设置',
+        单双赔率: gameData.data.gameData.odds?.oddEven || '未设置',
+        号码赔率: gameData.data.gameData.odds?.number || '未设置'
       });
     }
     
   } catch (error) {
-    console.error(`❌ 市場類型測試失敗: ${error.message}`);
+    console.error(`❌ 市场类型测试失败: ${error.message}`);
   }
 }
 
-// 進階測試2：實際下注流程完整測試
+// 进阶测试2：实际下注流程完整测试
 async function testActualBetting() {
-  console.log('\n🔍 進階測試2: 實際下注流程完整測試');
+  console.log('\n🔍 进阶测试2: 实际下注流程完整测试');
   testResults.actualBetting.total++;
   
   try {
-    // 首先給會員充值
+    // 首先给会员充值
     await attemptMemberTopUp();
     
-    // 獲取當前遊戲狀態
+    // 获取当前游戏状态
     const gameDataResponse = await axios.get(`${GAME_API}/api/game-data`);
     const gameData = gameDataResponse.data.gameData;
     
-    console.log(`當前遊戲狀態: 期數${gameData.currentPeriod}, 狀態${gameData.status}`);
+    console.log(`当前游戏状态: 期数${gameData.currentPeriod}, 状态${gameData.status}`);
     
     if (gameData.status === 'betting') {
-      // 嘗試A盤會員下注
+      // 尝试A盘会员下注
       const aMemberLogin = await memberLogin('A01member', 'A01mem');
-      console.log(`A01member 當前餘額: $${aMemberLogin.member.balance}`);
+      console.log(`A01member 当前余额: $${aMemberLogin.member.balance}`);
       
-      // 檢查餘額是否足夠
+      // 检查余额是否足够
       const balance = parseFloat(aMemberLogin.member.balance);
       if (balance >= 10) {
         const betData = {
@@ -162,70 +162,70 @@ async function testActualBetting() {
           amount: 10
         };
         
-        console.log('嘗試下注:', betData);
+        console.log('尝试下注:', betData);
         
         try {
           const betResponse = await axios.post(`${GAME_API}/api/bet`, betData);
           
           if (betResponse.data.success) {
-            console.log(`✅ 下注成功! 餘額更新為: ${betResponse.data.balance}`);
+            console.log(`✅ 下注成功! 余额更新为: ${betResponse.data.balance}`);
             testResults.actualBetting.success++;
             
-            // 立即查詢下注記錄確認
+            // 立即查询下注记录确认
             const recordsResponse = await axios.get(`${GAME_API}/api/bet-history?username=A01member&limit=1`);
             if (recordsResponse.data.success && recordsResponse.data.records.length > 0) {
               const latestBet = recordsResponse.data.records[0];
-              console.log(`最新下注記錄: 期數${latestBet.period}, 類型${latestBet.betType}, 金額$${latestBet.amount}`);
+              console.log(`最新下注记录: 期数${latestBet.period}, 类型${latestBet.betType}, 金额$${latestBet.amount}`);
             }
           } else {
-            console.log(`⚠️  下注失敗: ${betResponse.data.message}`);
+            console.log(`⚠️  下注失败: ${betResponse.data.message}`);
           }
         } catch (betError) {
-          console.log(`⚠️  下注API錯誤: ${betError.response?.data?.message || betError.message}`);
+          console.log(`⚠️  下注API错误: ${betError.response?.data?.message || betError.message}`);
         }
       } else {
-        console.log(`⚠️  會員餘額不足($${balance})，無法測試下注功能`);
+        console.log(`⚠️  会员余额不足($${balance})，无法测试下注功能`);
       }
     } else {
-      console.log(`⚠️  當前非下注時間 (${gameData.status})，無法測試下注`);
+      console.log(`⚠️  当前非下注时间 (${gameData.status})，无法测试下注`);
     }
     
   } catch (error) {
-    console.error(`❌ 下注流程測試失敗: ${error.message}`);
+    console.error(`❌ 下注流程测试失败: ${error.message}`);
   }
 }
 
-// 進階測試3：餘額管理系統檢查
+// 进阶测试3：余额管理系统检查
 async function testBalanceManagement() {
-  console.log('\n🔍 進階測試3: 餘額管理系統檢查');
+  console.log('\n🔍 进阶测试3: 余额管理系统检查');
   testResults.balanceManagement.total++;
   
   try {
-    // 檢查代理餘額
+    // 检查代理余额
     const loginResult = await agentLogin('ti2025A', 'ti2025A');
-    console.log(`ti2025A 代理餘額: ${loginResult.agent.balance || '未返回'}`);
+    console.log(`ti2025A 代理余额: ${loginResult.agent.balance || '未返回'}`);
     
-    // 檢查會員餘額
+    // 检查会员余额
     const memberLoginResult = await memberLogin('A01member', 'A01mem');
-    console.log(`A01member 會員餘額: ${memberLoginResult.member.balance || '未返回'}`);
+    console.log(`A01member 会员余额: ${memberLoginResult.member.balance || '未返回'}`);
     
-    // 檢查餘額查詢API
+    // 检查余额查询API
     try {
       const balanceResponse = await axios.get(`${GAME_API}/api/balance?username=A01member`);
       if (balanceResponse.data.success) {
-        console.log(`✅ 餘額查詢API正常: $${balanceResponse.data.balance}`);
+        console.log(`✅ 余额查询API正常: $${balanceResponse.data.balance}`);
         testResults.balanceManagement.success++;
       }
     } catch (error) {
-      console.log(`⚠️  餘額查詢API不可用`);
-      // 如果能正常獲取登入時的餘額，仍算部分成功
+      console.log(`⚠️  余额查询API不可用`);
+      // 如果能正常获取登入时的余额，仍算部分成功
       if (memberLoginResult.member.balance !== undefined) {
-        console.log(`✅ 登入時餘額查詢正常`);
+        console.log(`✅ 登入时余额查询正常`);
         testResults.balanceManagement.success++;
       }
     }
     
-    // 檢查代理系統會員餘額
+    // 检查代理系统会员余额
     try {
       const agentMemberResponse = await axios.get(`${AGENT_API}/members`, {
         headers: { 'Cookie': `sessionToken=${loginResult.sessionToken}` }
@@ -235,25 +235,25 @@ async function testBalanceManagement() {
         const members = agentMemberResponse.data.members || [];
         const a01member = members.find(m => m.username === 'A01member');
         if (a01member) {
-          console.log(`代理系統中A01member餘額: $${a01member.balance || '未設置'}`);
+          console.log(`代理系统中A01member余额: $${a01member.balance || '未设置'}`);
         }
       }
     } catch (error) {
-      console.log(`⚠️  代理系統會員列表不可用`);
+      console.log(`⚠️  代理系统会员列表不可用`);
     }
     
   } catch (error) {
-    console.error(`❌ 餘額管理測試失敗: ${error.message}`);
+    console.error(`❌ 余额管理测试失败: ${error.message}`);
   }
 }
 
-// 進階測試4：退水分配機制驗證
+// 进阶测试4：退水分配机制验证
 async function testRebateDistribution() {
-  console.log('\n🔍 進階測試4: 退水分配機制驗證');
+  console.log('\n🔍 进阶测试4: 退水分配机制验证');
   testResults.rebateDistribution.total++;
   
   try {
-    // 檢查代理退水設置
+    // 检查代理退水设置
     const agents = [
       { username: 'ti2025A', password: 'ti2025A' },
       { username: 'A01agent', password: 'A01pass' },
@@ -271,16 +271,16 @@ async function testRebateDistribution() {
         console.log(`${agent.username} 退水比例: ${rebatePercentage}% (Level ${loginResult.agent.level})`);
         successfulChecks++;
       } catch (error) {
-        console.log(`⚠️  無法獲取 ${agent.username} 退水資訊: ${error.message}`);
+        console.log(`⚠️  无法获取 ${agent.username} 退水资讯: ${error.message}`);
       }
     }
     
     if (successfulChecks >= 2) {
-      console.log(`✅ 退水設置查詢基本正常 (${successfulChecks}/4 個代理)`);
+      console.log(`✅ 退水设置查询基本正常 (${successfulChecks}/4 个代理)`);
       testResults.rebateDistribution.success++;
     }
     
-    // 檢查退水記錄API
+    // 检查退水记录API
     try {
       const loginResult = await agentLogin('ti2025A', 'ti2025A');
       const rebateResponse = await axios.get(`${AGENT_API}/transactions?agentId=${loginResult.agent.id}&type=rebate`, {
@@ -289,24 +289,24 @@ async function testRebateDistribution() {
       
       if (rebateResponse.data.success) {
         const rebateRecords = rebateResponse.data.data?.list || [];
-        console.log(`✅ 退水記錄查詢正常，共 ${rebateRecords.length} 筆記錄`);
+        console.log(`✅ 退水记录查询正常，共 ${rebateRecords.length} 笔记录`);
       }
     } catch (error) {
-      console.log(`⚠️  退水記錄查詢失敗: ${error.message}`);
+      console.log(`⚠️  退水记录查询失败: ${error.message}`);
     }
     
   } catch (error) {
-    console.error(`❌ 退水分配測試失敗: ${error.message}`);
+    console.error(`❌ 退水分配测试失败: ${error.message}`);
   }
 }
 
-// 進階測試5：遊戲數據一致性檢查
+// 进阶测试5：游戏数据一致性检查
 async function testGameDataConsistency() {
-  console.log('\n🔍 進階測試5: 遊戲數據一致性檢查');
+  console.log('\n🔍 进阶测试5: 游戏数据一致性检查');
   testResults.gameDataConsistency.total++;
   
   try {
-    // 多次獲取遊戲數據，檢查一致性
+    // 多次获取游戏数据，检查一致性
     const gameDataCalls = [];
     for (let i = 0; i < 3; i++) {
       const response = await axios.get(`${GAME_API}/api/game-data`);
@@ -314,46 +314,46 @@ async function testGameDataConsistency() {
       await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
     }
     
-    // 檢查期數一致性
+    // 检查期数一致性
     const periods = gameDataCalls.map(data => data.currentPeriod);
     const periodsUnique = [...new Set(periods)];
     
-    console.log(`3次調用獲得期數: ${periods.join(', ')}`);
+    console.log(`3次调用获得期数: ${periods.join(', ')}`);
     
-    if (periodsUnique.length <= 2) { // 允許期數變化（跨期數時）
-      console.log(`✅ 遊戲數據一致性正常`);
+    if (periodsUnique.length <= 2) { // 允许期数变化（跨期数时）
+      console.log(`✅ 游戏数据一致性正常`);
       testResults.gameDataConsistency.success++;
     } else {
-      console.log(`⚠️  遊戲數據期數變化異常`);
+      console.log(`⚠️  游戏数据期数变化异常`);
     }
     
-    // 檢查遊戲歷史數據
+    // 检查游戏历史数据
     try {
       const historyResponse = await axios.get(`${GAME_API}/api/recent-results?limit=5`);
       if (historyResponse.data.success) {
         const results = historyResponse.data.results || [];
-        console.log(`✅ 歷史開獎數據正常，最近 ${results.length} 期記錄`);
+        console.log(`✅ 历史开奖数据正常，最近 ${results.length} 期记录`);
         
         results.slice(0, 2).forEach((result, index) => {
-          console.log(`  ${index + 1}. 期數:${result.period} 結果:${Array.isArray(result.result) ? result.result.join(',') : result.result}`);
+          console.log(`  ${index + 1}. 期数:${result.period} 结果:${Array.isArray(result.result) ? result.result.join(',') : result.result}`);
         });
       }
     } catch (error) {
-      console.log(`⚠️  歷史數據API不可用: ${error.message}`);
+      console.log(`⚠️  历史数据API不可用: ${error.message}`);
     }
     
   } catch (error) {
-    console.error(`❌ 遊戲數據一致性測試失敗: ${error.message}`);
+    console.error(`❌ 游戏数据一致性测试失败: ${error.message}`);
   }
 }
 
-// 進階測試6：跨平台數據同步檢查
+// 进阶测试6：跨平台数据同步检查
 async function testCrossPlatformSync() {
-  console.log('\n🔍 進階測試6: 跨平台數據同步檢查');
+  console.log('\n🔍 进阶测试6: 跨平台数据同步检查');
   testResults.crossPlatformSync.total++;
   
   try {
-    // 在代理平台獲取會員資訊
+    // 在代理平台获取会员资讯
     const loginResult = await agentLogin('A01agent', 'A01pass');
     const agentMembersResponse = await axios.get(`${AGENT_API}/members`, {
       headers: { 'Cookie': `sessionToken=${loginResult.sessionToken}` }
@@ -363,42 +363,42 @@ async function testCrossPlatformSync() {
     if (agentMembersResponse.data.success) {
       const members = agentMembersResponse.data.members || [];
       agentMemberData = members.find(m => m.username === 'A01member');
-      console.log(`代理平台 A01member 資料: ${agentMemberData ? '存在' : '不存在'}`);
+      console.log(`代理平台 A01member 资料: ${agentMemberData ? '存在' : '不存在'}`);
     }
     
-    // 在遊戲平台獲取會員資訊
+    // 在游戏平台获取会员资讯
     const memberLoginResult = await memberLogin('A01member', 'A01mem');
-    console.log(`遊戲平台 A01member 登入: ${memberLoginResult.success !== false ? '成功' : '失敗'}`);
+    console.log(`游戏平台 A01member 登入: ${memberLoginResult.success !== false ? '成功' : '失败'}`);
     
-    // 檢查數據同步
+    // 检查数据同步
     if (agentMemberData && memberLoginResult) {
-      console.log(`數據同步檢查:`);
-      console.log(`  代理平台餘額: ${agentMemberData.balance || 'N/A'}`);
-      console.log(`  遊戲平台餘額: ${memberLoginResult.member.balance || 'N/A'}`);
+      console.log(`数据同步检查:`);
+      console.log(`  代理平台余额: ${agentMemberData.balance || 'N/A'}`);
+      console.log(`  游戏平台余额: ${memberLoginResult.member.balance || 'N/A'}`);
       
       const agentBalance = parseFloat(agentMemberData.balance || '0');
       const gameBalance = parseFloat(memberLoginResult.member.balance || '0');
       
-      if (Math.abs(agentBalance - gameBalance) < 0.01) { // 允許小數點誤差
-        console.log(`✅ 跨平台餘額同步正常`);
+      if (Math.abs(agentBalance - gameBalance) < 0.01) { // 允许小数点误差
+        console.log(`✅ 跨平台余额同步正常`);
         testResults.crossPlatformSync.success++;
       } else {
-        console.log(`⚠️  跨平台餘額不同步 (差額: ${Math.abs(agentBalance - gameBalance)})`);
+        console.log(`⚠️  跨平台余额不同步 (差额: ${Math.abs(agentBalance - gameBalance)})`);
       }
     }
     
   } catch (error) {
-    console.error(`❌ 跨平台同步測試失敗: ${error.message}`);
+    console.error(`❌ 跨平台同步测试失败: ${error.message}`);
   }
 }
 
-// 進階測試7：安全性驗證
+// 进阶测试7：安全性验证
 async function testSecurityValidation() {
-  console.log('\n🔍 進階測試7: 安全性驗證');
+  console.log('\n🔍 进阶测试7: 安全性验证');
   testResults.securityValidation.total++;
   
   try {
-    // 測試未授權訪問
+    // 测试未授权访问
     let unauthorizedBlocked = 0;
     
     const protectedEndpoints = [
@@ -411,49 +411,49 @@ async function testSecurityValidation() {
     for (const endpoint of protectedEndpoints) {
       try {
         const response = await axios.get(endpoint);
-        console.log(`⚠️  ${endpoint} 允許未授權訪問`);
+        console.log(`⚠️  ${endpoint} 允许未授权访问`);
       } catch (error) {
         if (error.response?.status === 401 || error.response?.status === 403) {
           unauthorizedBlocked++;
-          console.log(`✅ ${endpoint} 正確阻止未授權訪問`);
+          console.log(`✅ ${endpoint} 正确阻止未授权访问`);
         } else if (error.code === 'ECONNREFUSED' || error.response?.status >= 500) {
-          console.log(`⚠️  ${endpoint} 服務器錯誤`);
+          console.log(`⚠️  ${endpoint} 服务器错误`);
         }
       }
     }
     
-    // 測試錯誤憑證
+    // 测试错误凭证
     try {
       await agentLogin('invalid_user', 'invalid_pass');
-      console.log(`⚠️  系統接受了無效憑證`);
+      console.log(`⚠️  系统接受了无效凭证`);
     } catch (error) {
-      console.log(`✅ 系統正確拒絕無效憑證`);
+      console.log(`✅ 系统正确拒绝无效凭证`);
       unauthorizedBlocked++;
     }
     
     if (unauthorizedBlocked >= 3) {
-      console.log(`✅ 安全性驗證通過 (${unauthorizedBlocked}項安全檢查通過)`);
+      console.log(`✅ 安全性验证通过 (${unauthorizedBlocked}项安全检查通过)`);
       testResults.securityValidation.success++;
     } else {
-      console.log(`⚠️  安全性檢查部分通過 (${unauthorizedBlocked}項通過)`);
+      console.log(`⚠️  安全性检查部分通过 (${unauthorizedBlocked}项通过)`);
     }
     
   } catch (error) {
-    console.error(`❌ 安全性驗證失敗: ${error.message}`);
+    console.error(`❌ 安全性验证失败: ${error.message}`);
   }
 }
 
-// 進階測試8：性能測試
+// 进阶测试8：性能测试
 async function testPerformance() {
-  console.log('\n🔍 進階測試8: 性能測試');
+  console.log('\n🔍 进阶测试8: 性能测试');
   testResults.performanceTest.total++;
   
   try {
-    // API響應時間測試
+    // API响应时间测试
     const apiTests = [
       { name: '代理登入', url: `${AGENT_API}/login`, method: 'POST', data: { username: 'ti2025A', password: 'ti2025A' }},
-      { name: '會員登入', url: `${GAME_API}/api/member/login`, method: 'POST', data: { username: 'A01member', password: 'A01mem' }},
-      { name: '遊戲數據', url: `${GAME_API}/api/game-data`, method: 'GET', data: null },
+      { name: '会员登入', url: `${GAME_API}/api/member/login`, method: 'POST', data: { username: 'A01member', password: 'A01mem' }},
+      { name: '游戏数据', url: `${GAME_API}/api/game-data`, method: 'GET', data: null },
     ];
     
     let totalResponseTime = 0;
@@ -470,41 +470,41 @@ async function testPerformance() {
         }
         
         const responseTime = Date.now() - startTime;
-        console.log(`${test.name} 響應時間: ${responseTime}ms`);
+        console.log(`${test.name} 响应时间: ${responseTime}ms`);
         
         totalResponseTime += responseTime;
         successfulTests++;
         
-        if (responseTime < 3000) { // 3秒內算正常
-          console.log(`  ✅ 響應時間正常`);
+        if (responseTime < 3000) { // 3秒内算正常
+          console.log(`  ✅ 响应时间正常`);
         } else {
-          console.log(`  ⚠️  響應較慢`);
+          console.log(`  ⚠️  响应较慢`);
         }
       } catch (error) {
-        console.log(`  ❌ ${test.name} 請求失敗: ${error.message}`);
+        console.log(`  ❌ ${test.name} 请求失败: ${error.message}`);
       }
     }
     
     if (successfulTests > 0) {
       const avgResponseTime = totalResponseTime / successfulTests;
-      console.log(`平均響應時間: ${avgResponseTime.toFixed(0)}ms`);
+      console.log(`平均响应时间: ${avgResponseTime.toFixed(0)}ms`);
       
       if (avgResponseTime < 2000) {
-        console.log(`✅ 系統性能表現良好`);
+        console.log(`✅ 系统性能表现良好`);
         testResults.performanceTest.success++;
       } else {
-        console.log(`⚠️  系統響應較慢，可能需要優化`);
+        console.log(`⚠️  系统响应较慢，可能需要优化`);
       }
     }
     
   } catch (error) {
-    console.error(`❌ 性能測試失敗: ${error.message}`);
+    console.error(`❌ 性能测试失败: ${error.message}`);
   }
 }
 
-// 主測試函數
+// 主测试函数
 async function runAdvancedTests() {
-  console.log('🚀 開始執行進階平台測試');
+  console.log('🚀 开始执行进阶平台测试');
   console.log('='.repeat(60));
   
   await testMarketTypeInheritance();
@@ -516,8 +516,8 @@ async function runAdvancedTests() {
   await testSecurityValidation();
   await testPerformance();
   
-  // 輸出測試總結
-  console.log('\n📊 進階測試結果總結:');
+  // 输出测试总结
+  console.log('\n📊 进阶测试结果总结:');
   console.log('='.repeat(60));
   
   Object.entries(testResults).forEach(([testName, result]) => {
@@ -530,13 +530,13 @@ async function runAdvancedTests() {
   const totalSuccess = Object.values(testResults).reduce((sum, result) => sum + result.success, 0);
   const overallRate = totalTests > 0 ? ((totalSuccess / totalTests) * 100).toFixed(1) : '0';
   
-  console.log('\n🎯 進階測試整體結果:');
-  console.log(`總測試項目: ${totalTests}`);
-  console.log(`成功項目: ${totalSuccess}`);
+  console.log('\n🎯 进阶测试整体结果:');
+  console.log(`总测试项目: ${totalTests}`);
+  console.log(`成功项目: ${totalSuccess}`);
   console.log(`成功率: ${overallRate}%`);
   
-  console.log('\n✅ 進階測試執行完成！');
+  console.log('\n✅ 进阶测试执行完成！');
 }
 
-// 執行測試
+// 执行测试
 runAdvancedTests().catch(console.error); 

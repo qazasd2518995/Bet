@@ -14,10 +14,10 @@ function createSettlementReliabilityFix() {
 let settlementInProgress = false;
 
 async function settleBetsWithRetry(period, winResult, maxRetries = 3) {
-    console.log(\`🎯 開始可靠結算第\${period}期注單 (最多重試\${maxRetries}次)...\`);
+    console.log(\`🎯 开始可靠结算第\${period}期注单 (最多重试\${maxRetries}次)...\`);
     
     if (settlementInProgress) {
-        console.log('⚠️ 結算正在進行中，跳過重複結算');
+        console.log('⚠️ 结算正在进行中，跳过重复结算');
         return { success: false, reason: 'settlement_in_progress' };
     }
     
@@ -25,22 +25,22 @@ async function settleBetsWithRetry(period, winResult, maxRetries = 3) {
     
     try {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            console.log(\`🔄 結算嘗試 \${attempt}/\${maxRetries}\`);
+            console.log(\`🔄 结算尝试 \${attempt}/\${maxRetries}\`);
             
             try {
-                // 1. 使用增強結算系統
+                // 1. 使用增强结算系统
                 const result = await enhancedSettlement(period, winResult);
                 
                 if (result && result.success) {
-                    console.log(\`✅ 第\${period}期結算成功 (嘗試 \${attempt})\`);
+                    console.log(\`✅ 第\${period}期结算成功 (尝试 \${attempt})\`);
                     
-                    // 2. 驗證結算完整性
+                    // 2. 验证结算完整性
                     const verification = await verifySettlementCompleteness(period);
                     if (verification.isComplete) {
-                        console.log(\`✅ 第\${period}期結算驗證通過\`);
+                        console.log(\`✅ 第\${period}期结算验证通过\`);
                         return { success: true, attempt, verification };
                     } else {
-                        console.log(\`⚠️ 第\${period}期結算驗證失敗: \${verification.issues.join(', ')}\`);
+                        console.log(\`⚠️ 第\${period}期结算验证失败: \${verification.issues.join(', ')}\`);
                         throw new Error(\`Settlement verification failed: \${verification.issues.join(', ')}\`);
                     }
                 } else {
@@ -48,17 +48,17 @@ async function settleBetsWithRetry(period, winResult, maxRetries = 3) {
                 }
                 
             } catch (attemptError) {
-                console.error(\`❌ 結算嘗試 \${attempt} 失敗:\`, attemptError.message);
+                console.error(\`❌ 结算尝试 \${attempt} 失败:\`, attemptError.message);
                 
                 if (attempt === maxRetries) {
-                    console.error(\`💥 所有結算嘗試都失敗了，記錄問題期號 \${period}\`);
+                    console.error(\`💥 所有结算尝试都失败了，记录问题期号 \${period}\`);
                     await recordFailedSettlement(period, attemptError);
                     throw attemptError;
                 }
                 
-                // 等待重試延遲
+                // 等待重试延迟
                 const retryDelay = attempt * 1000; // 1s, 2s, 3s
-                console.log(\`⏳ 等待 \${retryDelay}ms 後重試...\`);
+                console.log(\`⏳ 等待 \${retryDelay}ms 后重试...\`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
         }
@@ -69,12 +69,12 @@ async function settleBetsWithRetry(period, winResult, maxRetries = 3) {
 }
 
 async function verifySettlementCompleteness(period) {
-    console.log(\`🔍 驗證第\${period}期結算完整性...\`);
+    console.log(\`🔍 验证第\${period}期结算完整性...\`);
     
     try {
         const issues = [];
         
-        // 1. 檢查是否有未結算的注單
+        // 1. 检查是否有未结算的注单
         const unsettledBets = await db.any(\`
             SELECT COUNT(*) as count 
             FROM bet_history 
@@ -85,7 +85,7 @@ async function verifySettlementCompleteness(period) {
             issues.push(\`\${unsettledBets[0].count} unsettled bets\`);
         }
         
-        // 2. 檢查是否有結算日誌
+        // 2. 检查是否有结算日志
         const settlementLog = await db.oneOrNone(\`
             SELECT id FROM settlement_logs 
             WHERE period = $1
@@ -95,7 +95,7 @@ async function verifySettlementCompleteness(period) {
             issues.push('missing settlement log');
         }
         
-        // 3. 檢查是否有注單但沒有退水記錄
+        // 3. 检查是否有注单但没有退水记录
         const [betsCount, rebatesCount] = await Promise.all([
             db.one('SELECT COUNT(*) as count FROM bet_history WHERE period = $1 AND settled = true', [period]),
             db.one('SELECT COUNT(*) as count FROM transaction_records WHERE period = $1 AND transaction_type = \\'rebate\\'', [period])
@@ -107,12 +107,12 @@ async function verifySettlementCompleteness(period) {
         
         const isComplete = issues.length === 0;
         
-        console.log(\`驗證結果: \${isComplete ? '✅ 完整' : \`❌ 問題: \${issues.join(', ')}\`}\`);
+        console.log(\`验证结果: \${isComplete ? '✅ 完整' : \`❌ 问题: \${issues.join(', ')}\`}\`);
         
         return { isComplete, issues };
         
     } catch (error) {
-        console.error('結算驗證過程出錯:', error);
+        console.error('结算验证过程出错:', error);
         return { isComplete: false, issues: ['verification_error'] };
     }
 }
@@ -128,13 +128,13 @@ async function recordFailedSettlement(period, error) {
                 updated_at = NOW()
         \`, [period, error.message]);
         
-        console.log(\`📝 已記錄失敗結算: 期號 \${period}\`);
+        console.log(\`📝 已记录失败结算: 期号 \${period}\`);
     } catch (dbError) {
-        console.error('記錄失敗結算時出錯:', dbError);
+        console.error('记录失败结算时出错:', dbError);
     }
 }
 
-// 創建失敗結算記錄表（如果不存在）
+// 创建失败结算记录表（如果不存在）
 async function createFailedSettlementsTable() {
     try {
         await db.none(\`
@@ -147,18 +147,18 @@ async function createFailedSettlementsTable() {
                 updated_at TIMESTAMP DEFAULT NOW()
             )
         \`);
-        console.log('✅ 失敗結算記錄表已準備');
+        console.log('✅ 失败结算记录表已准备');
     } catch (error) {
-        console.error('創建失敗結算記錄表時出錯:', error);
+        console.error('创建失败结算记录表时出错:', error);
     }
 }
 
-// 啟動時檢查未完成的結算
+// 启动时检查未完成的结算
 async function checkPendingSettlements() {
-    console.log('🔍 檢查待完成的結算...');
+    console.log('🔍 检查待完成的结算...');
     
     try {
-        // 查找有已結算注單但無結算日誌的期號
+        // 查找有已结算注单但无结算日志的期号
         const pendingPeriods = await db.any(\`
             SELECT DISTINCT bh.period, COUNT(*) as bet_count
             FROM bet_history bh
@@ -172,18 +172,18 @@ async function checkPendingSettlements() {
         \`);
         
         if (pendingPeriods.length > 0) {
-            console.log(\`⚠️ 發現 \${pendingPeriods.length} 個待完成結算的期號:\`);
+            console.log(\`⚠️ 发现 \${pendingPeriods.length} 个待完成结算的期号:\`);
             for (const period of pendingPeriods) {
-                console.log(\`  - 期號 \${period.period}: \${period.bet_count} 筆已結算注單\`);
+                console.log(\`  - 期号 \${period.period}: \${period.bet_count} 笔已结算注单\`);
             }
             
-            console.log('💡 建議運行手動結算腳本修復這些期號');
+            console.log('💡 建议运行手动结算脚本修复这些期号');
         } else {
-            console.log('✅ 沒有發現待完成的結算');
+            console.log('✅ 没有发现待完成的结算');
         }
         
     } catch (error) {
-        console.error('檢查待完成結算時出錯:', error);
+        console.error('检查待完成结算时出错:', error);
     }
 }
 `;
@@ -208,27 +208,27 @@ async function checkPendingSettlements() {
         'await settleBets(currentDrawPeriod, { positions: newResult });',
         `const settlementResult = await settleBetsWithRetry(currentDrawPeriod, { positions: newResult });
             
-            // 檢查結算是否成功，如果失敗則不進入下一期
+            // 检查结算是否成功，如果失败则不进入下一期
             if (!settlementResult.success) {
-                console.error(\`🚨 第\${currentDrawPeriod}期結算失敗，暫停遊戲進程\`);
-                console.error(\`失敗原因: \${settlementResult.reason}\`);
-                // 保持在當前狀態，不進入下一期
+                console.error(\`🚨 第\${currentDrawPeriod}期结算失败，暂停游戏进程\`);
+                console.error(\`失败原因: \${settlementResult.reason}\`);
+                // 保持在当前状态，不进入下一期
                 memoryGameState.status = 'settlement_failed';
-                memoryGameState.countdown_seconds = 30; // 給30秒時間處理
+                memoryGameState.countdown_seconds = 30; // 给30秒时间处理
                 return;
             }`
     );
     
     // Add the initialization calls
     const finalContent = updatedContent.replace(
-        'FS赛车遊戲服務運行在端口 3000',
-        'FS赛车遊戲服務運行在端口 3000\');\n\n// 初始化結算系統可靠性功能\nawait createFailedSettlementsTable();\nawait checkPendingSettlements();\n\nconsole.log(\'FS赛车遊戲服務運行在端口 3000'
+        'FS赛车游戏服务运行在端口 3000',
+        'FS赛车游戏服务运行在端口 3000\');\n\n// 初始化结算系统可靠性功能\nawait createFailedSettlementsTable();\nawait checkPendingSettlements();\n\nconsole.log(\'FS赛车游戏服务运行在端口 3000'
     );
     
     // Save the improved backend.js
     const backupPath = './backend.js.backup.' + Date.now();
     fs.writeFileSync(backupPath, backendContent);
-    console.log(`📦 原始文件備份到: ${backupPath}`);
+    console.log(`📦 原始文件备份到: ${backupPath}`);
     
     fs.writeFileSync(backendPath, finalContent);
     console.log('✅ 已更新 backend.js with settlement reliability improvements');
@@ -251,13 +251,13 @@ CREATE INDEX IF NOT EXISTS idx_failed_settlements_created_at ON failed_settlemen
 `;
     
     fs.writeFileSync('./create-failed-settlements-table.sql', migrationScript);
-    console.log('📝 已創建資料庫遷移腳本: create-failed-settlements-table.sql');
+    console.log('📝 已创建资料库迁移脚本: create-failed-settlements-table.sql');
     
-    console.log('\n🎉 結算系統可靠性修復完成！');
+    console.log('\n🎉 结算系统可靠性修复完成！');
     console.log('\n下一步：');
-    console.log('1. 重啟後端服務以載入修復');
-    console.log('2. 運行資料庫遷移腳本');
-    console.log('3. 監控結算系統運行狀況');
+    console.log('1. 重启后端服务以载入修复');
+    console.log('2. 运行资料库迁移脚本');
+    console.log('3. 监控结算系统运行状况');
     
     return true;
 }

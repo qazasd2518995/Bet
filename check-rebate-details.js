@@ -2,7 +2,7 @@ import db from './db/config.js';
 
 async function checkRebateDetails() {
     try {
-        // 查詢 justin111 最近的 1000 元下注
+        // 查询 justin111 最近的 1000 元下注
         const recentBets = await db.any(`
             SELECT * FROM bet_history
             WHERE username = 'justin111'
@@ -13,10 +13,10 @@ async function checkRebateDetails() {
         
         console.log('=== justin111 最近的 1000 元下注 ===');
         recentBets.forEach((bet, i) => {
-            console.log(`${i+1}. 期號: ${bet.period}, 時間: ${new Date(bet.created_at).toLocaleString()}, 已結算: ${bet.settled ? '是' : '否'}`);
+            console.log(`${i+1}. 期号: ${bet.period}, 时间: ${new Date(bet.created_at).toLocaleString()}, 已结算: ${bet.settled ? '是' : '否'}`);
         });
         
-        // 查詢最新的退水記錄
+        // 查询最新的退水记录
         const recentRebates = await db.any(`
             SELECT 
                 tr.*,
@@ -31,21 +31,21 @@ async function checkRebateDetails() {
             ORDER BY tr.created_at DESC
         `);
         
-        console.log('\n=== 最近2小時的退水記錄 ===');
+        console.log('\n=== 最近2小时的退水记录 ===');
         recentRebates.forEach(r => {
-            console.log(`代理: ${r.agent_name} (L${r.agent_level}, ${r.market_type}盤)`);
-            console.log(`  金額: ${r.amount} 元`);
-            console.log(`  下注金額: ${r.bet_amount || 'N/A'}`);
+            console.log(`代理: ${r.agent_name} (L${r.agent_level}, ${r.market_type}盘)`);
+            console.log(`  金额: ${r.amount} 元`);
+            console.log(`  下注金额: ${r.bet_amount || 'N/A'}`);
             console.log(`  退水比例: ${r.rebate_percentage ? (parseFloat(r.rebate_percentage) * 100).toFixed(1) + '%' : 'N/A'}`);
             console.log(`  描述: ${r.description}`);
-            console.log(`  時間: ${new Date(r.created_at).toLocaleString()}`);
+            console.log(`  时间: ${new Date(r.created_at).toLocaleString()}`);
             console.log('---');
         });
         
-        // 找出總退水超過 11 元的情況
+        // 找出总退水超过 11 元的情况
         const problemPeriods = {};
         recentRebates.forEach(r => {
-            const periodMatch = r.description.match(/期號 (\d+)/);
+            const periodMatch = r.description.match(/期号 (\d+)/);
             const period = periodMatch ? periodMatch[1] : null;
             
             if (period && r.bet_amount === '1000.00') {
@@ -65,16 +65,16 @@ async function checkRebateDetails() {
             }
         });
         
-        console.log('\n=== 問題期號分析 ===');
+        console.log('\n=== 问题期号分析 ===');
         Object.entries(problemPeriods).forEach(([period, data]) => {
-            const expectedTotal = data.betAmount * 0.011; // A盤應該是 1.1%
-            console.log(`\n期號 ${period}:`);
-            console.log(`  下注金額: ${data.betAmount} 元`);
-            console.log(`  預期總退水: ${expectedTotal.toFixed(2)} 元 (1.1%)`);
-            console.log(`  實際總退水: ${data.total.toFixed(2)} 元 (${(data.total / data.betAmount * 100).toFixed(1)}%)`);
+            const expectedTotal = data.betAmount * 0.011; // A盘应该是 1.1%
+            console.log(`\n期号 ${period}:`);
+            console.log(`  下注金额: ${data.betAmount} 元`);
+            console.log(`  预期总退水: ${expectedTotal.toFixed(2)} 元 (1.1%)`);
+            console.log(`  实际总退水: ${data.total.toFixed(2)} 元 (${(data.total / data.betAmount * 100).toFixed(1)}%)`);
             
-            if (data.total > expectedTotal * 1.1) { // 如果超過預期10%以上
-                console.log(`  ❌ 退水異常！超出預期 ${(data.total - expectedTotal).toFixed(2)} 元`);
+            if (data.total > expectedTotal * 1.1) { // 如果超过预期10%以上
+                console.log(`  ❌ 退水异常！超出预期 ${(data.total - expectedTotal).toFixed(2)} 元`);
             }
             
             console.log(`  退水分配:`);
@@ -84,7 +84,7 @@ async function checkRebateDetails() {
         });
         
     } catch (error) {
-        console.error('查詢時發生錯誤:', error);
+        console.error('查询时发生错误:', error);
     } finally {
         process.exit(0);
     }

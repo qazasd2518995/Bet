@@ -2,13 +2,13 @@ import db from './db/config.js';
 
 async function checkRebateIssue() {
   try {
-    console.log('=== 檢查退水計算問題 ===\n');
+    console.log('=== 检查退水计算问题 ===\n');
 
-    // 1. 檢查 justin2025A 的代理鏈關係
-    console.log('1. 檢查 justin2025A 的代理鏈關係：');
+    // 1. 检查 justin2025A 的代理链关系
+    console.log('1. 检查 justin2025A 的代理链关系：');
     const memberQuery = `
       WITH RECURSIVE agent_chain AS (
-        -- 起始：找到會員的直屬代理
+        -- 起始：找到会员的直属代理
         SELECT 
           m.username as member_username,
           m.agent_id,
@@ -26,7 +26,7 @@ async function checkRebateIssue() {
         
         UNION ALL
         
-        -- 遞迴：找上級代理
+        -- 递回：找上级代理
         SELECT 
           ac.member_username,
           ac.agent_id,
@@ -46,18 +46,18 @@ async function checkRebateIssue() {
     `;
     
     const agentChain = await db.query(memberQuery);
-    console.log('代理鏈：');
+    console.log('代理链：');
     agentChain.forEach(agent => {
-      console.log(`  層級 ${agent.chain_level}: ${agent.username} (Level: ${agent.level}, 盤口: ${agent.market_type}, 退水: ${agent.rebate_percentage}%)`);
+      console.log(`  层级 ${agent.chain_level}: ${agent.username} (Level: ${agent.level}, 盘口: ${agent.market_type}, 退水: ${agent.rebate_percentage}%)`);
     });
     
     if (agentChain.length > 0) {
-      console.log(`\n會員 justin2025A 的盤口類型: ${agentChain[0].member_market_type || '未設定（跟隨代理）'}`);
-      console.log(`直屬代理 ${agentChain[0].username} 的盤口類型: ${agentChain[0].market_type}`);
+      console.log(`\n会员 justin2025A 的盘口类型: ${agentChain[0].member_market_type || '未设定（跟随代理）'}`);
+      console.log(`直属代理 ${agentChain[0].username} 的盘口类型: ${agentChain[0].market_type}`);
     }
 
-    // 2. 檢查最近的投注記錄
-    console.log('\n2. 檢查 justin2025A 最近的投注記錄：');
+    // 2. 检查最近的投注记录
+    console.log('\n2. 检查 justin2025A 最近的投注记录：');
     const betsQuery = `
       SELECT 
         b.id,
@@ -78,13 +78,13 @@ async function checkRebateIssue() {
     console.log('最近投注：');
     bets.forEach(bet => {
       console.log(`\n  投注ID: ${bet.id}`);
-      console.log(`  金額: ${bet.amount}, 退水: ${bet.rebate_amount}, 退水率: ${bet.rebate_percentage}%`);
-      console.log(`  代理鏈: ${bet.agent_chain}`);
-      console.log(`  時間: ${new Date(bet.created_at).toLocaleString()}`);
+      console.log(`  金额: ${bet.amount}, 退水: ${bet.rebate_amount}, 退水率: ${bet.rebate_percentage}%`);
+      console.log(`  代理链: ${bet.agent_chain}`);
+      console.log(`  时间: ${new Date(bet.created_at).toLocaleString()}`);
     });
 
-    // 3. 檢查退水分配記錄
-    console.log('\n3. 檢查退水分配詳情：');
+    // 3. 检查退水分配记录
+    console.log('\n3. 检查退水分配详情：');
     if (bets.length > 0) {
       const betId = bets[0].id;
       const rebateQuery = `
@@ -105,47 +105,47 @@ async function checkRebateIssue() {
       `;
       
       const rebateRecords = await db.query(rebateQuery, [betId]);
-      console.log(`\n最近一筆投注（ID: ${betId}）的退水分配：`);
+      console.log(`\n最近一笔投注（ID: ${betId}）的退水分配：`);
       let totalRebate = 0;
       rebateRecords.forEach(record => {
         totalRebate += parseFloat(record.amount);
-        console.log(`  ${record.username} (Level ${record.level}, ${record.market_type}盤, 退水${record.rebate_percentage}%): ${record.amount}`);
+        console.log(`  ${record.username} (Level ${record.level}, ${record.market_type}盘, 退水${record.rebate_percentage}%): ${record.amount}`);
       });
-      console.log(`  總退水: ${totalRebate.toFixed(2)}`);
+      console.log(`  总退水: ${totalRebate.toFixed(2)}`);
       
       if (bets[0].amount) {
         const totalRebatePercent = (totalRebate / bets[0].amount * 100).toFixed(2);
-        console.log(`  總退水率: ${totalRebatePercent}%`);
+        console.log(`  总退水率: ${totalRebatePercent}%`);
       }
     }
 
-    // 4. 分析問題
-    console.log('\n=== 問題分析 ===');
+    // 4. 分析问题
+    console.log('\n=== 问题分析 ===');
     if (agentChain.length > 0 && bets.length > 0) {
       const directAgent = agentChain[0];
       const avgRebatePercent = bets.reduce((sum, bet) => sum + parseFloat(bet.rebate_percentage || 0), 0) / bets.length;
       
-      console.log(`\n退水計算分析：`);
-      console.log(`- 會員直屬代理: ${directAgent.username} (${directAgent.market_type}盤)`);
+      console.log(`\n退水计算分析：`);
+      console.log(`- 会员直属代理: ${directAgent.username} (${directAgent.market_type}盘)`);
       console.log(`- 平均退水率: ${avgRebatePercent.toFixed(2)}%`);
       
       if (directAgent.market_type === 'A') {
-        console.log(`- A盤標準退水池: 1.1%`);
+        console.log(`- A盘标准退水池: 1.1%`);
         if (avgRebatePercent > 2) {
-          console.log(`\n❌ 問題確認：A盤會員使用了過高的退水率！`);
-          console.log(`   應該使用 1.1% 的總退水池，但實際使用了約 ${avgRebatePercent.toFixed(2)}%`);
-          console.log(`   可能原因：系統錯誤地使用了 D盤的 4.1% 退水池`);
+          console.log(`\n❌ 问题确认：A盘会员使用了过高的退水率！`);
+          console.log(`   应该使用 1.1% 的总退水池，但实际使用了约 ${avgRebatePercent.toFixed(2)}%`);
+          console.log(`   可能原因：系统错误地使用了 D盘的 4.1% 退水池`);
         }
       } else if (directAgent.market_type === 'D') {
-        console.log(`- D盤標準退水池: 4.1%`);
+        console.log(`- D盘标准退水池: 4.1%`);
         if (avgRebatePercent > 4.1) {
-          console.log(`\n⚠️  退水率超過D盤標準！`);
+          console.log(`\n⚠️  退水率超过D盘标准！`);
         }
       }
     }
 
-    // 5. 檢查結算系統文件
-    console.log('\n5. 尋找結算系統文件：');
+    // 5. 检查结算系统文件
+    console.log('\n5. 寻找结算系统文件：');
     const { readdirSync } = await import('fs');
     const files = readdirSync('.');
     const settlementFiles = files.filter(f => 
@@ -155,13 +155,13 @@ async function checkRebateIssue() {
       f === 'agentBackend.js'
     );
     
-    console.log('相關文件：');
+    console.log('相关文件：');
     settlementFiles.forEach(file => {
       console.log(`  - ${file}`);
     });
 
   } catch (error) {
-    console.error('檢查失敗:', error);
+    console.error('检查失败:', error);
   } finally {
     process.exit();
   }

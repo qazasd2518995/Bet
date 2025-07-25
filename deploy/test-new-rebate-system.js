@@ -1,14 +1,14 @@
-// 測試新的退水系統
+// 测试新的退水系统
 import db from './db/config.js';
 
 async function testNewRebateSystem() {
     console.log('========================================');
-    console.log('🧪 測試新退水系統');
+    console.log('🧪 测试新退水系统');
     console.log('========================================\n');
     
     try {
-        // 1. 查找測試數據
-        console.log('1️⃣ 查找測試代理鏈...');
+        // 1. 查找测试数据
+        console.log('1️⃣ 查找测试代理链...');
         const testMember = await db.oneOrNone(`
             SELECT m.*, a.username as agent_username, a.market_type 
             FROM members m 
@@ -18,15 +18,15 @@ async function testNewRebateSystem() {
         `);
         
         if (!testMember) {
-            console.log('❌ 找不到任何會員');
+            console.log('❌ 找不到任何会员');
             return;
         }
         
-        console.log(`✓ 找到測試會員: ${testMember.username}`);
-        console.log(`  代理: ${testMember.agent_username} (${testMember.market_type}盤)`);
+        console.log(`✓ 找到测试会员: ${testMember.username}`);
+        console.log(`  代理: ${testMember.agent_username} (${testMember.market_type}盘)`);
         
-        // 2. 獲取完整代理鏈
-        console.log('\n2️⃣ 獲取代理鏈...');
+        // 2. 获取完整代理链
+        console.log('\n2️⃣ 获取代理链...');
         const agentChain = await db.any(`
             WITH RECURSIVE agent_chain AS (
                 SELECT id, username, parent_id, rebate_percentage, market_type, 0 as level
@@ -43,29 +43,29 @@ async function testNewRebateSystem() {
             SELECT * FROM agent_chain ORDER BY level DESC
         `, [testMember.agent_id]);
         
-        console.log(`✓ 代理鏈 (${agentChain.length} 層):`);
+        console.log(`✓ 代理链 (${agentChain.length} 层):`);
         agentChain.forEach((agent, index) => {
-            console.log(`  ${index === 0 ? '總代理' : `L${agent.level}`}: ${agent.username} (退水: ${(agent.rebate_percentage * 100).toFixed(1)}%)`);
+            console.log(`  ${index === 0 ? '总代理' : `L${agent.level}`}: ${agent.username} (退水: ${(agent.rebate_percentage * 100).toFixed(1)}%)`);
         });
         
         const topAgent = agentChain[0];
-        console.log(`\n📍 總代理: ${topAgent.username}`);
+        console.log(`\n📍 总代理: ${topAgent.username}`);
         
-        // 3. 模擬下注並計算退水
-        console.log('\n3️⃣ 模擬下注並計算退水...');
+        // 3. 模拟下注并计算退水
+        console.log('\n3️⃣ 模拟下注并计算退水...');
         const betAmount = 1000;
         const marketType = topAgent.market_type || 'D';
         const rebatePercentage = marketType === 'A' ? 0.011 : 0.041;
         const rebateAmount = Math.round(betAmount * rebatePercentage * 100) / 100;
         
-        console.log(`✓ 下注金額: ${betAmount}`);
-        console.log(`✓ 盤口類型: ${marketType}盤`);
+        console.log(`✓ 下注金额: ${betAmount}`);
+        console.log(`✓ 盘口类型: ${marketType}盘`);
         console.log(`✓ 退水比例: ${(rebatePercentage * 100).toFixed(1)}%`);
-        console.log(`✓ 退水金額: ${rebateAmount}`);
-        console.log(`✓ 退水將全部給總代理: ${topAgent.username}`);
+        console.log(`✓ 退水金额: ${rebateAmount}`);
+        console.log(`✓ 退水将全部给总代理: ${topAgent.username}`);
         
-        // 4. 檢查最近的退水記錄
-        console.log('\n4️⃣ 檢查最近的退水記錄...');
+        // 4. 检查最近的退水记录
+        console.log('\n4️⃣ 检查最近的退水记录...');
         const recentRebates = await db.any(`
             SELECT tr.*, a.username as agent_username 
             FROM transaction_records tr
@@ -78,26 +78,26 @@ async function testNewRebateSystem() {
         `);
         
         if (recentRebates.length > 0) {
-            console.log(`✓ 最近 ${recentRebates.length} 筆退水記錄:`);
+            console.log(`✓ 最近 ${recentRebates.length} 笔退水记录:`);
             recentRebates.forEach(record => {
                 const desc = record.description || '';
-                const marketMatch = desc.match(/([AD])盤/);
+                const marketMatch = desc.match(/([AD])盘/);
                 const percentMatch = desc.match(/([\d.]+)%/);
-                console.log(`  ${record.agent_username}: ${record.amount} 元 (${marketMatch ? marketMatch[1] : '?'}盤 ${percentMatch ? percentMatch[1] : '?'}%) - ${new Date(record.created_at).toLocaleString()}`);
+                console.log(`  ${record.agent_username}: ${record.amount} 元 (${marketMatch ? marketMatch[1] : '?'}盘 ${percentMatch ? percentMatch[1] : '?'}%) - ${new Date(record.created_at).toLocaleString()}`);
             });
         } else {
-            console.log('❌ 沒有找到退水記錄');
+            console.log('❌ 没有找到退水记录');
         }
         
-        // 5. 檢查代理報表顯示
-        console.log('\n5️⃣ 檢查代理報表顯示邏輯...');
-        console.log('✓ 新邏輯說明:');
-        console.log('  - 退水設定只影響報表顯示');
-        console.log('  - 代理的賺水顯示 = 該代理的退水設定百分比 × 下注金額');
-        console.log('  - 會員的賺水顯示 = 0 (會員沒有退水設定)');
-        console.log('  - 這些數據僅供代理查看和手動分配退水使用');
+        // 5. 检查代理报表显示
+        console.log('\n5️⃣ 检查代理报表显示逻辑...');
+        console.log('✓ 新逻辑说明:');
+        console.log('  - 退水设定只影响报表显示');
+        console.log('  - 代理的赚水显示 = 该代理的退水设定百分比 × 下注金额');
+        console.log('  - 会员的赚水显示 = 0 (会员没有退水设定)');
+        console.log('  - 这些数据仅供代理查看和手动分配退水使用');
         
-        // 6. 查詢某個代理的報表數據範例
+        // 6. 查询某个代理的报表数据范例
         const sampleAgent = await db.oneOrNone(`
             SELECT * FROM agents 
             WHERE rebate_percentage > 0 
@@ -107,8 +107,8 @@ async function testNewRebateSystem() {
         `);
         
         if (sampleAgent) {
-            console.log(`\n✓ 範例代理: ${sampleAgent.username}`);
-            console.log(`  退水設定: ${(sampleAgent.rebate_percentage * 100).toFixed(1)}%`);
+            console.log(`\n✓ 范例代理: ${sampleAgent.username}`);
+            console.log(`  退水设定: ${(sampleAgent.rebate_percentage * 100).toFixed(1)}%`);
             
             const betStats = await db.oneOrNone(`
                 SELECT 
@@ -122,19 +122,19 @@ async function testNewRebateSystem() {
             
             if (betStats && parseFloat(betStats.total_bet) > 0) {
                 const earnedRebate = parseFloat(betStats.total_bet) * sampleAgent.rebate_percentage;
-                console.log(`  下注總額: ${betStats.total_bet}`);
-                console.log(`  報表顯示賺水: ${earnedRebate.toFixed(2)} 元`);
+                console.log(`  下注总额: ${betStats.total_bet}`);
+                console.log(`  报表显示赚水: ${earnedRebate.toFixed(2)} 元`);
             }
         }
         
-        console.log('\n✅ 測試完成！');
+        console.log('\n✅ 测试完成！');
         
     } catch (error) {
-        console.error('❌ 測試失敗:', error);
+        console.error('❌ 测试失败:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行測試
+// 执行测试
 testNewRebateSystem();

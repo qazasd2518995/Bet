@@ -11,14 +11,14 @@ async function memberLogin() {
   
   if (response.data.success) {
     memberToken = response.data.sessionToken;
-    console.log('✅ 會員登錄成功!');
+    console.log('✅ 会员登录成功!');
     return true;
   }
   return false;
 }
 
 async function waitForPeriod51() {
-  console.log('⏳ 等待期數20250702051開始...');
+  console.log('⏳ 等待期数20250702051开始...');
   
   for (let i = 0; i < 60; i++) {
     try {
@@ -26,15 +26,15 @@ async function waitForPeriod51() {
       const { currentPeriod, status, countdownSeconds } = response.data.gameData;
       
       if (currentPeriod === 20250702051 && status === 'betting' && countdownSeconds > 25) {
-        console.log(`🎮 期數${currentPeriod}開始！剩餘${countdownSeconds}秒下注時間`);
+        console.log(`🎮 期数${currentPeriod}开始！剩余${countdownSeconds}秒下注时间`);
         return true;
       }
       
       if (i % 5 === 0) {
-        console.log(`⏳ 當前期數: ${currentPeriod}, 狀態: ${status}, 倒數: ${countdownSeconds}秒`);
+        console.log(`⏳ 当前期数: ${currentPeriod}, 状态: ${status}, 倒数: ${countdownSeconds}秒`);
       }
     } catch (error) {
-      // 繼續等待
+      // 继续等待
     }
     
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -45,9 +45,9 @@ async function waitForPeriod51() {
 
 async function placeBetsAndMonitor() {
   try {
-    console.log('💰 立即下注測試100%贏控制...');
+    console.log('💰 立即下注测试100%赢控制...');
     
-    // 下注多個和值，看控制是否會讓其中一個中獎
+    // 下注多个和值，看控制是否会让其中一个中奖
     const bets = [
       { betType: 'sumValue', value: '7', amount: 100 },
       { betType: 'sumValue', value: '8', amount: 100 },
@@ -69,19 +69,19 @@ async function placeBetsAndMonitor() {
           successBets.push(bet.value);
         }
       } catch (error) {
-        console.log(`❌ 下注失敗: ${error.response?.data?.message}`);
+        console.log(`❌ 下注失败: ${error.response?.data?.message}`);
       }
     }
     
     if (successBets.length === 0) {
-      console.log('❌ 沒有成功的下注');
+      console.log('❌ 没有成功的下注');
       return;
     }
     
     console.log(`�� 成功下注和值: [${successBets.join(', ')}]`);
-    console.log('🎲 等待開獎結果...');
+    console.log('🎲 等待开奖结果...');
     
-    // 監控開獎結果
+    // 监控开奖结果
     for (let i = 0; i < 120; i++) {
       try {
         const response = await axios.get(`${GAME_URL}/api/history?limit=1`);
@@ -90,60 +90,60 @@ async function placeBetsAndMonitor() {
           
           if (latest.period === '20250702051') {
             const sumValue = latest.result[0] + latest.result[1];
-            console.log(`\n🎲 期數${latest.period}開獎結果: [${latest.result.join(', ')}]`);
-            console.log(`📊 冠亞軍: ${latest.result[0]} + ${latest.result[1]} = 和值${sumValue}`);
-            console.log(`💰 我們下注的和值: [${successBets.join(', ')}]`);
+            console.log(`\n🎲 期数${latest.period}开奖结果: [${latest.result.join(', ')}]`);
+            console.log(`📊 冠亚军: ${latest.result[0]} + ${latest.result[1]} = 和值${sumValue}`);
+            console.log(`💰 我们下注的和值: [${successBets.join(', ')}]`);
             
             if (successBets.includes(sumValue.toString())) {
-              console.log('\n🎉🎉🎉 100%贏控制成功！！！');
-              console.log(`✅ 和值${sumValue}命中我們的下注！`);
-              console.log('✅ 輸贏控制系統正常工作！');
+              console.log('\n🎉🎉🎉 100%赢控制成功！！！');
+              console.log(`✅ 和值${sumValue}命中我们的下注！`);
+              console.log('✅ 输赢控制系统正常工作！');
             } else {
-              console.log('\n❌❌❌ 100%贏控制失敗！');
-              console.log(`❌ 和值${sumValue}未命中我們的下注`);
-              console.log('❌ 輸贏控制系統需要修復！');
+              console.log('\n❌❌❌ 100%赢控制失败！');
+              console.log(`❌ 和值${sumValue}未命中我们的下注`);
+              console.log('❌ 输赢控制系统需要修复！');
             }
             
             return;
           }
         }
       } catch (error) {
-        // 繼續等待
+        // 继续等待
       }
       
       if (i % 10 === 0) {
-        console.log(`⏳ 等待開獎中... (${i}秒)`);
+        console.log(`⏳ 等待开奖中... (${i}秒)`);
       }
       
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    console.log('❌ 等待開獎超時');
+    console.log('❌ 等待开奖超时');
     
   } catch (error) {
-    console.error('測試過程出錯:', error.message);
+    console.error('测试过程出错:', error.message);
   }
 }
 
 async function main() {
-  console.log('🚀 最終100%贏控制驗證測試');
+  console.log('🚀 最终100%赢控制验证测试');
   console.log('=' .repeat(60));
-  console.log('⚠️ 期數20250702051已設置為memberA1的100%贏控制');
+  console.log('⚠️ 期数20250702051已设置为memberA1的100%赢控制');
   console.log('=' .repeat(60));
   
   if (!await memberLogin()) {
-    console.log('❌ 會員登錄失敗');
+    console.log('❌ 会员登录失败');
     return;
   }
   
   if (!await waitForPeriod51()) {
-    console.log('❌ 等待期數51超時');
+    console.log('❌ 等待期数51超时');
     return;
   }
   
   await placeBetsAndMonitor();
   
-  console.log('\n🎉 測試完成！');
+  console.log('\n🎉 测试完成！');
 }
 
 main().catch(console.error);

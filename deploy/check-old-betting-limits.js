@@ -2,7 +2,7 @@ import db from './db/config.js';
 
 async function checkOldBettingLimits() {
   try {
-    // 檢查是否有betting_limits表
+    // 检查是否有betting_limits表
     const tables = await db.any(`
       SELECT table_name 
       FROM information_schema.tables 
@@ -11,7 +11,7 @@ async function checkOldBettingLimits() {
       ORDER BY table_name
     `);
     
-    console.log('限紅相關表格:');
+    console.log('限红相关表格:');
     tables.forEach(t => console.log(`- ${t.table_name}`));
     
     // 查看betting_limits表
@@ -24,13 +24,13 @@ async function checkOldBettingLimits() {
     `);
     
     if (hasOldTable?.exists) {
-      console.log('\n發現舊的betting_limits表，查詢內容...');
+      console.log('\n发现旧的betting_limits表，查询内容...');
       const limits = await db.any(`
         SELECT * FROM betting_limits 
         ORDER BY id
       `);
       
-      console.log('\nbetting_limits表內容:');
+      console.log('\nbetting_limits表内容:');
       limits.forEach(limit => {
         console.log(`\nID: ${limit.id}`);
         console.log(`Level: ${limit.level_name}`);
@@ -41,7 +41,7 @@ async function checkOldBettingLimits() {
     
     process.exit(0);
   } catch (error) {
-    console.error('錯誤:', error);
+    console.error('错误:', error);
     process.exit(1);
   }
 }

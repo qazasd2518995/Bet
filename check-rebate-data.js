@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkRebateData() {
   try {
-    console.log('=== 檢查代理設定 ===');
+    console.log('=== 检查代理设定 ===');
     
-    // 檢查代理設定 - 修正：justin111 是會員，不是代理
+    // 检查代理设定 - 修正：justin111 是会员，不是代理
     const agents = await db.any(`
       SELECT id, username, level, rebate_percentage, max_rebate_percentage, market_type, parent_id 
       FROM agents 
@@ -12,26 +12,26 @@ async function checkRebateData() {
       ORDER BY level DESC
     `, ['ti2025A', 'justin2025A']);
     
-    console.log('代理設定:');
+    console.log('代理设定:');
     for (const agent of agents) {
-      console.log(`${agent.username} (L${agent.level}): 退水=${(agent.rebate_percentage*100).toFixed(1)}%, 最大=${(agent.max_rebate_percentage*100).toFixed(1)}%, 盤口=${agent.market_type}, 上級=${agent.parent_id}`);
+      console.log(`${agent.username} (L${agent.level}): 退水=${(agent.rebate_percentage*100).toFixed(1)}%, 最大=${(agent.max_rebate_percentage*100).toFixed(1)}%, 盘口=${agent.market_type}, 上级=${agent.parent_id}`);
     }
     
-    // 檢查會員設定
+    // 检查会员设定
     const member = await db.oneOrNone('SELECT username, agent_id FROM members WHERE username = $1', ['justin111']);
     if (member) {
-      console.log('\n會員設定:');
-      console.log(`${member.username} 的直屬代理ID: ${member.agent_id}`);
+      console.log('\n会员设定:');
+      console.log(`${member.username} 的直属代理ID: ${member.agent_id}`);
       
-      // 找出直屬代理是誰
+      // 找出直属代理是谁
       const directAgent = await db.oneOrNone('SELECT username FROM agents WHERE id = $1', [member.agent_id]);
       if (directAgent) {
-        console.log(`直屬代理: ${directAgent.username}`);
+        console.log(`直属代理: ${directAgent.username}`);
       }
     }
     
-    // 檢查交易記錄中的退水
-    console.log('\n=== 交易記錄中的退水 ===');
+    // 检查交易记录中的退水
+    console.log('\n=== 交易记录中的退水 ===');
     const transactions = await db.any(`
       SELECT * FROM transaction_records 
       WHERE description LIKE '%退水%' OR description LIKE '%rebate%'
@@ -40,11 +40,11 @@ async function checkRebateData() {
     `);
     
     for (const tx of transactions) {
-      console.log(`${tx.created_at}: ${tx.username}, 金額=${tx.amount}, 描述=${tx.description}`);
+      console.log(`${tx.created_at}: ${tx.username}, 金额=${tx.amount}, 描述=${tx.description}`);
     }
     
-    // 檢查點數轉移記錄
-    console.log('\n=== 點數轉移記錄 ===');
+    // 检查点数转移记录
+    console.log('\n=== 点数转移记录 ===');
     const transfers = await db.any(`
       SELECT * FROM point_transfers 
       WHERE description LIKE '%退水%' OR description LIKE '%rebate%'
@@ -53,11 +53,11 @@ async function checkRebateData() {
     `);
     
     for (const transfer of transfers) {
-      console.log(`${transfer.created_at}: ${transfer.from_username} -> ${transfer.to_username}, 金額=${transfer.amount}, 描述=${transfer.description}`);
+      console.log(`${transfer.created_at}: ${transfer.from_username} -> ${transfer.to_username}, 金额=${transfer.amount}, 描述=${transfer.description}`);
     }
     
-    // 檢查代理餘額變化
-    console.log('\n=== 代理當前餘額 ===');
+    // 检查代理余额变化
+    console.log('\n=== 代理当前余额 ===');
     const agentBalances = await db.any(`
       SELECT username, balance 
       FROM agents 
@@ -66,13 +66,13 @@ async function checkRebateData() {
     `, ['ti2025A', 'justin2025A']);
     
     for (const agent of agentBalances) {
-      console.log(`${agent.username} 當前餘額: ${agent.balance}`);
+      console.log(`${agent.username} 当前余额: ${agent.balance}`);
     }
     
     await db.$pool.end();
     
   } catch (error) {
-    console.error('錯誤:', error);
+    console.error('错误:', error);
     await db.$pool.end();
     process.exit(1);
   }

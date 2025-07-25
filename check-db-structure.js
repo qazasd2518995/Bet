@@ -2,10 +2,10 @@ import db from './db/config.js';
 
 async function checkDatabaseStructure() {
   try {
-    console.log('=== 檢查資料庫結構 ===\n');
+    console.log('=== 检查资料库结构 ===\n');
 
-    // 1. 檢查 agents 表結構
-    console.log('1. agents 表結構：');
+    // 1. 检查 agents 表结构
+    console.log('1. agents 表结构：');
     const agentsColumns = await db.query(`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns
@@ -18,8 +18,8 @@ async function checkDatabaseStructure() {
       console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`);
     });
 
-    // 2. 檢查 members 表結構
-    console.log('\n2. members 表結構：');
+    // 2. 检查 members 表结构
+    console.log('\n2. members 表结构：');
     const membersColumns = await db.query(`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns
@@ -32,8 +32,8 @@ async function checkDatabaseStructure() {
       console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`);
     });
 
-    // 3. 檢查代理資料和盤口類型
-    console.log('\n3. 檢查代理資料：');
+    // 3. 检查代理资料和盘口类型
+    console.log('\n3. 检查代理资料：');
     const agents = await db.query(`
       SELECT *
       FROM agents
@@ -41,7 +41,7 @@ async function checkDatabaseStructure() {
       ORDER BY level;
     `);
     
-    console.log('代理資料：');
+    console.log('代理资料：');
     agents.forEach(agent => {
       console.log(`\n  ${agent.username}:`);
       Object.keys(agent).forEach(key => {
@@ -51,8 +51,8 @@ async function checkDatabaseStructure() {
       });
     });
 
-    // 4. 檢查會員資料和盤口
-    console.log('\n4. 檢查會員 justin2025A：');
+    // 4. 检查会员资料和盘口
+    console.log('\n4. 检查会员 justin2025A：');
     const member = await db.query(`
       SELECT m.*, a.username as agent_username
       FROM members m
@@ -61,7 +61,7 @@ async function checkDatabaseStructure() {
     `);
     
     if (member.length > 0) {
-      console.log('會員資料：');
+      console.log('会员资料：');
       Object.keys(member[0]).forEach(key => {
         if (member[0][key] !== null) {
           console.log(`  ${key}: ${member[0][key]}`);
@@ -70,7 +70,7 @@ async function checkDatabaseStructure() {
     }
 
   } catch (error) {
-    console.error('檢查失敗:', error);
+    console.error('检查失败:', error);
   } finally {
     process.exit();
   }

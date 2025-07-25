@@ -1,22 +1,22 @@
-// analyze-why-all-lose.js - 深入分析為什麼所有投注都顯示為輸
+// analyze-why-all-lose.js - 深入分析为什么所有投注都显示为输
 import db from './db/config.js';
 
 async function analyzeWhyAllLose() {
     try {
-        console.log('🔍 深入分析為什麼所有投注都顯示為輸...\n');
+        console.log('🔍 深入分析为什么所有投注都显示为输...\n');
         
-        // 1. 分析結算流程
-        console.log('📋 分析結算流程:');
-        console.log('1. backend.js 調用 settleBets(period, {positions: array})');
-        console.log('2. settleBets 調用 improvedSettleBets(period, winResult)');
-        console.log('3. improvedSettleBets 查詢未結算的注單');
-        console.log('4. 對每筆注單調用 checkWin(bet, winResult)');
-        console.log('5. checkWin 根據 bet_type 和 bet_value 判斷是否中獎\n');
+        // 1. 分析结算流程
+        console.log('📋 分析结算流程:');
+        console.log('1. backend.js 调用 settleBets(period, {positions: array})');
+        console.log('2. settleBets 调用 improvedSettleBets(period, winResult)');
+        console.log('3. improvedSettleBets 查询未结算的注单');
+        console.log('4. 对每笔注单调用 checkWin(bet, winResult)');
+        console.log('5. checkWin 根据 bet_type 和 bet_value 判断是否中奖\n');
         
-        // 2. 檢查一個具體的錯誤案例
-        console.log('🔍 檢查具體錯誤案例 - 期號291:');
+        // 2. 检查一个具体的错误案例
+        console.log('🔍 检查具体错误案例 - 期号291:');
         
-        // 獲取期號291的結果和一些投注
+        // 获取期号291的结果和一些投注
         const period291Result = await db.one('SELECT result FROM result_history WHERE period = 20250714291');
         const period291Bets = await db.any(`
             SELECT id, bet_type, bet_value, win, win_amount
@@ -26,15 +26,15 @@ async function analyzeWhyAllLose() {
             LIMIT 2
         `);
         
-        console.log('開獎結果:', period291Result.result);
-        console.log('冠軍號碼:', period291Result.result[0]);
+        console.log('开奖结果:', period291Result.result);
+        console.log('冠军号码:', period291Result.result[0]);
         console.log('投注案例:');
         period291Bets.forEach(bet => {
-            console.log(`  ${bet.bet_type} ${bet.bet_value}: ${bet.win ? '中獎' : '輸'}`);
+            console.log(`  ${bet.bet_type} ${bet.bet_value}: ${bet.win ? '中奖' : '输'}`);
         });
         
-        // 3. 分析所有期號的中獎率
-        console.log('\n📊 分析各期號的中獎率:');
+        // 3. 分析所有期号的中奖率
+        console.log('\n📊 分析各期号的中奖率:');
         const winRateAnalysis = await db.any(`
             SELECT 
                 period,
@@ -52,13 +52,13 @@ async function analyzeWhyAllLose() {
         
         winRateAnalysis.forEach(p => {
             const status = p.win_rate == 0 ? '❌' : p.win_rate > 40 ? '✅' : '⚠️';
-            console.log(`${status} 期號 ${p.period}: ${p.total_bets}筆投注, ${p.winning_bets}筆中獎, 中獎率 ${p.win_rate}%`);
+            console.log(`${status} 期号 ${p.period}: ${p.total_bets}笔投注, ${p.winning_bets}笔中奖, 中奖率 ${p.win_rate}%`);
         });
         
-        // 4. 檢查結算時的數據流
-        console.log('\n🔍 檢查可能的問題點:');
+        // 4. 检查结算时的数据流
+        console.log('\n🔍 检查可能的问题点:');
         
-        // 問題1：settled = true 但 win = false
+        // 问题1：settled = true 但 win = false
         const suspiciousBets = await db.one(`
             SELECT COUNT(*) as count
             FROM bet_history 
@@ -70,9 +70,9 @@ async function analyzeWhyAllLose() {
                 AND bet_value IN ('big', 'small', 'odd', 'even')
         `);
         
-        console.log(`1. 已結算但顯示為輸的大小單雙投注: ${suspiciousBets.count}筆`);
+        console.log(`1. 已结算但显示为输的大小单双投注: ${suspiciousBets.count}笔`);
         
-        // 問題2：結算日誌顯示總中獎金額為0
+        // 问题2：结算日志显示总中奖金额为0
         const zeroWinLogs = await db.any(`
             SELECT period, settled_count, total_win_amount
             FROM settlement_logs 
@@ -82,21 +82,21 @@ async function analyzeWhyAllLose() {
             LIMIT 10
         `);
         
-        console.log(`2. 結算日誌顯示總中獎金額為0的期號: ${zeroWinLogs.length}個`);
+        console.log(`2. 结算日志显示总中奖金额为0的期号: ${zeroWinLogs.length}个`);
         zeroWinLogs.forEach(log => {
-            console.log(`   期號 ${log.period}: 結算${log.settled_count}筆, 總中獎$${log.total_win_amount}`);
+            console.log(`   期号 ${log.period}: 结算${log.settled_count}笔, 总中奖$${log.total_win_amount}`);
         });
         
-        // 5. 推測根本原因
+        // 5. 推测根本原因
         console.log('\n💡 可能的根本原因:');
-        console.log('1. **初始結算邏輯錯誤**: 在創建bet_history記錄時就錯誤地設置了win=false');
-        console.log('2. **結算執行時機問題**: 可能在投注還在處理中時就執行了結算');
-        console.log('3. **checkWin函數邏輯問題**: 雖然測試通過，但實際運行時可能有其他條件');
-        console.log('4. **數據格式不一致**: winResult的格式可能與預期不同');
-        console.log('5. **並發問題**: 多個結算進程同時運行導致數據錯亂');
+        console.log('1. **初始结算逻辑错误**: 在创建bet_history记录时就错误地设置了win=false');
+        console.log('2. **结算执行时机问题**: 可能在投注还在处理中时就执行了结算');
+        console.log('3. **checkWin函数逻辑问题**: 虽然测试通过，但实际运行时可能有其他条件');
+        console.log('4. **数据格式不一致**: winResult的格式可能与预期不同');
+        console.log('5. **并发问题**: 多个结算进程同时运行导致数据错乱');
         
-        // 6. 檢查初始投注創建
-        console.log('\n🔍 檢查投注創建時的默認值:');
+        // 6. 检查初始投注创建
+        console.log('\n🔍 检查投注创建时的默认值:');
         const recentBetDefaults = await db.one(`
             SELECT 
                 COUNT(CASE WHEN win = false THEN 1 END) as default_false,
@@ -107,18 +107,18 @@ async function analyzeWhyAllLose() {
                 AND created_at >= NOW() - INTERVAL '1 day'
         `);
         
-        console.log(`win默認為false: ${recentBetDefaults.default_false}筆`);
-        console.log(`win默認為true: ${recentBetDefaults.default_true}筆`);
-        console.log(`win默認為null: ${recentBetDefaults.default_null}筆`);
+        console.log(`win默认为false: ${recentBetDefaults.default_false}笔`);
+        console.log(`win默认为true: ${recentBetDefaults.default_true}笔`);
+        console.log(`win默认为null: ${recentBetDefaults.default_null}笔`);
         
         if (recentBetDefaults.default_false > 0 && recentBetDefaults.default_true === 0) {
-            console.log('\n⚠️ 發現問題: 所有投注創建時win都默認為false');
-            console.log('這可能導致如果結算邏輯沒有正確執行，所有投注都會保持為輸的狀態');
+            console.log('\n⚠️ 发现问题: 所有投注创建时win都默认为false');
+            console.log('这可能导致如果结算逻辑没有正确执行，所有投注都会保持为输的状态');
         }
         
         await db.$pool.end();
     } catch (error) {
-        console.error('分析過程中發生錯誤:', error);
+        console.error('分析过程中发生错误:', error);
         await db.$pool.end();
     }
 }

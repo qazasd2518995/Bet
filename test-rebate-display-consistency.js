@@ -4,10 +4,10 @@ import db from './db/config.js';
 const AGENT_API_URL = 'http://localhost:3003/api/agent';
 
 async function testRebateDisplayConsistency() {
-  console.log('=== 測試退水顯示與驗證一致性 ===\n');
+  console.log('=== 测试退水显示与验证一致性 ===\n');
   
   try {
-    // 1. 查找退水為1.0%的代理
+    // 1. 查找退水为1.0%的代理
     console.log('1. 查找退水1.0%的代理...');
     const agent10 = await db.oneOrNone(`
       SELECT id, username, level, rebate_percentage, max_rebate_percentage, parent_id, market_type
@@ -23,12 +23,12 @@ async function testRebateDisplayConsistency() {
     
     console.log(`找到代理: ${agent10.username}`);
     console.log(`- ID: ${agent10.id}`);
-    console.log(`- 等級: ${agent10.level}`);
+    console.log(`- 等级: ${agent10.level}`);
     console.log(`- 退水: ${(agent10.rebate_percentage * 100).toFixed(1)}%`);
     console.log(`- 最大退水: ${(agent10.max_rebate_percentage * 100).toFixed(1)}%`);
-    console.log(`- 盤口: ${agent10.market_type}盤`);
+    console.log(`- 盘口: ${agent10.market_type}盘`);
     
-    // 2. 查看其上級代理
+    // 2. 查看其上级代理
     if (agent10.parent_id) {
       const parentAgent = await db.oneOrNone(`
         SELECT id, username, level, rebate_percentage, max_rebate_percentage, market_type
@@ -37,23 +37,23 @@ async function testRebateDisplayConsistency() {
       `, [agent10.parent_id]);
       
       if (parentAgent) {
-        console.log(`\n上級代理: ${parentAgent.username}`);
-        console.log(`- 等級: ${parentAgent.level}`);
+        console.log(`\n上级代理: ${parentAgent.username}`);
+        console.log(`- 等级: ${parentAgent.level}`);
         console.log(`- 退水: ${(parentAgent.rebate_percentage * 100).toFixed(1)}%`);
-        console.log(`- 盤口: ${parentAgent.market_type}盤`);
+        console.log(`- 盘口: ${parentAgent.market_type}盘`);
       }
     }
     
-    console.log('\n3. 預期行為:');
-    console.log(`當在 ${agent10.username} (退水${(agent10.rebate_percentage * 100).toFixed(1)}%) 的管理頁面新增代理時:`);
-    console.log(`- 前端應該顯示: 可設定範圍 0% - ${(agent10.rebate_percentage * 100).toFixed(1)}%`);
-    console.log(`- 後端應該限制: 最大 ${(agent10.rebate_percentage * 100).toFixed(1)}%`);
-    console.log(`- 兩者應該一致`);
+    console.log('\n3. 预期行为:');
+    console.log(`当在 ${agent10.username} (退水${(agent10.rebate_percentage * 100).toFixed(1)}%) 的管理页面新增代理时:`);
+    console.log(`- 前端应该显示: 可设定范围 0% - ${(agent10.rebate_percentage * 100).toFixed(1)}%`);
+    console.log(`- 后端应该限制: 最大 ${(agent10.rebate_percentage * 100).toFixed(1)}%`);
+    console.log(`- 两者应该一致`);
     
-    // 4. 測試創建代理API
-    console.log('\n4. 測試後端驗證邏輯...');
+    // 4. 测试创建代理API
+    console.log('\n4. 测试后端验证逻辑...');
     
-    // 先登入上級代理
+    // 先登入上级代理
     const parentAgent = await db.oneOrNone(`
       SELECT id, username FROM agents WHERE id = $1
     `, [agent10.parent_id]);
@@ -67,8 +67,8 @@ async function testRebateDisplayConsistency() {
       if (loginResp.data.success) {
         const token = loginResp.data.token;
         
-        // 測試創建超過限制的代理
-        console.log(`\n嘗試為 ${agent10.username} 創建退水1.05%的代理（應該失敗）...`);
+        // 测试创建超过限制的代理
+        console.log(`\n尝试为 ${agent10.username} 创建退水1.05%的代理（应该失败）...`);
         try {
           await axios.post(`${AGENT_API_URL}/create-agent`, {
             username: `test-exceed-${Date.now()}`,
@@ -82,17 +82,17 @@ async function testRebateDisplayConsistency() {
           }, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          console.log('❌ 錯誤：不應該允許創建超過上級退水的代理');
+          console.log('❌ 错误：不应该允许创建超过上级退水的代理');
         } catch (error) {
-          if (error.response?.data?.message?.includes('退水比例必須在')) {
-            console.log(`✅ 正確：${error.response.data.message}`);
+          if (error.response?.data?.message?.includes('退水比例必须在')) {
+            console.log(`✅ 正确：${error.response.data.message}`);
           } else {
-            console.log('❌ 錯誤：', error.response?.data?.message || error.message);
+            console.log('❌ 错误：', error.response?.data?.message || error.message);
           }
         }
         
-        // 測試創建符合限制的代理
-        console.log(`\n嘗試為 ${agent10.username} 創建退水0.9%的代理（應該成功）...`);
+        // 测试创建符合限制的代理
+        console.log(`\n尝试为 ${agent10.username} 创建退水0.9%的代理（应该成功）...`);
         try {
           const createResp = await axios.post(`${AGENT_API_URL}/create-agent`, {
             username: `test-valid-${Date.now()}`,
@@ -106,25 +106,25 @@ async function testRebateDisplayConsistency() {
           }, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          console.log(`✅ 成功創建代理: ${createResp.data.agent.username}`);
+          console.log(`✅ 成功创建代理: ${createResp.data.agent.username}`);
         } catch (error) {
-          console.log('❌ 錯誤：', error.response?.data?.message || error.message);
+          console.log('❌ 错误：', error.response?.data?.message || error.message);
         }
       }
     }
     
-    console.log('\n=== 測試完成 ===');
-    console.log('\n修復說明:');
-    console.log('1. 前端現在使用 currentManagingAgent 來計算最大退水');
-    console.log('2. 當為其他代理創建下級時，顯示該代理的退水作為上限');
-    console.log('3. 確保前端顯示與後端驗證保持一致');
+    console.log('\n=== 测试完成 ===');
+    console.log('\n修复说明:');
+    console.log('1. 前端现在使用 currentManagingAgent 来计算最大退水');
+    console.log('2. 当为其他代理创建下级时，显示该代理的退水作为上限');
+    console.log('3. 确保前端显示与后端验证保持一致');
     
   } catch (error) {
-    console.error('測試失敗:', error);
+    console.error('测试失败:', error);
   } finally {
     process.exit(0);
   }
 }
 
-// 執行測試
+// 执行测试
 testRebateDisplayConsistency();

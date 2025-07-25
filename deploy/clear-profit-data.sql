@@ -1,24 +1,24 @@
--- ⚠️  警告：以下指令將清除歷史數據，請謹慎使用！
+-- ⚠️  警告：以下指令将清除历史数据，请谨慎使用！
 
--- 1. 備份當前數據（執行清除前建議先備份）
+-- 1. 备份当前数据（执行清除前建议先备份）
 -- CREATE TABLE bet_history_backup AS SELECT * FROM bet_history WHERE settled = true;
 
--- 2. 清除所有已結算的下注記錄（保留未結算的）
+-- 2. 清除所有已结算的下注记录（保留未结算的）
 -- DELETE FROM bet_history WHERE settled = true;
 
--- 3. 僅清除舊的已結算記錄（保留最近3天）
+-- 3. 仅清除旧的已结算记录（保留最近3天）
 -- DELETE FROM bet_history 
 -- WHERE settled = true 
 --   AND created_at < CURRENT_DATE - INTERVAL '3 days';
 
--- 4. 僅重置結算狀態（不刪除記錄，但讓盈虧重新計算）
+-- 4. 仅重置结算状态（不删除记录，但让盈亏重新计算）
 -- UPDATE bet_history SET settled = false, win = null, win_amount = null 
 -- WHERE settled = true;
 
--- 5. 清除開獎結果歷史（會影響所有統計）
--- DELETE FROM result_history WHERE period < 當前期數;
+-- 5. 清除开奖结果历史（会影响所有统计）
+-- DELETE FROM result_history WHERE period < 当前期数;
 
--- 6. 查看數據清除後的狀態
+-- 6. 查看数据清除后的状态
 SELECT 
   'bet_history' as table_name,
   COUNT(*) as total_records,
@@ -33,11 +33,11 @@ SELECT
   0 as unsettled_records
 FROM result_history;
 
--- 建議的清除策略：
--- 選項A：保留最近7天數據，清除更早的記錄
+-- 建议的清除策略：
+-- 选项A：保留最近7天数据，清除更早的记录
 -- DELETE FROM bet_history WHERE settled = true AND created_at < CURRENT_DATE - INTERVAL '7 days';
 -- DELETE FROM result_history WHERE created_at < CURRENT_DATE - INTERVAL '7 days';
 
--- 選項B：完全重置（開發/測試環境使用）
+-- 选项B：完全重置（开发/测试环境使用）
 -- TRUNCATE TABLE bet_history;
 -- TRUNCATE TABLE result_history; 

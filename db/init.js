@@ -1,17 +1,17 @@
-// db/init.js - 初始化數據庫表結構
+// db/init.js - 初始化数据库表结构
 import db from './config.js';
 
-// 創建數據庫表
+// 创建数据库表
 async function initDatabase() {
   try {
-    console.log('開始初始化數據庫...');
+    console.log('开始初始化数据库...');
     
-    // 創建用戶表
+    // 创建用户表
     await db.none(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
-        password VARCHAR(100), -- 僅作為備份，實際應使用代理系統的認證
+        password VARCHAR(100), -- 仅作为备份，实际应使用代理系统的认证
         balance DECIMAL(15, 2) DEFAULT 0,
         status INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +19,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建下注歷史表
+    // 创建下注历史表
     await db.none(`
       CREATE TABLE IF NOT EXISTS bet_history (
         id SERIAL PRIMARY KEY,
@@ -37,7 +37,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建遊戲結果歷史表
+    // 创建游戏结果历史表
     await db.none(`
       CREATE TABLE IF NOT EXISTS result_history (
         id SERIAL PRIMARY KEY,
@@ -57,7 +57,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建遊戲狀態表
+    // 创建游戏状态表
     await db.none(`
       CREATE TABLE IF NOT EXISTS game_state (
         id SERIAL PRIMARY KEY,
@@ -69,7 +69,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建代理表
+    // 创建代理表
     await db.none(`
       CREATE TABLE IF NOT EXISTS agents (
         id SERIAL PRIMARY KEY,
@@ -88,7 +88,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建會員表
+    // 创建会员表
     await db.none(`
       CREATE TABLE IF NOT EXISTS members (
         id SERIAL PRIMARY KEY,
@@ -105,7 +105,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建轉帳記錄表
+    // 创建转帐记录表
     await db.none(`
       CREATE TABLE IF NOT EXISTS transfer_records (
         id SERIAL PRIMARY KEY,
@@ -119,7 +119,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建公告表
+    // 创建公告表
     await db.none(`
       CREATE TABLE IF NOT EXISTS announcements (
         id SERIAL PRIMARY KEY,
@@ -130,7 +130,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建交易記錄表
+    // 创建交易记录表
     await db.none(`
       CREATE TABLE IF NOT EXISTS transaction_records (
         id SERIAL PRIMARY KEY,
@@ -145,7 +145,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建開獎記錄表 (用於代理系統)
+    // 创建开奖记录表 (用于代理系统)
     await db.none(`
       CREATE TABLE IF NOT EXISTS draw_records (
         id SERIAL PRIMARY KEY,
@@ -156,7 +156,7 @@ async function initDatabase() {
       )
     `);
 
-    // 創建索引以提高查詢性能
+    // 创建索引以提高查询性能
     await db.none(`CREATE INDEX IF NOT EXISTS idx_bet_history_period ON bet_history(period)`);
     await db.none(`CREATE INDEX IF NOT EXISTS idx_bet_history_username ON bet_history(username)`);
     await db.none(`CREATE INDEX IF NOT EXISTS idx_result_history_period ON result_history(period)`);
@@ -167,8 +167,8 @@ async function initDatabase() {
     await db.none(`CREATE INDEX IF NOT EXISTS idx_transaction_records_user ON transaction_records(user_type, user_id)`);
     await db.none(`CREATE INDEX IF NOT EXISTS idx_draw_records_period ON draw_records(period)`);
 
-    // 檢查並添加 result_history 表的 position 列
-    console.log('檢查 result_history 表的 position 列...');
+    // 检查并添加 result_history 表的 position 列
+    console.log('检查 result_history 表的 position 列...');
     for (let i = 1; i <= 10; i++) {
       await db.none(`
         ALTER TABLE result_history 
@@ -182,22 +182,22 @@ async function initDatabase() {
       ADD COLUMN IF NOT EXISTS draw_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     `);
     
-    console.log('✅ 數據庫初始化完成');
+    console.log('✅ 数据库初始化完成');
   } catch (error) {
-    console.error('❌ 初始化數據庫時出錯:', error);
+    console.error('❌ 初始化数据库时出错:', error);
     throw error;
   }
 }
 
-// 如果直接執行此文件，則初始化數據庫
+// 如果直接执行此文件，则初始化数据库
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   initDatabase()
     .then(() => {
-      console.log('數據庫初始化腳本執行完畢');
+      console.log('数据库初始化脚本执行完毕');
       process.exit(0);
     })
     .catch(error => {
-      console.error('執行數據庫初始化腳本時出錯:', error);
+      console.error('执行数据库初始化脚本时出错:', error);
       process.exit(1);
     });
 }

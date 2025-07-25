@@ -1,4 +1,4 @@
-// fix-period-406-settlement.js - 修復期號 406 的結算
+// fix-period-406-settlement.js - 修复期号 406 的结算
 import db from './db/config.js';
 import { enhancedSettlement } from './enhanced-settlement-system.js';
 
@@ -6,49 +6,49 @@ async function fixPeriod406() {
     const period = '20250718406';
     
     try {
-        console.log(`開始修復期號 ${period} 的結算...`);
+        console.log(`开始修复期号 ${period} 的结算...`);
         
-        // 1. 查詢開獎結果
+        // 1. 查询开奖结果
         const drawResult = await db.oneOrNone(`
             SELECT * FROM result_history WHERE period = $1
         `, [period]);
         
         if (!drawResult) {
-            console.error('找不到開獎結果');
+            console.error('找不到开奖结果');
             return;
         }
         
-        console.log('\n開獎結果：');
-        console.log(`第1名: ${drawResult.position_1}號`);
-        console.log(`第2名: ${drawResult.position_2}號`);
-        console.log(`冠亞和: ${drawResult.position_1} + ${drawResult.position_2} = ${drawResult.position_1 + drawResult.position_2}`);
+        console.log('\n开奖结果：');
+        console.log(`第1名: ${drawResult.position_1}号`);
+        console.log(`第2名: ${drawResult.position_2}号`);
+        console.log(`冠亚和: ${drawResult.position_1} + ${drawResult.position_2} = ${drawResult.position_1 + drawResult.position_2}`);
         
-        // 2. 查詢該期所有投注
+        // 2. 查询该期所有投注
         const bets = await db.manyOrNone(`
             SELECT * FROM bet_history 
             WHERE period = $1 AND username = 'justin111'
             ORDER BY id
         `, [period]);
         
-        console.log(`\n找到 ${bets.length} 筆投注`);
+        console.log(`\n找到 ${bets.length} 笔投注`);
         
-        // 3. 顯示原始結算結果
-        console.log('\n原始結算結果：');
+        // 3. 显示原始结算结果
+        console.log('\n原始结算结果：');
         for (const bet of bets) {
-            console.log(`ID ${bet.id}: ${bet.bet_type} ${bet.bet_value}, 金額$${bet.amount}, ${bet.win ? '贏' : '輸'}, 派彩$${bet.win_amount || 0}`);
+            console.log(`ID ${bet.id}: ${bet.bet_type} ${bet.bet_value}, 金额$${bet.amount}, ${bet.win ? '赢' : '输'}, 派彩$${bet.win_amount || 0}`);
         }
         
-        // 4. 重新結算
-        console.log('\n開始重新結算...');
+        // 4. 重新结算
+        console.log('\n开始重新结算...');
         
-        // 先將所有投注標記為未結算
+        // 先将所有投注标记为未结算
         await db.none(`
             UPDATE bet_history 
             SET settled = false, win = false, win_amount = 0
             WHERE period = $1
         `, [period]);
         
-        // 執行增強結算
+        // 执行增强结算
         const result = await enhancedSettlement(period, {
             positions: [
                 drawResult.position_1,
@@ -65,36 +65,36 @@ async function fixPeriod406() {
         });
         
         if (result.success) {
-            console.log('\n結算完成！');
-            console.log(`結算筆數: ${result.settledCount}`);
-            console.log(`中獎筆數: ${result.winCount}`);
-            console.log(`總派彩: $${result.totalWinAmount}`);
+            console.log('\n结算完成！');
+            console.log(`结算笔数: ${result.settledCount}`);
+            console.log(`中奖笔数: ${result.winCount}`);
+            console.log(`总派彩: $${result.totalWinAmount}`);
             
-            // 5. 顯示新的結算結果
+            // 5. 显示新的结算结果
             const newBets = await db.manyOrNone(`
                 SELECT * FROM bet_history 
                 WHERE period = $1 AND username = 'justin111'
                 ORDER BY id
             `, [period]);
             
-            console.log('\n新的結算結果：');
+            console.log('\n新的结算结果：');
             for (const bet of newBets) {
-                console.log(`ID ${bet.id}: ${bet.bet_type} ${bet.bet_value}, 金額$${bet.amount}, ${bet.win ? '✓贏' : '✗輸'}, 派彩$${bet.win_amount || 0}`);
+                console.log(`ID ${bet.id}: ${bet.bet_type} ${bet.bet_value}, 金额$${bet.amount}, ${bet.win ? '✓赢' : '✗输'}, 派彩$${bet.win_amount || 0}`);
             }
             
-            // 分析變化
-            console.log('\n結算變化：');
+            // 分析变化
+            console.log('\n结算变化：');
             const sum = drawResult.position_1 + drawResult.position_2;
-            console.log(`冠亞和 = ${sum}`);
-            console.log(`- 冠亞和大（${sum} >= 12）：${sum >= 12 ? '中獎' : '未中'}`);
-            console.log(`- 冠亞和單（${sum} % 2 = ${sum % 2}）：${sum % 2 === 1 ? '中獎' : '未中'}`);
+            console.log(`冠亚和 = ${sum}`);
+            console.log(`- 冠亚和大（${sum} >= 12）：${sum >= 12 ? '中奖' : '未中'}`);
+            console.log(`- 冠亚和单（${sum} % 2 = ${sum % 2}）：${sum % 2 === 1 ? '中奖' : '未中'}`);
             
         } else {
-            console.error('結算失敗:', result.error);
+            console.error('结算失败:', result.error);
         }
         
     } catch (error) {
-        console.error('修復失敗:', error);
+        console.error('修复失败:', error);
     } finally {
         process.exit();
     }

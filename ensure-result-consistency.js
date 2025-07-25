@@ -1,8 +1,8 @@
-// ensure-result-consistency.js - 確保開獎結果一致性的輔助函數
+// ensure-result-consistency.js - 确保开奖结果一致性的辅助函数
 import db from './db/config.js';
 
 /**
- * 驗證並修復單個期號的結果一致性
+ * 验证并修复单个期号的结果一致性
  */
 export async function ensureResultConsistency(period) {
     const record = await db.oneOrNone(`
@@ -22,16 +22,16 @@ export async function ensureResultConsistency(period) {
         positionArray.push(record[`position_${i}`]);
     }
     
-    // 檢查是否一致
+    // 检查是否一致
     if (jsonResult && JSON.stringify(jsonResult) !== JSON.stringify(positionArray)) {
-        // 不一致，以 position_* 為準更新 result
+        // 不一致，以 position_* 为准更新 result
         await db.none(`
             UPDATE result_history
             SET result = $1::json
             WHERE period = $2
         `, [JSON.stringify(positionArray), period]);
         
-        console.log(`✅ 修復期號 ${period} 的結果一致性`);
+        console.log(`✅ 修复期号 ${period} 的结果一致性`);
         return positionArray;
     }
     
@@ -39,7 +39,7 @@ export async function ensureResultConsistency(period) {
 }
 
 /**
- * 獲取開獎結果的統一介面（確保使用 position_* 欄位）
+ * 获取开奖结果的统一介面（确保使用 position_* 栏位）
  */
 export async function getDrawResult(period) {
     const result = await db.oneOrNone(`
@@ -56,7 +56,7 @@ export async function getDrawResult(period) {
     
     if (!result) return null;
     
-    // 構建統一的結果物件
+    // 构建统一的结果物件
     const positions = [];
     for (let i = 1; i <= 10; i++) {
         positions.push(result[`position_${i}`]);
@@ -72,7 +72,7 @@ export async function getDrawResult(period) {
 }
 
 /**
- * 批量獲取開獎結果（確保使用 position_* 欄位）
+ * 批量获取开奖结果（确保使用 position_* 栏位）
  */
 export async function getDrawResults(limit = 10) {
     const results = await db.manyOrNone(`
@@ -104,25 +104,25 @@ export async function getDrawResults(limit = 10) {
     });
 }
 
-// 如果直接執行此檔案，執行測試
+// 如果直接执行此档案，执行测试
 if (import.meta.url === `file://${process.argv[1]}`) {
-    console.log('測試結果一致性函數...\n');
+    console.log('测试结果一致性函数...\n');
     
-    // 測試特定期號
+    // 测试特定期号
     const testPeriod = '20250718493';
-    console.log(`檢查期號 ${testPeriod}:`);
+    console.log(`检查期号 ${testPeriod}:`);
     
     const result = await getDrawResult(testPeriod);
     if (result) {
-        console.log(`  期號: ${result.period}`);
-        console.log(`  開獎結果: [${result.positions.join(', ')}]`);
-        console.log(`  開獎時間: ${result.drawTime}`);
+        console.log(`  期号: ${result.period}`);
+        console.log(`  开奖结果: [${result.positions.join(', ')}]`);
+        console.log(`  开奖时间: ${result.drawTime}`);
     } else {
-        console.log('  找不到該期號');
+        console.log('  找不到该期号');
     }
     
-    // 測試批量獲取
-    console.log('\n最近5期開獎結果：');
+    // 测试批量获取
+    console.log('\n最近5期开奖结果：');
     const recentResults = await getDrawResults(5);
     for (const res of recentResults) {
         console.log(`  ${res.period}: [${res.positions.join(', ')}]`);

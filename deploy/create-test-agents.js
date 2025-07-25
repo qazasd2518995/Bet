@@ -19,7 +19,7 @@ async function login(username, password) {
             agent: response.data.agent
         };
     } catch (error) {
-        console.error('登入失敗:', error.response?.data?.error || error.message);
+        console.error('登入失败:', error.response?.data?.error || error.message);
         throw error;
     }
 }
@@ -34,67 +34,67 @@ async function createAgent(token, agentData) {
         });
         return response.data.agent;
     } catch (error) {
-        console.error('創建代理失敗:', error.response?.data?.message || error.message);
+        console.error('创建代理失败:', error.response?.data?.message || error.message);
         throw error;
     }
 }
 
 async function createTestAgents() {
-    console.log('=== 創建測試代理層級 ===\n');
+    console.log('=== 创建测试代理层级 ===\n');
 
     try {
-        // Step 1: 登入總代理
-        console.log('1. 登入總代理...');
+        // Step 1: 登入总代理
+        console.log('1. 登入总代理...');
         const loginResult = await login(topAgent.username, topAgent.password);
         const topAgentToken = loginResult.token;
-        console.log(`✓ 總代理登入成功 (ID: ${loginResult.agent.id})\n`);
+        console.log(`✓ 总代理登入成功 (ID: ${loginResult.agent.id})\n`);
 
-        // Step 2: 創建一級代理
-        console.log('2. 創建一級代理 (退水 0.5%)...');
+        // Step 2: 创建一级代理
+        console.log('2. 创建一级代理 (退水 0.5%)...');
         const level1Agent = await createAgent(topAgentToken, {
             username: `testL1_${Date.now()}`,
             password: 'Test123!@#',
-            nickname: '測試一級代理',
+            nickname: '测试一级代理',
             rebatePercentage: 0.005
         });
-        console.log(`✓ 一級代理創建成功: ${level1Agent.username} (ID: ${level1Agent.id})`);
+        console.log(`✓ 一级代理创建成功: ${level1Agent.username} (ID: ${level1Agent.id})`);
 
-        // Step 3: 登入一級代理並創建二級代理
-        console.log('\n3. 登入一級代理...');
+        // Step 3: 登入一级代理并创建二级代理
+        console.log('\n3. 登入一级代理...');
         const level1Login = await login(level1Agent.username, 'Test123!@#');
-        console.log('✓ 一級代理登入成功');
+        console.log('✓ 一级代理登入成功');
 
-        console.log('4. 創建二級代理 (退水 0.3%)...');
+        console.log('4. 创建二级代理 (退水 0.3%)...');
         const level2Agent = await createAgent(level1Login.token, {
             username: `testL2_${Date.now()}`,
             password: 'Test123!@#',
-            nickname: '測試二級代理',
+            nickname: '测试二级代理',
             rebatePercentage: 0.003
         });
-        console.log(`✓ 二級代理創建成功: ${level2Agent.username} (ID: ${level2Agent.id})`);
+        console.log(`✓ 二级代理创建成功: ${level2Agent.username} (ID: ${level2Agent.id})`);
 
-        // Step 4: 登入二級代理並創建三級代理
-        console.log('\n5. 登入二級代理...');
+        // Step 4: 登入二级代理并创建三级代理
+        console.log('\n5. 登入二级代理...');
         const level2Login = await login(level2Agent.username, 'Test123!@#');
-        console.log('✓ 二級代理登入成功');
+        console.log('✓ 二级代理登入成功');
 
-        console.log('6. 創建三級代理 (退水 0.1%)...');
+        console.log('6. 创建三级代理 (退水 0.1%)...');
         const level3Agent = await createAgent(level2Login.token, {
             username: `testL3_${Date.now()}`,
             password: 'Test123!@#',
-            nickname: '測試三級代理',
+            nickname: '测试三级代理',
             rebatePercentage: 0.001
         });
-        console.log(`✓ 三級代理創建成功: ${level3Agent.username} (ID: ${level3Agent.id})`);
+        console.log(`✓ 三级代理创建成功: ${level3Agent.username} (ID: ${level3Agent.id})`);
 
-        console.log('\n=== 測試代理層級創建完成 ===');
-        console.log('\n代理層級結構:');
-        console.log(`總代理 ${topAgent.username} (A盤)`);
-        console.log(`└─ 一級代理 ${level1Agent.username} (0.5%)`);
-        console.log(`   └─ 二級代理 ${level2Agent.username} (0.3%)`);
-        console.log(`      └─ 三級代理 ${level3Agent.username} (0.1%)`);
+        console.log('\n=== 测试代理层级创建完成 ===');
+        console.log('\n代理层级结构:');
+        console.log(`总代理 ${topAgent.username} (A盘)`);
+        console.log(`└─ 一级代理 ${level1Agent.username} (0.5%)`);
+        console.log(`   └─ 二级代理 ${level2Agent.username} (0.3%)`);
+        console.log(`      └─ 三级代理 ${level3Agent.username} (0.1%)`);
 
-        console.log('\n現在可以運行 test-rebate-cascade-simple.js 來測試級聯更新');
+        console.log('\n现在可以运行 test-rebate-cascade-simple.js 来测试级联更新');
 
         return {
             level1Agent,
@@ -103,16 +103,16 @@ async function createTestAgents() {
         };
 
     } catch (error) {
-        console.error('創建失敗:', error.message);
+        console.error('创建失败:', error.message);
         process.exit(1);
     }
 }
 
-// 執行創建
+// 执行创建
 createTestAgents().then(() => {
-    console.log('\n創建完成');
+    console.log('\n创建完成');
     process.exit(0);
 }).catch(error => {
-    console.error('執行錯誤:', error);
+    console.error('执行错误:', error);
     process.exit(1);
 });

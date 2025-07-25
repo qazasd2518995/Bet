@@ -2,22 +2,22 @@ import db from './db/config.js';
 
 async function checkPeriod073() {
     try {
-        console.log('=== 檢查期號 20250715073 ===\n');
+        console.log('=== 检查期号 20250715073 ===\n');
         
-        // 1. 簡單檢查下注記錄
+        // 1. 简单检查下注记录
         const bets = await db.any(`
             SELECT * FROM bet_history
             WHERE period = '20250715073'
             LIMIT 5
         `);
         
-        console.log(`找到 ${bets.length} 筆下注記錄`);
+        console.log(`找到 ${bets.length} 笔下注记录`);
         if (bets.length > 0) {
-            console.log('第一筆記錄:', JSON.stringify(bets[0], null, 2));
+            console.log('第一笔记录:', JSON.stringify(bets[0], null, 2));
         }
         
-        // 2. 檢查退水記錄
-        console.log('\n=== 檢查退水記錄 ===');
+        // 2. 检查退水记录
+        console.log('\n=== 检查退水记录 ===');
         const rebates = await db.any(`
             SELECT * FROM transaction_records
             WHERE transaction_type = 'rebate'
@@ -26,13 +26,13 @@ async function checkPeriod073() {
             LIMIT 10
         `);
         
-        console.log(`找到 ${rebates.length} 筆退水記錄`);
+        console.log(`找到 ${rebates.length} 笔退水记录`);
         rebates.forEach(r => {
             console.log(`- period: "${r.period}", amount: ${r.amount}, user_id: ${r.user_id}`);
         });
         
-        // 3. 檢查最近的退水記錄格式
-        console.log('\n=== 最近的退水記錄 ===');
+        // 3. 检查最近的退水记录格式
+        console.log('\n=== 最近的退水记录 ===');
         const recentRebates = await db.any(`
             SELECT DISTINCT period, COUNT(*) as count
             FROM transaction_records
@@ -44,13 +44,13 @@ async function checkPeriod073() {
         `);
         
         recentRebates.forEach(r => {
-            console.log(`- "${r.period}" : ${r.count} 筆`);
+            console.log(`- "${r.period}" : ${r.count} 笔`);
         });
         
-        // 4. 嘗試手動處理退水
-        console.log('\n=== 嘗試手動處理退水 ===');
+        // 4. 尝试手动处理退水
+        console.log('\n=== 尝试手动处理退水 ===');
         
-        // 檢查是否已結算
+        // 检查是否已结算
         const settledBets = await db.any(`
             SELECT username, SUM(amount) as total_amount
             FROM bet_history
@@ -60,21 +60,21 @@ async function checkPeriod073() {
         `);
         
         if (settledBets.length > 0) {
-            console.log('已結算的下注：');
+            console.log('已结算的下注：');
             settledBets.forEach(b => {
                 console.log(`- ${b.username}: ${b.total_amount}元`);
             });
             
-            // 檢查是否有開獎結果
+            // 检查是否有开奖结果
             const hasResult = await db.oneOrNone(`
                 SELECT COUNT(*) as count FROM result_history
                 WHERE period = '20250715073'
             `);
             
             if (hasResult && hasResult.count > 0) {
-                console.log('\n✅ 有開獎結果，準備處理退水...');
+                console.log('\n✅ 有开奖结果，准备处理退水...');
                 
-                // 導入結算系統
+                // 导入结算系统
                 const { enhancedSettlement } = await import('./enhanced-settlement-system.js');
                 const drawResult = await db.oneOrNone(`
                     SELECT * FROM result_history WHERE period = '20250715073'
@@ -95,12 +95,12 @@ async function checkPeriod073() {
                     ]
                 };
                 
-                console.log('開獎結果:', winResult.positions);
-                console.log('\n調用結算系統...');
+                console.log('开奖结果:', winResult.positions);
+                console.log('\n调用结算系统...');
                 const result = await enhancedSettlement('20250715073', winResult);
-                console.log('結算結果:', result);
+                console.log('结算结果:', result);
                 
-                // 檢查新的退水
+                // 检查新的退水
                 const newRebates = await db.any(`
                     SELECT tr.*, a.username as agent_name
                     FROM transaction_records tr
@@ -110,20 +110,20 @@ async function checkPeriod073() {
                 `);
                 
                 if (newRebates.length > 0) {
-                    console.log('\n✅ 成功產生退水：');
+                    console.log('\n✅ 成功产生退水：');
                     newRebates.forEach(r => {
                         console.log(`- ${r.agent_name}: ${r.amount}元`);
                     });
                 }
             } else {
-                console.log('\n❌ 沒有開獎結果');
+                console.log('\n❌ 没有开奖结果');
             }
         } else {
-            console.log('❌ 沒有已結算的下注');
+            console.log('❌ 没有已结算的下注');
         }
         
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

@@ -165,7 +165,7 @@ async function fixOrphanedPeriods() {
                                 rebateAmount,
                                 balanceBefore,
                                 balanceAfter,
-                                `退水 - 期號 ${period} 會員 ${bet.username} 下注 ${bet.amount} (補償)`,
+                                `退水 - 期号 ${period} 会员 ${bet.username} 下注 ${bet.amount} (补偿)`,
                                 bet.username,
                                 parseFloat(bet.amount),
                                 rebateDiff,

@@ -2,7 +2,7 @@ import db from './db/config.js';
 
 async function checkSubAccountsTable() {
   try {
-    // 檢查表是否存在
+    // 检查表是否存在
     const tableExists = await db.oneOrNone(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -11,10 +11,10 @@ async function checkSubAccountsTable() {
       )
     `);
     
-    console.log('子帳號表是否存在:', tableExists?.exists);
+    console.log('子帐号表是否存在:', tableExists?.exists);
     
     if (tableExists?.exists) {
-      // 如果表存在，顯示表結構
+      // 如果表存在，显示表结构
       const columns = await db.any(`
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns
@@ -22,20 +22,20 @@ async function checkSubAccountsTable() {
         ORDER BY ordinal_position
       `);
       
-      console.log('\n當前表結構:');
+      console.log('\n当前表结构:');
       console.log('=====================================');
       columns.forEach(col => {
         console.log(`${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? 'NOT NULL' : ''} ${col.column_default || ''}`);
       });
       
-      // 刪除現有表
-      console.log('\n刪除現有表...');
+      // 删除现有表
+      console.log('\n删除现有表...');
       await db.none('DROP TABLE IF EXISTS sub_accounts CASCADE');
-      console.log('表已刪除');
+      console.log('表已删除');
     }
     
-    // 重新創建表
-    console.log('\n重新創建子帳號表...');
+    // 重新创建表
+    console.log('\n重新创建子帐号表...');
     await db.none(`
       CREATE TABLE sub_accounts (
         id SERIAL PRIMARY KEY,
@@ -49,11 +49,11 @@ async function checkSubAccountsTable() {
       )
     `);
     
-    // 創建索引
+    // 创建索引
     await db.none('CREATE INDEX idx_sub_accounts_parent_agent_id ON sub_accounts(parent_agent_id)');
     await db.none('CREATE INDEX idx_sub_accounts_username ON sub_accounts(username)');
     
-    // 創建觸發器
+    // 创建触发器
     await db.none(`
       CREATE OR REPLACE FUNCTION update_updated_at_column()
       RETURNS TRIGGER AS $$
@@ -71,11 +71,11 @@ async function checkSubAccountsTable() {
       EXECUTE FUNCTION update_updated_at_column()
     `);
     
-    console.log('\n✅ 子帳號表創建成功！');
+    console.log('\n✅ 子帐号表创建成功！');
     
     process.exit(0);
   } catch (error) {
-    console.error('錯誤:', error);
+    console.error('错误:', error);
     process.exit(1);
   }
 }

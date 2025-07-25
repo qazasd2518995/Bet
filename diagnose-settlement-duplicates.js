@@ -1,12 +1,12 @@
-// diagnose-settlement-duplicates.js - 診斷重複結算問題
+// diagnose-settlement-duplicates.js - 诊断重复结算问题
 import db from './db/config.js';
 
 async function diagnoseDuplicateSettlements() {
-    console.log('🔍 開始診斷重複結算問題...\n');
+    console.log('🔍 开始诊断重复结算问题...\n');
     
     try {
-        // 1. 檢查是否有重複的結算記錄
-        console.log('1️⃣ 檢查重複結算記錄...');
+        // 1. 检查是否有重复的结算记录
+        console.log('1️⃣ 检查重复结算记录...');
         const duplicateSettlements = await db.any(`
             WITH bet_settlements AS (
                 SELECT 
@@ -30,23 +30,23 @@ async function diagnoseDuplicateSettlements() {
         `);
         
         if (duplicateSettlements.length > 0) {
-            console.log(`❌ 發現 ${duplicateSettlements.length} 組重複的注單！`);
-            console.log('\n詳細信息：');
+            console.log(`❌ 发现 ${duplicateSettlements.length} 组重复的注单！`);
+            console.log('\n详细信息：');
             duplicateSettlements.forEach(dup => {
-                console.log(`  期號: ${dup.period}, 用戶: ${dup.username}`);
-                console.log(`  類型: ${dup.bet_type}, 值: ${dup.bet_value}, 位置: ${dup.position || 'N/A'}`);
-                console.log(`  金額: ${dup.amount}, 結算次數: ${dup.settlement_count}`);
-                console.log(`  總中獎金額: ${dup.total_win_amount}`);
-                console.log(`  注單ID: ${dup.bet_ids}`);
-                console.log(`  已結算標記: ${dup.settled_flags}`);
+                console.log(`  期号: ${dup.period}, 用户: ${dup.username}`);
+                console.log(`  类型: ${dup.bet_type}, 值: ${dup.bet_value}, 位置: ${dup.position || 'N/A'}`);
+                console.log(`  金额: ${dup.amount}, 结算次数: ${dup.settlement_count}`);
+                console.log(`  总中奖金额: ${dup.total_win_amount}`);
+                console.log(`  注单ID: ${dup.bet_ids}`);
+                console.log(`  已结算标记: ${dup.settled_flags}`);
                 console.log('  ---');
             });
         } else {
-            console.log('✅ 沒有發現重複的注單記錄');
+            console.log('✅ 没有发现重复的注单记录');
         }
         
-        // 2. 檢查交易記錄中的重複
-        console.log('\n2️⃣ 檢查交易記錄中的重複結算...');
+        // 2. 检查交易记录中的重复
+        console.log('\n2️⃣ 检查交易记录中的重复结算...');
         const duplicateTransactions = await db.any(`
             WITH win_transactions AS (
                 SELECT 
@@ -72,20 +72,20 @@ async function diagnoseDuplicateSettlements() {
         `);
         
         if (duplicateTransactions.length > 0) {
-            console.log(`❌ 發現 ${duplicateTransactions.length} 組重複的中獎交易！`);
+            console.log(`❌ 发现 ${duplicateTransactions.length} 组重复的中奖交易！`);
             duplicateTransactions.forEach(dup => {
-                console.log(`  用戶: ${dup.username}, 日期: ${dup.transaction_date}`);
-                console.log(`  金額: ${dup.amount}, 描述: ${dup.description}`);
-                console.log(`  重複次數: ${dup.count}`);
+                console.log(`  用户: ${dup.username}, 日期: ${dup.transaction_date}`);
+                console.log(`  金额: ${dup.amount}, 描述: ${dup.description}`);
+                console.log(`  重复次数: ${dup.count}`);
                 console.log(`  交易ID: ${dup.transaction_ids}`);
                 console.log('  ---');
             });
         } else {
-            console.log('✅ 沒有發現重複的中獎交易記錄');
+            console.log('✅ 没有发现重复的中奖交易记录');
         }
         
-        // 3. 檢查結算鎖表
-        console.log('\n3️⃣ 檢查結算鎖表...');
+        // 3. 检查结算锁表
+        console.log('\n3️⃣ 检查结算锁表...');
         const lockTableExists = await db.oneOrNone(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -101,31 +101,31 @@ async function diagnoseDuplicateSettlements() {
             `);
             
             if (currentLocks.length > 0) {
-                console.log(`⚠️ 發現 ${currentLocks.length} 個活躍的結算鎖：`);
+                console.log(`⚠️ 发现 ${currentLocks.length} 个活跃的结算锁：`);
                 currentLocks.forEach(lock => {
-                    console.log(`  鎖鍵: ${lock.lock_key}`);
-                    console.log(`  鎖定時間: ${lock.locked_at}`);
-                    console.log(`  過期時間: ${lock.expires_at}`);
+                    console.log(`  锁键: ${lock.lock_key}`);
+                    console.log(`  锁定时间: ${lock.locked_at}`);
+                    console.log(`  过期时间: ${lock.expires_at}`);
                 });
             } else {
-                console.log('✅ 沒有活躍的結算鎖');
+                console.log('✅ 没有活跃的结算锁');
             }
             
-            // 檢查過期的鎖
+            // 检查过期的锁
             const expiredLocks = await db.any(`
                 SELECT COUNT(*) as count FROM settlement_locks 
                 WHERE expires_at <= NOW()
             `);
             
             if (expiredLocks[0].count > 0) {
-                console.log(`⚠️ 發現 ${expiredLocks[0].count} 個過期的結算鎖需要清理`);
+                console.log(`⚠️ 发现 ${expiredLocks[0].count} 个过期的结算锁需要清理`);
             }
         } else {
-            console.log('❌ 結算鎖表不存在！這可能導致並發結算問題');
+            console.log('❌ 结算锁表不存在！这可能导致并发结算问题');
         }
         
-        // 4. 檢查最近的結算記錄
-        console.log('\n4️⃣ 檢查最近的結算記錄...');
+        // 4. 检查最近的结算记录
+        console.log('\n4️⃣ 检查最近的结算记录...');
         const recentSettlements = await db.any(`
             SELECT 
                 period,
@@ -141,18 +141,18 @@ async function diagnoseDuplicateSettlements() {
             ORDER BY period DESC
         `);
         
-        console.log('最近5期的結算情況：');
+        console.log('最近5期的结算情况：');
         recentSettlements.forEach(record => {
-            console.log(`  期號: ${record.period}`);
-            console.log(`  總注單: ${record.bet_count}, 已結算: ${record.settled_count}`);
-            console.log(`  中獎數: ${record.win_count}, 總中獎金額: ${record.total_win_amount || 0}`);
+            console.log(`  期号: ${record.period}`);
+            console.log(`  总注单: ${record.bet_count}, 已结算: ${record.settled_count}`);
+            console.log(`  中奖数: ${record.win_count}, 总中奖金额: ${record.total_win_amount || 0}`);
             console.log(`  首次下注: ${record.first_bet_time}`);
-            console.log(`  最後結算: ${record.last_settled_time || '未結算'}`);
+            console.log(`  最后结算: ${record.last_settled_time || '未结算'}`);
             console.log('  ---');
         });
         
-        // 5. 檢查用戶餘額異常
-        console.log('\n5️⃣ 檢查用戶餘額異常（可能因重複結算）...');
+        // 5. 检查用户余额异常
+        console.log('\n5️⃣ 检查用户余额异常（可能因重复结算）...');
         const balanceAnomalies = await db.any(`
             WITH user_stats AS (
                 SELECT 
@@ -172,55 +172,55 @@ async function diagnoseDuplicateSettlements() {
             SELECT *,
                    (total_wins - total_bets) as expected_profit,
                    CASE 
-                       WHEN total_bets > 0 AND (total_wins / total_bets) > 5 THEN '異常高'
+                       WHEN total_bets > 0 AND (total_wins / total_bets) > 5 THEN '异常高'
                        WHEN total_bets > 0 AND (total_wins / total_bets) > 2 THEN '偏高'
                        ELSE '正常'
                    END as win_ratio_status
             FROM user_stats
-            WHERE total_wins > total_bets * 2  -- 贏的金額超過下注金額的2倍
+            WHERE total_wins > total_bets * 2  -- 赢的金额超过下注金额的2倍
             ORDER BY (total_wins - total_bets) DESC
             LIMIT 10
         `);
         
         if (balanceAnomalies.length > 0) {
-            console.log(`⚠️ 發現 ${balanceAnomalies.length} 個用戶的中獎金額異常偏高：`);
+            console.log(`⚠️ 发现 ${balanceAnomalies.length} 个用户的中奖金额异常偏高：`);
             balanceAnomalies.forEach(user => {
-                console.log(`  用戶: ${user.username}`);
-                console.log(`  當前餘額: ${user.balance}`);
-                console.log(`  24小時內: 下注${user.bet_count}次, 中獎${user.win_count}次`);
-                console.log(`  總下注: ${user.total_bets}, 總中獎: ${user.total_wins}`);
-                console.log(`  淨利潤: ${user.expected_profit} (${user.win_ratio_status})`);
+                console.log(`  用户: ${user.username}`);
+                console.log(`  当前余额: ${user.balance}`);
+                console.log(`  24小时内: 下注${user.bet_count}次, 中奖${user.win_count}次`);
+                console.log(`  总下注: ${user.total_bets}, 总中奖: ${user.total_wins}`);
+                console.log(`  净利润: ${user.expected_profit} (${user.win_ratio_status})`);
                 console.log('  ---');
             });
         } else {
-            console.log('✅ 沒有發現餘額異常的用戶');
+            console.log('✅ 没有发现余额异常的用户');
         }
         
-        // 6. 提供修復建議
-        console.log('\n📋 診斷總結與建議：');
+        // 6. 提供修复建议
+        console.log('\n📋 诊断总结与建议：');
         if (duplicateSettlements.length > 0 || duplicateTransactions.length > 0) {
-            console.log('❌ 發現重複結算問題！');
-            console.log('\n建議的修復步驟：');
-            console.log('1. 立即停止遊戲服務，防止問題擴大');
-            console.log('2. 備份當前資料庫');
-            console.log('3. 執行 fix-duplicate-settlements-v3.cjs 修復重複結算');
-            console.log('4. 確保 settlement_locks 表存在並正常工作');
-            console.log('5. 檢查是否有多個服務實例同時運行');
-            console.log('6. 驗證改進的結算系統 (improved-settlement-system.js) 是否正確引入');
+            console.log('❌ 发现重复结算问题！');
+            console.log('\n建议的修复步骤：');
+            console.log('1. 立即停止游戏服务，防止问题扩大');
+            console.log('2. 备份当前资料库');
+            console.log('3. 执行 fix-duplicate-settlements-v3.cjs 修复重复结算');
+            console.log('4. 确保 settlement_locks 表存在并正常工作');
+            console.log('5. 检查是否有多个服务实例同时运行');
+            console.log('6. 验证改进的结算系统 (improved-settlement-system.js) 是否正确引入');
         } else {
-            console.log('✅ 未發現明顯的重複結算問題');
-            console.log('\n但如果用戶報告餘額異常，請檢查：');
-            console.log('1. 是否有並發結算的情況');
-            console.log('2. 結算鎖機制是否正常工作');
-            console.log('3. 代理系統和遊戲系統之間的同步是否有延遲');
+            console.log('✅ 未发现明显的重复结算问题');
+            console.log('\n但如果用户报告余额异常，请检查：');
+            console.log('1. 是否有并发结算的情况');
+            console.log('2. 结算锁机制是否正常工作');
+            console.log('3. 代理系统和游戏系统之间的同步是否有延迟');
         }
         
     } catch (error) {
-        console.error('診斷過程中發生錯誤:', error);
+        console.error('诊断过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行診斷
+// 执行诊断
 diagnoseDuplicateSettlements();

@@ -2,7 +2,7 @@ import db from './db/config.js';
 
 async function analyzeDuplicatePattern() {
     try {
-        // 查詢最近2小時的退水記錄，包括期號信息
+        // 查询最近2小时的退水记录，包括期号信息
         const recentRebates = await db.any(`
             SELECT 
                 tr.*,
@@ -16,9 +16,9 @@ async function analyzeDuplicatePattern() {
             ORDER BY tr.created_at DESC
         `);
         
-        console.log('=== 退水記錄分析（按時間分組）===\n');
+        console.log('=== 退水记录分析（按时间分组）===\n');
         
-        // 按秒分組
+        // 按秒分组
         const timeGroups = {};
         recentRebates.forEach(r => {
             const timeKey = new Date(r.created_at).toISOString().substring(0, 19);
@@ -36,7 +36,7 @@ async function analyzeDuplicatePattern() {
             });
         });
         
-        // 分析每個時間組
+        // 分析每个时间组
         Object.values(timeGroups).forEach(group => {
             const total = group.records.reduce((sum, r) => sum + r.amount, 0);
             const agentSummary = {};
@@ -49,31 +49,31 @@ async function analyzeDuplicatePattern() {
                 agentSummary[r.agent].total += r.amount;
             });
             
-            console.log(`時間: ${group.time.toLocaleString()}`);
-            console.log(`期號: ${group.period}`);
-            console.log(`記錄數: ${group.records.length}`);
-            console.log(`總金額: ${total.toFixed(2)} 元`);
+            console.log(`时间: ${group.time.toLocaleString()}`);
+            console.log(`期号: ${group.period}`);
+            console.log(`记录数: ${group.records.length}`);
+            console.log(`总金额: ${total.toFixed(2)} 元`);
             
             Object.entries(agentSummary).forEach(([agent, data]) => {
-                console.log(`  ${agent}: ${data.count} 筆, 共 ${data.total.toFixed(2)} 元`);
+                console.log(`  ${agent}: ${data.count} 笔, 共 ${data.total.toFixed(2)} 元`);
                 if (data.count > 1) {
-                    console.log(`    ⚠️ 該代理在同一秒內收到 ${data.count} 筆退水！`);
+                    console.log(`    ⚠️ 该代理在同一秒内收到 ${data.count} 笔退水！`);
                 }
             });
             
             if (Math.abs(total - 11) < 0.01) {
-                console.log(`✅ 金額正確 (A盤 1.1%)`);
+                console.log(`✅ 金额正确 (A盘 1.1%)`);
             } else if (Math.abs(total - 22) < 0.01) {
-                console.log(`❌ 退水重複！應該是 11 元，實際是 22 元`);
+                console.log(`❌ 退水重复！应该是 11 元，实际是 22 元`);
             } else if (total > 11) {
-                console.log(`❌ 金額異常！應該是 11 元，實際是 ${total.toFixed(2)} 元`);
+                console.log(`❌ 金额异常！应该是 11 元，实际是 ${total.toFixed(2)} 元`);
             }
             
             console.log('---\n');
         });
         
-        // 統計問題
-        console.log('=== 問題統計 ===');
+        // 统计问题
+        console.log('=== 问题统计 ===');
         let duplicateCount = 0;
         let correctCount = 0;
         
@@ -86,18 +86,18 @@ async function analyzeDuplicatePattern() {
             }
         });
         
-        console.log(`正確的退水: ${correctCount} 次`);
-        console.log(`異常的退水: ${duplicateCount} 次`);
+        console.log(`正确的退水: ${correctCount} 次`);
+        console.log(`异常的退水: ${duplicateCount} 次`);
         
         if (duplicateCount > 0) {
             console.log('\n可能的原因:');
-            console.log('1. 結算系統被並發調用（多個定時器或多次手動觸發）');
-            console.log('2. 退水檢查邏輯失效，導致重複處理');
-            console.log('3. 代理系統API重複處理了請求');
+            console.log('1. 结算系统被并发调用（多个定时器或多次手动触发）');
+            console.log('2. 退水检查逻辑失效，导致重复处理');
+            console.log('3. 代理系统API重复处理了请求');
         }
         
     } catch (error) {
-        console.error('分析時發生錯誤:', error);
+        console.error('分析时发生错误:', error);
     } finally {
         process.exit(0);
     }

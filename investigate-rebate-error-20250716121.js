@@ -54,8 +54,8 @@ async function investigateRebateError() {
         console.log('Rebate settings found:', rebateSettings.length);
         rebateSettings.forEach(setting => {
             console.log(`- Agent: ${setting.agent_username} (Level ${setting.level})`);
-            console.log(`  A盤退水: ${setting.a_rebate_rate}%`);
-            console.log(`  D盤退水: ${setting.d_rebate_rate}%`);
+            console.log(`  A盘退水: ${setting.a_rebate_rate}%`);
+            console.log(`  D盘退水: ${setting.d_rebate_rate}%`);
         });
         
         // 4. Test the rebate calculation manually

@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkPeriod073Rebate() {
     try {
-        console.log('=== 檢查期號 20250715073 的退水情況 ===\n');
+        console.log('=== 检查期号 20250715073 的退水情况 ===\n');
         
-        // 1. 檢查這期的下注記錄
+        // 1. 检查这期的下注记录
         const bets = await db.any(`
             SELECT 
                 id,
@@ -21,14 +21,14 @@ async function checkPeriod073Rebate() {
             ORDER BY created_at DESC
         `);
         
-        console.log(`期號 20250715073 共有 ${bets.length} 筆下注：`);
+        console.log(`期号 20250715073 共有 ${bets.length} 笔下注：`);
         bets.forEach(bet => {
             const winLoss = bet.payout > 0 ? bet.payout - bet.amount : -bet.amount;
-            console.log(`- ${bet.username}: ${bet.amount}元, ${bet.bet_type}/${bet.bet_value}, ${bet.settled ? '已結算' : '未結算'}, 結果: ${bet.result || '待定'}, 輸贏: ${winLoss}`);
+            console.log(`- ${bet.username}: ${bet.amount}元, ${bet.bet_type}/${bet.bet_value}, ${bet.settled ? '已结算' : '未结算'}, 结果: ${bet.result || '待定'}, 输赢: ${winLoss}`);
         });
         
-        // 2. 檢查退水記錄
-        console.log('\n檢查退水記錄：');
+        // 2. 检查退水记录
+        console.log('\n检查退水记录：');
         const rebates = await db.any(`
             SELECT 
                 tr.*,
@@ -41,16 +41,16 @@ async function checkPeriod073Rebate() {
         `);
         
         if (rebates.length > 0) {
-            console.log(`找到 ${rebates.length} 筆退水記錄：`);
+            console.log(`找到 ${rebates.length} 笔退水记录：`);
             rebates.forEach(r => {
-                console.log(`- ${r.agent_name}: ${r.amount}元, period: "${r.period}", 會員: ${r.member_username}`);
+                console.log(`- ${r.agent_name}: ${r.amount}元, period: "${r.period}", 会员: ${r.member_username}`);
             });
         } else {
-            console.log('❌ 沒有找到任何退水記錄');
+            console.log('❌ 没有找到任何退水记录');
         }
         
-        // 3. 檢查是否有其他格式的退水記錄
-        console.log('\n檢查其他可能的退水記錄格式：');
+        // 3. 检查是否有其他格式的退水记录
+        console.log('\n检查其他可能的退水记录格式：');
         const recentRebates = await db.any(`
             SELECT 
                 tr.period,
@@ -64,22 +64,22 @@ async function checkPeriod073Rebate() {
             LIMIT 10
         `);
         
-        console.log('最近1小時的退水記錄：');
+        console.log('最近1小时的退水记录：');
         recentRebates.forEach(r => {
-            console.log(`- period: "${r.period}", ${r.count}筆, 總額: ${r.total}`);
+            console.log(`- period: "${r.period}", ${r.count}笔, 总额: ${r.total}`);
         });
         
-        // 4. 手動觸發這期的退水
-        console.log('\n嘗試手動觸發退水...');
+        // 4. 手动触发这期的退水
+        console.log('\n尝试手动触发退水...');
         const drawResult = await db.oneOrNone(`
             SELECT * FROM result_history
             WHERE period = '20250715073'
         `);
         
         if (drawResult) {
-            console.log('✅ 找到開獎結果');
+            console.log('✅ 找到开奖结果');
             
-            // 檢查是否需要處理退水
+            // 检查是否需要处理退水
             const needRebate = await db.oneOrNone(`
                 SELECT COUNT(*) as count
                 FROM bet_history
@@ -93,9 +93,9 @@ async function checkPeriod073Rebate() {
             `);
             
             if (needRebate && needRebate.count > 0) {
-                console.log(`需要處理 ${needRebate.count} 筆下注的退水`);
+                console.log(`需要处理 ${needRebate.count} 笔下注的退水`);
                 
-                // 導入並執行結算
+                // 导入并执行结算
                 const { enhancedSettlement } = await import('./enhanced-settlement-system.js');
                 const winResult = {
                     positions: [
@@ -112,11 +112,11 @@ async function checkPeriod073Rebate() {
                     ]
                 };
                 
-                console.log('調用結算系統...');
+                console.log('调用结算系统...');
                 const result = await enhancedSettlement('20250715073', winResult);
-                console.log('結算結果:', result);
+                console.log('结算结果:', result);
                 
-                // 再次檢查退水
+                // 再次检查退水
                 const newRebates = await db.any(`
                     SELECT 
                         tr.*,
@@ -129,18 +129,18 @@ async function checkPeriod073Rebate() {
                 `);
                 
                 if (newRebates.length > 0) {
-                    console.log(`\n✅ 成功產生 ${newRebates.length} 筆退水：`);
+                    console.log(`\n✅ 成功产生 ${newRebates.length} 笔退水：`);
                     newRebates.forEach(r => {
                         console.log(`- ${r.agent_name}: ${r.amount}元`);
                     });
                 }
             }
         } else {
-            console.log('❌ 沒有找到開獎結果');
+            console.log('❌ 没有找到开奖结果');
         }
         
-        // 5. 檢查代理餘額變化
-        console.log('\n檢查代理餘額：');
+        // 5. 检查代理余额变化
+        console.log('\n检查代理余额：');
         const agents = await db.any(`
             SELECT username, balance
             FROM agents
@@ -153,7 +153,7 @@ async function checkPeriod073Rebate() {
         });
         
     } catch (error) {
-        console.error('檢查錯誤:', error);
+        console.error('检查错误:', error);
     } finally {
         process.exit(0);
     }

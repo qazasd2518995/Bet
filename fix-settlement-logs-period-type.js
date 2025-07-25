@@ -1,12 +1,12 @@
-// fix-settlement-logs-period-type.js - 修復 settlement_logs 表的 period 欄位類型
+// fix-settlement-logs-period-type.js - 修复 settlement_logs 表的 period 栏位类型
 
 import db from './db/config.js';
 
 async function fixSettlementLogsPeriodType() {
     try {
-        console.log('🔧 修復 settlement_logs 表的 period 欄位類型...\n');
+        console.log('🔧 修复 settlement_logs 表的 period 栏位类型...\n');
         
-        // 1. 檢查當前表結構
+        // 1. 检查当前表结构
         const columns = await db.many(`
             SELECT column_name, data_type 
             FROM information_schema.columns 
@@ -15,26 +15,26 @@ async function fixSettlementLogsPeriodType() {
             ORDER BY ordinal_position;
         `);
         
-        console.log('當前表結構：');
+        console.log('当前表结构：');
         columns.forEach(col => {
             console.log(`  - ${col.column_name}: ${col.data_type}`);
         });
         
-        // 2. 備份現有數據
-        console.log('\n備份現有數據...');
+        // 2. 备份现有数据
+        console.log('\n备份现有数据...');
         const backupData = await db.manyOrNone(`
             SELECT * FROM settlement_logs;
         `);
-        console.log(`備份了 ${backupData.length} 條記錄`);
+        console.log(`备份了 ${backupData.length} 条记录`);
         
-        // 3. 刪除舊表並重建
+        // 3. 删除旧表并重建
         console.log('\n重建 settlement_logs 表...');
         
-        // 刪除舊表
+        // 删除旧表
         await db.none(`DROP TABLE IF EXISTS settlement_logs CASCADE;`);
-        console.log('✅ 舊表已刪除');
+        console.log('✅ 旧表已删除');
         
-        // 創建新表（正確的結構）
+        // 创建新表（正确的结构）
         await db.none(`
             CREATE TABLE settlement_logs (
                 id SERIAL PRIMARY KEY,
@@ -45,9 +45,9 @@ async function fixSettlementLogsPeriodType() {
                 created_at TIMESTAMP DEFAULT NOW()
             );
         `);
-        console.log('✅ 新表已創建');
+        console.log('✅ 新表已创建');
         
-        // 創建索引
+        // 创建索引
         await db.none(`
             CREATE INDEX idx_settlement_logs_period ON settlement_logs(period);
         `);
@@ -60,14 +60,14 @@ async function fixSettlementLogsPeriodType() {
             CREATE INDEX idx_settlement_logs_status ON settlement_logs(status);
         `);
         
-        console.log('✅ 索引已創建');
+        console.log('✅ 索引已创建');
         
-        // 4. 恢復數據（如果有的話）
+        // 4. 恢复数据（如果有的话）
         if (backupData.length > 0) {
-            console.log('\n恢復備份數據...');
+            console.log('\n恢复备份数据...');
             for (const row of backupData) {
                 try {
-                    // 構建詳情對象
+                    // 构建详情对象
                     let details = {};
                     if (row.settlement_details) {
                         details = row.settlement_details;
@@ -79,10 +79,10 @@ async function fixSettlementLogsPeriodType() {
                         details.total_win_amount = row.total_win_amount;
                     }
                     
-                    // 構建訊息
-                    let message = row.message || `結算完成: ${row.settled_count || 0}筆`;
+                    // 构建讯息
+                    let message = row.message || `结算完成: ${row.settled_count || 0}笔`;
                     
-                    // 插入數據
+                    // 插入数据
                     await db.none(`
                         INSERT INTO settlement_logs (period, status, message, details, created_at)
                         VALUES ($1, $2, $3, $4, $5)
@@ -94,46 +94,46 @@ async function fixSettlementLogsPeriodType() {
                         row.created_at
                     ]);
                 } catch (err) {
-                    console.error(`恢復記錄失敗 (期號 ${row.period}):`, err.message);
+                    console.error(`恢复记录失败 (期号 ${row.period}):`, err.message);
                 }
             }
-            console.log('✅ 數據恢復完成');
+            console.log('✅ 数据恢复完成');
         }
         
-        // 5. 測試新表
-        console.log('\n測試新表...');
+        // 5. 测试新表
+        console.log('\n测试新表...');
         
-        // 測試插入
+        // 测试插入
         await db.none(`
             INSERT INTO settlement_logs (period, status, message, details)
             VALUES ($1, $2, $3, $4)
         `, [
             '20250717999',
             'test',
-            '測試記錄',
+            '测试记录',
             JSON.stringify({ test: true, timestamp: new Date().toISOString() })
         ]);
-        console.log('✅ 測試插入成功');
+        console.log('✅ 测试插入成功');
         
-        // 測試查詢
+        // 测试查询
         const testRecord = await db.oneOrNone(`
             SELECT * FROM settlement_logs WHERE status = 'test';
         `);
         
         if (testRecord) {
-            console.log('✅ 測試查詢成功');
-            console.log(`  期號: ${testRecord.period}`);
-            console.log(`  狀態: ${testRecord.status}`);
-            console.log(`  訊息: ${testRecord.message}`);
+            console.log('✅ 测试查询成功');
+            console.log(`  期号: ${testRecord.period}`);
+            console.log(`  状态: ${testRecord.status}`);
+            console.log(`  讯息: ${testRecord.message}`);
         }
         
-        // 刪除測試記錄
+        // 删除测试记录
         await db.none(`
             DELETE FROM settlement_logs WHERE status = 'test';
         `);
-        console.log('✅ 測試記錄已刪除');
+        console.log('✅ 测试记录已删除');
         
-        // 6. 顯示最終表結構
+        // 6. 显示最终表结构
         const finalColumns = await db.many(`
             SELECT column_name, data_type, is_nullable, column_default
             FROM information_schema.columns 
@@ -142,25 +142,25 @@ async function fixSettlementLogsPeriodType() {
             ORDER BY ordinal_position;
         `);
         
-        console.log('\n最終表結構：');
+        console.log('\n最终表结构：');
         finalColumns.forEach(col => {
             console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? 'NOT NULL' : ''} ${col.column_default ? `DEFAULT ${col.column_default}` : ''}`);
         });
         
-        // 顯示記錄數
+        // 显示记录数
         const count = await db.one(`
             SELECT COUNT(*) as count FROM settlement_logs;
         `);
-        console.log(`\n總記錄數: ${count.count}`);
+        console.log(`\n总记录数: ${count.count}`);
         
-        console.log('\n✅ settlement_logs 表修復完成！');
+        console.log('\n✅ settlement_logs 表修复完成！');
         
     } catch (error) {
-        console.error('修復失敗:', error);
+        console.error('修复失败:', error);
     } finally {
         process.exit(0);
     }
 }
 
-// 執行修復
+// 执行修复
 fixSettlementLogsPeriodType();

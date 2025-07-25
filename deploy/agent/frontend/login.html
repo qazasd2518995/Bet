@@ -37,7 +37,7 @@
             z-index: -2;
         }
 
-        /* F1賽車背景圖片 - 高清版本 */
+        /* F1赛车背景图片 - 高清版本 */
         .background-image {
             position: absolute;
             top: 0;
@@ -49,7 +49,7 @@
                 url('f1-racing-ultra-hd.jpg') center/cover no-repeat;
             filter: brightness(0.8) contrast(1.2);
             animation: zoomPulse 20s ease-in-out infinite;
-            /* 確保高品質渲染 */
+            /* 确保高品质渲染 */
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             -webkit-backface-visibility: hidden;
@@ -71,7 +71,7 @@
             50% { transform: scale(1.05) rotate(1deg); }
         }
 
-        /* 速度線效果 */
+        /* 速度线效果 */
         .speed-lines {
             position: absolute;
             top: 0;
@@ -169,7 +169,7 @@
             overflow: hidden;
         }
 
-        /* 紅色霓虹邊框 */
+        /* 红色霓虹边框 */
         .login-container::before {
             content: '';
             position: absolute;
@@ -189,7 +189,7 @@
             50% { opacity: 1; }
         }
 
-        /* Logo樣式 */
+        /* Logo样式 */
         .logo {
             margin-bottom: 40px;
             position: relative;
@@ -231,7 +231,7 @@
             margin-top: 10px;
         }
 
-        /* 表單樣式 */
+        /* 表单样式 */
         .login-form {
             display: flex;
             flex-direction: column;
@@ -278,7 +278,7 @@
                 0 0 20px rgba(255, 68, 68, 0.3);
         }
 
-        /* 驗證碼組 */
+        /* 验证码组 */
         .captcha-group {
             display: flex;
             gap: 12px;
@@ -338,7 +338,7 @@
             box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
         }
 
-        /* 記住我 */
+        /* 记住我 */
         .remember-me {
             display: flex;
             align-items: center;
@@ -354,7 +354,7 @@
             accent-color: #ff4444;
         }
 
-        /* 登入按鈕 */
+        /* 登入按钮 */
         .login-btn {
             width: 100%;
             padding: 18px;
@@ -410,7 +410,7 @@
             box-shadow: none;
         }
 
-        /* 錯誤訊息 */
+        /* 错误讯息 */
         .error-message {
             color: #ff4444;
             font-size: 14px;
@@ -422,7 +422,7 @@
             text-align: left;
         }
 
-        /* 載入動畫 */
+        /* 载入动画 */
         .loading {
             display: none;
             margin-top: 15px;
@@ -446,7 +446,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* 底部連結 */
+        /* 底部连结 */
         .footer-links {
             margin-top: 30px;
             display: flex;
@@ -481,7 +481,7 @@
             width: 100%;
         }
 
-        /* 響應式設計 */
+        /* 响应式设计 */
         @media (max-width: 480px) {
             body {
                 padding: 10px;
@@ -582,13 +582,13 @@
                 margin-top: 10px;
             }
             
-            /* 隱藏儀表板效果在小屏幕上 */
+            /* 隐藏仪表板效果在小屏幕上 */
             .dashboard-effect {
                 display: none;
             }
         }
         
-        /* 更小的手機屏幕 */
+        /* 更小的手机屏幕 */
         @media (max-width: 360px) {
             .logo h1 {
                 font-size: 22px;
@@ -605,7 +605,7 @@
             }
         }
 
-        /* 賽車儀表板效果 */
+        /* 赛车仪表板效果 */
         .dashboard-effect {
             position: absolute;
             top: 20px;
@@ -647,7 +647,7 @@
     <div class="background-wrapper">
         <div class="background-image"></div>
         
-        <!-- 速度線效果 -->
+        <!-- 速度线效果 -->
         <div class="speed-lines">
             <div class="speed-line"></div>
             <div class="speed-line"></div>
@@ -668,7 +668,7 @@
 
     <!-- 登入容器 -->
     <div class="login-container">
-        <!-- 賽車儀表板效果 -->
+        <!-- 赛车仪表板效果 -->
         <div class="dashboard-effect"></div>
         
         <div class="logo">
@@ -716,7 +716,7 @@
                         maxlength="4"
                     >
                     <div class="captcha-display" id="captchaDisplay" onclick="refreshCaptcha()">
-                        <!-- 驗證碼將通過JavaScript生成 -->
+                        <!-- 验证码将通过JavaScript生成 -->
                     </div>
                     <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理验证码">
                         🔄
@@ -748,7 +748,7 @@
     </div>
 
     <script>
-        // 生成驗證碼
+        // 生成验证码
         let currentCaptcha = '';
 
         function generateCaptcha() {
@@ -765,10 +765,10 @@
             document.getElementById('captchaDisplay').textContent = currentCaptcha;
         }
 
-        // 初始化驗證碼
+        // 初始化验证码
         refreshCaptcha();
 
-        // 表單提交處理
+        // 表单提交处理
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -777,7 +777,7 @@
             const captcha = document.getElementById('captcha').value.toUpperCase();
             const rememberMe = document.getElementById('rememberMe').checked;
 
-            // 驗證驗證碼
+            // 验证验证码
             if (captcha !== currentCaptcha) {
                 showError('验证码错误，请重新输入');
                 refreshCaptcha();
@@ -785,7 +785,7 @@
                 return;
             }
 
-            // 顯示加載狀態
+            // 显示加载状态
             const loginBtn = document.getElementById('loginBtn');
             const loading = document.getElementById('loading');
             loginBtn.disabled = true;
@@ -808,21 +808,21 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // 登入成功 - 保存到 localStorage（與現有系統匹配）
+                    // 登入成功 - 保存到 localStorage（与现有系统匹配）
                     localStorage.setItem('agent_token', data.token);
                     localStorage.setItem('agent_user', JSON.stringify(data.agent));
                     
-                    // 保存新的會話token
+                    // 保存新的会话token
                     if (data.sessionToken) {
                         localStorage.setItem('agent_session_token', data.sessionToken);
-                        console.log('✓ 代理會話token已保存');
+                        console.log('✓ 代理会话token已保存');
                     }
                     
                     // 也保存到 sessionStorage
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('token', data.token);
                     
-                    // 如果選擇了記住我，保存到localStorage
+                    // 如果选择了记住我，保存到localStorage
                     if (rememberMe) {
                         localStorage.setItem('rememberMe', 'true');
                         localStorage.setItem('rememberedUsername', username);
@@ -831,7 +831,7 @@
                         localStorage.removeItem('rememberedUsername');
                     }
                     
-                    // 跳轉到主頁
+                    // 跳转到主页
                     window.location.href = '/';
                 } else {
                     showError(data.message || '登录失败，请检查您的账号和密码');
@@ -839,7 +839,7 @@
                     document.getElementById('captcha').value = '';
                 }
             } catch (error) {
-                console.error('登入錯誤:', error);
+                console.error('登入错误:', error);
                 showError('网络连接失败，请稍后再试');
             } finally {
                 loginBtn.disabled = false;
@@ -858,7 +858,7 @@
             errorElement.style.display = 'none';
         }
 
-        // 檢查記住的用戶名
+        // 检查记住的用户名
         window.addEventListener('DOMContentLoaded', function() {
             const rememberedUsername = localStorage.getItem('rememberedUsername');
             const rememberMe = localStorage.getItem('rememberMe') === 'true';
@@ -879,14 +879,14 @@
             alert('代理管理系统使用说明：\n1. 输入您的代理账号和密码\n2. 输入显示的验证码\n3. 点击进入系统按钮即可登录\n\n如遇到问题请联系管理员');
         }
 
-        // 回車提交
+        // 回车提交
         document.getElementById('captcha').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
 
-        // 動態生成更多火花
+        // 动态生成更多火花
         function createSpark() {
             const sparksContainer = document.querySelector('.sparks');
             const spark = document.createElement('div');
@@ -897,19 +897,19 @@
             spark.style.animationDuration = (2 + Math.random() * 2) + 's';
             sparksContainer.appendChild(spark);
             
-            // 動畫結束後移除
+            // 动画结束后移除
             setTimeout(() => {
                 spark.remove();
             }, 4000);
         }
 
-        // 每隔一段時間生成新火花
+        // 每隔一段时间生成新火花
         setInterval(createSpark, 300);
         
-        // 預載入高清背景圖片
+        // 预载入高清背景图片
         const preloadImage = new Image();
         preloadImage.onload = function() {
-            // 圖片載入完成後，添加載入完成的類別
+            // 图片载入完成后，添加载入完成的类别
             document.querySelector('.background-image').classList.add('loaded');
         };
         preloadImage.src = 'f1-racing-ultra-hd.jpg';

@@ -1,4 +1,4 @@
-// fix-period-display.js - 修復期號顯示不一致的問題
+// fix-period-display.js - 修复期号显示不一致的问题
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,59 +12,59 @@ function fixPeriodDisplay() {
         const indexPath = path.join(__dirname, 'frontend', 'index.html');
         let content = fs.readFileSync(indexPath, 'utf8');
         
-        console.log('🔧 開始修復期號顯示問題...');
+        console.log('🔧 开始修复期号显示问题...');
         
-        // 1. 修改 formatPeriodDisplay 函數，添加參數控制顯示格式
-        console.log('1. 修改 formatPeriodDisplay 函數...');
+        // 1. 修改 formatPeriodDisplay 函数，添加参数控制显示格式
+        console.log('1. 修改 formatPeriodDisplay 函数...');
         
         const newFormatPeriodDisplay = `formatPeriodDisplay(period, showFullPeriod = false) {
                     if (!period) return '';
                     const periodStr = period.toString();
                     
-                    // 如果要顯示完整期號
+                    // 如果要显示完整期号
                     if (showFullPeriod) {
                         return periodStr;
                     }
                     
-                    // 提取期號的各部分
+                    // 提取期号的各部分
                     if (periodStr.length >= 8) {
                         const year = periodStr.substring(0, 4);
                         const month = periodStr.substring(4, 6);
                         const day = periodStr.substring(6, 8);
-                        const num = periodStr.substring(8); // 獲取完整的序號部分，不限制位數
+                        const num = periodStr.substring(8); // 获取完整的序号部分，不限制位数
                         
-                        // 返回格式化的顯示：MM/DD XXX期
+                        // 返回格式化的显示：MM/DD XXX期
                         return \`\${month}/\${day} \${num}期\`;
                     }
                     return periodStr;
                 }`;
         
-        // 替換原有的 formatPeriodDisplay 函數
+        // 替换原有的 formatPeriodDisplay 函数
         content = content.replace(
             /formatPeriodDisplay\(period\)\s*\{[\s\S]*?\n\s*\}/,
             newFormatPeriodDisplay
         );
         
-        // 2. 修復路線圖中的期號顯示（不再使用 slice(-3)）
-        console.log('2. 修復路線圖期號顯示...');
+        // 2. 修复路线图中的期号显示（不再使用 slice(-3)）
+        console.log('2. 修复路线图期号显示...');
         
-        // 找到路線圖期號顯示的部分並修改
+        // 找到路线图期号显示的部分并修改
         content = content.replace(
             /<div class="period-info">\{\{ cell\.period\.toString\(\)\.slice\(-3\) \}\}<\/div>/g,
             '<div class="period-info">{{ cell.period.toString().substring(8) }}</div>'
         );
         
-        // 3. 確保歷史開獎中使用一致的格式
-        console.log('3. 統一歷史開獎期號格式...');
+        // 3. 确保历史开奖中使用一致的格式
+        console.log('3. 统一历史开奖期号格式...');
         
-        // 歷史開獎列表中的期號顯示 - 保持 MM/DD XXX期 格式
-        // 這部分已經在使用 formatPeriodDisplay，所以會自動更新
+        // 历史开奖列表中的期号显示 - 保持 MM/DD XXX期 格式
+        // 这部分已经在使用 formatPeriodDisplay，所以会自动更新
         
-        // 4. 添加一個輔助函數來提取期號序號
-        console.log('4. 添加期號序號提取函數...');
+        // 4. 添加一个辅助函数来提取期号序号
+        console.log('4. 添加期号序号提取函数...');
         
         const extractPeriodNumber = `
-                // 提取期號的序號部分
+                // 提取期号的序号部分
                 extractPeriodNumber(period) {
                     if (!period) return '';
                     const periodStr = period.toString();
@@ -74,51 +74,51 @@ function fixPeriodDisplay() {
                     return periodStr;
                 },`;
         
-        // 在 methods 部分添加新函數
+        // 在 methods 部分添加新函数
         const methodsMatch = content.match(/methods:\s*\{/);
         if (methodsMatch) {
             const insertPos = methodsMatch.index + methodsMatch[0].length;
             content = content.slice(0, insertPos) + extractPeriodNumber + content.slice(insertPos);
         }
         
-        // 5. 修復近期開獎記錄的期號顯示
-        console.log('5. 確保近期開獎記錄顯示一致...');
+        // 5. 修复近期开奖记录的期号显示
+        console.log('5. 确保近期开奖记录显示一致...');
         
-        // 近期開獎記錄已經使用 formatPeriodDisplay，會自動更新
+        // 近期开奖记录已经使用 formatPeriodDisplay，会自动更新
         
-        // 6. 添加註釋說明期號格式
+        // 6. 添加注释说明期号格式
         const periodFormatComment = `
-                // 期號格式說明：
-                // - 完整期號：YYYYMMDDXXX (如 202507241372)
-                // - 顯示格式：MM/DD XXX期 (如 07/24 1372期)
-                // - 序號部分：XXX (通常是3位，但可能超過999達到4位)`;
+                // 期号格式说明：
+                // - 完整期号：YYYYMMDDXXX (如 202507241372)
+                // - 显示格式：MM/DD XXX期 (如 07/24 1372期)
+                // - 序号部分：XXX (通常是3位，但可能超过999达到4位)`;
         
-        // 在 formatPeriodDisplay 函數前添加註釋
+        // 在 formatPeriodDisplay 函数前添加注释
         content = content.replace(
-            /\/\/ 🔥 格式化期號显示/,
-            `// 🔥 格式化期號显示${periodFormatComment}`
+            /\/\/ 🔥 格式化期号显示/,
+            `// 🔥 格式化期号显示${periodFormatComment}`
         );
         
-        // 保存修改後的文件
+        // 保存修改后的文件
         fs.writeFileSync(indexPath, content, 'utf8');
-        console.log('✅ 期號顯示修復完成！');
+        console.log('✅ 期号显示修复完成！');
         
-        // 顯示修改摘要
+        // 显示修改摘要
         console.log('\n📋 修改摘要：');
-        console.log('1. formatPeriodDisplay 函數現在正確處理超過999的序號');
-        console.log('2. 路線圖期號顯示改用 substring(8) 替代 slice(-3)');
-        console.log('3. 添加了 extractPeriodNumber 輔助函數');
-        console.log('4. 統一了所有位置的期號顯示格式');
-        console.log('\n⚠️  請測試以下場景：');
-        console.log('- 序號為 001 的期號顯示');
-        console.log('- 序號為 999 的期號顯示');
-        console.log('- 序號為 1000+ 的期號顯示');
-        console.log('- 跨日期時的期號顯示');
+        console.log('1. formatPeriodDisplay 函数现在正确处理超过999的序号');
+        console.log('2. 路线图期号显示改用 substring(8) 替代 slice(-3)');
+        console.log('3. 添加了 extractPeriodNumber 辅助函数');
+        console.log('4. 统一了所有位置的期号显示格式');
+        console.log('\n⚠️  请测试以下场景：');
+        console.log('- 序号为 001 的期号显示');
+        console.log('- 序号为 999 的期号显示');
+        console.log('- 序号为 1000+ 的期号显示');
+        console.log('- 跨日期时的期号显示');
         
     } catch (error) {
-        console.error('❌ 修復期號顯示時發生錯誤：', error);
+        console.error('❌ 修复期号显示时发生错误：', error);
     }
 }
 
-// 執行修復
+// 执行修复
 fixPeriodDisplay();

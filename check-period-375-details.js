@@ -1,26 +1,26 @@
-// 檢查期號 375 的詳細下注情況
+// 检查期号 375 的详细下注情况
 import db from './db/config.js';
 
 async function checkPeriod375() {
-    console.log('🔍 檢查期號 20250717375 的詳細情況\n');
+    console.log('🔍 检查期号 20250717375 的详细情况\n');
 
     try {
-        // 1. 查詢所有下注記錄
+        // 1. 查询所有下注记录
         const allBets = await db.manyOrNone(`
             SELECT * FROM bet_history 
             WHERE period = '20250717375'
             ORDER BY username, position, bet_value
         `);
 
-        console.log(`📊 總下注記錄數：${allBets.length}`);
+        console.log(`📊 总下注记录数：${allBets.length}`);
 
-        // 2. 查詢 justin111 的下注
+        // 2. 查询 justin111 的下注
         const justinBets = allBets.filter(b => b.username === 'justin111');
         
         if (justinBets.length > 0) {
-            console.log(`\n👤 justin111 的下注（共${justinBets.length}筆）：`);
+            console.log(`\n👤 justin111 的下注（共${justinBets.length}笔）：`);
             
-            // 按位置分組
+            // 按位置分组
             const betsByPosition = {};
             justinBets.forEach(bet => {
                 if (!betsByPosition[bet.position]) {
@@ -29,29 +29,29 @@ async function checkPeriod375() {
                 betsByPosition[bet.position].push(bet);
             });
 
-            // 顯示每個位置的下注
+            // 显示每个位置的下注
             Object.keys(betsByPosition).sort().forEach(position => {
                 const positionBets = betsByPosition[position];
                 const betNumbers = positionBets.map(b => b.bet_value).sort((a, b) => a - b);
                 const totalAmount = positionBets.reduce((sum, b) => sum + parseFloat(b.amount), 0);
                 
                 console.log(`\n第${position}名：`);
-                console.log(`  下注號碼：${betNumbers.join(', ')}`);
-                console.log(`  覆蓋率：${betNumbers.length}/10 = ${betNumbers.length * 10}%`);
-                console.log(`  總金額：$${totalAmount}`);
+                console.log(`  下注号码：${betNumbers.join(', ')}`);
+                console.log(`  覆盖率：${betNumbers.length}/10 = ${betNumbers.length * 10}%`);
+                console.log(`  总金额：$${totalAmount}`);
             });
         } else {
-            console.log('\njustin111 在此期沒有下注');
+            console.log('\njustin111 在此期没有下注');
         }
 
-        // 3. 查詢開獎結果
+        // 3. 查询开奖结果
         const result = await db.oneOrNone(`
             SELECT * FROM result_history 
             WHERE period = '20250717375'
         `);
 
         if (result) {
-            console.log('\n🎯 開獎結果：');
+            console.log('\n🎯 开奖结果：');
             const positions = [
                 result.position_1, result.position_2, result.position_3, 
                 result.position_4, result.position_5, result.position_6,
@@ -60,13 +60,13 @@ async function checkPeriod375() {
             ];
             
             positions.forEach((num, idx) => {
-                const star = (idx === 4) ? ' ⭐' : ''; // 第5名標記
+                const star = (idx === 4) ? ' ⭐' : ''; // 第5名标记
                 console.log(`第${idx + 1}名：${num}${star}`);
             });
 
-            // 檢查 justin111 是否中獎
+            // 检查 justin111 是否中奖
             if (justinBets.length > 0) {
-                console.log('\n💰 中獎檢查：');
+                console.log('\n💰 中奖检查：');
                 let totalWin = 0;
                 
                 justinBets.forEach(bet => {
@@ -75,22 +75,22 @@ async function checkPeriod375() {
                     
                     if (bet.bet_value === drawnNumber.toString()) {
                         const winAmount = parseFloat(bet.amount) * parseFloat(bet.odds);
-                        console.log(`✅ 第${bet.position}名 - 號碼${bet.bet_value}中獎！金額：$${bet.amount} x ${bet.odds} = $${winAmount.toFixed(2)}`);
+                        console.log(`✅ 第${bet.position}名 - 号码${bet.bet_value}中奖！金额：$${bet.amount} x ${bet.odds} = $${winAmount.toFixed(2)}`);
                         totalWin += winAmount;
                     }
                 });
                 
                 if (totalWin > 0) {
-                    console.log(`總中獎金額：$${totalWin.toFixed(2)}`);
+                    console.log(`总中奖金额：$${totalWin.toFixed(2)}`);
                 } else {
-                    console.log('未中獎');
+                    console.log('未中奖');
                 }
             }
         } else {
-            console.log('\n❌ 未找到該期的開獎結果');
+            console.log('\n❌ 未找到该期的开奖结果');
         }
 
-        // 4. 檢查控制記錄
+        // 4. 检查控制记录
         const controlLog = await db.oneOrNone(`
             SELECT * FROM win_loss_control
             WHERE target_username = 'justin111'
@@ -100,16 +100,16 @@ async function checkPeriod375() {
         `);
 
         if (controlLog) {
-            console.log('\n🎮 當前控制設定：');
+            console.log('\n🎮 当前控制设定：');
             console.log(`模式：${controlLog.control_mode}`);
             console.log(`百分比：${controlLog.control_percentage}%`);
-            console.log(`操作員：${controlLog.operator_username}`);
+            console.log(`操作员：${controlLog.operator_username}`);
         }
 
-        // 5. 嘗試查找系統日誌（如果有）
-        console.log('\n📝 查找系統日誌...');
+        // 5. 尝试查找系统日志（如果有）
+        console.log('\n📝 查找系统日志...');
         
-        // 檢查是否有系統日誌表
+        // 检查是否有系统日志表
         const hasLogTable = await db.oneOrNone(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -127,26 +127,26 @@ async function checkPeriod375() {
             `);
 
             if (logs && logs.length > 0) {
-                console.log('找到相關日誌：');
+                console.log('找到相关日志：');
                 logs.forEach(log => {
                     console.log(`[${log.created_at}] ${JSON.stringify(log.log_data)}`);
                 });
             }
         } else {
-            console.log('系統未配置日誌表');
-            console.log('建議檢查後端服務器的控制台輸出或日誌文件');
+            console.log('系统未配置日志表');
+            console.log('建议检查后端服务器的控制台输出或日志文件');
         }
 
     } catch (error) {
-        console.error('查詢失敗：', error);
+        console.error('查询失败：', error);
     }
 }
 
-// 執行檢查
+// 执行检查
 checkPeriod375().then(() => {
-    console.log('\n✅ 檢查完成');
+    console.log('\n✅ 检查完成');
     process.exit(0);
 }).catch(error => {
-    console.error('❌ 錯誤：', error);
+    console.error('❌ 错误：', error);
     process.exit(1);
 });

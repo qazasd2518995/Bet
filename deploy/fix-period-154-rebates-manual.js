@@ -136,7 +136,7 @@ async function fixPeriod154Rebates() {
                             rebateAmount,
                             balanceBefore,
                             balanceAfter,
-                            `退水 - 期號 ${period} 會員 ${bet.username} 下注 ${bet.amount}`,
+                            `退水 - 期号 ${period} 会员 ${bet.username} 下注 ${bet.amount}`,
                             bet.username,
                             parseFloat(bet.amount),
                             rebateDiff,

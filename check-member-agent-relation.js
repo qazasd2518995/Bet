@@ -2,10 +2,10 @@ import db from './db/config.js';
 
 async function checkMemberAgentRelation() {
   try {
-    console.log('=== 檢查會員和代理關係 ===\n');
+    console.log('=== 检查会员和代理关系 ===\n');
 
-    // 1. 檢查是否有 justin2025A 這個會員
-    console.log('1. 尋找 justin2025A：');
+    // 1. 检查是否有 justin2025A 这个会员
+    console.log('1. 寻找 justin2025A：');
     const members = await db.query(`
       SELECT m.*, a.username as agent_username, a.market_type as agent_market_type
       FROM members m
@@ -15,16 +15,16 @@ async function checkMemberAgentRelation() {
     `);
     
     if (members.length > 0) {
-      console.log(`找到 ${members.length} 個相關會員：`);
+      console.log(`找到 ${members.length} 个相关会员：`);
       members.forEach(member => {
-        console.log(`  - ${member.username} (代理: ${member.agent_username}, 盤口: ${member.market_type || member.agent_market_type || '未設定'})`);
+        console.log(`  - ${member.username} (代理: ${member.agent_username}, 盘口: ${member.market_type || member.agent_market_type || '未设定'})`);
       });
     } else {
-      console.log('未找到包含 justin 的會員');
+      console.log('未找到包含 justin 的会员');
     }
 
-    // 2. 檢查代理關係
-    console.log('\n2. 檢查代理關係：');
+    // 2. 检查代理关系
+    console.log('\n2. 检查代理关系：');
     const agents = await db.query(`
       SELECT id, username, level, parent_id, market_type, rebate_percentage
       FROM agents
@@ -32,13 +32,13 @@ async function checkMemberAgentRelation() {
       ORDER BY level;
     `);
     
-    console.log('代理資料：');
+    console.log('代理资料：');
     agents.forEach(agent => {
-      console.log(`  ${agent.username}: Level ${agent.level}, 盤口 ${agent.market_type}, 退水 ${agent.rebate_percentage}%, Parent ID: ${agent.parent_id || 'None'}`);
+      console.log(`  ${agent.username}: Level ${agent.level}, 盘口 ${agent.market_type}, 退水 ${agent.rebate_percentage}%, Parent ID: ${agent.parent_id || 'None'}`);
     });
 
-    // 3. 檢查最近的投注記錄（任何會員）
-    console.log('\n3. 檢查最近的投注記錄：');
+    // 3. 检查最近的投注记录（任何会员）
+    console.log('\n3. 检查最近的投注记录：');
     const recentBets = await db.query(`
       SELECT b.id, b.username, b.amount, b.created_at
       FROM bet_history b
@@ -49,12 +49,12 @@ async function checkMemberAgentRelation() {
     if (recentBets.length > 0) {
       console.log('最近的投注：');
       recentBets.forEach(bet => {
-        console.log(`  ID: ${bet.id}, 會員: ${bet.username}, 金額: ${bet.amount}, 時間: ${new Date(bet.created_at).toLocaleString()}`);
+        console.log(`  ID: ${bet.id}, 会员: ${bet.username}, 金额: ${bet.amount}, 时间: ${new Date(bet.created_at).toLocaleString()}`);
       });
     }
 
-    // 4. 檢查是否有退水相關的欄位
-    console.log('\n4. 檢查退水相關欄位：');
+    // 4. 检查是否有退水相关的栏位
+    console.log('\n4. 检查退水相关栏位：');
     const rebateColumns = await db.query(`
       SELECT table_name, column_name
       FROM information_schema.columns
@@ -62,13 +62,13 @@ async function checkMemberAgentRelation() {
       ORDER BY table_name;
     `);
     
-    console.log('退水相關欄位：');
+    console.log('退水相关栏位：');
     rebateColumns.forEach(col => {
       console.log(`  ${col.table_name}.${col.column_name}`);
     });
 
-    // 5. 檢查 agent_chain 欄位是否存在
-    console.log('\n5. 檢查 agent_chain 欄位：');
+    // 5. 检查 agent_chain 栏位是否存在
+    console.log('\n5. 检查 agent_chain 栏位：');
     const agentChainColumns = await db.query(`
       SELECT table_name, column_name, data_type
       FROM information_schema.columns
@@ -77,16 +77,16 @@ async function checkMemberAgentRelation() {
     `);
     
     if (agentChainColumns.length > 0) {
-      console.log('找到 agent_chain 欄位：');
+      console.log('找到 agent_chain 栏位：');
       agentChainColumns.forEach(col => {
         console.log(`  ${col.table_name}.${col.column_name} (${col.data_type})`);
       });
     } else {
-      console.log('未找到 agent_chain 欄位');
+      console.log('未找到 agent_chain 栏位');
     }
 
   } catch (error) {
-    console.error('檢查失敗:', error.message);
+    console.error('检查失败:', error.message);
   } finally {
     process.exit();
   }

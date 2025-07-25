@@ -13,7 +13,7 @@ export const securityConfig = {
     algorithm: 'HS256'
   },
 
-  // 密碼策略
+  // 密码策略
   password: {
     minLength: 8,
     maxLength: 128,
@@ -28,29 +28,29 @@ export const securityConfig = {
   rateLimit: {
     // 通用 API 限制
     api: {
-      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 分鐘
+      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 分钟
       max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-      message: '請求過於頻繁，請稍後再試'
+      message: '请求过于频繁，请稍后再试'
     },
     // 登入限制
     login: {
-      windowMs: 15 * 60 * 1000, // 15 分鐘
+      windowMs: 15 * 60 * 1000, // 15 分钟
       max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX || '5'),
       skipSuccessfulRequests: true
     },
-    // 註冊限制
+    // 注册限制
     register: {
-      windowMs: 60 * 60 * 1000, // 1 小時
+      windowMs: 60 * 60 * 1000, // 1 小时
       max: 3
     },
-    // 密碼重設限制
+    // 密码重设限制
     passwordReset: {
-      windowMs: 60 * 60 * 1000, // 1 小時
+      windowMs: 60 * 60 * 1000, // 1 小时
       max: 3
     },
     // 提款限制
     withdrawal: {
-      windowMs: 60 * 60 * 1000, // 1 小時
+      windowMs: 60 * 60 * 1000, // 1 小时
       max: 10
     }
   },
@@ -66,16 +66,16 @@ export const securityConfig = {
     exposedHeaders: ['X-CSRF-Token']
   },
 
-  // 會話配置
+  // 会话配置
   session: {
     secret: process.env.SESSION_SECRET || 'change-this-session-secret',
-    maxAge: parseInt(process.env.SESSION_MAX_AGE || '86400000'), // 24 小時
+    maxAge: parseInt(process.env.SESSION_MAX_AGE || '86400000'), // 24 小时
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict'
   },
 
-  // 安全頭配置
+  // 安全头配置
   headers: {
     // Helmet 配置
     helmet: {
@@ -100,7 +100,7 @@ export const securityConfig = {
     }
   },
 
-  // 檔案上傳限制
+  // 档案上传限制
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB
     allowedMimeTypes: [
@@ -128,7 +128,7 @@ export const securityConfig = {
     blockedCountries: (process.env.BLOCKED_COUNTRIES || '').split(',').filter(Boolean)
   },
 
-  // 兩步驗證
+  // 两步验证
   twoFactor: {
     enabled: process.env.ENABLE_2FA === 'true',
     issuer: 'BET System',
@@ -138,7 +138,7 @@ export const securityConfig = {
     window: 2
   },
 
-  // 日誌配置
+  // 日志配置
   logging: {
     level: process.env.LOG_LEVEL || 'info',
     enableSecurityLogs: process.env.ENABLE_SECURITY_LOGS === 'true',
@@ -159,7 +159,7 @@ export const securityConfig = {
     digest: 'sha256'
   },
 
-  // 安全警報閾值
+  // 安全警报阈值
   alerts: {
     failedLoginThreshold: parseInt(process.env.FAILED_LOGIN_THRESHOLD || '5'),
     suspiciousActivityThreshold: parseInt(process.env.SUSPICIOUS_ACTIVITY_THRESHOLD || '10'),
@@ -167,7 +167,7 @@ export const securityConfig = {
     alertEmail: process.env.ALERT_EMAIL || 'security@example.com'
   },
 
-  // DDoS 防護
+  // DDoS 防护
   ddosProtection: {
     enabled: process.env.DDOS_PROTECTION_ENABLED === 'true',
     burst: parseInt(process.env.DDOS_BURST || '100'),
@@ -178,7 +178,7 @@ export const securityConfig = {
     retryAfter: 60
   },
 
-  // 資料庫安全
+  // 资料库安全
   database: {
     enableSSL: process.env.NODE_ENV === 'production',
     statementTimeout: 30000, // 30 秒
@@ -202,19 +202,19 @@ export const securityConfig = {
     deprecationWarningDays: 30
   },
 
-  // 備份配置
+  // 备份配置
   backup: {
     enabled: process.env.BACKUP_ENABLED === 'true',
-    schedule: process.env.BACKUP_SCHEDULE || '0 2 * * *', // 每天凌晨 2 點
+    schedule: process.env.BACKUP_SCHEDULE || '0 2 * * *', // 每天凌晨 2 点
     retentionDays: parseInt(process.env.BACKUP_RETENTION_DAYS || '30'),
     encryptBackups: true,
     compressionLevel: 9
   },
 
-  // 監控配置
+  // 监控配置
   monitoring: {
     enabled: process.env.ENABLE_MONITORING === 'true',
-    interval: parseInt(process.env.MONITORING_INTERVAL || '60000'), // 1 分鐘
+    interval: parseInt(process.env.MONITORING_INTERVAL || '60000'), // 1 分钟
     metrics: {
       cpu: true,
       memory: true,
@@ -251,37 +251,37 @@ export const securityConfig = {
   }
 };
 
-// 驗證必要的安全配置
+// 验证必要的安全配置
 export function validateSecurityConfig() {
   const errors = [];
 
-  // 檢查 JWT 密鑰
+  // 检查 JWT 密钥
   if (securityConfig.jwt.secret === 'change-this-secret-in-production') {
-    errors.push('JWT_SECRET 必須設置為安全的隨機字符串');
+    errors.push('JWT_SECRET 必须设置为安全的随机字符串');
   }
 
-  // 檢查會話密鑰
+  // 检查会话密钥
   if (securityConfig.session.secret === 'change-this-session-secret') {
-    errors.push('SESSION_SECRET 必須設置為安全的隨機字符串');
+    errors.push('SESSION_SECRET 必须设置为安全的随机字符串');
   }
 
-  // 檢查內部 API 密鑰
+  // 检查内部 API 密钥
   if (securityConfig.api.internalApiKey === 'change-this-internal-api-key') {
-    errors.push('INTERNAL_API_KEY 必須設置為安全的隨機字符串');
+    errors.push('INTERNAL_API_KEY 必须设置为安全的随机字符串');
   }
 
-  // 生產環境額外檢查
+  // 生产环境额外检查
   if (process.env.NODE_ENV === 'production') {
     if (!securityConfig.database.enableSSL) {
-      errors.push('生產環境必須啟用資料庫 SSL');
+      errors.push('生产环境必须启用资料库 SSL');
     }
 
     if (!securityConfig.headers.helmet.hsts) {
-      errors.push('生產環境必須啟用 HSTS');
+      errors.push('生产环境必须启用 HSTS');
     }
 
     if (!securityConfig.session.secure) {
-      errors.push('生產環境必須使用安全的會話 cookie');
+      errors.push('生产环境必须使用安全的会话 cookie');
     }
   }
 

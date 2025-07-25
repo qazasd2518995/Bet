@@ -1,4 +1,4 @@
-// agentBackend.js - 代理管理會員系統後端
+// agentBackend.js - 代理管理会员系统后端
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -8,24 +8,24 @@ import { dirname } from 'path';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import wsManager from './websocket/ws-manager.js';
-// 使用優化過的數據庫配置
+// 使用优化过的数据库配置
 import db from './db/config.js';
-// 導入基本數據庫初始化函數
+// 导入基本数据库初始化函数
 import initDatabaseBase from './db/init.js';
 import SessionManager from './security/session-manager.js';
 import { generateBlockchainData } from './utils/blockchain.js';
 import bcrypt from 'bcrypt';
 
-// 初始化環境變量
+// 初始化环境变量
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3003; // 使用不同於主遊戲系統的端口
+const port = process.env.PORT || 3003; // 使用不同于主游戏系统的端口
 
-// 跨域設置 - 加強本地開發支持
+// 跨域设置 - 加强本地开发支持
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://bet-game.onrender.com', 'https://bet-game-vcje.onrender.com', 'https://bet-agent.onrender.com'] 
@@ -37,30 +37,30 @@ app.use(cors({
 
 app.use(express.json());
 
-// 提供靜態文件
+// 提供静态文件
 app.use(express.static(path.join(__dirname, 'agent/frontend')));
 
-// 主頁面路由
+// 主页面路由
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'agent/frontend', 'index.html'));
 });
 
-// Favicon 路由處理
+// Favicon 路由处理
 app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'agent/frontend', 'favicon.svg'));
 });
 
-// 健康檢查端點 - 用於 Render 監控
+// 健康检查端点 - 用于 Render 监控
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 創建必要的資料庫表格
+// 创建必要的资料库表格
 async function initializeWinLossControlTables() {
   try {
-    console.log('初始化輸贏控制表格...');
+    console.log('初始化输赢控制表格...');
     
-    // 創建輸贏控制表
+    // 创建输赢控制表
     await db.none(`
       CREATE TABLE IF NOT EXISTS win_loss_control (
         id SERIAL PRIMARY KEY,
@@ -80,21 +80,21 @@ async function initializeWinLossControlTables() {
       )
     `);
     
-    // 如果表已存在，檢查並修改start_period欄位類型
+    // 如果表已存在，检查并修改start_period栏位类型
     try {
       await db.none(`
         ALTER TABLE win_loss_control 
         ALTER COLUMN start_period TYPE VARCHAR(20)
       `);
-      console.log('✅ start_period欄位類型已更新為VARCHAR(20)');
+      console.log('✅ start_period栏位类型已更新为VARCHAR(20)');
     } catch (alterError) {
-      // 如果修改失敗（可能因為已經是正確類型），繼續執行
+      // 如果修改失败（可能因为已经是正确类型），继续执行
       if (!alterError.message.includes('already exists') && !alterError.message.includes('cannot be cast')) {
-        console.log('start_period欄位類型修改:', alterError.message);
+        console.log('start_period栏位类型修改:', alterError.message);
       }
     }
     
-    // 創建輸贏控制日誌表
+    // 创建输赢控制日志表
     await db.none(`
       CREATE TABLE IF NOT EXISTS win_loss_control_logs (
         id SERIAL PRIMARY KEY,
@@ -108,42 +108,42 @@ async function initializeWinLossControlTables() {
       )
     `);
     
-    console.log('輸贏控制表格初始化完成');
+    console.log('输赢控制表格初始化完成');
   } catch (error) {
-    console.error('輸贏控制表格初始化錯誤:', error);
+    console.error('输赢控制表格初始化错误:', error);
   }
 }
 
-// 在應用啟動時初始化資料庫
+// 在应用启动时初始化资料库
 initializeWinLossControlTables();
 
-// 新增數據庫初始化端點 - 用於手動觸發數據庫初始化
+// 新增数据库初始化端点 - 用于手动触发数据库初始化
 app.get('/api/init-db', async (req, res) => {
   try {
-    console.log('手動觸發數據庫初始化...');
+    console.log('手动触发数据库初始化...');
     await initDatabase();
     res.json({ 
       success: true, 
-      message: '數據庫初始化成功',
+      message: '数据库初始化成功',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('數據庫手動初始化失敗:', error);
+    console.error('数据库手动初始化失败:', error);
     res.status(500).json({ 
       success: false, 
-      message: '數據庫初始化失敗', 
+      message: '数据库初始化失败', 
       error: error.message,
       timestamp: new Date().toISOString()
     });
   }
 });
 
-// 新增數據庫檢查端點 - 用於檢查agents表是否存在
+// 新增数据库检查端点 - 用于检查agents表是否存在
 app.get('/api/check-profile-table', async (req, res) => {
   try {
-    console.log('檢查 agents 表...');
+    console.log('检查 agents 表...');
     
-    // 檢查表是否存在
+    // 检查表是否存在
     const tableExists = await db.oneOrNone(`
       SELECT table_name 
       FROM information_schema.tables 
@@ -158,7 +158,7 @@ app.get('/api/check-profile-table', async (req, res) => {
       });
     }
     
-    // 檢查表結構
+    // 检查表结构
     const columns = await db.any(`
       SELECT column_name, data_type, is_nullable 
       FROM information_schema.columns 
@@ -166,22 +166,22 @@ app.get('/api/check-profile-table', async (req, res) => {
       ORDER BY ordinal_position
     `);
     
-    // 檢查記錄數量
+    // 检查记录数量
     const recordCount = await db.one('SELECT COUNT(*) as count FROM agents');
     
     res.json({
       success: true,
-      message: 'agents 表檢查完成',
+      message: 'agents 表检查完成',
       tableExists: true,
       columns: columns,
       recordCount: parseInt(recordCount.count)
     });
     
   } catch (error) {
-    console.error('檢查 agents 表失敗:', error);
+    console.error('检查 agents 表失败:', error);
     res.status(500).json({
       success: false,
-      message: '檢查失敗',
+      message: '检查失败',
       error: error.message
     });
   }
@@ -189,47 +189,47 @@ app.get('/api/check-profile-table', async (req, res) => {
 
 
 
-// 代理API路由前綴
+// 代理API路由前缀
 const API_PREFIX = '/api/agent';
 
-// 會員登入驗證API
+// 会员登入验证API
 app.post(`${API_PREFIX}/member/verify-login`, async (req, res) => {
   try {
     const { username, password } = req.body;
     
-    console.log(`會員登入驗證請求: ${username}`);
+    console.log(`会员登入验证请求: ${username}`);
     
     if (!username || !password) {
       return res.status(400).json({
         success: false,
-        message: '請提供帳號和密碼'
+        message: '请提供帐号和密码'
       });
     }
     
-    // 查詢會員資訊
+    // 查询会员资讯
     const member = await MemberModel.findByUsername(username);
     
     if (!member) {
-      console.log(`會員不存在: ${username}`);
+      console.log(`会员不存在: ${username}`);
       return res.status(400).json({
         success: false,
-        message: '帳號或密碼錯誤'
+        message: '帐号或密码错误'
       });
     }
     
-    // 驗證密碼（這裡簡化處理，實際應該使用加密）
+    // 验证密码（这里简化处理，实际应该使用加密）
     if (member.password !== password) {
-      console.log(`密碼錯誤: ${username}`);
+      console.log(`密码错误: ${username}`);
       return res.status(400).json({
         success: false,
-        message: '帳號或密碼錯誤'
+        message: '帐号或密码错误'
       });
     }
     
-    console.log(`會員登入驗證成功: ${username}, ID: ${member.id}`);
-    console.log(`會員完整數據:`, JSON.stringify(member, null, 2));
-    console.log(`會員market_type值:`, member.market_type);
-    console.log(`會員market_type類型:`, typeof member.market_type);
+    console.log(`会员登入验证成功: ${username}, ID: ${member.id}`);
+    console.log(`会员完整数据:`, JSON.stringify(member, null, 2));
+    console.log(`会员market_type值:`, member.market_type);
+    console.log(`会员market_type类型:`, typeof member.market_type);
     
     const responseData = {
       id: member.id,
@@ -240,24 +240,24 @@ app.post(`${API_PREFIX}/member/verify-login`, async (req, res) => {
       market_type: member.market_type || 'D'
     };
     
-    console.log(`回應數據:`, JSON.stringify(responseData, null, 2));
+    console.log(`回应数据:`, JSON.stringify(responseData, null, 2));
     
     res.json({
       success: true,
-      message: '驗證成功',
+      message: '验证成功',
       member: responseData
     });
     
   } catch (error) {
-    console.error('會員登入驗證錯誤:', error);
+    console.error('会员登入验证错误:', error);
     res.status(500).json({
       success: false,
-      message: '驗證服務暫時不可用'
+      message: '验证服务暂时不可用'
     });
   }
 });
 
-// 獲取會員信息API（包含盤口類型）
+// 获取会员信息API（包含盘口类型）
 app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
   try {
     const { username } = req.params;
@@ -267,7 +267,7 @@ app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: '用戶不存在'
+        message: '用户不存在'
       });
     }
     
@@ -285,15 +285,15 @@ app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取會員信息錯誤:', error);
+    console.error('获取会员信息错误:', error);
     res.status(500).json({
       success: false,
-      message: '服務暫時不可用'
+      message: '服务暂时不可用'
     });
   }
 });
 
-// 獲取會員餘額API
+// 获取会员余额API
 app.get(`${API_PREFIX}/member/balance/:username`, async (req, res) => {
   try {
     const { username } = req.params;
@@ -303,7 +303,7 @@ app.get(`${API_PREFIX}/member/balance/:username`, async (req, res) => {
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: '用戶不存在'
+        message: '用户不存在'
       });
     }
     
@@ -314,15 +314,15 @@ app.get(`${API_PREFIX}/member/balance/:username`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取會員餘額錯誤:', error);
+    console.error('获取会员余额错误:', error);
     res.status(500).json({
       success: false,
-      message: '獲取餘額失敗'
+      message: '获取余额失败'
     });
   }
 });
 
-// 會員投注記錄API
+// 会员投注记录API
 app.get(`${API_PREFIX}/member/bet-records/:username`, async (req, res) => {
   try {
     const { username } = req.params;
@@ -333,15 +333,15 @@ app.get(`${API_PREFIX}/member/bet-records/:username`, async (req, res) => {
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: '用戶不存在'
+        message: '用户不存在'
       });
     }
     
-    // 從遊戲資料庫查詢真實投注記錄
+    // 从游戏资料库查询真实投注记录
     try {
       const offset = (page - 1) * limit;
       
-      // 查詢投注記錄
+      // 查询投注记录
       const records = await db.many(`
         SELECT id, username, period, bet_type, bet_value, position, amount, odds, win, settled, created_at, win_amount
         FROM bet_history 
@@ -350,14 +350,14 @@ app.get(`${API_PREFIX}/member/bet-records/:username`, async (req, res) => {
         LIMIT $2 OFFSET $3
       `, [username, limit, offset]);
       
-      // 查詢總數
+      // 查询总数
       const totalResult = await db.one(`
         SELECT COUNT(*) as total 
         FROM bet_history 
         WHERE username = $1
       `, [username]);
       
-      // 格式化記錄
+      // 格式化记录
       const formattedRecords = records.map(record => ({
         id: record.id,
         username: record.username,
@@ -384,7 +384,7 @@ app.get(`${API_PREFIX}/member/bet-records/:username`, async (req, res) => {
       });
       
     } catch (dbError) {
-      console.error('查詢投注記錄資料庫錯誤:', dbError);
+      console.error('查询投注记录资料库错误:', dbError);
       res.json({
         success: true,
         records: [],
@@ -397,15 +397,15 @@ app.get(`${API_PREFIX}/member/bet-records/:username`, async (req, res) => {
     }
     
   } catch (error) {
-    console.error('獲取會員投注記錄錯誤:', error);
+    console.error('获取会员投注记录错误:', error);
     res.status(500).json({
       success: false,
-      message: '獲取投注記錄失敗'
+      message: '获取投注记录失败'
     });
   }
 });
 
-// 會員盈虧統計API
+// 会员盈亏统计API
 app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
   try {
     const { username } = req.params;
@@ -416,11 +416,11 @@ app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: '用戶不存在'
+        message: '用户不存在'
       });
     }
     
-    // 根據period設定時間範圍（台灣時間 UTC+8）
+    // 根据period设定时间范围（台湾时间 UTC+8）
     let timeCondition = '';
     if (period === 'today') {
       timeCondition = `AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Taipei') = DATE(NOW() AT TIME ZONE 'Asia/Taipei')`;
@@ -430,7 +430,7 @@ app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
       timeCondition = `AND created_at >= (NOW() AT TIME ZONE 'Asia/Taipei' - INTERVAL '30 days') AT TIME ZONE 'Asia/Taipei' AT TIME ZONE 'UTC'`;
     }
     
-    // 查詢投注記錄並計算盈虧
+    // 查询投注记录并计算盈亏
     const profitQuery = `
       SELECT 
         COUNT(*) as total_bets,
@@ -444,12 +444,12 @@ app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
       ${timeCondition}
     `;
     
-    console.log(`查詢用戶 ${username} 的盈虧統計，期間: ${period}`);
-    console.log('執行SQL:', profitQuery);
+    console.log(`查询用户 ${username} 的盈亏统计，期间: ${period}`);
+    console.log('执行SQL:', profitQuery);
     
     const result = await db.one(profitQuery, [username]);
     
-    console.log('查詢結果:', result);
+    console.log('查询结果:', result);
     
     const totalBetAmount = parseFloat(result.total_bet_amount) || 0;
     const totalWinAmount = parseFloat(result.total_win_amount) || 0;
@@ -472,15 +472,15 @@ app.get(`${API_PREFIX}/member/profit-loss/:username`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取會員盈虧統計錯誤:', error);
+    console.error('获取会员盈亏统计错误:', error);
     res.status(500).json({
       success: false,
-      message: '獲取盈虧統計失敗'
+      message: '获取盈亏统计失败'
     });
   }
 });
 
-// 接收遊戲端的即時開獎同步
+// 接收游戏端的即时开奖同步
 app.post(`${API_PREFIX}/sync-draw-record`, async (req, res) => {
   try {
     const { period, result, draw_time } = req.body;
@@ -488,16 +488,16 @@ app.post(`${API_PREFIX}/sync-draw-record`, async (req, res) => {
     if (!period || !result) {
       return res.status(400).json({
         success: false,
-        message: '缺少必要參數: period 或 result'
+        message: '缺少必要参数: period 或 result'
       });
     }
     
-    console.log(`📨 收到即時開獎同步請求: 期數=${period}`);
+    console.log(`📨 收到即时开奖同步请求: 期数=${period}`);
     
-    // 生成區塊鏈資料
+    // 生成区块链资料
     const blockchainData = generateBlockchainData(period, result);
     
-    // 直接插入/更新到draw_records表，包含區塊鏈資料
+    // 直接插入/更新到draw_records表，包含区块链资料
     await db.none(`
       INSERT INTO draw_records (period, result, draw_time, created_at, block_height, block_hash)
       VALUES ($1, $2::jsonb, $3, $4, $5, $6)
@@ -507,26 +507,26 @@ app.post(`${API_PREFIX}/sync-draw-record`, async (req, res) => {
     `, [period, JSON.stringify(result), draw_time || new Date(), new Date(), 
         blockchainData.blockHeight, blockchainData.blockHash]);
     
-    console.log(`✅ 即時開獎同步成功: 期數=${period}`);
+    console.log(`✅ 即时开奖同步成功: 期数=${period}`);
     
     res.json({
       success: true,
-      message: '開獎記錄同步成功',
+      message: '开奖记录同步成功',
       period: period,
       timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    console.error('即時開獎同步失敗:', error);
+    console.error('即时开奖同步失败:', error);
     res.status(500).json({
       success: false,
-      message: '開獎記錄同步失敗',
+      message: '开奖记录同步失败',
       error: error.message
     });
   }
 });
 
-// 切換代理狀態API
+// 切换代理状态API
 app.post(`${API_PREFIX}/toggle-agent-status`, async (req, res) => {
   try {
     const { agentId, status } = req.body;
@@ -534,13 +534,13 @@ app.post(`${API_PREFIX}/toggle-agent-status`, async (req, res) => {
     if (!agentId || status === undefined) {
       return res.status(400).json({
         success: false,
-        message: '缺少必要參數: agentId 或 status'
+        message: '缺少必要参数: agentId 或 status'
       });
     }
     
     await AgentModel.updateStatus(agentId, status);
     
-    const statusText = status === 1 ? '启用' : status === 0 ? '停用' : '凍結';
+    const statusText = status === 1 ? '启用' : status === 0 ? '停用' : '冻结';
     res.json({
       success: true,
       message: `代理状态已更新为: ${statusText}`,
@@ -548,16 +548,16 @@ app.post(`${API_PREFIX}/toggle-agent-status`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('更新代理狀態失敗:', error);
+    console.error('更新代理状态失败:', error);
     res.status(500).json({
       success: false,
-      message: '更新代理狀態失敗',
+      message: '更新代理状态失败',
       error: error.message
     });
   }
 });
 
-// 刪除代理API - 物理刪除
+// 删除代理API - 物理删除
 app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
   try {
     const { agentId } = req.params;
@@ -569,7 +569,7 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
       });
     }
     
-    // 檢查代理是否存在
+    // 检查代理是否存在
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.status(404).json({
@@ -578,63 +578,63 @@ app.delete(`${API_PREFIX}/delete-agent/:agentId`, async (req, res) => {
       });
     }
     
-    // 檢查代理餘額是否為0
+    // 检查代理余额是否为0
     const balance = parseFloat(agent.balance) || 0;
     if (balance !== 0) {
       return res.status(400).json({
         success: false,
-        message: `無法刪除：代理餘額為 $${balance.toFixed(2)}，必須先將餘額清空至0才能刪除`
+        message: `无法删除：代理余额为 $${balance.toFixed(2)}，必须先将余额清空至0才能删除`
       });
     }
     
-    // 檢查是否有下級代理（只查詢啟用狀態的）
+    // 检查是否有下级代理（只查询启用状态的）
     const subAgents = await db.any(`
       SELECT * FROM agents WHERE parent_id = $1 AND status = 1
     `, [agentId]);
     
-    // 檢查是否有會員（只查詢啟用狀態的）
+    // 检查是否有会员（只查询启用状态的）
     const members = await db.any(`
       SELECT * FROM members WHERE agent_id = $1 AND status = 1
     `, [agentId]);
     
     if (subAgents.length > 0 || members.length > 0) {
       const details = [];
-      if (subAgents.length > 0) details.push(`${subAgents.length}個下級代理`);
-      if (members.length > 0) details.push(`${members.length}個會員`);
+      if (subAgents.length > 0) details.push(`${subAgents.length}个下级代理`);
+      if (members.length > 0) details.push(`${members.length}个会员`);
       
       return res.status(400).json({
         success: false,
-        message: `無法刪除：該代理下還有${details.join('和')}，請先處理這些下級關係`
+        message: `无法删除：该代理下还有${details.join('和')}，请先处理这些下级关系`
       });
     }
     
-    // 執行物理刪除（完全從數據庫移除）
+    // 执行物理删除（完全从数据库移除）
     const deleted = await AgentModel.delete(agentId);
     
     if (deleted) {
       res.json({
         success: true,
-        message: '代理已永久刪除',
+        message: '代理已永久删除',
         timestamp: new Date().toISOString()
       });
     } else {
       res.status(500).json({
         success: false,
-        message: '刪除代理失敗'
+        message: '删除代理失败'
       });
     }
     
   } catch (error) {
-    console.error('刪除代理失敗:', error);
+    console.error('删除代理失败:', error);
     res.status(500).json({
       success: false,
-      message: '刪除代理失敗',
+      message: '删除代理失败',
       error: error.message
     });
   }
 });
 
-// 刪除會員API - 物理刪除
+// 删除会员API - 物理删除
 app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
   try {
     const { memberId } = req.params;
@@ -642,86 +642,86 @@ app.delete(`${API_PREFIX}/delete-member/:memberId`, async (req, res) => {
     if (!memberId) {
       return res.status(400).json({
         success: false,
-        message: '缺少會員ID'
+        message: '缺少会员ID'
       });
     }
     
-    // 檢查會員是否存在
+    // 检查会员是否存在
     const member = await MemberModel.findById(memberId);
     if (!member) {
       return res.status(404).json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 檢查會員餘額是否為0
+    // 检查会员余额是否为0
     const balance = parseFloat(member.balance) || 0;
     if (balance !== 0) {
       return res.status(400).json({
         success: false,
-        message: `無法刪除：會員餘額為 $${balance.toFixed(2)}，必須先將餘額清空至0才能刪除`
+        message: `无法删除：会员余额为 $${balance.toFixed(2)}，必须先将余额清空至0才能删除`
       });
     }
     
-    // 執行物理刪除（完全從數據庫移除）
+    // 执行物理删除（完全从数据库移除）
     const deleted = await MemberModel.delete(memberId);
     
     if (deleted) {
       res.json({
         success: true,
-        message: '會員已永久刪除',
+        message: '会员已永久删除',
         timestamp: new Date().toISOString()
       });
     } else {
       res.status(500).json({
         success: false,
-        message: '刪除會員失敗'
+        message: '删除会员失败'
       });
     }
     
   } catch (error) {
-    console.error('刪除會員失敗:', error);
+    console.error('删除会员失败:', error);
     res.status(500).json({
       success: false,
-      message: '刪除會員失敗',
+      message: '删除会员失败',
       error: error.message
     });
   }
 });
 
-// 清理測試數據API
+// 清理测试数据API
 app.delete(`${API_PREFIX}/cleanup-test-data`, async (req, res) => {
   try {
-    // 刪除測試期數
+    // 删除测试期数
     await db.none(`DELETE FROM draw_records WHERE period = 'test123'`);
     
     res.json({
       success: true,
-      message: '測試數據已清理',
+      message: '测试数据已清理',
       timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    console.error('清理測試數據失敗:', error);
+    console.error('清理测试数据失败:', error);
     res.status(500).json({
       success: false,
-      message: '清理測試數據失敗',
+      message: '清理测试数据失败',
       error: error.message
     });
   }
 });
 
-// 初始化代理系統數據庫
+// 初始化代理系统数据库
 async function initDatabase() {
   try {
-    console.log('初始化代理系統數據庫...');
+    console.log('初始化代理系统数据库...');
     
-    // 首先調用基本數據庫初始化函數，確保共用表已創建
+    // 首先调用基本数据库初始化函数，确保共用表已创建
     await initDatabaseBase();
     
-    // 代理系統特有的表
-    // 創建代理表
+    // 代理系统特有的表
+    // 创建代理表
     await db.none(`
       CREATE TABLE IF NOT EXISTS agents (
         id SERIAL PRIMARY KEY,
@@ -740,7 +740,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建會員表
+    // 创建会员表
     await db.none(`
       CREATE TABLE IF NOT EXISTS members (
         id SERIAL PRIMARY KEY,
@@ -753,7 +753,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建交易記錄表
+    // 创建交易记录表
     await db.none(`
       CREATE TABLE IF NOT EXISTS transactions (
         id SERIAL PRIMARY KEY,
@@ -769,7 +769,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建點數轉移記錄表
+    // 创建点数转移记录表
     await db.none(`
       CREATE TABLE IF NOT EXISTS point_transfers (
         id SERIAL PRIMARY KEY,
@@ -787,7 +787,7 @@ async function initDatabase() {
       )
     `);
     
-    // 創建公告表
+    // 创建公告表
     await db.none(`
       CREATE TABLE IF NOT EXISTS notices (
         id SERIAL PRIMARY KEY,
@@ -799,17 +799,17 @@ async function initDatabase() {
       )
     `);
 
-    // 檢查並添加category字段（為現有表添加新字段）
+    // 检查并添加category字段（为现有表添加新字段）
     try {
       await db.none(`
         ALTER TABLE notices ADD COLUMN IF NOT EXISTS category VARCHAR(20) DEFAULT '最新公告'
       `);
     } catch (error) {
-      // 如果字段已存在，忽略錯誤
-      console.log('公告分類字段已存在或添加失敗:', error.message);
+      // 如果字段已存在，忽略错误
+      console.log('公告分类字段已存在或添加失败:', error.message);
     }
 
-    // 檢查並添加代理退水相關字段
+    // 检查并添加代理退水相关字段
     try {
       await db.none(`
         ALTER TABLE agents ADD COLUMN IF NOT EXISTS rebate_percentage DECIMAL(5, 4) DEFAULT 0.041
@@ -820,16 +820,16 @@ async function initDatabase() {
       await db.none(`
         ALTER TABLE agents ADD COLUMN IF NOT EXISTS max_rebate_percentage DECIMAL(5, 4) DEFAULT 0.041
       `);
-      // 新增盤口類型字段 - A盤(1.1%退水)或D盤(4.1%退水)
+      // 新增盘口类型字段 - A盘(1.1%退水)或D盘(4.1%退水)
       await db.none(`
         ALTER TABLE agents ADD COLUMN IF NOT EXISTS market_type VARCHAR(1) DEFAULT 'D'
       `);
       console.log('代理退水字段添加成功');
     } catch (error) {
-      console.log('代理退水字段已存在或添加失敗:', error.message);
+      console.log('代理退水字段已存在或添加失败:', error.message);
     }
     
-    // 檢查並添加退水記錄相關字段
+    // 检查并添加退水记录相关字段
     try {
       await db.none(`
         ALTER TABLE transaction_records ADD COLUMN IF NOT EXISTS member_username VARCHAR(50)
@@ -843,12 +843,12 @@ async function initDatabase() {
       await db.none(`
         ALTER TABLE transaction_records ADD COLUMN IF NOT EXISTS period VARCHAR(20)
       `);
-      console.log('退水記錄字段添加成功');
+      console.log('退水记录字段添加成功');
     } catch (error) {
-      console.log('退水記錄字段已存在或添加失敗:', error.message);
+      console.log('退水记录字段已存在或添加失败:', error.message);
     }
     
-    // 檢查並添加備註字段
+    // 检查并添加备注字段
     try {
       await db.none(`
         ALTER TABLE agents ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT ''
@@ -862,16 +862,16 @@ async function initDatabase() {
       await db.none(`
         ALTER TABLE members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       `);
-      // 新增會員盤口類型字段，從代理繼承
+      // 新增会员盘口类型字段，从代理继承
       await db.none(`
         ALTER TABLE members ADD COLUMN IF NOT EXISTS market_type VARCHAR(1) DEFAULT 'D'
       `);
-      console.log('備註字段添加成功');
+      console.log('备注字段添加成功');
     } catch (error) {
-      console.log('備註字段已存在或添加失敗:', error.message);
+      console.log('备注字段已存在或添加失败:', error.message);
     }
     
-    // 創建開獎記錄表
+    // 创建开奖记录表
     await db.none(`
       CREATE TABLE IF NOT EXISTS draw_records (
         id SERIAL PRIMARY KEY,
@@ -882,13 +882,13 @@ async function initDatabase() {
       )
     `);
 
-    // 為開獎記錄表創建索引
+    // 为开奖记录表创建索引
     await db.none(`
       CREATE INDEX IF NOT EXISTS idx_draw_records_period ON draw_records(period);
       CREATE INDEX IF NOT EXISTS idx_draw_records_draw_time ON draw_records(draw_time);
     `);
     
-    // 創建登錄日誌表
+    // 创建登录日志表
     await db.none(`
       CREATE TABLE IF NOT EXISTS user_login_logs (
         id SERIAL PRIMARY KEY,
@@ -903,14 +903,14 @@ async function initDatabase() {
       )
     `);
 
-    // 為登錄日誌表創建索引
+    // 为登录日志表创建索引
     await db.none(`
       CREATE INDEX IF NOT EXISTS idx_user_login_logs_username ON user_login_logs(username);
       CREATE INDEX IF NOT EXISTS idx_user_login_logs_login_time ON user_login_logs(login_time DESC);
       CREATE INDEX IF NOT EXISTS idx_user_login_logs_ip ON user_login_logs(ip_address);
     `);
     
-    // 創建會話管理表
+    // 创建会话管理表
     await db.none(`
       CREATE TABLE IF NOT EXISTS user_sessions (
         id SERIAL PRIMARY KEY,
@@ -926,123 +926,123 @@ async function initDatabase() {
       )
     `);
 
-    // 為會話表創建索引
+    // 为会话表创建索引
     await db.none(`
       CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
       CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_type, user_id);
       CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active, expires_at);
     `);
     
-    console.log('初始化代理系統數據庫表結構完成');
+    console.log('初始化代理系统数据库表结构完成');
     
-    // 檢查是否已有總代理
+    // 检查是否已有总代理
     const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0');
     
     if (adminAgents.length === 0) {
-      // 創建兩個獨立的總代理：A盤和D盤
-      console.log('未找到總代理，開始創建A盤和D盤總代理...');
+      // 创建两个独立的总代理：A盘和D盘
+      console.log('未找到总代理，开始创建A盘和D盘总代理...');
       
-      // 創建A盤總代理
-      console.log('創建A盤總代理 ti2025A...');
+      // 创建A盘总代理
+      console.log('创建A盘总代理 ti2025A...');
       await db.none(`
         INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, ['ti2025A', 'ti2025A', 0, 200000, 0.3, 'A', 0.011, 0.011]);
-      console.log('A盤總代理 ti2025A 創建成功，初始餘額 200,000，退水1.1%');
+      console.log('A盘总代理 ti2025A 创建成功，初始余额 200,000，退水1.1%');
       
-      // 創建D盤總代理
-      console.log('創建D盤總代理 ti2025D...');
+      // 创建D盘总代理
+      console.log('创建D盘总代理 ti2025D...');
       await db.none(`
         INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, ['ti2025D', 'ti2025D', 0, 200000, 0.3, 'D', 0.041, 0.041]);
-      console.log('D盤總代理 ti2025D 創建成功，初始餘額 200,000，退水4.1%');
+      console.log('D盘总代理 ti2025D 创建成功，初始余额 200,000，退水4.1%');
     } else {
-      console.log(`已存在 ${adminAgents.length} 個總代理，檢查是否需要創建A盤和D盤總代理`);
+      console.log(`已存在 ${adminAgents.length} 个总代理，检查是否需要创建A盘和D盘总代理`);
       
-      // 檢查是否已有A盤和D盤總代理
+      // 检查是否已有A盘和D盘总代理
       const ti2025AAgent = adminAgents.find(agent => agent.username === 'ti2025A');
       const ti2025DAgent = adminAgents.find(agent => agent.username === 'ti2025D');
       
-      // 如果沒有A盤總代理，創建一個
+      // 如果没有A盘总代理，创建一个
       if (!ti2025AAgent) {
-        console.log('創建A盤總代理 ti2025A...');
+        console.log('创建A盘总代理 ti2025A...');
         await db.none(`
           INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, ['ti2025A', 'ti2025A', 0, 200000, 0.3, 'A', 0.011, 0.011]);
-        console.log('A盤總代理 ti2025A 創建成功');
+        console.log('A盘总代理 ti2025A 创建成功');
       } else {
-        console.log(`A盤總代理ti2025A已存在，ID=${ti2025AAgent.id}`);
+        console.log(`A盘总代理ti2025A已存在，ID=${ti2025AAgent.id}`);
       }
       
-      // 如果沒有D盤總代理，創建一個
+      // 如果没有D盘总代理，创建一个
       if (!ti2025DAgent) {
-        console.log('創建D盤總代理 ti2025D...');
+        console.log('创建D盘总代理 ti2025D...');
         await db.none(`
           INSERT INTO agents (username, password, level, balance, commission_rate, market_type, max_rebate_percentage, rebate_percentage) 
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, ['ti2025D', 'ti2025D', 0, 200000, 0.3, 'D', 0.041, 0.041]);
-        console.log('D盤總代理 ti2025D 創建成功');
+        console.log('D盘总代理 ti2025D 创建成功');
       } else {
-        console.log(`D盤總代理ti2025D已存在，ID=${ti2025DAgent.id}`);
+        console.log(`D盘总代理ti2025D已存在，ID=${ti2025DAgent.id}`);
       }
       
-      // 處理舊的ti2025總代理（如果存在）
+      // 处理旧的ti2025总代理（如果存在）
       const oldTi2025Agent = adminAgents.find(agent => agent.username === 'ti2025');
       if (oldTi2025Agent) {
-        console.log(`發現舊的ti2025總代理，將其轉換為D盤總代理`);
+        console.log(`发现旧的ti2025总代理，将其转换为D盘总代理`);
         try {
           await db.none(`
             UPDATE agents 
             SET username = $1, market_type = $2, max_rebate_percentage = $3, rebate_percentage = $4 
             WHERE id = $5
           `, ['ti2025D_backup', 'D', 0.041, 0.041, oldTi2025Agent.id]);
-          console.log(`舊ti2025總代理已重命名為ti2025D_backup`);
+          console.log(`旧ti2025总代理已重命名为ti2025D_backup`);
         } catch (renameError) {
-          console.log('重命名舊總代理失敗:', renameError.message);
+          console.log('重命名旧总代理失败:', renameError.message);
         }
       }
     }
     
-    console.log('初始化代理系統數據庫完成');
+    console.log('初始化代理系统数据库完成');
     
-    // 檢查並添加範例公告
+    // 检查并添加范例公告
     const existingNotices = await db.any('SELECT COUNT(*) as count FROM notices');
     if (existingNotices[0].count === 0) {
-      console.log('添加範例公告...');
+      console.log('添加范例公告...');
       
-      // 添加範例公告
+      // 添加范例公告
       const sampleNotices = [
         {
-          title: '系統維護通知',
-          content: '本系統將於今晚00:00-02:00進行例行維護，期間可能會暫停服務，請提前做好準備。維護期間如有緊急情況，請聯繫客服人員。',
-          category: '維修'
+          title: '系统维护通知',
+          content: '本系统将于今晚00:00-02:00进行例行维护，期间可能会暂停服务，请提前做好准备。维护期间如有紧急情况，请联系客服人员。',
+          category: '维修'
         },
         {
-          title: '歡迎使用代理管理系統',
-          content: '歡迎使用全新的代理管理系統！系統提供會員管理、點數轉移、投注記錄查詢等完整功能。如有任何問題，請隨時聯繫技術支援。',
+          title: '欢迎使用代理管理系统',
+          content: '欢迎使用全新的代理管理系统！系统提供会员管理、点数转移、投注记录查询等完整功能。如有任何问题，请随时联系技术支援。',
           category: '最新公告'
         },
         {
-          title: '新春優惠活動開始',
-          content: '🎉 新春特別優惠活動正式開始！活動期間新會員註冊即享首存100%優惠，最高可獲得5000元獎金。活動詳情請洽客服人員。',
-          category: '活動'
+          title: '新春优惠活动开始',
+          content: '🎉 新春特别优惠活动正式开始！活动期间新会员注册即享首存100%优惠，最高可获得5000元奖金。活动详情请洽客服人员。',
+          category: '活动'
         },
         {
-          title: '系統功能更新',
-          content: '系統已完成最新功能更新：1. 新增點數轉移記錄查詢 2. 優化投注統計報表 3. 增強系統安全性 4. 修復已知問題。請各位代理及時體驗新功能。',
+          title: '系统功能更新',
+          content: '系统已完成最新功能更新：1. 新增点数转移记录查询 2. 优化投注统计报表 3. 增强系统安全性 4. 修复已知问题。请各位代理及时体验新功能。',
           category: '最新公告'
         },
         {
-          title: '每日維護時間調整',
-          content: '為提供更好的服務品質，每日系統維護時間調整為凌晨01:30-02:30，維護期間系統將暫停服務約1小時。造成不便敬請見諒。',
-          category: '維修'
+          title: '每日维护时间调整',
+          content: '为提供更好的服务品质，每日系统维护时间调整为凌晨01:30-02:30，维护期间系统将暂停服务约1小时。造成不便敬请见谅。',
+          category: '维修'
         },
         {
-          title: '週年慶回饋活動',
-          content: '🎈 平台週年慶特別回饋！全體會員可享受特別優惠，代理商可獲得額外佣金加成。活動時間：本月1日-31日，詳細規則請查看活動專頁。',
-          category: '活動'
+          title: '周年庆回馈活动',
+          content: '🎈 平台周年庆特别回馈！全体会员可享受特别优惠，代理商可获得额外佣金加成。活动时间：本月1日-31日，详细规则请查看活动专页。',
+          category: '活动'
         }
       ];
       
@@ -1053,10 +1053,10 @@ async function initDatabase() {
         `, [notice.title, notice.content, notice.category]);
       }
       
-      console.log(`成功添加 ${sampleNotices.length} 條範例公告`);
+      console.log(`成功添加 ${sampleNotices.length} 条范例公告`);
     }
 
-    // 創建代理個人資料表
+    // 创建代理个人资料表
     await db.none(`
       CREATE TABLE IF NOT EXISTS agents (
         id SERIAL PRIMARY KEY,
@@ -1073,11 +1073,11 @@ async function initDatabase() {
       )
     `);
     
-    console.log('代理個人資料表已創建');
+    console.log('代理个人资料表已创建');
     
-    // 創建輸贏控制相關表
+    // 创建输赢控制相关表
     try {
-      // 創建輸贏控制設定表
+      // 创建输赢控制设定表
       await db.none(`
         CREATE TABLE IF NOT EXISTS win_loss_control (
           id SERIAL PRIMARY KEY,
@@ -1096,7 +1096,7 @@ async function initDatabase() {
         )
       `);
 
-      // 創建輸贏控制日誌表
+      // 创建输赢控制日志表
       await db.none(`
         CREATE TABLE IF NOT EXISTS win_loss_control_logs (
           id SERIAL PRIMARY KEY,
@@ -1110,12 +1110,12 @@ async function initDatabase() {
         )
       `);
 
-      console.log('✅ 輸贏控制表創建成功');
+      console.log('✅ 输赢控制表创建成功');
     } catch (error) {
-      console.log('輸贏控制表創建失敗:', error.message);
+      console.log('输赢控制表创建失败:', error.message);
     }
     
-    // 檢查是否需要遷移舊字段
+    // 检查是否需要迁移旧字段
     try {
       const hasOldFields = await db.oneOrNone(`
         SELECT column_name FROM information_schema.columns 
@@ -1123,7 +1123,7 @@ async function initDatabase() {
       `);
       
       if (hasOldFields) {
-        console.log('檢測到舊字段，執行數據庫遷移...');
+        console.log('检测到旧字段，执行数据库迁移...');
         
         // 添加新字段
         await db.none(`
@@ -1131,62 +1131,62 @@ async function initDatabase() {
           ADD COLUMN IF NOT EXISTS line_id VARCHAR(50)
         `);
         
-        // 如果需要，可以將微信號遷移到Line ID
+        // 如果需要，可以将微信号迁移到Line ID
         await db.none(`
           UPDATE agents 
           SET line_id = wechat 
           WHERE line_id IS NULL AND wechat IS NOT NULL AND wechat != ''
         `);
         
-        // 刪除舊字段
+        // 删除旧字段
         await db.none(`ALTER TABLE agents DROP COLUMN IF EXISTS qq`);
         await db.none(`ALTER TABLE agents DROP COLUMN IF EXISTS wechat`);
         
-        console.log('數據庫遷移完成');
+        console.log('数据库迁移完成');
       }
     } catch (migrationError) {
-      console.log('數據庫遷移檢查失敗:', migrationError.message);
+      console.log('数据库迁移检查失败:', migrationError.message);
     }
     
-    console.log('代理個人資料表已創建');
+    console.log('代理个人资料表已创建');
   } catch (error) {
-    console.error('初始化數據庫時出錯:', error);
-    // 出錯時不結束進程，讓系統仍能啟動，方便調試
+    console.error('初始化数据库时出错:', error);
+    // 出错时不结束进程，让系统仍能启动，方便调试
   }
 }
 
 
-// 安全查詢函數 - 避免 Multiple rows 錯誤
+// 安全查询函数 - 避免 Multiple rows 错误
 const SafeDB = {
-  // 安全的單記錄查詢
+  // 安全的单记录查询
   async safeOne(query, params = []) {
     try {
       const results = await db.any(query + ' LIMIT 1', params);
       return results.length > 0 ? results[0] : null;
     } catch (error) {
-      console.error('SafeDB.safeOne 錯誤:', error);
+      console.error('SafeDB.safeOne 错误:', error);
       throw error;
     }
   },
   
-  // 安全的計數查詢
+  // 安全的计数查询
   async safeCount(query, params = []) {
     try {
       const result = await db.one(query, params);
       return parseInt(result.count || result.total || 0);
     } catch (error) {
-      console.error('SafeDB.safeCount 錯誤:', error);
+      console.error('SafeDB.safeCount 错误:', error);
       return 0;
     }
   },
   
-  // 安全的存在性檢查
+  // 安全的存在性检查
   async exists(query, params = []) {
     try {
       const results = await db.any(query + ' LIMIT 1', params);
       return results.length > 0;
     } catch (error) {
-      console.error('SafeDB.exists 錯誤:', error);
+      console.error('SafeDB.exists 错误:', error);
       return false;
     }
   }
@@ -1194,49 +1194,49 @@ const SafeDB = {
 
 // 模型: 代理
 const AgentModel = {
-  // 獲取代理by用戶名
+  // 获取代理by用户名
   async findByUsername(username) {
     try {
       return await db.oneOrNone('SELECT * FROM agents WHERE username = $1', [username]);
     } catch (error) {
-      console.error('查詢代理出錯:', error);
-      return null; // 返回空值而非拋出異常
+      console.error('查询代理出错:', error);
+      return null; // 返回空值而非抛出异常
     }
   },
   
-  // 獲取代理by ID
+  // 获取代理by ID
   async findById(id) {
     try {
-      // 參數驗證：確認ID是整數
+      // 参数验证：确认ID是整数
       const parsedId = parseInt(id);
       if (isNaN(parsedId)) {
-        console.log(`查詢代理: ID "${id}" 不是有效的整數ID`);
+        console.log(`查询代理: ID "${id}" 不是有效的整数ID`);
         return null;
       }
       
       return await db.oneOrNone('SELECT * FROM agents WHERE id = $1', [parsedId]);
     } catch (error) {
-      console.error('查詢代理出錯:', error);
-      return null; // 返回空值而非拋出異常
+      console.error('查询代理出错:', error);
+      return null; // 返回空值而非抛出异常
     }
   },
   
-  // 獲取代理下級
+  // 获取代理下级
   async findByParentId(parentId, level = null, status = null, page = 1, limit = 20) {
     try {
-      console.log(`查詢代理下級: parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
+      console.log(`查询代理下级: parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
       
-      // 驗證參數
+      // 验证参数
       if (parentId && parentId !== '') {
         const parsedParentId = parseInt(parentId);
         if (isNaN(parsedParentId)) {
-          console.log(`查詢代理下級: 父級代理ID "${parentId}" 不是有效的整數ID`);
+          console.log(`查询代理下级: 父级代理ID "${parentId}" 不是有效的整数ID`);
           return [];
         }
         
         const parentExists = await db.oneOrNone('SELECT id FROM agents WHERE id = $1', [parsedParentId]);
         if (!parentExists) {
-          console.log(`查詢代理下級: 父級代理ID ${parsedParentId} 不存在`);
+          console.log(`查询代理下级: 父级代理ID ${parsedParentId} 不存在`);
           return [];
         }
       }
@@ -1266,24 +1266,24 @@ const AgentModel = {
       
       query += ' ORDER BY a.created_at DESC';
       
-      // 添加分頁
+      // 添加分页
       const offset = (page - 1) * limit;
       query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
       params.push(limit, offset);
       
-      console.log(`查詢代理下級: 執行SQL查詢: ${query.replace(/\$\d+/g, '?')}`);
+      console.log(`查询代理下级: 执行SQL查询: ${query.replace(/\$\d+/g, '?')}`);
       
       const agents = await db.any(query, params);
-      console.log(`查詢代理下級: 找到 ${agents.length} 位代理`);
+      console.log(`查询代理下级: 找到 ${agents.length} 位代理`);
       
       return agents;
     } catch (error) {
-      console.error('查詢代理下級出錯:', error);
-      return []; // 出錯時返回空數組而不是拋出異常
+      console.error('查询代理下级出错:', error);
+      return []; // 出错时返回空数组而不是抛出异常
     }
   },
   
-  // 創建代理
+  // 创建代理
   async create(agentData) {
     const { username, password, parent_id, level, commission_rate, rebate_percentage, rebate_mode, max_rebate_percentage, notes, market_type, betting_limit_level } = agentData;
     
@@ -1294,12 +1294,12 @@ const AgentModel = {
         RETURNING *
       `, [username, password, parent_id, level, commission_rate, rebate_percentage || 0.041, rebate_mode || 'percentage', max_rebate_percentage || 0.041, notes || '', market_type || 'D', betting_limit_level || 'level3']);
     } catch (error) {
-      console.error('創建代理出錯:', error);
+      console.error('创建代理出错:', error);
       throw error;
     }
   },
   
-  // 更新代理狀態
+  // 更新代理状态
   async updateStatus(id, status) {
     try {
       return await db.one(`
@@ -1309,20 +1309,20 @@ const AgentModel = {
         RETURNING *
       `, [status, id]);
     } catch (error) {
-      console.error('更新代理狀態出錯:', error);
+      console.error('更新代理状态出错:', error);
       throw error;
     }
   },
   
-  // 獲取代理統計
+  // 获取代理统计
   async getStats(agentId) {
     try {
-      // 獲取該代理下的會員數
+      // 获取该代理下的会员数
       const memberCount = await db.one(`
         SELECT COUNT(*) as count FROM members WHERE agent_id = $1
       `, [agentId]);
       
-      // 獲取該代理的佣金餘額
+      // 获取该代理的佣金余额
       const agent = await this.findById(agentId);
       
       return {
@@ -1330,7 +1330,7 @@ const AgentModel = {
         commissionBalance: agent.commission_balance
       };
     } catch (error) {
-      console.error('獲取代理統計出錯:', error);
+      console.error('获取代理统计出错:', error);
       throw error;
     }
   },
@@ -1345,12 +1345,12 @@ const AgentModel = {
         RETURNING *
       `, [amount, id]);
     } catch (error) {
-      console.error('更新代理佣金出錯:', error);
+      console.error('更新代理佣金出错:', error);
       throw error;
     }
   },
   
-  // 更新代理餘額
+  // 更新代理余额
   async updateBalance(id, amount) {
     try {
       const agent = await this.findById(id);
@@ -1359,7 +1359,7 @@ const AgentModel = {
       const beforeBalance = parseFloat(agent.balance);
       const afterBalance = beforeBalance + parseFloat(amount);
       
-      // 確保餘額不會小於0
+      // 确保余额不会小于0
       if (afterBalance < 0) throw new Error('代理余额不足');
       
       const updatedAgent = await db.one(`
@@ -1369,22 +1369,22 @@ const AgentModel = {
         RETURNING *
       `, [afterBalance, id]);
       
-      // 記錄交易
+      // 记录交易
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['agent', id, amount, amount > 0 ? 'rebate' : 'withdraw', beforeBalance, afterBalance, amount > 0 ? '退水收入' : '代理點數調整']);
+      `, ['agent', id, amount, amount > 0 ? 'rebate' : 'withdraw', beforeBalance, afterBalance, amount > 0 ? '退水收入' : '代理点数调整']);
       
       return updatedAgent;
     } catch (error) {
-      console.error('更新代理餘額出錯:', error);
+      console.error('更新代理余额出错:', error);
       throw error;
     }
   },
 
-  // 客服專用: 直接設置代理餘額
-  async setBalanceByCustomerService(agentId, newBalance, description = '客服調整餘額') {
+  // 客服专用: 直接设置代理余额
+  async setBalanceByCustomerService(agentId, newBalance, description = '客服调整余额') {
     try {
       const agent = await this.findById(agentId);
       if (!agent) throw new Error('代理不存在');
@@ -1393,8 +1393,8 @@ const AgentModel = {
       const afterBalance = parseFloat(newBalance);
       const difference = afterBalance - beforeBalance;
       
-      // 確保新餘額不會小於0
-      if (afterBalance < 0) throw new Error('代理餘額不能小於0');
+      // 确保新余额不会小于0
+      if (afterBalance < 0) throw new Error('代理余额不能小于0');
       
       const updatedAgent = await db.one(`
         UPDATE agents 
@@ -1403,7 +1403,7 @@ const AgentModel = {
         RETURNING *
       `, [afterBalance, agentId]);
       
-      // 記錄客服操作交易
+      // 记录客服操作交易
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
@@ -1416,29 +1416,29 @@ const AgentModel = {
         difference: difference
       };
     } catch (error) {
-      console.error('客服設置代理餘額出錯:', error);
+      console.error('客服设置代理余额出错:', error);
       throw error;
     }
   },
 
-  // 檢查是否為客服權限（總代理）
+  // 检查是否为客服权限（总代理）
   async isCustomerService(agentId) {
     try {
       const agents = await db.any('SELECT * FROM agents WHERE id = $1 AND level = 0 LIMIT 1', [agentId]);
-      return agents.length > 0; // 總代理level為0
+      return agents.length > 0; // 总代理level为0
     } catch (error) {
-      console.error('檢查客服權限出錯:', error);
+      console.error('检查客服权限出错:', error);
       return false;
     }
   },
 
-  // 更新代理密碼
+  // 更新代理密码
   async updatePassword(id, newPassword) {
     try {
       const agent = await this.findById(id);
       if (!agent) throw new Error('代理不存在');
       
-      // 更新密碼（後端會自動加密）
+      // 更新密码（后端会自动加密）
       const result = await db.one(`
         UPDATE agents 
         SET password = $1 
@@ -1448,12 +1448,12 @@ const AgentModel = {
       
       return result;
     } catch (error) {
-      console.error('更新代理密碼出錯:', error);
+      console.error('更新代理密码出错:', error);
       throw error;
     }
   },
 
-  // 更新代理退水設定
+  // 更新代理退水设定
   async updateRebateSettings(id, rebateSettings) {
     try {
       const agent = await this.findById(id);
@@ -1461,9 +1461,9 @@ const AgentModel = {
       
       const { rebate_percentage, rebate_mode, max_rebate_percentage } = rebateSettings;
       
-      // 驗證退水設定
+      // 验证退水设定
       if (parseFloat(rebate_percentage) > parseFloat(max_rebate_percentage)) {
-        throw new Error('退水比例不能超過最大允許比例');
+        throw new Error('退水比例不能超过最大允许比例');
       }
       
       const result = await db.one(`
@@ -1475,12 +1475,12 @@ const AgentModel = {
       
       return result;
     } catch (error) {
-      console.error('更新代理退水設定出錯:', error);
+      console.error('更新代理退水设定出错:', error);
       throw error;
     }
   },
 
-  // 物理刪除代理（不可恢復）
+  // 物理删除代理（不可恢复）
   async delete(id) {
     try {
       const result = await db.result(`
@@ -1488,35 +1488,35 @@ const AgentModel = {
       `, [id]);
       return result.rowCount > 0;
     } catch (error) {
-      console.error('物理刪除代理出錯:', error);
+      console.error('物理删除代理出错:', error);
       throw error;
     }
   }
 };
 
-// 模型: 會員
+// 模型: 会员
 const MemberModel = {
-  // 獲取會員
+  // 获取会员
   async findByAgentId(agentId, status = null, page = 1, limit = 20) {
     try {
-      console.log(`查詢會員: agentId=${agentId}, status=${status}, page=${page}, limit=${limit}`);
+      console.log(`查询会员: agentId=${agentId}, status=${status}, page=${page}, limit=${limit}`);
       
-      // 驗證代理ID
+      // 验证代理ID
       if (!agentId || agentId === '') {
-        console.log(`查詢會員: 未提供有效的代理ID`);
+        console.log(`查询会员: 未提供有效的代理ID`);
         return [];
       }
       
-      // 檢查代理是否存在
+      // 检查代理是否存在
       const parsedAgentId = parseInt(agentId);
       if (isNaN(parsedAgentId)) {
-        console.log(`查詢會員: 代理ID "${agentId}" 不是有效的整數ID`);
+        console.log(`查询会员: 代理ID "${agentId}" 不是有效的整数ID`);
         return [];
       }
       
       const agentExists = await db.oneOrNone('SELECT id FROM agents WHERE id = $1', [parsedAgentId]);
       if (!agentExists) {
-        console.log(`查詢會員: 代理ID ${parsedAgentId} 不存在`);
+        console.log(`查询会员: 代理ID ${parsedAgentId} 不存在`);
         return [];
       }
       
@@ -1530,38 +1530,38 @@ const MemberModel = {
       
       query += ' ORDER BY created_at DESC';
       
-      // 添加分頁
+      // 添加分页
       const offset = (page - 1) * limit;
       query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
       params.push(limit, offset);
       
-      console.log(`查詢會員: 執行SQL查詢: ${query.replace(/\$\d+/g, '?')}`);
+      console.log(`查询会员: 执行SQL查询: ${query.replace(/\$\d+/g, '?')}`);
       
       const members = await db.any(query, params);
-      console.log(`查詢會員: 找到 ${members.length} 位會員`);
+      console.log(`查询会员: 找到 ${members.length} 位会员`);
       
       return members;
     } catch (error) {
-      console.error('查詢會員出錯:', error);
-      return []; // 出錯時返回空數組
+      console.error('查询会员出错:', error);
+      return []; // 出错时返回空数组
     }
   },
   
-  // 獲取會員總數
+  // 获取会员总数
   async countByAgentId(agentId, status = null) {
     try {
-      console.log(`計算會員數量: agentId=${agentId}, status=${status}`);
+      console.log(`计算会员数量: agentId=${agentId}, status=${status}`);
       
-      // 驗證代理ID
+      // 验证代理ID
       if (!agentId || agentId === '') {
-        console.log(`計算會員數量: 未提供有效的代理ID`);
+        console.log(`计算会员数量: 未提供有效的代理ID`);
         return 0;
       }
       
-      // 解析並驗證代理ID
+      // 解析并验证代理ID
       const parsedAgentId = parseInt(agentId);
       if (isNaN(parsedAgentId)) {
-        console.log(`計算會員數量: 代理ID "${agentId}" 不是有效的整數ID`);
+        console.log(`计算会员数量: 代理ID "${agentId}" 不是有效的整数ID`);
         return 0;
       }
       
@@ -1573,44 +1573,44 @@ const MemberModel = {
         params.push(status);
       }
       
-      console.log(`計算會員數量: 執行SQL查詢: ${query.replace(/\$\d+/g, '?')}`);
+      console.log(`计算会员数量: 执行SQL查询: ${query.replace(/\$\d+/g, '?')}`);
       
       const result = await db.one(query, params);
-      console.log(`計算會員數量: 共計 ${result.count} 位會員`);
+      console.log(`计算会员数量: 共计 ${result.count} 位会员`);
       
       return parseInt(result.count);
     } catch (error) {
-      console.error('計算會員數量出錯:', error);
-      return 0; // 出錯時返回0
+      console.error('计算会员数量出错:', error);
+      return 0; // 出错时返回0
     }
   },
   
-  // 獲取會員by用戶名
+  // 获取会员by用户名
   async findByUsername(username) {
     try {
       return await db.oneOrNone('SELECT * FROM members WHERE username = $1', [username]);
     } catch (error) {
-      console.error('查詢會員出錯:', error);
+      console.error('查询会员出错:', error);
       throw error;
     }
   },
   
-  // 獲取會員by ID
+  // 获取会员by ID
   async findById(id) {
     try {
       return await db.oneOrNone('SELECT * FROM members WHERE id = $1', [id]);
     } catch (error) {
-      console.error('查詢會員出錯:', error);
+      console.error('查询会员出错:', error);
       throw error;
     }
   },
   
-  // 創建會員
+  // 创建会员
   async create(memberData) {
     const { username, password, agent_id, balance = 0, notes, market_type, betting_limit_level } = memberData;
     
     try {
-      // 如果沒有指定盤口類型或限紅等級，從代理繼承
+      // 如果没有指定盘口类型或限红等级，从代理继承
       let finalMarketType = market_type;
       let finalBettingLimitLevel = betting_limit_level || 'level1';
       
@@ -1619,13 +1619,13 @@ const MemberModel = {
         if (agent) {
           finalMarketType = finalMarketType || agent.market_type || 'D';
           
-          // 如果有指定限紅等級，需要檢查是否不超過代理的限紅等級
+          // 如果有指定限红等级，需要检查是否不超过代理的限红等级
           if (betting_limit_level) {
             const levelOrder = {
               'level1': 1,  // 新手
               'level2': 2,  // 一般
-              'level3': 3,  // 標準
-              'level4': 4,  // 高級
+              'level3': 3,  // 标准
+              'level4': 4,  // 高级
               'level5': 5,  // VIP
               'level6': 6   // VVIP
             };
@@ -1633,14 +1633,14 @@ const MemberModel = {
             const agentLevel = levelOrder[agent.betting_limit_level || 'level3'] || 3;
             const requestedLevel = levelOrder[betting_limit_level] || 1;
             
-            // 如果請求的等級超過代理的等級，使用代理的等級
+            // 如果请求的等级超过代理的等级，使用代理的等级
             if (requestedLevel > agentLevel) {
               finalBettingLimitLevel = agent.betting_limit_level || 'level3';
             } else {
               finalBettingLimitLevel = betting_limit_level;
             }
           } else {
-            // 如果沒有指定限紅等級，使用代理的限紅等級或預設值
+            // 如果没有指定限红等级，使用代理的限红等级或预设值
             finalBettingLimitLevel = agent.betting_limit_level || 'level1';
           }
         }
@@ -1653,12 +1653,12 @@ const MemberModel = {
         RETURNING *
       `, [username, password, agent_id, balance, notes || '', finalMarketType, finalBettingLimitLevel]);
     } catch (error) {
-      console.error('創建會員出錯:', error);
+      console.error('创建会员出错:', error);
       throw error;
     }
   },
   
-  // 更新會員狀態
+  // 更新会员状态
   async updateStatus(id, status) {
     try {
       return await db.one(`
@@ -1668,15 +1668,15 @@ const MemberModel = {
         RETURNING *
       `, [status, id]);
     } catch (error) {
-      console.error('更新會員狀態出錯:', error);
+      console.error('更新会员状态出错:', error);
       throw error;
     }
   },
   
-  // 更新會員餘額
+  // 更新会员余额
   async updateBalance(username, amount) {
     try {
-      // 使用新的原子性更新函數
+      // 使用新的原子性更新函数
       const result = await db.one(`
         SELECT * FROM atomic_update_member_balance($1, $2)
       `, [username, amount]);
@@ -1685,7 +1685,7 @@ const MemberModel = {
         throw new Error(result.message);
       }
       
-      // 記錄交易 - 修復交易類型分類
+      // 记录交易 - 修复交易类型分类
       const member = await this.findByUsername(username);
       if (member) {
         await db.none(`
@@ -1693,7 +1693,7 @@ const MemberModel = {
           (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, ['member', member.id, amount, amount > 0 ? 'game_win' : 'game_bet', 
-            result.before_balance, result.balance, '會員點數調整']);
+            result.before_balance, result.balance, '会员点数调整']);
       }
       
       return {
@@ -1701,25 +1701,25 @@ const MemberModel = {
         balance: result.balance
       };
     } catch (error) {
-      console.error('更新會員餘額出錯:', error);
+      console.error('更新会员余额出错:', error);
       throw error;
     }
   },
   
-  // 設置會員餘額(絕對值)
+  // 设置会员余额(绝对值)
   async setBalance(username, balance) {
     try {
-      // 獲取當前餘額
+      // 获取当前余额
       const member = await this.findByUsername(username);
-      if (!member) throw new Error('會員不存在');
+      if (!member) throw new Error('会员不存在');
       
       const beforeBalance = parseFloat(member.balance);
       const afterBalance = parseFloat(balance);
       
-      // 確保餘額不會小於0
-      if (afterBalance < 0) throw new Error('會員餘額不能小於0');
+      // 确保余额不会小于0
+      if (afterBalance < 0) throw new Error('会员余额不能小于0');
       
-      // 更新餘額
+      // 更新余额
       const updatedMember = await db.one(`
         UPDATE members 
         SET balance = $1 
@@ -1727,21 +1727,21 @@ const MemberModel = {
         RETURNING *
       `, [afterBalance, username]);
       
-      // 記錄交易
+      // 记录交易
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, ['member', member.id, afterBalance - beforeBalance, 'adjustment', beforeBalance, afterBalance, '會員點數設置']);
+      `, ['member', member.id, afterBalance - beforeBalance, 'adjustment', beforeBalance, afterBalance, '会员点数设置']);
       
       return updatedMember;
     } catch (error) {
-      console.error('設置會員餘額出錯:', error);
+      console.error('设置会员余额出错:', error);
       throw error;
     }
   },
   
-  // 查詢特定代理下的特定會員
+  // 查询特定代理下的特定会员
   async findByAgentAndUsername(agentId, username) {
     try {
       return await db.oneOrNone(`
@@ -1749,26 +1749,26 @@ const MemberModel = {
         WHERE agent_id = $1 AND username = $2
       `, [agentId, username]);
     } catch (error) {
-      console.error('查詢特定代理下的特定會員出錯:', error);
+      console.error('查询特定代理下的特定会员出错:', error);
       throw error;
     }
   },
 
-  // 客服專用: 直接設置會員餘額
-  async setBalanceByCustomerService(memberUsername, newBalance, description = '客服調整餘額') {
+  // 客服专用: 直接设置会员余额
+  async setBalanceByCustomerService(memberUsername, newBalance, description = '客服调整余额') {
     try {
-      // 獲取當前餘額
+      // 获取当前余额
       const member = await this.findByUsername(memberUsername);
-      if (!member) throw new Error('會員不存在');
+      if (!member) throw new Error('会员不存在');
       
       const beforeBalance = parseFloat(member.balance);
       const afterBalance = parseFloat(newBalance);
       const difference = afterBalance - beforeBalance;
       
-      // 確保餘額不會小於0
-      if (afterBalance < 0) throw new Error('會員餘額不能小於0');
+      // 确保余额不会小于0
+      if (afterBalance < 0) throw new Error('会员余额不能小于0');
       
-      // 更新餘額
+      // 更新余额
       const updatedMember = await db.one(`
         UPDATE members 
         SET balance = $1 
@@ -1776,7 +1776,7 @@ const MemberModel = {
         RETURNING *
       `, [afterBalance, memberUsername]);
       
-      // 記錄客服操作交易
+      // 记录客服操作交易
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
@@ -1789,18 +1789,18 @@ const MemberModel = {
         difference: difference
       };
     } catch (error) {
-      console.error('客服設置會員餘額出錯:', error);
+      console.error('客服设置会员余额出错:', error);
       throw error;
     }
   },
 
-  // 更新會員密碼
+  // 更新会员密码
   async updatePassword(id, newPassword) {
     try {
       const member = await this.findById(id);
-      if (!member) throw new Error('會員不存在');
+      if (!member) throw new Error('会员不存在');
       
-      // 更新密碼（後端會自動加密）
+      // 更新密码（后端会自动加密）
       const result = await db.one(`
         UPDATE members 
         SET password = $1 
@@ -1810,12 +1810,12 @@ const MemberModel = {
       
       return result;
     } catch (error) {
-      console.error('更新會員密碼出錯:', error);
+      console.error('更新会员密码出错:', error);
       throw error;
     }
   },
 
-  // 物理刪除會員（不可恢復）
+  // 物理删除会员（不可恢复）
   async delete(id) {
     try {
       const result = await db.result(`
@@ -1823,38 +1823,38 @@ const MemberModel = {
       `, [id]);
       return result.rowCount > 0;
     } catch (error) {
-      console.error('物理刪除會員出錯:', error);
+      console.error('物理删除会员出错:', error);
       throw error;
     }
   }
 };
 
-// 模型: 點數轉移
+// 模型: 点数转移
 const PointTransferModel = {
-  // 從代理轉移點數到會員
+  // 从代理转移点数到会员
   async transferFromAgentToMember(agentId, memberId, amount, description = '', isCustomerServiceOperation = false) {
     try {
-      // 參數驗證
+      // 参数验证
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new Error('轉移的點數必須大於0');
+        throw new Error('转移的点数必须大于0');
       }
       
-      // 獲取代理和會員信息
+      // 获取代理和会员信息
       const agent = await AgentModel.findById(agentId);
       if (!agent) throw new Error('代理不存在');
       
       const member = await MemberModel.findById(memberId);
-      if (!member) throw new Error('會員不存在');
+      if (!member) throw new Error('会员不存在');
       
-      // 檢查代理餘額是否足夠
+      // 检查代理余额是否足够
       if (parseFloat(agent.balance) < parsedAmount) {
-        throw new Error('代理點數不足');
+        throw new Error('代理点数不足');
       }
       
-      // 開始數據庫事務
+      // 开始数据库事务
       return await db.tx(async t => {
-        // 更新代理餘額
+        // 更新代理余额
         const agentBeforeBalance = parseFloat(agent.balance);
         const agentAfterBalance = agentBeforeBalance - parsedAmount;
         
@@ -1865,7 +1865,7 @@ const PointTransferModel = {
           RETURNING *
         `, [agentAfterBalance, agentId]);
         
-        // 更新會員餘額
+        // 更新会员余额
         const memberBeforeBalance = parseFloat(member.balance);
         const memberAfterBalance = memberBeforeBalance + parsedAmount;
         
@@ -1876,29 +1876,29 @@ const PointTransferModel = {
           RETURNING *
         `, [memberAfterBalance, memberId]);
         
-        // 只有客服操作才記錄到transaction_records表
+        // 只有客服操作才记录到transaction_records表
         console.log(`🔍 transferFromAgentToMember: isCustomerServiceOperation=${isCustomerServiceOperation}`);
         if (isCustomerServiceOperation) {
-          console.log(`✅ 客服操作：記錄代理交易記錄`);
-          // 記錄代理的交易（客服操作使用cs_withdraw表示代理向會員轉出點數）
+          console.log(`✅ 客服操作：记录代理交易记录`);
+          // 记录代理的交易（客服操作使用cs_withdraw表示代理向会员转出点数）
           await t.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, ['agent', agentId, -parsedAmount, 'cs_withdraw', agentBeforeBalance, agentAfterBalance, description || '客服會員存款操作']);
+          `, ['agent', agentId, -parsedAmount, 'cs_withdraw', agentBeforeBalance, agentAfterBalance, description || '客服会员存款操作']);
           
-          console.log(`✅ 客服操作：記錄會員交易記錄`);
-          // 記錄會員的交易（客服操作使用cs_deposit表示會員收到點數）
+          console.log(`✅ 客服操作：记录会员交易记录`);
+          // 记录会员的交易（客服操作使用cs_deposit表示会员收到点数）
           await t.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, ['member', memberId, parsedAmount, 'cs_deposit', memberBeforeBalance, memberAfterBalance, description || '客服會員存款操作']);
+          `, ['member', memberId, parsedAmount, 'cs_deposit', memberBeforeBalance, memberAfterBalance, description || '客服会员存款操作']);
         } else {
-          console.log(`❌ 非客服操作：不記錄transaction_records`);
+          console.log(`❌ 非客服操作：不记录transaction_records`);
         }
         
-        // 記錄點數轉移
+        // 记录点数转移
         await t.one(`
           INSERT INTO point_transfers 
           (from_type, from_id, to_type, to_id, amount, 
@@ -1913,35 +1913,35 @@ const PointTransferModel = {
         return updatedMember;
       });
     } catch (error) {
-      console.error('轉移點數出錯:', error);
+      console.error('转移点数出错:', error);
       throw error;
     }
   },
   
-  // 從會員轉移點數到代理
+  // 从会员转移点数到代理
   async transferFromMemberToAgent(memberId, agentId, amount, description = '', isCustomerServiceOperation = false) {
     try {
-      // 參數驗證
+      // 参数验证
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new Error('轉移的點數必須大於0');
+        throw new Error('转移的点数必须大于0');
       }
       
-      // 獲取代理和會員信息
+      // 获取代理和会员信息
       const member = await MemberModel.findById(memberId);
-      if (!member) throw new Error('會員不存在');
+      if (!member) throw new Error('会员不存在');
       
       const agent = await AgentModel.findById(agentId);
       if (!agent) throw new Error('代理不存在');
       
-      // 檢查會員餘額是否足夠
+      // 检查会员余额是否足够
       if (parseFloat(member.balance) < parsedAmount) {
-        throw new Error('會員點數不足');
+        throw new Error('会员点数不足');
       }
       
-      // 開始數據庫事務
+      // 开始数据库事务
       return await db.tx(async t => {
-        // 更新會員餘額
+        // 更新会员余额
         const memberBeforeBalance = parseFloat(member.balance);
         const memberAfterBalance = memberBeforeBalance - parsedAmount;
         
@@ -1952,7 +1952,7 @@ const PointTransferModel = {
           RETURNING *
         `, [memberAfterBalance, memberId]);
         
-        // 更新代理餘額
+        // 更新代理余额
         const agentBeforeBalance = parseFloat(agent.balance);
         const agentAfterBalance = agentBeforeBalance + parsedAmount;
         
@@ -1963,24 +1963,24 @@ const PointTransferModel = {
           RETURNING *
         `, [agentAfterBalance, agentId]);
         
-        // 只有客服操作才記錄到transaction_records表
+        // 只有客服操作才记录到transaction_records表
         if (isCustomerServiceOperation) {
-          // 記錄會員的交易（客服操作使用cs_withdraw表示會員轉出點數）
+          // 记录会员的交易（客服操作使用cs_withdraw表示会员转出点数）
           await t.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, ['member', memberId, -parsedAmount, 'cs_withdraw', memberBeforeBalance, memberAfterBalance, description || '客服會員提款操作']);
+          `, ['member', memberId, -parsedAmount, 'cs_withdraw', memberBeforeBalance, memberAfterBalance, description || '客服会员提款操作']);
           
-          // 記錄代理的交易（客服操作使用cs_deposit表示代理收到點數）
+          // 记录代理的交易（客服操作使用cs_deposit表示代理收到点数）
           await t.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, ['agent', agentId, parsedAmount, 'cs_deposit', agentBeforeBalance, agentAfterBalance, description || '客服會員提款操作']);
+          `, ['agent', agentId, parsedAmount, 'cs_deposit', agentBeforeBalance, agentAfterBalance, description || '客服会员提款操作']);
         }
         
-        // 記錄點數轉移
+        // 记录点数转移
         await t.one(`
           INSERT INTO point_transfers 
           (from_type, from_id, to_type, to_id, amount, 
@@ -1995,35 +1995,35 @@ const PointTransferModel = {
         return updatedAgent;
       });
     } catch (error) {
-      console.error('轉移點數出錯:', error);
+      console.error('转移点数出错:', error);
       throw error;
     }
   },
   
-  // 從代理轉移點數到代理
+  // 从代理转移点数到代理
   async transferFromAgentToAgent(fromAgentId, toAgentId, amount, description = '', isCustomerServiceOperation = false) {
     try {
-      // 參數驗證
+      // 参数验证
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new Error('轉移的點數必須大於0');
+        throw new Error('转移的点数必须大于0');
       }
       
-      // 獲取兩個代理的信息
+      // 获取两个代理的信息
       const fromAgent = await AgentModel.findById(fromAgentId);
-      if (!fromAgent) throw new Error('轉出代理不存在');
+      if (!fromAgent) throw new Error('转出代理不存在');
       
       const toAgent = await AgentModel.findById(toAgentId);
-      if (!toAgent) throw new Error('轉入代理不存在');
+      if (!toAgent) throw new Error('转入代理不存在');
       
-      // 檢查轉出代理餘額是否足夠
+      // 检查转出代理余额是否足够
       if (parseFloat(fromAgent.balance) < parsedAmount) {
-        throw new Error('轉出代理點數不足');
+        throw new Error('转出代理点数不足');
       }
       
-      // 開始數據庫事務
+      // 开始数据库事务
       return await db.tx(async t => {
-        // 更新轉出代理餘額
+        // 更新转出代理余额
         const fromAgentBeforeBalance = parseFloat(fromAgent.balance);
         const fromAgentAfterBalance = fromAgentBeforeBalance - parsedAmount;
         
@@ -2034,7 +2034,7 @@ const PointTransferModel = {
           RETURNING *
         `, [fromAgentAfterBalance, fromAgentId]);
         
-        // 更新轉入代理餘額
+        // 更新转入代理余额
         const toAgentBeforeBalance = parseFloat(toAgent.balance);
         const toAgentAfterBalance = toAgentBeforeBalance + parsedAmount;
         
@@ -2045,24 +2045,24 @@ const PointTransferModel = {
           RETURNING *
         `, [toAgentAfterBalance, toAgentId]);
         
-        // 只有客服操作才記錄到transaction_records表
+        // 只有客服操作才记录到transaction_records表
         if (isCustomerServiceOperation) {
-          // 記錄轉出代理的交易（客服操作使用cs_withdraw表示從該代理提款）
+          // 记录转出代理的交易（客服操作使用cs_withdraw表示从该代理提款）
           await t.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, ['agent', fromAgentId, -parsedAmount, 'cs_withdraw', fromAgentBeforeBalance, fromAgentAfterBalance, description || '客服轉移操作']);
+          `, ['agent', fromAgentId, -parsedAmount, 'cs_withdraw', fromAgentBeforeBalance, fromAgentAfterBalance, description || '客服转移操作']);
           
-          // 記錄轉入代理的交易（客服操作使用cs_deposit表示為該代理存款）
+          // 记录转入代理的交易（客服操作使用cs_deposit表示为该代理存款）
           await t.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, ['agent', toAgentId, parsedAmount, 'cs_deposit', toAgentBeforeBalance, toAgentAfterBalance, description || '客服轉移操作']);
+          `, ['agent', toAgentId, parsedAmount, 'cs_deposit', toAgentBeforeBalance, toAgentAfterBalance, description || '客服转移操作']);
         }
         
-        // 記錄點數轉移
+        // 记录点数转移
         await t.one(`
           INSERT INTO point_transfers 
           (from_type, from_id, to_type, to_id, amount, 
@@ -2080,15 +2080,15 @@ const PointTransferModel = {
         };
       });
     } catch (error) {
-      console.error('代理間轉移點數出錯:', error);
+      console.error('代理间转移点数出错:', error);
       throw error;
     }
   },
   
-  // 獲取點數轉移記錄
+  // 获取点数转移记录
   async getTransferRecords(userType, userId, limit = 50) {
     try {
-      // 更新SQL查詢以JOIN agents 和 members 表來獲取用戶名
+      // 更新SQL查询以JOIN agents 和 members 表来获取用户名
       return await db.any(`
         SELECT 
           pt.*,
@@ -2120,7 +2120,7 @@ const PointTransferModel = {
         LIMIT $3
       `, [userType, userId, limit]);
     } catch (error) {
-      console.error('獲取點數轉移記錄出錯:', error);
+      console.error('获取点数转移记录出错:', error);
       throw error;
     }
   }
@@ -2128,7 +2128,7 @@ const PointTransferModel = {
 
 // 模型: 公告
 const NoticeModel = {
-  // 獲取所有公告
+  // 获取所有公告
   async findAll(limit = 50, category = null) {
     try {
       let query = `
@@ -2147,12 +2147,12 @@ const NoticeModel = {
       
       return await db.any(query, params);
     } catch (error) {
-      console.error('獲取公告出錯:', error);
+      console.error('获取公告出错:', error);
       throw error;
     }
   },
   
-  // 獲取公告分類列表
+  // 获取公告分类列表
   async getCategories() {
     try {
       const result = await db.any(`
@@ -2163,12 +2163,12 @@ const NoticeModel = {
       `);
       return result.map(r => r.category);
     } catch (error) {
-      console.error('獲取公告分類出錯:', error);
-      return ['最新公告', '維修', '活動']; // 返回默認分類
+      console.error('获取公告分类出错:', error);
+      return ['最新公告', '维修', '活动']; // 返回默认分类
     }
   },
   
-  // 創建公告
+  // 创建公告
   async create(title, content, category = '最新公告') {
     try {
       return await db.one(`
@@ -2177,19 +2177,19 @@ const NoticeModel = {
         RETURNING *
       `, [title, content, category]);
     } catch (error) {
-      console.error('創建公告出錯:', error);
+      console.error('创建公告出错:', error);
       throw error;
     }
   },
   
-  // 根據ID獲取公告
+  // 根据ID获取公告
   async findById(id) {
     try {
       return await db.oneOrNone(`
         SELECT * FROM notices WHERE id = $1 AND status = 1
       `, [id]);
     } catch (error) {
-      console.error('獲取公告出錯:', error);
+      console.error('获取公告出错:', error);
       throw error;
     }
   },
@@ -2204,12 +2204,12 @@ const NoticeModel = {
         RETURNING *
       `, [id, title, content, category]);
     } catch (error) {
-      console.error('更新公告出錯:', error);
+      console.error('更新公告出错:', error);
       throw error;
     }
   },
   
-  // 刪除公告（軟刪除）
+  // 删除公告（软删除）
   async delete(id) {
     try {
       return await db.one(`
@@ -2219,7 +2219,7 @@ const NoticeModel = {
         RETURNING *
       `, [id]);
     } catch (error) {
-      console.error('刪除公告出錯:', error);
+      console.error('删除公告出错:', error);
       throw error;
     }
   }
@@ -2227,7 +2227,7 @@ const NoticeModel = {
 
 // 模型: 交易
 const TransactionModel = {
-  // 創建交易記錄
+  // 创建交易记录
   async create(transactionData) {
     const { 
       user_type, user_id, amount, type, 
@@ -2242,12 +2242,12 @@ const TransactionModel = {
         RETURNING *
       `, [user_type, user_id, amount, type, balance_before, balance_after, description]);
     } catch (error) {
-      console.error('創建交易記錄出錯:', error);
+      console.error('创建交易记录出错:', error);
       throw error;
     }
   },
   
-  // 獲取用戶的交易記錄
+  // 获取用户的交易记录
   async getByUserId(userType, userId, limit = 50) {
     try {
       return await db.any(`
@@ -2257,19 +2257,19 @@ const TransactionModel = {
         LIMIT $3
       `, [userType, userId, limit]);
     } catch (error) {
-      console.error('獲取交易記錄出錯:', error);
+      console.error('获取交易记录出错:', error);
       throw error;
     }
   },
   
-  // 獲取代理今日統計數據
+  // 获取代理今日统计数据
   async getAgentTodayStats(agentId) {
     try {
-      console.log(`獲取代理統計: agentId=${agentId}`);
+      console.log(`获取代理统计: agentId=${agentId}`);
       
-      // 驗證代理ID
+      // 验证代理ID
       if (!agentId || agentId === '') {
-        console.log(`獲取代理統計: 未提供有效的代理ID`);
+        console.log(`获取代理统计: 未提供有效的代理ID`);
         return {
           totalDeposit: 0,
           totalWithdraw: 0,
@@ -2279,10 +2279,10 @@ const TransactionModel = {
         };
       }
       
-      // 解析並驗證代理ID
+      // 解析并验证代理ID
       const parsedAgentId = parseInt(agentId);
       if (isNaN(parsedAgentId)) {
-        console.log(`獲取代理統計: 代理ID "${agentId}" 不是有效的整數ID`);
+        console.log(`获取代理统计: 代理ID "${agentId}" 不是有效的整数ID`);
         return {
           totalDeposit: 0,
           totalWithdraw: 0,
@@ -2292,10 +2292,10 @@ const TransactionModel = {
         };
       }
       
-      // 檢查代理是否存在
+      // 检查代理是否存在
       const agentExists = await db.oneOrNone('SELECT id FROM agents WHERE id = $1', [parsedAgentId]);
       if (!agentExists) {
-        console.log(`獲取代理統計: 代理ID ${parsedAgentId} 不存在`);
+        console.log(`获取代理统计: 代理ID ${parsedAgentId} 不存在`);
         return {
           totalDeposit: 0,
           totalWithdraw: 0,
@@ -2305,10 +2305,10 @@ const TransactionModel = {
         };
       }
       
-      // 獲取代理下的所有會員ID
+      // 获取代理下的所有会员ID
       const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [parsedAgentId]);
       if (!members || members.length === 0) {
-        console.log(`獲取代理統計: 代理ID ${parsedAgentId} 下無會員`);
+        console.log(`获取代理统计: 代理ID ${parsedAgentId} 下无会员`);
         return {
           totalDeposit: 0,
           totalWithdraw: 0,
@@ -2319,21 +2319,21 @@ const TransactionModel = {
       }
       
       const memberIds = members.map(m => m.id);
-      console.log(`獲取代理統計: 代理 ${parsedAgentId} 下有 ${memberIds.length} 位會員`);
+      console.log(`获取代理统计: 代理 ${parsedAgentId} 下有 ${memberIds.length} 位会员`);
       
-      // 獲取今日日期
+      // 获取今日日期
       const today = new Date().toISOString().split('T')[0];
-      console.log(`獲取代理統計: 查詢日期=${today}`);
+      console.log(`获取代理统计: 查询日期=${today}`);
       
-      // 計算今日所有交易總額（包括代理和會員的所有轉帳）
+      // 计算今日所有交易总额（包括代理和会员的所有转帐）
       try {
-        // 查詢真實的下注統計數據（包含所有下線代理的會員）
+        // 查询真实的下注统计数据（包含所有下线代理的会员）
         const betStatsResult = await db.oneOrNone(`
           WITH RECURSIVE agent_hierarchy AS (
-            -- 起始：目標代理本身
+            -- 起始：目标代理本身
             SELECT id FROM agents WHERE id = $1
             UNION ALL
-            -- 遞歸：所有下級代理
+            -- 递归：所有下级代理
             SELECT a.id FROM agents a
             INNER JOIN agent_hierarchy ah ON a.parent_id = ah.id
           )
@@ -2353,12 +2353,12 @@ const TransactionModel = {
         const totalWinAmount = parseFloat(betStatsResult ? betStatsResult.total_win_amount : 0);
         const agentProfit = parseFloat(betStatsResult ? betStatsResult.agent_profit : 0);
         
-        // 計算代理盈虧分解
-        const agentEarnings = agentProfit > 0 ? agentProfit : 0;  // 代理盈利（會員虧損）
-        const agentLosses = agentProfit < 0 ? Math.abs(agentProfit) : 0;  // 代理虧損（會員盈利）
-        const netRevenue = agentProfit;  // 淨收益
+        // 计算代理盈亏分解
+        const agentEarnings = agentProfit > 0 ? agentProfit : 0;  // 代理盈利（会员亏损）
+        const agentLosses = agentProfit < 0 ? Math.abs(agentProfit) : 0;  // 代理亏损（会员盈利）
+        const netRevenue = agentProfit;  // 净收益
         
-        // 獲取今日活躍會員數（包含所有下線代理的會員）
+        // 获取今日活跃会员数（包含所有下线代理的会员）
         const activeMembersResult = await db.oneOrNone(`
           WITH RECURSIVE agent_hierarchy AS (
             SELECT id FROM agents WHERE id = $1
@@ -2375,7 +2375,7 @@ const TransactionModel = {
         
         const activeMembers = parseInt(activeMembersResult ? activeMembersResult.count : 0);
         
-        // 獲取下級代理數量
+        // 获取下级代理数量
         const subAgentsResult = await db.oneOrNone(`
           SELECT COUNT(*) as count 
           FROM agents 
@@ -2384,20 +2384,20 @@ const TransactionModel = {
         
         const subAgentsCount = parseInt(subAgentsResult ? subAgentsResult.count : 0);
         
-        console.log(`獲取代理統計: 成功獲取 ID=${parsedAgentId} 的統計數據`);
+        console.log(`获取代理统计: 成功获取 ID=${parsedAgentId} 的统计数据`);
         
         return {
-          totalDeposit: agentEarnings,        // 代理盈利（會員虧損）
-          totalWithdraw: agentLosses,         // 代理虧損（會員盈利）
-          totalRevenue: netRevenue,           // 淨收益
-          totalTransactions: totalBetAmount,  // 總投注金額
-          totalBets: totalBets,               // 總投注筆數
-          memberCount: memberIds.length,      // 總會員數
-          activeMembers,                      // 活躍會員數
-          subAgentsCount                      // 下級代理數
+          totalDeposit: agentEarnings,        // 代理盈利（会员亏损）
+          totalWithdraw: agentLosses,         // 代理亏损（会员盈利）
+          totalRevenue: netRevenue,           // 净收益
+          totalTransactions: totalBetAmount,  // 总投注金额
+          totalBets: totalBets,               // 总投注笔数
+          memberCount: memberIds.length,      // 总会员数
+          activeMembers,                      // 活跃会员数
+          subAgentsCount                      // 下级代理数
         };
       } catch (queryError) {
-        console.error('獲取代理統計 - 查詢錯誤:', queryError);
+        console.error('获取代理统计 - 查询错误:', queryError);
         return {
           totalDeposit: 0,
           totalWithdraw: 0,
@@ -2409,8 +2409,8 @@ const TransactionModel = {
         };
       }
     } catch (error) {
-      console.error('獲取代理統計出錯:', error);
-      // 出錯時返回默認值
+      console.error('获取代理统计出错:', error);
+      // 出错时返回默认值
       return {
         totalDeposit: 0,
         totalWithdraw: 0,
@@ -2432,40 +2432,40 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
     let user = null;
     let isSubAccount = false;
     
-    // 先嘗試查詢代理
+    // 先尝试查询代理
     const agent = await AgentModel.findByUsername(username);
     
     if (agent) {
-      // 檢查密碼
+      // 检查密码
       let isValidPassword = false;
       
-      // 檢查密碼是否已經是 bcrypt hash
+      // 检查密码是否已经是 bcrypt hash
       if (agent.password.startsWith('$2b$') || agent.password.startsWith('$2a$')) {
-        // 使用 bcrypt 驗證
+        // 使用 bcrypt 验证
         isValidPassword = await bcrypt.compare(password, agent.password);
       } else {
-        // 明文密碼直接比較（向後兼容）
+        // 明文密码直接比较（向后兼容）
         isValidPassword = (agent.password === password);
       }
       
       if (!isValidPassword) {
         return res.json({
           success: false,
-          message: '密碼錯誤'
+          message: '密码错误'
         });
       }
       
-      // 檢查狀態
+      // 检查状态
       if (agent.status !== 1) {
         return res.json({
           success: false,
-          message: '代理帳號已被禁用'
+          message: '代理帐号已被禁用'
         });
       }
       
       user = agent;
     } else {
-      // 如果不是代理，嘗試查詢子帳號
+      // 如果不是代理，尝试查询子帐号
       const subAccount = await db.oneOrNone(`
         SELECT sa.*, a.username as parent_agent_username, a.id as parent_agent_id, a.level as parent_agent_level
         FROM sub_accounts sa
@@ -2476,43 +2476,43 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       if (!subAccount) {
         return res.json({
           success: false,
-          message: '帳號不存在'
+          message: '帐号不存在'
         });
       }
       
-      // 驗證密碼
+      // 验证密码
       const isValidPassword = await bcrypt.compare(password, subAccount.password);
       if (!isValidPassword) {
         return res.json({
           success: false,
-          message: '密碼錯誤'
+          message: '密码错误'
         });
       }
       
-      // 檢查狀態
+      // 检查状态
       if (subAccount.status !== 1) {
         return res.json({
           success: false,
-          message: '子帳號已被停用'
+          message: '子帐号已被停用'
         });
       }
       
-      // 更新最後登入時間
+      // 更新最后登入时间
       await db.none(`
         UPDATE sub_accounts 
         SET last_login = CURRENT_TIMESTAMP 
         WHERE id = $1
       `, [subAccount.id]);
       
-      // 設置 user 為子帳號，但使用父代理的基本信息
-      console.log('子帳號登入 - 查詢結果:', {
+      // 设置 user 为子帐号，但使用父代理的基本信息
+      console.log('子帐号登入 - 查询结果:', {
         subAccountUsername: subAccount.username,
         parentAgentId: subAccount.parent_agent_id,
         parentAgentLevel: subAccount.parent_agent_level,
         parentAgentUsername: subAccount.parent_agent_username
       });
       
-      // 獲取父代理的完整信息
+      // 获取父代理的完整信息
       const parentAgent = await AgentModel.findById(subAccount.parent_agent_id);
       if (!parentAgent) {
         return res.json({
@@ -2524,7 +2524,7 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       user = {
         id: parentAgent.id,
         username: subAccount.username,
-        level: parentAgent.level, // 使用父代理的等級
+        level: parentAgent.level, // 使用父代理的等级
         balance: parentAgent.balance,
         commission_balance: parentAgent.commission_balance,
         status: subAccount.status,
@@ -2541,35 +2541,35 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       isSubAccount = true;
     }
     
-    // 獲取請求信息
+    // 获取请求信息
     const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
     const userAgent = req.headers['user-agent'] || '';
     
-    // 檢查可疑活動
+    // 检查可疑活动
     const isSuspicious = await SessionManager.checkSuspiciousActivity(ipAddress);
     if (isSuspicious) {
-      console.warn(`🚨 檢測到可疑登入活動 - IP: ${ipAddress}, 代理: ${username}`);
-      // 可以選擇阻止登入或記錄警告
+      console.warn(`🚨 检测到可疑登入活动 - IP: ${ipAddress}, 代理: ${username}`);
+      // 可以选择阻止登入或记录警告
     }
     
-    // 創建會話（這會自動登出其他裝置的會話）
+    // 创建会话（这会自动登出其他装置的会话）
     const sessionToken = await SessionManager.createSession('agent', user.id, ipAddress, userAgent);
     
-    // 生成向後兼容的token
+    // 生成向后兼容的token
     const legacyToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
     
-    // 記錄登錄日誌
+    // 记录登录日志
     try {
-      // 簡單的IP歸屬地判斷
-      let ipLocation = '未知地區';
+      // 简单的IP归属地判断
+      let ipLocation = '未知地区';
       if (ipAddress) {
         if (ipAddress.includes('127.0.0.1') || ipAddress.includes('::1')) {
-          ipLocation = '本地開發環境';
+          ipLocation = '本地开发环境';
         } else if (ipAddress.startsWith('192.168.') || ipAddress.startsWith('10.') || ipAddress.startsWith('172.')) {
-          ipLocation = '內網地址';
+          ipLocation = '内网地址';
         } else {
-          // 這裡可以接入真實的IP歸屬地查詢服務
-          ipLocation = '台灣省'; // 預設值
+          // 这里可以接入真实的IP归属地查询服务
+          ipLocation = '台湾省'; // 预设值
         }
       }
       
@@ -2578,15 +2578,15 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
         VALUES ($1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6)
       `, [username, isSubAccount ? 'subaccount' : 'agent', ipAddress, ipLocation, userAgent, sessionToken]);
       
-      console.log(`📝 登錄日誌已記錄: ${username}, IP: ${ipAddress}`);
+      console.log(`📝 登录日志已记录: ${username}, IP: ${ipAddress}`);
     } catch (logError) {
-      console.error('記錄登錄日誌失敗:', logError);
-      // 登錄日誌失敗不影響登錄流程
+      console.error('记录登录日志失败:', logError);
+      // 登录日志失败不影响登录流程
     }
     
-    console.log(`✅ ${isSubAccount ? '子帳號' : '代理'}登入成功: ${username} (ID: ${user.id}), IP: ${ipAddress}`);
+    console.log(`✅ ${isSubAccount ? '子帐号' : '代理'}登入成功: ${username} (ID: ${user.id}), IP: ${ipAddress}`);
     
-    // 在返回之前記錄將要發送的數據
+    // 在返回之前记录将要发送的数据
     const responseAgent = {
       id: user.id,
       username: user.username,
@@ -2596,12 +2596,12 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       rebate_percentage: user.rebate_percentage,
       max_rebate_percentage: user.max_rebate_percentage,
       rebate_mode: user.rebate_mode,
-      market_type: user.market_type || 'D', // 添加盤口類型
-      betting_limit_level: user.betting_limit_level || 'level3', // 添加限紅等級
-      is_sub_account: user.is_sub_account || false // 添加子帳號標記
+      market_type: user.market_type || 'D', // 添加盘口类型
+      betting_limit_level: user.betting_limit_level || 'level3', // 添加限红等级
+      is_sub_account: user.is_sub_account || false // 添加子帐号标记
     };
     
-    console.log('登入響應 - 即將發送的代理數據:', {
+    console.log('登入响应 - 即将发送的代理数据:', {
       id: responseAgent.id,
       username: responseAgent.username,
       level: responseAgent.level,
@@ -2613,26 +2613,26 @@ app.post(`${API_PREFIX}/login`, async (req, res) => {
       message: '登入成功',
       agent: responseAgent,
       token: legacyToken,
-      sessionToken: sessionToken // 新的會話token
+      sessionToken: sessionToken // 新的会话token
     });
   } catch (error) {
-    console.error('代理登入出錯:', error);
-    console.error('錯誤堆疊:', error.stack);
+    console.error('代理登入出错:', error);
+    console.error('错误堆叠:', error.stack);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 代理會話檢查API
+// 代理会话检查API
 app.get(`${API_PREFIX}/check-session`, async (req, res) => {
   try {
     const sessionToken = req.headers['x-session-token'] || req.query.sessionToken;
     const legacyToken = req.headers['authorization']?.replace('Bearer ', '');
     
     if (sessionToken) {
-      // 使用新的會話管理系統驗證
+      // 使用新的会话管理系统验证
       const session = await SessionManager.validateSession(sessionToken);
       
       if (session && session.userType === 'agent') {
@@ -2655,15 +2655,15 @@ app.get(`${API_PREFIX}/check-session`, async (req, res) => {
         });
       }
     } else if (legacyToken) {
-      // 向後兼容舊的token系統
-      console.log('使用舊版token檢查代理會話');
+      // 向后兼容旧的token系统
+      console.log('使用旧版token检查代理会话');
       return res.json({ 
         success: true, 
         message: 'Legacy session valid',
         isAuthenticated: true 
       });
     } else {
-      // 沒有會話憑證
+      // 没有会话凭证
       return res.json({ 
         success: false, 
         message: 'No session found',
@@ -2673,7 +2673,7 @@ app.get(`${API_PREFIX}/check-session`, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('代理會話檢查錯誤:', error);
+    console.error('代理会话检查错误:', error);
     return res.json({ 
       success: false, 
       message: 'Session check failed',
@@ -2700,42 +2700,42 @@ app.post(`${API_PREFIX}/logout`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('代理登出錯誤:', error);
+    console.error('代理登出错误:', error);
     res.json({
-      success: true, // 即使出錯也返回成功，因為登出應該總是成功
+      success: true, // 即使出错也返回成功，因为登出应该总是成功
       message: '登出成功'
     });
   }
 });
 
-// 創建代理 - 修改路由名稱
+// 创建代理 - 修改路由名称
 app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
   const { username, password, level, parent, commission_rate, rebate_mode, rebate_percentage, notes, market_type } = req.body;
   
   try {
-    // 驗證用戶名格式（只允許英文、數字）
+    // 验证用户名格式（只允许英文、数字）
     const usernameRegex = /^[a-zA-Z0-9]+$/;
     if (!username || !usernameRegex.test(username)) {
       return res.json({
         success: false,
-        message: '用戶名只能包含英文字母和數字'
+        message: '用户名只能包含英文字母和数字'
       });
     }
     
-    // 驗證密碼長度（至少6碼）
+    // 验证密码长度（至少6码）
     if (!password || password.length < 6) {
       return res.json({
         success: false,
-        message: '密碼至少需要6個字符'
+        message: '密码至少需要6个字符'
       });
     }
     
-    // 檢查用戶名是否已存在（檢查代理表、會員表和子帳號表）
+    // 检查用户名是否已存在（检查代理表、会员表和子帐号表）
     const existingAgent = await AgentModel.findByUsername(username);
     if (existingAgent) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（代理）'
+        message: '该用户名已被使用（代理）'
       });
     }
     
@@ -2743,11 +2743,11 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     if (existingMember) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（會員）'
+        message: '该用户名已被使用（会员）'
       });
     }
     
-    // 檢查子帳號表
+    // 检查子帐号表
     const existingSubAccount = await db.oneOrNone(`
       SELECT id FROM sub_accounts WHERE username = $1
     `, [username]);
@@ -2755,61 +2755,61 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     if (existingSubAccount) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（子帳號）'
+        message: '该用户名已被使用（子帐号）'
       });
     }
     
-    // 驗證代理級別範圍 (0-15)
+    // 验证代理级别范围 (0-15)
     const parsedLevel = parseInt(level);
     if (isNaN(parsedLevel) || parsedLevel < 0 || parsedLevel > 15) {
       return res.json({
         success: false,
-        message: '代理級別必須在0到15之間'
+        message: '代理级别必须在0到15之间'
       });
     }
     
-    // 獲取上級代理ID 和 上級代理信息
+    // 获取上级代理ID 和 上级代理信息
     let parentId = null;
     let parentAgent = null; 
-    let maxRebatePercentage = 0.041; // 預設最大退水比例 4.1%
+    let maxRebatePercentage = 0.041; // 预设最大退水比例 4.1%
     
     if (parent) {
       parentAgent = await AgentModel.findById(parent);
       if (!parentAgent) {
         return res.json({
           success: false,
-          message: '上級代理不存在'
+          message: '上级代理不存在'
         });
       }
       parentId = parentAgent.id;
       
-      // 修改驗證邏輯：代理級別必須恰好比上級代理高1級
+      // 修改验证逻辑：代理级别必须恰好比上级代理高1级
       if (parsedLevel !== parentAgent.level + 1) {
         return res.json({
           success: false,
-          message: `必須嚴格按照代理層級結構創建，${parentAgent.level}級代理只能創建${parentAgent.level + 1}級代理`
+          message: `必须严格按照代理层级结构创建，${parentAgent.level}级代理只能创建${parentAgent.level + 1}级代理`
         });
       }
       
-      // 驗證佣金比例是否合理
+      // 验证佣金比例是否合理
       if (parseFloat(commission_rate) > parentAgent.commission_rate) {
           return res.json({
               success: false,
-              message: '下級代理的佣金比例不能高於上級代理'
+              message: '下级代理的佣金比例不能高于上级代理'
           });
       }
 
-      // 設定最大退水比例
-      // 如果上級是總代理（level 0），根據新代理的盤口類型決定最大退水
+      // 设定最大退水比例
+      // 如果上级是总代理（level 0），根据新代理的盘口类型决定最大退水
       if (parentAgent.level === 0) {
-        // 總代理創建下級時，根據新代理的盤口類型決定最大退水
+        // 总代理创建下级时，根据新代理的盘口类型决定最大退水
         maxRebatePercentage = market_type === 'A' ? 0.011 : 0.041;
       } else {
-        // 一般代理創建下級時，不能超過自己的退水比例
+        // 一般代理创建下级时，不能超过自己的退水比例
         maxRebatePercentage = parentAgent.rebate_percentage || 0.041;
       }
       
-      // 驗證限紅等級
+      // 验证限红等级
       if (req.body.betting_limit_level) {
         const parentBettingLevel = parentAgent.betting_limit_level || 'level6';
         const levelOrder = {
@@ -2827,73 +2827,73 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
         if (newLevel > parentLevel) {
           return res.json({
             success: false,
-            message: `不能設定高於上級代理限紅等級(${parentBettingLevel})的限紅等級`
+            message: `不能设定高于上级代理限红等级(${parentBettingLevel})的限红等级`
           });
         }
       }
     } else {
-         // 如果沒有指定上級，檢查是否正在創建總代理
+         // 如果没有指定上级，检查是否正在创建总代理
          if (parsedLevel !== 0) {
               return res.json({
                 success: false,
-                message: '只有總代理可以沒有上級'
+                message: '只有总代理可以没有上级'
               })
          }
     }
     
-    // 處理退水設定
+    // 处理退水设定
     let finalRebatePercentage = 0.041;
     let finalRebateMode = rebate_mode || 'percentage';
     
     if (rebate_mode === 'all') {
-      // 全拿退水：上級代理（本代理）拿走所有退水，下級代理拿0%
+      // 全拿退水：上级代理（本代理）拿走所有退水，下级代理拿0%
       finalRebatePercentage = 0;
     } else if (rebate_mode === 'none') {
-      // 全退下級：上級代理（本代理）不拿退水，下級代理拿最大值
+      // 全退下级：上级代理（本代理）不拿退水，下级代理拿最大值
       finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
-      // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
+      // 按比例分配：下级代理拿设定的比例，其余归上级代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
       
-      // 不使用四捨五入，直接比較精確值
+      // 不使用四舍五入，直接比较精确值
       if (isNaN(parsedRebatePercentage) || parsedRebatePercentage < 0 || parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
           success: false,
-          message: `退水比例必須在 0% - ${parseFloat((maxRebatePercentage * 100).toFixed(2))}% 之間`
+          message: `退水比例必须在 0% - ${parseFloat((maxRebatePercentage * 100).toFixed(2))}% 之间`
         });
       }
       finalRebatePercentage = parsedRebatePercentage;
     }
     
-    // 處理盤口類型繼承邏輯 - 必須繼承上級代理的盤口類型
-    let finalMarketType = 'D'; // 預設D盤
+    // 处理盘口类型继承逻辑 - 必须继承上级代理的盘口类型
+    let finalMarketType = 'D'; // 预设D盘
     
-    // 如果有上級代理，必須繼承其盤口類型
+    // 如果有上级代理，必须继承其盘口类型
     if (parentAgent) {
       finalMarketType = parentAgent.market_type || 'D';
       
-      // 驗證傳入的盤口類型必須與上級代理一致
+      // 验证传入的盘口类型必须与上级代理一致
       if (market_type && market_type !== finalMarketType) {
         return res.json({
           success: false,
-          message: `必須使用與上級代理相同的盤口類型（${finalMarketType}盤）`
+          message: `必须使用与上级代理相同的盘口类型（${finalMarketType}盘）`
         });
       }
     } else {
-      // 創建總代理時，使用傳入的盤口類型
+      // 创建总代理时，使用传入的盘口类型
       finalMarketType = market_type || 'D';
     }
     
-    // 創建代理 - 限紅等級需要參考父代理的限紅等級
+    // 创建代理 - 限红等级需要参考父代理的限红等级
     let finalBettingLimitLevel = req.body.betting_limit_level || 'level3';
     
-    // 如果有父代理，限紅等級不能超過父代理
+    // 如果有父代理，限红等级不能超过父代理
     if (parentAgent) {
       const levelOrder = {
         'level1': 1,  // 新手
         'level2': 2,  // 一般
-        'level3': 3,  // 標準
-        'level4': 4,  // 高級
+        'level3': 3,  // 标准
+        'level4': 4,  // 高级
         'level5': 5,  // VIP
         'level6': 6   // VVIP
       };
@@ -2901,10 +2901,10 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       const parentLevel = levelOrder[parentAgent.betting_limit_level || 'level3'] || 3;
       const requestedLevel = levelOrder[req.body.betting_limit_level] || 3;
       
-      // 如果請求的等級超過父代理的等級，使用父代理的等級
+      // 如果请求的等级超过父代理的等级，使用父代理的等级
       if (requestedLevel > parentLevel) {
         finalBettingLimitLevel = parentAgent.betting_limit_level || 'level3';
-        console.log(`⚠️ 代理 ${username} 請求的限紅等級 ${req.body.betting_limit_level} 超過父代理 ${parentAgent.username} 的限紅等級 ${parentAgent.betting_limit_level}，已調整為 ${finalBettingLimitLevel}`);
+        console.log(`⚠️ 代理 ${username} 请求的限红等级 ${req.body.betting_limit_level} 超过父代理 ${parentAgent.username} 的限红等级 ${parentAgent.betting_limit_level}，已调整为 ${finalBettingLimitLevel}`);
       }
     }
     
@@ -2933,21 +2933,21 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('創建代理出錯:', error);
+    console.error('创建代理出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新代理退水設定
+// 更新代理退水设定
 app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
   try {
     const { agentId } = req.params;
     const { rebate_mode, rebate_percentage } = req.body;
     
-    console.log('🔧 更新退水設定請求:', {
+    console.log('🔧 更新退水设定请求:', {
       agentId,
       rebate_mode,
       rebate_percentage,
@@ -2961,7 +2961,7 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
       });
     }
     
-    // 獲取代理資訊
+    // 获取代理资讯
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -2970,7 +2970,7 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
       });
     }
     
-    console.log('📋 原始代理資料:', {
+    console.log('📋 原始代理资料:', {
       id: agent.id,
       username: agent.username,
       rebate_mode: agent.rebate_mode,
@@ -2978,45 +2978,45 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
       max_rebate_percentage: agent.max_rebate_percentage
     });
     
-    // 處理退水設定
+    // 处理退水设定
     let finalRebatePercentage = agent.rebate_percentage;
     let finalRebateMode = rebate_mode || agent.rebate_mode;
     const maxRebatePercentage = agent.max_rebate_percentage || 0.041;
     
     if (rebate_mode === 'all') {
-      // 全拿退水：上級代理（本代理）拿走所有退水，下級代理拿0%
+      // 全拿退水：上级代理（本代理）拿走所有退水，下级代理拿0%
       finalRebatePercentage = 0;
     } else if (rebate_mode === 'none') {
-      // 全退下級：上級代理（本代理）不拿退水，下級代理拿最大值
+      // 全退下级：上级代理（本代理）不拿退水，下级代理拿最大值
       finalRebatePercentage = maxRebatePercentage;
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
-      // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
+      // 按比例分配：下级代理拿设定的比例，其余归上级代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
       
-      // 不使用四捨五入，直接比較精確值
+      // 不使用四舍五入，直接比较精确值
       if (isNaN(parsedRebatePercentage) || parsedRebatePercentage < 0 || parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
           success: false,
-          message: `退水比例必須在 0% - ${parseFloat((maxRebatePercentage * 100).toFixed(2))}% 之間`
+          message: `退水比例必须在 0% - ${parseFloat((maxRebatePercentage * 100).toFixed(2))}% 之间`
         });
       }
       finalRebatePercentage = parsedRebatePercentage;
     }
     
-    console.log('🎯 最終設定:', {
+    console.log('🎯 最终设定:', {
       finalRebateMode,
       finalRebatePercentage,
       maxRebatePercentage
     });
     
-    // 更新退水設定
+    // 更新退水设定
     const updatedAgent = await AgentModel.updateRebateSettings(agentId, {
       rebate_percentage: finalRebatePercentage,
       rebate_mode: finalRebateMode,
       max_rebate_percentage: maxRebatePercentage
     });
     
-    console.log('✅ 更新後的代理資料:', {
+    console.log('✅ 更新后的代理资料:', {
       id: updatedAgent.id,
       username: updatedAgent.username,
       rebate_mode: updatedAgent.rebate_mode,
@@ -3024,12 +3024,12 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
       max_rebate_percentage: updatedAgent.max_rebate_percentage
     });
     
-    // 執行級聯更新 - 調整所有下級代理的退水設定
-    console.log('🔗 開始級聯更新下級代理退水設定...');
+    // 执行级联更新 - 调整所有下级代理的退水设定
+    console.log('🔗 开始级联更新下级代理退水设定...');
     
-    // 遞迴函數：調整下級代理的退水設定
+    // 递回函数：调整下级代理的退水设定
     async function adjustDownlineRebateSettings(parentAgentId, maxRebatePercentage) {
-      // 獲取該代理的所有直接下級代理
+      // 获取该代理的所有直接下级代理
       const childAgents = await db.any(`
         SELECT id, username, rebate_percentage, max_rebate_percentage 
         FROM agents 
@@ -3040,21 +3040,21 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
         const currentRebate = parseFloat(childAgent.rebate_percentage);
         const currentMaxRebate = parseFloat(childAgent.max_rebate_percentage);
         
-        // 處理兩種情況：
-        // 1. 如果下級的退水超過上級的新限制，需要調降
-        // 2. 如果下級的最大退水不等於上級的新限制，需要更新（允許調高或調低）
+        // 处理两种情况：
+        // 1. 如果下级的退水超过上级的新限制，需要调降
+        // 2. 如果下级的最大退水不等于上级的新限制，需要更新（允许调高或调低）
         let needUpdate = false;
         let newRebate = currentRebate;
         let updateDescription = '';
         
-        // 情況1：退水超過新限制，需要調降
+        // 情况1：退水超过新限制，需要调降
         if (currentRebate > maxRebatePercentage) {
           newRebate = maxRebatePercentage;
           needUpdate = true;
-          updateDescription = `退水調降: ${currentRebate * 100}% -> ${newRebate * 100}%`;
+          updateDescription = `退水调降: ${currentRebate * 100}% -> ${newRebate * 100}%`;
         }
         
-        // 情況2：最大退水需要更新（不論上調或下調）
+        // 情况2：最大退水需要更新（不论上调或下调）
         if (currentMaxRebate !== maxRebatePercentage) {
           needUpdate = true;
           if (updateDescription) {
@@ -3071,9 +3071,9 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
             WHERE id = $3
           `, [newRebate, maxRebatePercentage, childAgent.id]);
           
-          console.log(`  - 調整下級代理 ${childAgent.username}: ${updateDescription}`);
+          console.log(`  - 调整下级代理 ${childAgent.username}: ${updateDescription}`);
           
-          // 記錄調整日誌
+          // 记录调整日志
           await db.none(`
             INSERT INTO transaction_records 
             (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
@@ -3085,23 +3085,23 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
             0, 
             0, 
             0, 
-            `退水設定連鎖調整: ${updateDescription} (因上級代理 ${agent.username} 退水調整)`
+            `退水设定连锁调整: ${updateDescription} (因上级代理 ${agent.username} 退水调整)`
           ]);
         }
         
-        // 遞迴處理此代理的下級
+        // 递回处理此代理的下级
         await adjustDownlineRebateSettings(childAgent.id, maxRebatePercentage);
       }
     }
     
-    // 開始連鎖調整
+    // 开始连锁调整
     await adjustDownlineRebateSettings(agentId, finalRebatePercentage);
     
-    console.log(`連鎖調整完成`);
+    console.log(`连锁调整完成`);
     
     res.json({
       success: true,
-      message: '退水設定更新成功',
+      message: '退水设定更新成功',
       agent: {
         id: updatedAgent.id,
         username: updatedAgent.username,
@@ -3112,16 +3112,16 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('更新代理退水設定失敗:', error);
+    console.error('更新代理退水设定失败:', error);
     res.status(500).json({
       success: false,
-      message: '更新退水設定失敗',
+      message: '更新退水设定失败',
       error: error.message
     });
   }
 });
 
-// 獲取會員的代理鏈
+// 获取会员的代理链
 app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
   try {
     const { username } = req.query;
@@ -3129,20 +3129,20 @@ app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
     if (!username) {
       return res.json({
         success: false,
-        message: '缺少會員用戶名'
+        message: '缺少会员用户名'
       });
     }
     
-    // 獲取會員資訊
+    // 获取会员资讯
     const member = await MemberModel.findByUsername(username);
     if (!member) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 獲取代理鏈
+    // 获取代理链
     const agentChain = await getAgentChainForMember(member.agent_id);
     
     res.json({
@@ -3150,40 +3150,40 @@ app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
       agentChain: agentChain
     });
   } catch (error) {
-    console.error('獲取會員代理鏈錯誤:', error);
+    console.error('获取会员代理链错误:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤'
+      message: '系统错误'
     });
   }
 });
 
-// 分配退水給代理
+// 分配退水给代理
 app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
   try {
     const { agentId, agentUsername, rebateAmount, memberUsername, betAmount, reason, period } = req.body;
     
-    console.log(`收到退水分配請求: 代理=${agentUsername}(${agentId}), 退水金額=${rebateAmount}, 會員=${memberUsername}, 下注=${betAmount}`);
+    console.log(`收到退水分配请求: 代理=${agentUsername}(${agentId}), 退水金额=${rebateAmount}, 会员=${memberUsername}, 下注=${betAmount}`);
     
     if (!agentId || !rebateAmount || rebateAmount <= 0) {
-      console.warn('無效的退水分配請求:', { agentId, rebateAmount });
+      console.warn('无效的退水分配请求:', { agentId, rebateAmount });
       return res.json({
         success: false,
-        message: '無效的退水分配請求'
+        message: '无效的退水分配请求'
       });
     }
     
-    // 驗證退水金額是否合理（防止異常大額）
-    const maxReasonableRebate = parseFloat(betAmount) * 0.1; // 最多10%下注金額作為安全閾值
+    // 验证退水金额是否合理（防止异常大额）
+    const maxReasonableRebate = parseFloat(betAmount) * 0.1; // 最多10%下注金额作为安全阈值
     if (parseFloat(rebateAmount) > maxReasonableRebate) {
-      console.error(`退水金額異常: ${rebateAmount} 超過安全閾值 ${maxReasonableRebate}`);
+      console.error(`退水金额异常: ${rebateAmount} 超过安全阈值 ${maxReasonableRebate}`);
       return res.json({
         success: false,
-        message: '退水金額異常，請檢查計算邏輯'
+        message: '退水金额异常，请检查计算逻辑'
       });
     }
     
-    // 獲取代理資訊
+    // 获取代理资讯
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -3192,19 +3192,19 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       });
     }
     
-    // 保證金額精度，四捨五入到小數點後2位
+    // 保证金额精度，四舍五入到小数点后2位
     const roundedRebateAmount = Math.round(parseFloat(rebateAmount) * 100) / 100;
     
-    // 計算退水比例
+    // 计算退水比例
     const rebatePercentage = parseFloat(betAmount) > 0 ? roundedRebateAmount / parseFloat(betAmount) : 0;
     
     const beforeBalance = parseFloat(agent.balance);
     const afterBalance = beforeBalance + roundedRebateAmount;
     
-    // 增加代理餘額
+    // 增加代理余额
     await db.none(`UPDATE agents SET balance = $1 WHERE id = $2`, [afterBalance, agentId]);
     
-    // 記錄詳細的退水交易記錄（包含會員信息）
+    // 记录详细的退水交易记录（包含会员信息）
     await db.none(`
       INSERT INTO transaction_records 
       (user_type, user_id, amount, transaction_type, balance_before, balance_after, description, 
@@ -3217,37 +3217,37 @@ app.post(`${API_PREFIX}/allocate-rebate`, async (req, res) => {
       'rebate', 
       beforeBalance, 
       afterBalance, 
-      `退水收入 - ${memberUsername || '未知會員'}`, 
+      `退水收入 - ${memberUsername || '未知会员'}`, 
       memberUsername || null,
       parseFloat(betAmount) || 0,
       rebatePercentage,
       period ? String(period) : null
     ]);
     
-    // 獲取更新後的代理資訊
+    // 获取更新后的代理资讯
     const updatedAgent = await AgentModel.findById(agentId);
     
-    console.log(`成功分配退水 ${roundedRebateAmount} 給代理 ${agentUsername}，新餘額: ${updatedAgent.balance}`);
+    console.log(`成功分配退水 ${roundedRebateAmount} 给代理 ${agentUsername}，新余额: ${updatedAgent.balance}`);
     
     res.json({
       success: true,
       message: '退水分配成功'
     });
   } catch (error) {
-    console.error('分配退水錯誤:', error);
+    console.error('分配退水错误:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤'
+      message: '系统错误'
     });
   }
 });
 
-// 獲取投注記錄的佔成明細（代理鏈）
+// 获取投注记录的占成明细（代理链）
 async function getCommissionDetailsForBet(memberUsername, betAmount) {
   try {
-    console.log(`🔍 查詢會員 ${memberUsername} 的佔成明細...`);
+    console.log(`🔍 查询会员 ${memberUsername} 的占成明细...`);
     
-    // 首先查找會員所屬的代理
+    // 首先查找会员所属的代理
     const member = await db.oneOrNone(`
       SELECT m.id, m.username, m.agent_id, a.username as agent_username, a.level, a.rebate_percentage, a.parent_id
       FROM members m
@@ -3255,22 +3255,22 @@ async function getCommissionDetailsForBet(memberUsername, betAmount) {
       WHERE m.username = $1
     `, [memberUsername]);
 
-    console.log(`👤 會員查詢結果:`, member);
+    console.log(`👤 会员查询结果:`, member);
 
     if (!member || !member.agent_id) {
-      console.log(`⚠️ 會員 ${memberUsername} 不存在或沒有綁定代理`);
-      return []; // 如果會員不存在或沒有綁定代理，返回空陣列
+      console.log(`⚠️ 会员 ${memberUsername} 不存在或没有绑定代理`);
+      return []; // 如果会员不存在或没有绑定代理，返回空阵列
     }
 
     const commissionDetails = [];
     let currentAgentId = member.agent_id;
     let level = 1;
 
-    console.log(`🔗 開始遍歷代理鏈，起始代理ID: ${currentAgentId}`);
+    console.log(`🔗 开始遍历代理链，起始代理ID: ${currentAgentId}`);
 
-    // 從會員的直屬代理開始，向上遍歷代理鏈
-    while (currentAgentId && level <= 15) { // 限制最多15級，避免無限循環
-      console.log(`🔄 查詢代理 ID: ${currentAgentId}, 層級: ${level}`);
+    // 从会员的直属代理开始，向上遍历代理链
+    while (currentAgentId && level <= 15) { // 限制最多15级，避免无限循环
+      console.log(`🔄 查询代理 ID: ${currentAgentId}, 层级: ${level}`);
       
       const agent = await db.oneOrNone(`
         SELECT id, username, level, rebate_percentage, commission_rate, parent_id
@@ -3278,51 +3278,51 @@ async function getCommissionDetailsForBet(memberUsername, betAmount) {
         WHERE id = $1 AND status = 1
       `, [currentAgentId]);
 
-      console.log(`👥 代理查詢結果:`, agent);
+      console.log(`👥 代理查询结果:`, agent);
 
       if (!agent) {
         console.log(`⚠️ 代理ID ${currentAgentId} 不存在或已停用`);
         break;
       }
 
-      // 計算這個代理的退水率（這裡使用簡單的邏輯，實際可能更複雜）
-      const rebateRate = parseFloat(agent.rebate_percentage) || 0.038; // 預設3.8%
-      const commissionRate = 0.0; // 佔成固定為 0%
+      // 计算这个代理的退水率（这里使用简单的逻辑，实际可能更复杂）
+      const rebateRate = parseFloat(agent.rebate_percentage) || 0.038; // 预设3.8%
+      const commissionRate = 0.0; // 占成固定为 0%
 
-      // 格式化代理級別名稱
-      const levelNames = ['總代理', '一級代理', '二級代理', '三級代理', '四級代理', '五級代理', 
-                         '六級代理', '七級代理', '八級代理', '九級代理', '十級代理', 
-                         '十一級代理', '十二級代理', '十三級代理', '十四級代理', '十五級代理'];
+      // 格式化代理级别名称
+      const levelNames = ['总代理', '一级代理', '二级代理', '三级代理', '四级代理', '五级代理', 
+                         '六级代理', '七级代理', '八级代理', '九级代理', '十级代理', 
+                         '十一级代理', '十二级代理', '十三级代理', '十四级代理', '十五级代理'];
       
-      const agentType = levelNames[agent.level] || `${agent.level}級代理`;
+      const agentType = levelNames[agent.level] || `${agent.level}级代理`;
 
       const detail = {
         id: agent.id,
         agent_type: agentType,
         username: agent.username,
-        commission_rate: commissionRate, // 固定為 0
+        commission_rate: commissionRate, // 固定为 0
         rebate_rate: rebateRate,
         level: agent.level
       };
       
-      console.log(`✅ 添加代理明細:`, detail);
+      console.log(`✅ 添加代理明细:`, detail);
       commissionDetails.push(detail);
 
-      // 移動到上級代理
+      // 移动到上级代理
       currentAgentId = agent.parent_id;
       level++;
-      console.log(`⬆️ 下個查詢代理 ID: ${currentAgentId}`);
+      console.log(`⬆️ 下个查询代理 ID: ${currentAgentId}`);
     }
 
-    console.log(`📊 最終佔成明細 (共 ${commissionDetails.length} 級):`, commissionDetails);
+    console.log(`📊 最终占成明细 (共 ${commissionDetails.length} 级):`, commissionDetails);
     return commissionDetails;
   } catch (error) {
-    console.error(`❌ 獲取會員 ${memberUsername} 佔成明細時發生錯誤:`, error);
+    console.error(`❌ 获取会员 ${memberUsername} 占成明细时发生错误:`, error);
     return [];
   }
 }
 
-// 獲取代理鏈的輔助函數
+// 获取代理链的辅助函数
 async function getAgentChainForMember(agentId) {
   const agentChain = [];
   
@@ -3345,63 +3345,63 @@ async function getAgentChainForMember(agentId) {
         rebate_mode: agent.rebate_mode || 'percentage',
         rebate_percentage: agent.rebate_percentage || 0.041,
         max_rebate_percentage: agent.max_rebate_percentage || 0.041,
-        market_type: agent.market_type || 'D'  // 添加 market_type，預設為 D 盤
+        market_type: agent.market_type || 'D'  // 添加 market_type，预设为 D 盘
       });
       
-      // 移動到上級代理
+      // 移动到上级代理
       currentAgentId = agent.parent_id;
     }
     
     return agentChain;
   } catch (error) {
-    console.error('獲取代理鏈時發生錯誤:', error);
+    console.error('获取代理链时发生错误:', error);
     return [];
   }
 }
 
-// 檢查代理是否有權限對會員進行操作（檢查是否為上級代理）
+// 检查代理是否有权限对会员进行操作（检查是否为上级代理）
 async function canAgentManageMember(agentId, memberId) {
   try {
-    // 獲取會員信息
+    // 获取会员信息
     const member = await MemberModel.findById(memberId);
     if (!member) return false;
     
-    // 如果代理直接創建了這個會員，當然有權限
+    // 如果代理直接创建了这个会员，当然有权限
     if (member.agent_id === agentId) return true;
     
-    // 獲取會員的代理鏈（從會員的直接代理開始，往上級查找）
+    // 获取会员的代理链（从会员的直接代理开始，往上级查找）
     const agentChain = await getAgentChainForMember(member.agent_id);
     
-    // 檢查當前代理是否在會員的代理鏈中（即是否為上級代理）
+    // 检查当前代理是否在会员的代理链中（即是否为上级代理）
     return agentChain.some(chainAgent => chainAgent.id === agentId);
   } catch (error) {
-    console.error('檢查代理權限時發生錯誤:', error);
+    console.error('检查代理权限时发生错误:', error);
     return false;
   }
 }
 
-// 檢查代理是否有權限對另一個代理進行操作（檢查是否為上級代理）
+// 检查代理是否有权限对另一个代理进行操作（检查是否为上级代理）
 async function canAgentManageAgent(parentAgentId, subAgentId) {
   try {
-    // 獲取下級代理信息
+    // 获取下级代理信息
     const subAgent = await AgentModel.findById(subAgentId);
     if (!subAgent) return false;
     
-    // 如果是直接下級，當然有權限
+    // 如果是直接下级，当然有权限
     if (subAgent.parent_id === parentAgentId) return true;
     
-    // 獲取下級代理的代理鏈（從下級代理開始，往上級查找）
+    // 获取下级代理的代理链（从下级代理开始，往上级查找）
     const agentChain = await getAgentChainForAgent(subAgentId);
     
-    // 檢查當前代理是否在下級代理的代理鏈中（即是否為上級代理）
+    // 检查当前代理是否在下级代理的代理链中（即是否为上级代理）
     return agentChain.some(chainAgent => chainAgent.id === parentAgentId);
   } catch (error) {
-    console.error('檢查代理層級權限時發生錯誤:', error);
+    console.error('检查代理层级权限时发生错误:', error);
     return false;
   }
 }
 
-// 獲取代理的代理鏈（從指定代理開始往上級查找）
+// 获取代理的代理链（从指定代理开始往上级查找）
 async function getAgentChainForAgent(agentId) {
   const agentChain = [];
   
@@ -3424,18 +3424,18 @@ async function getAgentChainForAgent(agentId) {
         parent_id: agent.parent_id
       });
       
-      // 移動到上級代理
+      // 移动到上级代理
       currentAgentId = agent.parent_id;
     }
     
     return agentChain;
   } catch (error) {
-    console.error('獲取代理鏈時發生錯誤:', error);
+    console.error('获取代理链时发生错误:', error);
     return [];
   }
 }
 
-// 獲取會員的代理鏈
+// 获取会员的代理链
 app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
   try {
     const { username } = req.query;
@@ -3443,11 +3443,11 @@ app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
     if (!username) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名'
+        message: '请提供会员用户名'
       });
     }
     
-    // 查找會員
+    // 查找会员
     const member = await db.oneOrNone(`
       SELECT id, username, agent_id
       FROM members 
@@ -3457,11 +3457,11 @@ app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
     if (!member) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 獲取代理鏈
+    // 获取代理链
     const agentChain = await getAgentChainForMember(member.agent_id);
     
     res.json({
@@ -3469,42 +3469,42 @@ app.get(`${API_PREFIX}/member-agent-chain`, async (req, res) => {
       agentChain: agentChain
     });
   } catch (error) {
-    console.error('獲取會員代理鏈錯誤:', error);
+    console.error('获取会员代理链错误:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤'
+      message: '系统错误'
     });
   }
 });
 
-// 設置儀表板路由
+// 设置仪表板路由
 app.get(`${API_PREFIX}/stats`, async (req, res) => {
   try {
-    console.log('獲取儀表板統計API: 接收請求', req.query);
+    console.log('获取仪表板统计API: 接收请求', req.query);
     
-    // 直接從查詢參數獲取agentId
+    // 直接从查询参数获取agentId
     const { agentId } = req.query;
     
     if (!agentId) {
-      console.log('獲取儀表板統計API: 未提供agentId');
+      console.log('获取仪表板统计API: 未提供agentId');
       return res.json({
         success: false,
-        message: '請提供代理ID'
+        message: '请提供代理ID'
       });
     }
     
     try {
-      // 獲取代理統計數據
+      // 获取代理统计数据
       const stats = await TransactionModel.getAgentTodayStats(agentId);
-      console.log('獲取儀表板統計API: 成功獲取數據', stats);
+      console.log('获取仪表板统计API: 成功获取数据', stats);
       
       return res.json({
         success: true,
         data: stats
       });
     } catch (statsError) {
-      console.error('獲取儀表板統計API: 統計數據查詢錯誤', statsError);
-      // 返回空數據而非500錯誤
+      console.error('获取仪表板统计API: 统计数据查询错误', statsError);
+      // 返回空数据而非500错误
       return res.json({
         success: true,
         data: {
@@ -3517,29 +3517,29 @@ app.get(`${API_PREFIX}/stats`, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('獲取儀表板統計API: 處理錯誤', error);
-    return res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取仪表板统计API: 处理错误', error);
+    return res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 輸贏控制相關API
+// 输赢控制相关API
   
-// 檢查操作權限 - 只有特定的總代理帳號可以使用
+// 检查操作权限 - 只有特定的总代理帐号可以使用
 const checkWinLossControlPermission = (agent) => {
-  // 舊帳號名稱（為了相容性）
+  // 旧帐号名称（为了相容性）
   const legacyUsernames = ['ti2025A', 'ti2025D'];
-  // 新帳號名稱
+  // 新帐号名称
   const newUsernames = ['MA@x9Kp#2025$zL7', 'MD@y7Rw#2025$qX4'];
   
   return legacyUsernames.includes(agent.username) || newUsernames.includes(agent.username);
 };
 
-// 安全記錄輸贏控制日誌的函數
+// 安全记录输赢控制日志的函数
 async function safeLogWinLossControl(controlId, action, oldValues = null, newValues = null, operatorId, operatorUsername) {
   try {
-    console.log(`[日誌] 嘗試記錄 ${action} 操作:`, { controlId, operatorId, operatorUsername });
+    console.log(`[日志] 尝试记录 ${action} 操作:`, { controlId, operatorId, operatorUsername });
     
-    // 確保 JSON 序列化不會失敗
+    // 确保 JSON 序列化不会失败
     let oldValuesStr = null;
     let newValuesStr = null;
     
@@ -3547,8 +3547,8 @@ async function safeLogWinLossControl(controlId, action, oldValues = null, newVal
       try {
         oldValuesStr = JSON.stringify(oldValues);
       } catch (jsonError) {
-        console.warn('舊數據 JSON 序列化失敗:', jsonError.message);
-        oldValuesStr = JSON.stringify({ error: 'JSON序列化失敗' });
+        console.warn('旧数据 JSON 序列化失败:', jsonError.message);
+        oldValuesStr = JSON.stringify({ error: 'JSON序列化失败' });
       }
     }
     
@@ -3556,12 +3556,12 @@ async function safeLogWinLossControl(controlId, action, oldValues = null, newVal
       try {
         newValuesStr = JSON.stringify(newValues);
       } catch (jsonError) {
-        console.warn('新數據 JSON 序列化失敗:', jsonError.message);
-        newValuesStr = JSON.stringify({ error: 'JSON序列化失敗' });
+        console.warn('新数据 JSON 序列化失败:', jsonError.message);
+        newValuesStr = JSON.stringify({ error: 'JSON序列化失败' });
       }
     }
     
-    // 刪除操作時使用 NULL 避免外鍵約束
+    // 删除操作时使用 NULL 避免外键约束
     const logControlId = action === 'delete' ? null : controlId;
     
     await db.none(`
@@ -3576,15 +3576,15 @@ async function safeLogWinLossControl(controlId, action, oldValues = null, newVal
       operatorUsername
     ]);
     
-    console.log(`[日誌] ${action} 操作記錄成功`);
+    console.log(`[日志] ${action} 操作记录成功`);
   } catch (logError) {
-    console.warn(`記錄輸贏控制日誌失敗 (${action}):`, logError.message);
-    console.warn('詳細錯誤:', logError);
-    // 日誌失敗不影響主要操作
+    console.warn(`记录输赢控制日志失败 (${action}):`, logError.message);
+    console.warn('详细错误:', logError);
+    // 日志失败不影响主要操作
   }
 }
 
-// 獲取輸贏控制列表
+// 获取输赢控制列表
 app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -3596,11 +3596,11 @@ app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       return res.status(401).json({ success: false, message: '代理不存在' });
     }
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
@@ -3634,12 +3634,12 @@ app.get(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('獲取輸贏控制列表錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取输赢控制列表错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 創建輸贏控制
+// 创建输赢控制
 app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -3648,11 +3648,11 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
@@ -3666,35 +3666,35 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       start_period = null
     } = req.body;
 
-    // 🔧 修復CHECK約束錯誤：將空字串轉換為NULL
+    // 🔧 修复CHECK约束错误：将空字串转换为NULL
     const dbTargetType = (target_type === '' || target_type === undefined) ? null : target_type;
     const dbTargetUsername = (target_username === '' || target_username === undefined) ? null : target_username;
 
-    console.log('創建輸贏控制:', { control_mode, target_type: dbTargetType, target_username: dbTargetUsername, control_percentage, win_control, loss_control });
+    console.log('创建输赢控制:', { control_mode, target_type: dbTargetType, target_username: dbTargetUsername, control_percentage, win_control, loss_control });
 
-    // 驗證必要參數
+    // 验证必要参数
     if (!control_mode || !['normal', 'agent_line', 'single_member', 'auto_detect'].includes(control_mode)) {
-      return res.status(400).json({ success: false, message: '無效的控制模式' });
+      return res.status(400).json({ success: false, message: '无效的控制模式' });
     }
 
-    // 驗證控制類型 - 必須選擇贏控制或輸控制其中一種（除了正常機率和自動偵測模式）
+    // 验证控制类型 - 必须选择赢控制或输控制其中一种（除了正常机率和自动侦测模式）
     if (control_mode !== 'normal' && control_mode !== 'auto_detect') {
       if (win_control === undefined || loss_control === undefined) {
         return res.status(400).json({ 
           success: false, 
-          message: '請選擇控制類型（贏控制或輸控制）' 
+          message: '请选择控制类型（赢控制或输控制）' 
         });
       }
       
       if (win_control === loss_control) {
         return res.status(400).json({ 
           success: false, 
-          message: win_control ? '不能同時選擇贏控制和輸控制' : '必須選擇贏控制或輸控制其中一種' 
+          message: win_control ? '不能同时选择赢控制和输控制' : '必须选择赢控制或输控制其中一种' 
         });
       }
     }
     
-    // 自動偵測模式不需要設定贏控制或輸控制
+    // 自动侦测模式不需要设定赢控制或输控制
     if (control_mode === 'auto_detect') {
       win_control = false;
       loss_control = false;
@@ -3703,13 +3703,13 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
     let target_id = null;
     let validated_username = dbTargetUsername;
 
-    // 如果不是正常模式或自動偵測，需要驗證目標
+    // 如果不是正常模式或自动侦测，需要验证目标
     if (control_mode === 'agent_line' || control_mode === 'single_member') {
       if (!dbTargetType || !dbTargetUsername) {
-        return res.status(400).json({ success: false, message: '必須指定目標類型和用戶名' });
+        return res.status(400).json({ success: false, message: '必须指定目标类型和用户名' });
       }
 
-      // 驗證目標是否存在
+      // 验证目标是否存在
       if (dbTargetType === 'agent') {
         const targetAgent = await db.oneOrNone('SELECT id, username FROM agents WHERE username = $1', [dbTargetUsername]);
         if (!targetAgent) {
@@ -3720,30 +3720,30 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       } else if (dbTargetType === 'member') {
         const targetMember = await db.oneOrNone('SELECT id, username FROM members WHERE username = $1', [dbTargetUsername]);
         if (!targetMember) {
-          return res.status(400).json({ success: false, message: '找不到指定的會員' });
+          return res.status(400).json({ success: false, message: '找不到指定的会员' });
         }
         target_id = targetMember.id;
         validated_username = targetMember.username;
       }
     }
 
-    // 如果是正常機率模式或自動偵測模式，需要停用所有其他控制設定
+    // 如果是正常机率模式或自动侦测模式，需要停用所有其他控制设定
     if (control_mode === 'normal' || control_mode === 'auto_detect') {
       await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP');
-      console.log(`✅ ${control_mode === 'normal' ? '正常機率模式' : '自動偵測模式'}：已停用所有其他控制設定`);
+      console.log(`✅ ${control_mode === 'normal' ? '正常机率模式' : '自动侦测模式'}：已停用所有其他控制设定`);
     }
     
-    // 如果是代理線控制或單會員控制，需要停用正常機率和自動偵測控制
+    // 如果是代理线控制或单会员控制，需要停用正常机率和自动侦测控制
     if (control_mode === 'agent_line' || control_mode === 'single_member') {
       await db.none(`
         UPDATE win_loss_control 
         SET is_active = false, updated_at = CURRENT_TIMESTAMP 
         WHERE control_mode IN ('normal', 'auto_detect') AND is_active = true
       `);
-      console.log(`✅ ${control_mode === 'agent_line' ? '代理線控制' : '單會員控制'}：已停用正常機率和自動偵測控制`);
+      console.log(`✅ ${control_mode === 'agent_line' ? '代理线控制' : '单会员控制'}：已停用正常机率和自动侦测控制`);
     }
 
-    // 創建新的控制設定
+    // 创建新的控制设定
     const newControl = await db.one(`
       INSERT INTO win_loss_control 
       (control_mode, target_type, target_id, target_username, control_percentage, win_control, loss_control, is_active, start_period, operator_id, operator_username)
@@ -3751,7 +3751,7 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       RETURNING *
     `, [
       control_mode, 
-      dbTargetType,  // 🔧 使用轉換後的值，避免空字串
+      dbTargetType,  // 🔧 使用转换后的值，避免空字串
       target_id, 
       validated_username, 
       control_percentage,
@@ -3762,23 +3762,23 @@ app.post(`${API_PREFIX}/win-loss-control`, async (req, res) => {
       agent.username
     ]);
 
-    // 記錄操作日誌
+    // 记录操作日志
     await safeLogWinLossControl(newControl.id, 'create', null, newControl, agent.id, agent.username);
 
-    console.log('✅ 輸贏控制創建成功:', newControl);
+    console.log('✅ 输赢控制创建成功:', newControl);
 
     res.json({
       success: true,
-      message: '輸贏控制設定成功',
+      message: '输赢控制设定成功',
       data: newControl
     });
   } catch (error) {
-    console.error('創建輸贏控制錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('创建输赢控制错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 更新輸贏控制
+// 更新输赢控制
 app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
   try {
     const { id } = req.params;
@@ -3789,11 +3789,11 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
@@ -3804,13 +3804,13 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
       is_active = true
     } = req.body;
 
-    // 獲取舊資料
+    // 获取旧资料
     const oldControl = await db.oneOrNone('SELECT * FROM win_loss_control WHERE id = $1', [id]);
     if (!oldControl) {
-      return res.status(404).json({ success: false, message: '找不到指定的控制設定' });
+      return res.status(404).json({ success: false, message: '找不到指定的控制设定' });
     }
 
-    // 驗證控制類型 - 必須選擇贏控制或輸控制其中一種（除了正常機率和自動偵測模式）
+    // 验证控制类型 - 必须选择赢控制或输控制其中一种（除了正常机率和自动侦测模式）
     if (oldControl.control_mode !== 'normal' && oldControl.control_mode !== 'auto_detect') {
       const finalWinControl = win_control !== undefined ? win_control : oldControl.win_control;
       const finalLossControl = loss_control !== undefined ? loss_control : oldControl.loss_control;
@@ -3818,21 +3818,21 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
       if (finalWinControl === finalLossControl) {
         return res.status(400).json({ 
           success: false, 
-          message: finalWinControl ? '不能同時選擇贏控制和輸控制' : '必須選擇贏控制或輸控制其中一種' 
+          message: finalWinControl ? '不能同时选择赢控制和输控制' : '必须选择赢控制或输控制其中一种' 
         });
       }
     }
 
-    // 如果要啟用此控制，先停用其他所有控制
+    // 如果要启用此控制，先停用其他所有控制
     if (is_active) {
       await db.none('UPDATE win_loss_control SET is_active = false WHERE id != $1', [id]);
     }
 
-    // 使用實際值或保留原值
+    // 使用实际值或保留原值
     const finalWinControl = win_control !== undefined ? win_control : oldControl.win_control;
     const finalLossControl = loss_control !== undefined ? loss_control : oldControl.loss_control;
     
-    // 更新控制設定
+    // 更新控制设定
     const updatedControl = await db.one(`
       UPDATE win_loss_control 
       SET control_percentage = $1, win_control = $2, loss_control = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
@@ -3840,21 +3840,21 @@ app.put(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
       RETURNING *
     `, [control_percentage, finalWinControl, finalLossControl, is_active, id]);
 
-    // 記錄操作日誌
+    // 记录操作日志
     await safeLogWinLossControl(id, 'update', oldControl, updatedControl, agent.id, agent.username);
 
     res.json({
       success: true,
-      message: '輸贏控制更新成功',
+      message: '输赢控制更新成功',
       data: updatedControl
     });
   } catch (error) {
-    console.error('更新輸贏控制錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('更新输赢控制错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 刪除輸贏控制
+// 删除输赢控制
 app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
   try {
     const { id } = req.params;
@@ -3865,63 +3865,63 @@ app.delete(`${API_PREFIX}/win-loss-control/:id`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
-    console.log(`[刪除] 開始刪除控制設定 ID: ${id}`);
+    console.log(`[删除] 开始删除控制设定 ID: ${id}`);
 
-    // 獲取要刪除的資料
+    // 获取要删除的资料
     const controlToDelete = await db.oneOrNone('SELECT * FROM win_loss_control WHERE id = $1', [id]);
     if (!controlToDelete) {
-      console.log(`[刪除] 控制設定 ID ${id} 不存在`);
-      return res.status(404).json({ success: false, message: '找不到指定的控制設定' });
+      console.log(`[删除] 控制设定 ID ${id} 不存在`);
+      return res.status(404).json({ success: false, message: '找不到指定的控制设定' });
     }
 
-    console.log(`[刪除] 找到控制設定:`, controlToDelete);
+    console.log(`[删除] 找到控制设定:`, controlToDelete);
 
-    // 使用事務確保數據一致性
+    // 使用事务确保数据一致性
     try {
       await db.tx(async t => {
-        // 先刪除相關的日誌記錄
+        // 先删除相关的日志记录
         const deleteLogCount = await t.result('DELETE FROM win_loss_control_logs WHERE control_id = $1', [id]);
-        console.log(`[刪除] 刪除了 ${deleteLogCount.rowCount} 條相關日誌記錄`);
+        console.log(`[删除] 删除了 ${deleteLogCount.rowCount} 条相关日志记录`);
         
-        // 再刪除主記錄
+        // 再删除主记录
         await t.none('DELETE FROM win_loss_control WHERE id = $1', [id]);
-        console.log(`[刪除] 主記錄刪除成功 ID: ${id}`);
+        console.log(`[删除] 主记录删除成功 ID: ${id}`);
         
-        // 記錄刪除操作（control_id 設為 NULL 避免外鍵約束）
+        // 记录删除操作（control_id 设为 NULL 避免外键约束）
         await t.none(`
           INSERT INTO win_loss_control_logs 
           (control_id, action, old_values, new_values, operator_id, operator_username, created_at)
           VALUES ($1, $2, $3, $4, $5, $6, NOW())
         `, [null, 'delete', JSON.stringify(controlToDelete), null, agent.id, agent.username]);
-        console.log(`[刪除] 操作日誌記錄成功`);
+        console.log(`[删除] 操作日志记录成功`);
       });
     } catch (deleteError) {
-      console.error(`[刪除] 刪除過程失敗:`, deleteError);
+      console.error(`[删除] 删除过程失败:`, deleteError);
       throw deleteError;
     }
 
     res.json({
       success: true,
-      message: '輸贏控制刪除成功'
+      message: '输赢控制删除成功'
     });
   } catch (error) {
-    console.error('刪除輸贏控制錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('删除输赢控制错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 內部API - 獲取當前活躍的輸贏控制設定 (遊戲後端專用，無需認證)
+// 内部API - 获取当前活跃的输赢控制设定 (游戏后端专用，无需认证)
 app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
   try {
-    // 獲取所有活躍的控制設定
+    // 获取所有活跃的控制设定
     const activeControls = await db.manyOrNone(`
       SELECT wlc.*,
         CASE 
@@ -3936,7 +3936,7 @@ app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
       ORDER BY wlc.control_mode, wlc.updated_at DESC
     `);
 
-    // 如果有多個控制設定，返回數組；為了向後兼容，如果只有一個或沒有，返回單個對象
+    // 如果有多个控制设定，返回数组；为了向后兼容，如果只有一个或没有，返回单个对象
     if (activeControls && activeControls.length > 1) {
       res.json({
         success: true,
@@ -3957,12 +3957,12 @@ app.get(`${API_PREFIX}/internal/win-loss-control/active`, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('獲取活躍輸贏控制錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取活跃输赢控制错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取當前活躍的輸贏控制設定
+// 获取当前活跃的输赢控制设定
 app.get(`${API_PREFIX}/win-loss-control/active`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -3971,11 +3971,11 @@ app.get(`${API_PREFIX}/win-loss-control/active`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
@@ -3999,12 +3999,12 @@ app.get(`${API_PREFIX}/win-loss-control/active`, async (req, res) => {
       data: activeControl || { control_mode: 'normal', is_active: false }
     });
   } catch (error) {
-    console.error('獲取活躍輸贏控制錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取活跃输赢控制错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取代理列表 - 用於輸贏控制目標選擇
+// 获取代理列表 - 用于输赢控制目标选择
 app.get(`${API_PREFIX}/win-loss-control/agents`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4013,23 +4013,23 @@ app.get(`${API_PREFIX}/win-loss-control/agents`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
-    // 獲取所有代理，包含層級信息
+    // 获取所有代理，包含层级信息
     const agents = await db.any(`
       SELECT id, username, level, status, created_at,
         CASE 
-          WHEN level = 0 THEN '總代理'
-          WHEN level = 1 THEN '一級代理'
-          WHEN level = 2 THEN '二級代理'
-          WHEN level = 3 THEN '三級代理'
-          ELSE level::text || '級代理'
+          WHEN level = 0 THEN '总代理'
+          WHEN level = 1 THEN '一级代理'
+          WHEN level = 2 THEN '二级代理'
+          WHEN level = 3 THEN '三级代理'
+          ELSE level::text || '级代理'
         END as level_name
       FROM agents
       WHERE status IN (0, 1, 2)
@@ -4041,12 +4041,12 @@ app.get(`${API_PREFIX}/win-loss-control/agents`, async (req, res) => {
       data: agents
     });
   } catch (error) {
-    console.error('獲取代理列表錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取代理列表错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取會員列表 - 用於輸贏控制目標選擇
+// 获取会员列表 - 用于输赢控制目标选择
 app.get(`${API_PREFIX}/win-loss-control/members`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4055,24 +4055,24 @@ app.get(`${API_PREFIX}/win-loss-control/members`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
-    // 獲取所有會員，包含創建代理信息
+    // 获取所有会员，包含创建代理信息
     const members = await db.any(`
       SELECT m.id, m.username, m.status, m.created_at, m.agent_id,
         a.username as agent_username,
         CASE 
-          WHEN a.level = 0 THEN '總代理'
-          WHEN a.level = 1 THEN '一級代理'
-          WHEN a.level = 2 THEN '二級代理'
-          WHEN a.level = 3 THEN '三級代理'
-          ELSE a.level::text || '級代理'
+          WHEN a.level = 0 THEN '总代理'
+          WHEN a.level = 1 THEN '一级代理'
+          WHEN a.level = 2 THEN '二级代理'
+          WHEN a.level = 3 THEN '三级代理'
+          ELSE a.level::text || '级代理'
         END as agent_level_name
       FROM members m
       LEFT JOIN agents a ON m.agent_id = a.id
@@ -4085,12 +4085,12 @@ app.get(`${API_PREFIX}/win-loss-control/members`, async (req, res) => {
       data: members
     });
   } catch (error) {
-    console.error('獲取會員列表錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取会员列表错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取當前期數 - 用於設定控制開始期數
+// 获取当前期数 - 用于设定控制开始期数
 app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4099,18 +4099,18 @@ app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查權限
+    // 检查权限
     if (!checkWinLossControlPermission(agent)) {
       return res.status(403).json({ 
         success: false, 
-        message: '權限不足，只有總代理可以使用此功能' 
+        message: '权限不足，只有总代理可以使用此功能' 
       });
     }
 
-    // 從資料庫獲取當前期數（優先使用資料庫，因為遊戲系統可能未運行）
+    // 从资料库获取当前期数（优先使用资料库，因为游戏系统可能未运行）
     let currentPeriod;
     try {
-      // 從result_history表中查詢最新期數（這是實際開獎記錄表）
+      // 从result_history表中查询最新期数（这是实际开奖记录表）
       const latestDraw = await db.oneOrNone(`
         SELECT period 
         FROM result_history 
@@ -4120,41 +4120,41 @@ app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
       
       if (latestDraw && latestDraw.period) {
         currentPeriod = parseInt(latestDraw.period);
-        console.log('從資料庫獲取當前期數:', currentPeriod);
+        console.log('从资料库获取当前期数:', currentPeriod);
       } else {
-        // 如果沒有記錄，使用當天的第一期
+        // 如果没有记录，使用当天的第一期
         const today = new Date();
         const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
         currentPeriod = parseInt(todayStr + '001');
       }
     } catch (error) {
-      console.error('查詢期數錯誤:', error);
-      // 使用當天的第一期作為預設值
+      console.error('查询期数错误:', error);
+      // 使用当天的第一期作为预设值
       const today = new Date();
       const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
       currentPeriod = parseInt(todayStr + '001');
     }
     
-    // 使用正確的期數遞增邏輯
+    // 使用正确的期数递增逻辑
     function getNextPeriod(currentPeriod) {
       const today = new Date();
       const todayStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
       
       const currentPeriodStr = currentPeriod.toString();
       
-      // 檢查當前期號是否為今天
+      // 检查当前期号是否为今天
       if (currentPeriodStr.startsWith(todayStr)) {
-        // 提取期號後綴並遞增
+        // 提取期号后缀并递增
         const suffix = parseInt(currentPeriodStr.substring(8)) + 1;
         
-        // 如果超過999場，使用4位數字，但保持日期部分不變
+        // 如果超过999场，使用4位数字，但保持日期部分不变
         if (suffix > 999) {
           return `${todayStr}${suffix.toString().padStart(4, '0')}`;
         } else {
           return parseInt(`${todayStr}${suffix.toString().padStart(3, '0')}`);
         }
       } else {
-        // 新的一天，重置期號為001
+        // 新的一天，重置期号为001
         return parseInt(`${todayStr}001`);
       }
     }
@@ -4170,22 +4170,22 @@ app.get(`${API_PREFIX}/win-loss-control/current-period`, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('獲取當前期數錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取当前期数错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 激活輸贏控制設定
+// 激活输赢控制设定
 app.put(`${API_PREFIX}/win-loss-control/:id/activate`, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 身份驗證 - 優先使用會話token
+    // 身份验证 - 优先使用会话token
     const sessionToken = req.headers['x-session-token'];
     const authHeader = req.headers.authorization;
     
     if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+      return res.status(401).json({ success: false, message: '需要身份验证' });
     }
 
     let sessionData;
@@ -4197,40 +4197,40 @@ app.put(`${API_PREFIX}/win-loss-control/:id/activate`, async (req, res) => {
     }
     
     if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
+      return res.status(401).json({ success: false, message: '无效的会话' });
     }
 
     const agent = await AgentModel.findById(sessionData.userId);
     if (!agent || !checkWinLossControlPermission(agent)) {
-      return res.status(403).json({ success: false, message: '權限不足' });
+      return res.status(403).json({ success: false, message: '权限不足' });
     }
 
-    // 檢查控制設定是否存在
+    // 检查控制设定是否存在
     const control = await db.oneOrNone('SELECT * FROM win_loss_control WHERE id = $1', [id]);
     if (!control) {
-      return res.status(404).json({ success: false, message: '控制設定不存在' });
+      return res.status(404).json({ success: false, message: '控制设定不存在' });
     }
 
-    // 如果啟用的是正常機率模式或自動偵測模式，需要先停用所有其他控制
+    // 如果启用的是正常机率模式或自动侦测模式，需要先停用所有其他控制
     if (control.control_mode === 'normal' || control.control_mode === 'auto_detect') {
       await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id != $1', [id]);
-      console.log(`✅ 啟用${control.control_mode === 'normal' ? '正常機率模式' : '自動偵測模式'}：已停用所有其他控制設定`);
+      console.log(`✅ 启用${control.control_mode === 'normal' ? '正常机率模式' : '自动侦测模式'}：已停用所有其他控制设定`);
     }
     
-    // 如果啟用的是代理線控制或單會員控制，需要停用正常機率和自動偵測控制
+    // 如果启用的是代理线控制或单会员控制，需要停用正常机率和自动侦测控制
     if (control.control_mode === 'agent_line' || control.control_mode === 'single_member') {
       await db.none(`
         UPDATE win_loss_control 
         SET is_active = false, updated_at = CURRENT_TIMESTAMP 
         WHERE control_mode IN ('normal', 'auto_detect') AND is_active = true AND id != $1
       `, [id]);
-      console.log(`✅ 啟用${control.control_mode === 'agent_line' ? '代理線控制' : '單會員控制'}：已停用正常機率和自動偵測控制`);
+      console.log(`✅ 启用${control.control_mode === 'agent_line' ? '代理线控制' : '单会员控制'}：已停用正常机率和自动侦测控制`);
     }
 
     // 激活指定控制
     await db.none('UPDATE win_loss_control SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
     
-    // 如果不是正常機率模式，檢查是否有相同目標的其他活躍控制
+    // 如果不是正常机率模式，检查是否有相同目标的其他活跃控制
     if (control.control_mode !== 'normal' && control.target_type && control.target_id) {
       const otherControls = await db.manyOrNone(`
         SELECT id, control_mode, win_control, loss_control 
@@ -4242,31 +4242,31 @@ app.put(`${API_PREFIX}/win-loss-control/:id/activate`, async (req, res) => {
       `, [control.target_type, control.target_id, id]);
 
       if (otherControls && otherControls.length > 0) {
-        console.log(`⚠️ 目標 ${control.target_username} 現在有 ${otherControls.length + 1} 個活躍的控制設定`);
+        console.log(`⚠️ 目标 ${control.target_username} 现在有 ${otherControls.length + 1} 个活跃的控制设定`);
       }
     }
 
-    // 記錄操作日誌
+    // 记录操作日志
     await safeLogWinLossControl(id, 'activate', null, null, agent.id, agent.username);
 
-    res.json({ success: true, message: '控制設定已激活' });
+    res.json({ success: true, message: '控制设定已激活' });
   } catch (error) {
-    console.error('激活控制設定錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('激活控制设定错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 停用輸贏控制設定
+// 停用输赢控制设定
 app.put(`${API_PREFIX}/win-loss-control/:id/deactivate`, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 身份驗證 - 優先使用會話token
+    // 身份验证 - 优先使用会话token
     const sessionToken = req.headers['x-session-token'];
     const authHeader = req.headers.authorization;
     
     if (!sessionToken && !authHeader) {
-      return res.status(401).json({ success: false, message: '需要身份驗證' });
+      return res.status(401).json({ success: false, message: '需要身份验证' });
     }
 
     let sessionData;
@@ -4278,38 +4278,38 @@ app.put(`${API_PREFIX}/win-loss-control/:id/deactivate`, async (req, res) => {
     }
     
     if (!sessionData || sessionData.userType !== 'agent') {
-      return res.status(401).json({ success: false, message: '無效的會話' });
+      return res.status(401).json({ success: false, message: '无效的会话' });
     }
 
     const agent = await AgentModel.findById(sessionData.userId);
     if (!agent || !checkWinLossControlPermission(agent)) {
-      return res.status(403).json({ success: false, message: '權限不足' });
+      return res.status(403).json({ success: false, message: '权限不足' });
     }
 
-    // 檢查控制設定是否存在
+    // 检查控制设定是否存在
     const control = await db.oneOrNone('SELECT * FROM win_loss_control WHERE id = $1', [id]);
     if (!control) {
-      return res.status(404).json({ success: false, message: '控制設定不存在' });
+      return res.status(404).json({ success: false, message: '控制设定不存在' });
     }
 
     // 停用控制
     await db.none('UPDATE win_loss_control SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
 
-    // 記錄操作日誌
+    // 记录操作日志
     await safeLogWinLossControl(id, 'deactivate', null, null, agent.id, agent.username);
 
-    res.json({ success: true, message: '控制設定已停用' });
+    res.json({ success: true, message: '控制设定已停用' });
   } catch (error) {
-    console.error('停用控制設定錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('停用控制设定错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 跑馬燈API
-// 獲取跑馬燈訊息
+// 跑马灯API
+// 获取跑马灯讯息
 app.get(`${API_PREFIX}/marquee-messages`, async (req, res) => {
   try {
-    console.log('獲取跑馬燈訊息');
+    console.log('获取跑马灯讯息');
     
     const messages = await db.any(`
       SELECT id, message, priority, is_active, created_at 
@@ -4322,12 +4322,12 @@ app.get(`${API_PREFIX}/marquee-messages`, async (req, res) => {
       messages: messages
     });
   } catch (error) {
-    console.error('獲取跑馬燈訊息錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取跑马灯讯息错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 新增跑馬燈訊息
+// 新增跑马灯讯息
 app.post(`${API_PREFIX}/marquee-messages`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4336,15 +4336,15 @@ app.post(`${API_PREFIX}/marquee-messages`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查是否是總代理
+    // 检查是否是总代理
     if (agent.level !== 0) {
-      return res.status(403).json({ success: false, message: '只有總代理可以設定跑馬燈' });
+      return res.status(403).json({ success: false, message: '只有总代理可以设定跑马灯' });
     }
 
     const { message, priority = 0 } = req.body;
     
     if (!message || !message.trim()) {
-      return res.status(400).json({ success: false, message: '請提供訊息內容' });
+      return res.status(400).json({ success: false, message: '请提供讯息内容' });
     }
 
     const result = await db.one(`
@@ -4355,16 +4355,16 @@ app.post(`${API_PREFIX}/marquee-messages`, async (req, res) => {
 
     res.json({
       success: true,
-      message: '跑馬燈訊息已新增',
+      message: '跑马灯讯息已新增',
       data: result
     });
   } catch (error) {
-    console.error('新增跑馬燈訊息錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('新增跑马灯讯息错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 更新跑馬燈訊息狀態
+// 更新跑马灯讯息状态
 app.put(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4373,9 +4373,9 @@ app.put(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查是否是總代理
+    // 检查是否是总代理
     if (agent.level !== 0) {
-      return res.status(403).json({ success: false, message: '只有總代理可以設定跑馬燈' });
+      return res.status(403).json({ success: false, message: '只有总代理可以设定跑马灯' });
     }
 
     const { id } = req.params;
@@ -4389,15 +4389,15 @@ app.put(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
 
     res.json({
       success: true,
-      message: `跑馬燈訊息已${is_active ? '啟用' : '停用'}`
+      message: `跑马灯讯息已${is_active ? '启用' : '停用'}`
     });
   } catch (error) {
-    console.error('更新跑馬燈訊息錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('更新跑马灯讯息错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 刪除跑馬燈訊息
+// 删除跑马灯讯息
 app.delete(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4406,9 +4406,9 @@ app.delete(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
     }
     const { agent } = authResult;
     
-    // 檢查是否是總代理
+    // 检查是否是总代理
     if (agent.level !== 0) {
-      return res.status(403).json({ success: false, message: '只有總代理可以設定跑馬燈' });
+      return res.status(403).json({ success: false, message: '只有总代理可以设定跑马灯' });
     }
 
     const { id } = req.params;
@@ -4417,38 +4417,38 @@ app.delete(`${API_PREFIX}/marquee-messages/:id`, async (req, res) => {
 
     res.json({
       success: true,
-      message: '跑馬燈訊息已刪除'
+      message: '跑马灯讯息已删除'
     });
   } catch (error) {
-    console.error('刪除跑馬燈訊息錯誤:', error);
-    res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('删除跑马灯讯息错误:', error);
+    res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取代理的會員列表
+// 获取代理的会员列表
 app.get(`${API_PREFIX}/members`, async (req, res) => {
   try {
-    console.log('獲取會員列表API: 接收請求', req.query);
+    console.log('获取会员列表API: 接收请求', req.query);
     
-    // 直接從查詢參數獲取agentId
+    // 直接从查询参数获取agentId
     const { agentId, status = '-1', page = 1, limit = 20 } = req.query;
     
     if (!agentId) {
-      console.log('獲取會員列表API: 未提供agentId');
+      console.log('获取会员列表API: 未提供agentId');
       return res.json({
         success: false,
-        message: '請提供代理ID'
+        message: '请提供代理ID'
       });
     }
     
     try {
-      // 獲取會員列表
+      // 获取会员列表
       const members = await MemberModel.findByAgentId(agentId, status, page, limit);
       
-      // 獲取會員總數
+      // 获取会员总数
       const total = await MemberModel.countByAgentId(agentId, status);
       
-      console.log(`獲取會員列表API: 成功找到 ${members.length} 位會員，總計 ${total} 位`);
+      console.log(`获取会员列表API: 成功找到 ${members.length} 位会员，总计 ${total} 位`);
       
       return res.json({
         success: true,
@@ -4460,8 +4460,8 @@ app.get(`${API_PREFIX}/members`, async (req, res) => {
         }
       });
     } catch (queryError) {
-      console.error('獲取會員列表API: 查詢錯誤', queryError);
-      // 返回空列表而非500錯誤
+      console.error('获取会员列表API: 查询错误', queryError);
+      // 返回空列表而非500错误
       return res.json({
         success: true,
         data: {
@@ -4473,27 +4473,27 @@ app.get(`${API_PREFIX}/members`, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('獲取會員列表API: 處理錯誤', error);
-    return res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取会员列表API: 处理错误', error);
+    return res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取代理的下級代理列表
+// 获取代理的下级代理列表
 app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
   try {
-    console.log('獲取下級代理API: 接收請求', req.query);
+    console.log('获取下级代理API: 接收请求', req.query);
     
-    // 直接從查詢參數獲取
+    // 直接从查询参数获取
     const { parentId = '', level = '-1', status = '-1', page = 1, limit = 20 } = req.query;
     
-    console.log(`獲取下級代理API: 接收請求 parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
+    console.log(`获取下级代理API: 接收请求 parentId=${parentId}, level=${level}, status=${status}, page=${page}, limit=${limit}`);
     
     try {
-      // 獲取下級代理列表
+      // 获取下级代理列表
       const agents = await AgentModel.findByParentId(parentId, level, status, page, limit);
-      console.log(`獲取下級代理API: 成功找到 ${agents.length} 位代理`);
+      console.log(`获取下级代理API: 成功找到 ${agents.length} 位代理`);
       
-      // 獲取下級代理總數
+      // 获取下级代理总数
       let total = 0;
       
       if (parentId && parentId !== '') {
@@ -4507,7 +4507,7 @@ app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
         total = parseInt(result.count);
       }
       
-      console.log(`獲取下級代理API: 總共 ${total} 位代理`);
+      console.log(`获取下级代理API: 总共 ${total} 位代理`);
       
       return res.json({
         success: true,
@@ -4519,8 +4519,8 @@ app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
         }
       });
     } catch (queryError) {
-      console.error('獲取下級代理API: 查詢錯誤', queryError);
-      // 返回空列表而非500錯誤
+      console.error('获取下级代理API: 查询错误', queryError);
+      // 返回空列表而非500错误
       return res.json({
         success: true,
         data: {
@@ -4532,12 +4532,12 @@ app.get(`${API_PREFIX}/sub-agents`, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('獲取下級代理API: 處理錯誤', error);
-    return res.status(500).json({ success: false, message: '伺服器錯誤' });
+    console.error('获取下级代理API: 处理错误', error);
+    return res.status(500).json({ success: false, message: '伺服器错误' });
   }
 });
 
-// 獲取單個代理詳細資料
+// 获取单个代理详细资料
 app.get(`${API_PREFIX}/agents/:id`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -4568,20 +4568,20 @@ app.get(`${API_PREFIX}/agents/:id`, async (req, res) => {
       agent
     });
   } catch (error) {
-    console.error('獲取代理詳細資料失敗:', error);
+    console.error('获取代理详细资料失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新代理狀態
+// 更新代理状态
 app.put(`${API_PREFIX}/update-status`, async (req, res) => {
   const { id, status } = req.body;
   
   try {
-    // 更新代理狀態
+    // 更新代理状态
     const agent = await AgentModel.updateStatus(id, status);
     
     res.json({
@@ -4589,15 +4589,15 @@ app.put(`${API_PREFIX}/update-status`, async (req, res) => {
       agent
     });
   } catch (error) {
-    console.error('更新代理狀態出錯:', error);
+    console.error('更新代理状态出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新代理備註
+// 更新代理备注
 app.post(`${API_PREFIX}/update-agent-notes`, async (req, res) => {
   try {
     const { agentId, notes } = req.body;
@@ -4609,7 +4609,7 @@ app.post(`${API_PREFIX}/update-agent-notes`, async (req, res) => {
       });
     }
     
-    // 檢查代理是否存在
+    // 检查代理是否存在
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -4618,24 +4618,24 @@ app.post(`${API_PREFIX}/update-agent-notes`, async (req, res) => {
       });
     }
     
-    // 更新備註
+    // 更新备注
     await db.none('UPDATE agents SET notes = $1, updated_at = NOW() WHERE id = $2', [notes || '', agentId]);
     
     res.json({
       success: true,
-      message: '代理備註更新成功'
+      message: '代理备注更新成功'
     });
     
   } catch (error) {
-    console.error('更新代理備註失敗:', error);
+    console.error('更新代理备注失败:', error);
     res.status(500).json({
       success: false,
-      message: '更新代理備註失敗'
+      message: '更新代理备注失败'
     });
   }
 });
 
-// 更新會員備註
+// 更新会员备注
 app.post(`${API_PREFIX}/update-member-notes`, async (req, res) => {
   try {
     const { memberId, notes } = req.body;
@@ -4643,64 +4643,64 @@ app.post(`${API_PREFIX}/update-member-notes`, async (req, res) => {
     if (!memberId) {
       return res.json({
         success: false,
-        message: '缺少會員ID'
+        message: '缺少会员ID'
       });
     }
     
-    // 檢查會員是否存在
+    // 检查会员是否存在
     const member = await MemberModel.findById(memberId);
     if (!member) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 更新備註
+    // 更新备注
     await db.none('UPDATE members SET notes = $1, updated_at = NOW() WHERE id = $2', [notes || '', memberId]);
     
     res.json({
       success: true,
-      message: '會員備註更新成功'
+      message: '会员备注更新成功'
     });
     
   } catch (error) {
-    console.error('更新會員備註失敗:', error);
+    console.error('更新会员备注失败:', error);
     res.status(500).json({
       success: false,
-      message: '更新會員備註失敗'
+      message: '更新会员备注失败'
     });
   }
 });
 
-// 創建會員
+// 创建会员
 app.post(`${API_PREFIX}/create-member`, async (req, res) => {
   const { username, password, agentId, notes } = req.body;
   
   try {
-    // 驗證用戶名格式（只允許英文、數字）
+    // 验证用户名格式（只允许英文、数字）
     const usernameRegex = /^[a-zA-Z0-9]+$/;
     if (!username || !usernameRegex.test(username)) {
       return res.json({
         success: false,
-        message: '用戶名只能包含英文字母和數字'
+        message: '用户名只能包含英文字母和数字'
       });
     }
     
-    // 驗證密碼長度（至少6碼）
+    // 验证密码长度（至少6码）
     if (!password || password.length < 6) {
       return res.json({
         success: false,
-        message: '密碼至少需要6個字符'
+        message: '密码至少需要6个字符'
       });
     }
     
-    // 檢查用戶名是否已存在（檢查會員表、代理表和子帳號表）
+    // 检查用户名是否已存在（检查会员表、代理表和子帐号表）
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（會員）'
+        message: '该用户名已被使用（会员）'
       });
     }
     
@@ -4708,11 +4708,11 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
     if (existingAgent) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（代理）'
+        message: '该用户名已被使用（代理）'
       });
     }
     
-    // 檢查子帳號表
+    // 检查子帐号表
     const existingSubAccount = await db.oneOrNone(`
       SELECT id FROM sub_accounts WHERE username = $1
     `, [username]);
@@ -4720,11 +4720,11 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
     if (existingSubAccount) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（子帳號）'
+        message: '该用户名已被使用（子帐号）'
       });
     }
     
-    // 檢查代理是否存在
+    // 检查代理是否存在
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -4733,14 +4733,14 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       });
     }
     
-    // 創建會員 - 繼承代理的盤口類型
+    // 创建会员 - 继承代理的盘口类型
     const newMember = await MemberModel.create({
       username,
       password,
       agent_id: agentId,
-      balance: 0, // 初始餘額
+      balance: 0, // 初始余额
       notes: notes || '',
-      market_type: agent.market_type || 'D' // 繼承代理的盤口類型
+      market_type: agent.market_type || 'D' // 继承代理的盘口类型
     });
     
     res.json({
@@ -4751,27 +4751,27 @@ app.post(`${API_PREFIX}/create-member`, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('創建會員出錯:', error);
+    console.error('创建会员出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 代為創建會員
+// 代为创建会员
 app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
   const { username, password, agentId, initialBalance, createdBy } = req.body;
   
   try {
-    console.log(`代為創建會員請求: 用戶名=${username}, 代理ID=${agentId}, 初始餘額=${initialBalance}, 創建者=${createdBy}`);
+    console.log(`代为创建会员请求: 用户名=${username}, 代理ID=${agentId}, 初始余额=${initialBalance}, 创建者=${createdBy}`);
     
-    // 檢查用戶名是否已存在（檢查會員表、代理表和子帳號表）
+    // 检查用户名是否已存在（检查会员表、代理表和子帐号表）
     const existingMember = await MemberModel.findByUsername(username);
     if (existingMember) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（會員）'
+        message: '该用户名已被使用（会员）'
       });
     }
     
@@ -4779,11 +4779,11 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
     if (existingAgent) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（代理）'
+        message: '该用户名已被使用（代理）'
       });
     }
     
-    // 檢查子帳號表
+    // 检查子帐号表
     const existingSubAccount = await db.oneOrNone(`
       SELECT id FROM sub_accounts WHERE username = $1
     `, [username]);
@@ -4791,39 +4791,39 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
     if (existingSubAccount) {
       return res.json({
         success: false,
-        message: '該用戶名已被使用（子帳號）'
+        message: '该用户名已被使用（子帐号）'
       });
     }
     
-    // 檢查目標代理是否存在
+    // 检查目标代理是否存在
     const targetAgent = await AgentModel.findById(agentId);
     if (!targetAgent) {
       return res.json({
         success: false,
-        message: '目標代理不存在'
+        message: '目标代理不存在'
       });
     }
     
-    // 檢查創建者是否存在
+    // 检查创建者是否存在
     const creator = await AgentModel.findById(createdBy);
     if (!creator) {
       return res.json({
         success: false,
-        message: '創建者代理不存在'
+        message: '创建者代理不存在'
       });
     }
     
-    // 檢查代理層級是否達到最大值 (15層)
+    // 检查代理层级是否达到最大值 (15层)
     if (targetAgent.level >= 15) {
       return res.json({
         success: false,
-        message: '該代理已達到最大層級（15層），無法再創建下級會員'
+        message: '该代理已达到最大层级（15层），无法再创建下级会员'
       });
     }
     
     const initialBal = parseFloat(initialBalance) || 0;
     
-    // 如果設定了初始餘額，檢查創建者餘額是否足夠
+    // 如果设定了初始余额，检查创建者余额是否足够
     if (initialBal > 0) {
       if (parseFloat(creator.balance) < initialBal) {
         return res.json({
@@ -4833,42 +4833,42 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
       }
     }
     
-    // 開始數據庫事務
+    // 开始数据库事务
     await db.tx(async t => {
-      // 創建會員 - 繼承代理的盤口類型
+      // 创建会员 - 继承代理的盘口类型
       const newMember = await t.one(`
         INSERT INTO members (username, password, agent_id, balance, status, market_type, created_at)
         VALUES ($1, $2, $3, $4, 1, $5, NOW())
         RETURNING id, username, balance
       `, [username, password, agentId, initialBal, targetAgent.market_type || 'D']);
       
-      // 如果設定了初始餘額，從創建者餘額中扣除
+      // 如果设定了初始余额，从创建者余额中扣除
       if (initialBal > 0) {
-        // 扣除創建者餘額
+        // 扣除创建者余额
         await t.none(`
           UPDATE agents 
           SET balance = balance - $1, updated_at = NOW()
           WHERE id = $2
         `, [initialBal, createdBy]);
         
-        // 記錄點數轉移
+        // 记录点数转移
         await t.none(`
           INSERT INTO point_transfers (from_user_type, from_user_id, to_user_type, to_user_id, amount, transfer_type, description, created_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-        `, ['agent', createdBy, 'member', newMember.id, initialBal, 'agent_to_member', `代為創建會員 ${username} 的初始餘額`]);
+        `, ['agent', createdBy, 'member', newMember.id, initialBal, 'agent_to_member', `代为创建会员 ${username} 的初始余额`]);
       }
       
       return newMember;
     });
     
-    // 獲取更新後的創建者餘額
+    // 获取更新后的创建者余额
     const updatedCreator = await AgentModel.findById(createdBy);
     
-    console.log(`成功代為創建會員: ${username}, 代理: ${targetAgent.username}, 初始餘額: ${initialBal}`);
+    console.log(`成功代为创建会员: ${username}, 代理: ${targetAgent.username}, 初始余额: ${initialBal}`);
     
     res.json({
       success: true,
-      message: `成功為代理 ${targetAgent.username} 創建會員 ${username}`,
+      message: `成功为代理 ${targetAgent.username} 创建会员 ${username}`,
       member: {
         id: newMember.id,
         username: newMember.username,
@@ -4879,20 +4879,20 @@ app.post(`${API_PREFIX}/create-member-for-agent`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('代為創建會員出錯:', error);
+    console.error('代为创建会员出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新會員狀態
+// 更新会员状态
 app.put(`${API_PREFIX}/update-member-status`, async (req, res) => {
   const { id, status } = req.body;
   
   try {
-    // 更新會員狀態
+    // 更新会员状态
     const member = await MemberModel.updateStatus(id, status);
     
     res.json({
@@ -4900,54 +4900,54 @@ app.put(`${API_PREFIX}/update-member-status`, async (req, res) => {
       member
     });
   } catch (error) {
-    console.error('更新會員狀態出錯:', error);
+    console.error('更新会员状态出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 修復會員驗證端點
+// 修复会员验证端点
 app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
   const { username, password } = req.body;
   
-  console.log('收到會員驗證請求:', { username, password: '***' });
+  console.log('收到会员验证请求:', { username, password: '***' });
   
   try {
-    // 查詢會員
+    // 查询会员
     const member = await MemberModel.findByUsername(username);
     
     if (!member) {
-      console.log(`會員 ${username} 不存在`);
+      console.log(`会员 ${username} 不存在`);
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 檢查密碼
+    // 检查密码
     if (member.password !== password) {
-      console.log(`會員 ${username} 密碼錯誤`);
+      console.log(`会员 ${username} 密码错误`);
       return res.json({
         success: false,
-        message: '密碼錯誤'
+        message: '密码错误'
       });
     }
     
-    // 檢查狀態
+    // 检查状态
     if (member.status !== 1) {
-      console.log(`會員 ${username} 帳號已被禁用`);
+      console.log(`会员 ${username} 帐号已被禁用`);
       return res.json({
         success: false,
-        message: '帳號已被禁用'
+        message: '帐号已被禁用'
       });
     }
     
-    // 獲取會員的代理
+    // 获取会员的代理
     const agent = await AgentModel.findById(member.agent_id);
     
-    console.log(`會員 ${username} 驗證成功`);
+    console.log(`会员 ${username} 验证成功`);
     
     res.json({
       success: true,
@@ -4963,15 +4963,15 @@ app.post(`${API_PREFIX}/verify-member`, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('會員驗證出錯:', error);
+    console.error('会员验证出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 新增: 會員餘額查詢API
+// 新增: 会员余额查询API
 app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
   const { username } = req.query;
   
@@ -4979,7 +4979,7 @@ app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
     if (!username) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名'
+        message: '请提供会员用户名'
       });
     }
     
@@ -4987,7 +4987,7 @@ app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
     if (!member) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
@@ -4996,62 +4996,62 @@ app.get(`${API_PREFIX}/member-balance`, async (req, res) => {
       balance: member.balance
     });
   } catch (error) {
-    console.error('獲取會員餘額出錯:', error);
+    console.error('获取会员余额出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新會員餘額 API 端點 - 修改為點數轉移邏輯
+// 更新会员余额 API 端点 - 修改为点数转移逻辑
 app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
   const { agentId, username, amount, type, description } = req.body;
   
-  console.log(`收到更新會員餘額請求: 代理ID=${agentId}, 會員=${username}, 金額=${amount}, 類型=${type}, 說明=${description}`);
-  console.log(`請求體:`, JSON.stringify(req.body));
+  console.log(`收到更新会员余额请求: 代理ID=${agentId}, 会员=${username}, 金额=${amount}, 类型=${type}, 说明=${description}`);
+  console.log(`请求体:`, JSON.stringify(req.body));
   
   try {
     if (!username || amount === undefined || !agentId) {
-      console.error('更新會員餘額失敗: 缺少必要參數');
+      console.error('更新会员余额失败: 缺少必要参数');
       return res.json({
         success: false,
-        message: '請提供代理ID、會員用戶名和變更金額'
+        message: '请提供代理ID、会员用户名和变更金额'
       });
     }
     
-    // 查詢會員
+    // 查询会员
     const member = await MemberModel.findByUsername(username);
     if (!member) {
-      console.error(`更新會員餘額失敗: 會員 ${username} 不存在`);
+      console.error(`更新会员余额失败: 会员 ${username} 不存在`);
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
-    console.log(`找到會員: ID=${member.id}, 用戶名=${member.username}`);
+    console.log(`找到会员: ID=${member.id}, 用户名=${member.username}`);
     
-    // 查詢代理
+    // 查询代理
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
-      console.error(`更新會員餘額失敗: 代理 ID=${agentId} 不存在`);
+      console.error(`更新会员余额失败: 代理 ID=${agentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
-    console.log(`找到代理: ID=${agent.id}, 用戶名=${agent.username}`);
+    console.log(`找到代理: ID=${agent.id}, 用户名=${agent.username}`);
     
     const parsedAmount = parseFloat(amount);
-    console.log(`處理點數轉移: 金額=${parsedAmount}`);
+    console.log(`处理点数转移: 金额=${parsedAmount}`);
     
-    // 根據操作類型執行不同的點數轉移
+    // 根据操作类型执行不同的点数转移
     let result;
     
     try {
       if (parsedAmount > 0) {
-        // 從代理轉移點數到會員
-        console.log(`執行代理到會員的點數轉移: 金額=${parsedAmount}`);
+        // 从代理转移点数到会员
+        console.log(`执行代理到会员的点数转移: 金额=${parsedAmount}`);
         result = await PointTransferModel.transferFromAgentToMember(
           agent.id, 
           member.id, 
@@ -5059,8 +5059,8 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
           description || ''
         );
       } else if (parsedAmount < 0) {
-        // 從會員轉移點數到代理
-        console.log(`執行會員到代理的點數轉移: 金額=${Math.abs(parsedAmount)}`);
+        // 从会员转移点数到代理
+        console.log(`执行会员到代理的点数转移: 金额=${Math.abs(parsedAmount)}`);
         result = await PointTransferModel.transferFromMemberToAgent(
           member.id, 
           agent.id, 
@@ -5068,17 +5068,17 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
           description || ''
         );
       } else {
-        console.error('更新會員餘額失敗: 轉移點數必須不等於0');
+        console.error('更新会员余额失败: 转移点数必须不等于0');
         return res.json({
           success: false,
-          message: '轉移點數必須不等於0'
+          message: '转移点数必须不等于0'
         });
       }
       
-      // 查詢更新後的代理餘額
+      // 查询更新后的代理余额
       const updatedAgent = await AgentModel.findById(agent.id);
       
-      console.log(`點數轉移成功: 會員餘額=${result.balance}, 代理餘額=${updatedAgent.balance}`);
+      console.log(`点数转移成功: 会员余额=${result.balance}, 代理余额=${updatedAgent.balance}`);
       
       res.json({
         success: true,
@@ -5086,22 +5086,22 @@ app.post(`${API_PREFIX}/update-member-balance`, async (req, res) => {
         agentBalance: updatedAgent.balance
       });
     } catch (error) {
-      console.error('點數轉移處理出錯:', error);
+      console.error('点数转移处理出错:', error);
       res.status(500).json({
         success: false,
-        message: error.message || '點數轉移處理出錯，請稍後再試'
+        message: error.message || '点数转移处理出错，请稍后再试'
       });
     }
   } catch (error) {
-    console.error('更新會員餘額出錯:', error);
+    console.error('更新会员余额出错:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 新增: 會員餘額同步API（用於下注/中獎，不扣代理點數）
+// 新增: 会员余额同步API（用于下注/中奖，不扣代理点数）
 app.post(`${API_PREFIX}/sync-member-balance`, async (req, res) => {
   const { username, balance, reason } = req.body;
   
@@ -5109,76 +5109,76 @@ app.post(`${API_PREFIX}/sync-member-balance`, async (req, res) => {
     if (!username || balance === undefined) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名和餘額'
+        message: '请提供会员用户名和余额'
       });
     }
     
-    // 查詢會員
+    // 查询会员
     const member = await MemberModel.findByUsername(username);
     if (!member) {
-      console.log(`同步餘額失敗: 會員 ${username} 不存在`);
+      console.log(`同步余额失败: 会员 ${username} 不存在`);
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 更新會員餘額（不影響代理餘額）
+    // 更新会员余额（不影响代理余额）
     await MemberModel.setBalance(username, balance);
     
-    console.log(`會員 ${username} 餘額已同步為: ${balance}，原因: ${reason || '系統同步'}`);
+    console.log(`会员 ${username} 余额已同步为: ${balance}，原因: ${reason || '系统同步'}`);
     
     res.json({
       success: true,
-      message: '餘額同步成功',
+      message: '余额同步成功',
       balance: balance
     });
   } catch (error) {
-    console.error('同步會員餘額出錯:', error);
+    console.error('同步会员余额出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 新增: 清空點數轉移記錄API（僅用於測試）
+// 新增: 清空点数转移记录API（仅用于测试）
 app.delete(`${API_PREFIX}/clear-transfers`, async (req, res) => {
   try {
-    // 刪除所有點數轉移記錄
+    // 删除所有点数转移记录
     await db.none('DELETE FROM point_transfers');
     
-    // 也清空相關的transactions記錄（可選）
+    // 也清空相关的transactions记录（可选）
     await db.none('DELETE FROM transactions');
     
-    console.log('所有點數轉移記錄已清空');
+    console.log('所有点数转移记录已清空');
     
     res.json({
       success: true,
-      message: '所有點數轉移記錄已清空'
+      message: '所有点数转移记录已清空'
     });
   } catch (error) {
-    console.error('清空點數轉移記錄出錯:', error);
+    console.error('清空点数转移记录出错:', error);
     res.status(500).json({
       success: false,
-      message: '清空記錄失敗，請稍後再試'
+      message: '清空记录失败，请稍后再试'
     });
   }
 });
 
-// 新增: 點數轉移記錄API
+// 新增: 点数转移记录API
 app.get(`${API_PREFIX}/point-transfers`, async (req, res) => {
   const { userType, userId, agentId, limit = 50 } = req.query;
   
   try {
-    // 如果提供了 agentId，優先使用它
+    // 如果提供了 agentId，优先使用它
     const actualUserType = agentId ? 'agent' : userType;
     const actualUserId = agentId || userId;
     
     if (!actualUserType || !actualUserId) {
       return res.json({
         success: false,
-        message: '請提供用戶類型和ID或代理ID'
+        message: '请提供用户类型和ID或代理ID'
       });
     }
     
@@ -5189,15 +5189,15 @@ app.get(`${API_PREFIX}/point-transfers`, async (req, res) => {
       transfers
     });
   } catch (error) {
-    console.error('獲取點數轉移記錄出錯:', error);
+    console.error('获取点数转移记录出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取代理餘額
+// 获取代理余额
 app.get(`${API_PREFIX}/agent-balance`, async (req, res) => {
   const { agentId } = req.query;
   
@@ -5205,11 +5205,11 @@ app.get(`${API_PREFIX}/agent-balance`, async (req, res) => {
     if (!agentId) {
       return res.json({
         success: false,
-        message: '請提供代理ID'
+        message: '请提供代理ID'
       });
     }
     
-    // 查詢代理信息
+    // 查询代理信息
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -5223,259 +5223,259 @@ app.get(`${API_PREFIX}/agent-balance`, async (req, res) => {
       balance: agent.balance
     });
   } catch (error) {
-    console.error('獲取代理餘額出錯:', error);
+    console.error('获取代理余额出错:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 代理間點數轉移 API 端點
+// 代理间点数转移 API 端点
 app.post(`${API_PREFIX}/transfer-agent-balance`, async (req, res) => {
   const { agentId, subAgentId, amount, type, description } = req.body;
   
-  console.log(`收到代理點數轉移請求: 上級代理ID=${agentId}, 下級代理ID=${subAgentId}, 金額=${amount}, 類型=${type}, 說明=${description}`);
-  console.log(`請求體:`, JSON.stringify(req.body));
+  console.log(`收到代理点数转移请求: 上级代理ID=${agentId}, 下级代理ID=${subAgentId}, 金额=${amount}, 类型=${type}, 说明=${description}`);
+  console.log(`请求体:`, JSON.stringify(req.body));
   
   try {
     if (!agentId || !subAgentId || amount === undefined || !type) {
-      console.error('代理點數轉移失敗: 缺少必要參數');
+      console.error('代理点数转移失败: 缺少必要参数');
       return res.json({
         success: false,
-        message: '請提供完整的轉移參數'
+        message: '请提供完整的转移参数'
       });
     }
     
-    // 查詢上級代理
+    // 查询上级代理
     const parentAgent = await AgentModel.findById(agentId);
     if (!parentAgent) {
-      console.error(`代理點數轉移失敗: 上級代理 ID=${agentId} 不存在`);
+      console.error(`代理点数转移失败: 上级代理 ID=${agentId} 不存在`);
       return res.json({
         success: false,
-        message: '上級代理不存在'
+        message: '上级代理不存在'
       });
     }
-    console.log(`找到上級代理: ID=${parentAgent.id}, 用戶名=${parentAgent.username}, 餘額=${parentAgent.balance}`);
+    console.log(`找到上级代理: ID=${parentAgent.id}, 用户名=${parentAgent.username}, 余额=${parentAgent.balance}`);
     
-    // 查詢下級代理
+    // 查询下级代理
     const subAgent = await AgentModel.findById(subAgentId);
     if (!subAgent) {
-      console.error(`代理點數轉移失敗: 下級代理 ID=${subAgentId} 不存在`);
+      console.error(`代理点数转移失败: 下级代理 ID=${subAgentId} 不存在`);
       return res.json({
         success: false,
-        message: '下級代理不存在'
+        message: '下级代理不存在'
       });
     }
-    console.log(`找到下級代理: ID=${subAgent.id}, 用戶名=${subAgent.username}, 餘額=${subAgent.balance}`);
+    console.log(`找到下级代理: ID=${subAgent.id}, 用户名=${subAgent.username}, 余额=${subAgent.balance}`);
     
-    // 驗證代理層級關係（檢查是否為上級代理）
+    // 验证代理层级关系（检查是否为上级代理）
     const canManageAgent = await canAgentManageAgent(parentAgent.id, subAgent.id);
     if (!canManageAgent) {
-      console.error(`代理點數轉移失敗: 代理 ${parentAgent.username} 無權限操作代理 ${subAgent.username}`);
+      console.error(`代理点数转移失败: 代理 ${parentAgent.username} 无权限操作代理 ${subAgent.username}`);
       return res.json({
         success: false,
-        message: '只能對下線代理進行點數轉移'
+        message: '只能对下线代理进行点数转移'
       });
     }
-    console.log(`權限檢查通過: 代理 ${parentAgent.username} 可以操作代理 ${subAgent.username}`);
+    console.log(`权限检查通过: 代理 ${parentAgent.username} 可以操作代理 ${subAgent.username}`);
     
     const transferAmount = Math.abs(parseFloat(amount));
-    console.log(`處理代理點數轉移: 金額=${transferAmount}, 類型=${type}`);
+    console.log(`处理代理点数转移: 金额=${transferAmount}, 类型=${type}`);
     
-    // 根據操作類型執行不同的點數轉移
+    // 根据操作类型执行不同的点数转移
     let result;
     try {
       if (type === 'deposit') {
-        // 上級代理存入點數給下級代理
-        console.log(`執行上級代理到下級代理的點數轉移: 金額=${transferAmount}`);
+        // 上级代理存入点数给下级代理
+        console.log(`执行上级代理到下级代理的点数转移: 金额=${transferAmount}`);
         result = await PointTransferModel.transferFromAgentToAgent(
           parentAgent.id, 
           subAgent.id, 
           transferAmount, 
           description || '',
-          false // 一般點數轉移，不是客服操作
+          false // 一般点数转移，不是客服操作
         );
         
       } else if (type === 'withdraw') {
-        // 上級代理從下級代理提領點數
-        console.log(`執行下級代理到上級代理的點數轉移: 金額=${transferAmount}`);
+        // 上级代理从下级代理提领点数
+        console.log(`执行下级代理到上级代理的点数转移: 金额=${transferAmount}`);
         result = await PointTransferModel.transferFromAgentToAgent(
           subAgent.id, 
           parentAgent.id, 
           transferAmount, 
           description || '',
-          false // 一般點數轉移，不是客服操作
+          false // 一般点数转移，不是客服操作
         );
         
       } else {
-        console.error('代理點數轉移失敗: 無效的轉移類型');
+        console.error('代理点数转移失败: 无效的转移类型');
         return res.json({
           success: false,
-          message: '無效的轉移類型'
+          message: '无效的转移类型'
         });
       }
       
-      // 重新查詢最新的上級代理和下級代理餘額
+      // 重新查询最新的上级代理和下级代理余额
       const updatedParentAgent = await AgentModel.findById(parentAgent.id);
       const updatedSubAgent = await AgentModel.findById(subAgent.id);
       
       const finalParentBalance = parseFloat(updatedParentAgent.balance);
       const finalSubAgentBalance = parseFloat(updatedSubAgent.balance);
       
-      console.log(`代理點數轉移成功: 上級代理餘額=${finalParentBalance}, 下級代理餘額=${finalSubAgentBalance}`);
+      console.log(`代理点数转移成功: 上级代理余额=${finalParentBalance}, 下级代理余额=${finalSubAgentBalance}`);
       
       res.json({
         success: true,
-        message: '代理點數轉移成功',
+        message: '代理点数转移成功',
         parentBalance: finalParentBalance,
         subAgentBalance: finalSubAgentBalance
       });
       
     } catch (error) {
-      console.error('代理點數轉移處理出錯:', error);
+      console.error('代理点数转移处理出错:', error);
       res.status(500).json({
         success: false,
-        message: error.message || '代理點數轉移處理出錯，請稍後再試'
+        message: error.message || '代理点数转移处理出错，请稍后再试'
       });
     }
   } catch (error) {
-    console.error('代理點數轉移出錯:', error);
+    console.error('代理点数转移出错:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 會員點數轉移 API 端點
+// 会员点数转移 API 端点
 app.post(`${API_PREFIX}/transfer-member-balance`, async (req, res) => {
   const { agentId, memberId, amount, type, description } = req.body;
   
-  console.log(`收到會員點數轉移請求: 代理ID=${agentId}, 會員ID=${memberId}, 金額=${amount}, 類型=${type}, 說明=${description}`);
-  console.log(`請求體:`, JSON.stringify(req.body));
+  console.log(`收到会员点数转移请求: 代理ID=${agentId}, 会员ID=${memberId}, 金额=${amount}, 类型=${type}, 说明=${description}`);
+  console.log(`请求体:`, JSON.stringify(req.body));
   
   try {
     if (!agentId || !memberId || amount === undefined || !type) {
-      console.error('會員點數轉移失敗: 缺少必要參數');
+      console.error('会员点数转移失败: 缺少必要参数');
       return res.json({
         success: false,
-        message: '請提供完整的轉移參數'
+        message: '请提供完整的转移参数'
       });
     }
     
-    // 查詢代理
+    // 查询代理
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
-      console.error(`會員點數轉移失敗: 代理 ID=${agentId} 不存在`);
+      console.error(`会员点数转移失败: 代理 ID=${agentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
-    console.log(`找到代理: ID=${agent.id}, 用戶名=${agent.username}, 餘額=${agent.balance}`);
+    console.log(`找到代理: ID=${agent.id}, 用户名=${agent.username}, 余额=${agent.balance}`);
     
-    // 查詢會員
+    // 查询会员
     const member = await MemberModel.findById(memberId);
     if (!member) {
-      console.error(`會員點數轉移失敗: 會員 ID=${memberId} 不存在`);
+      console.error(`会员点数转移失败: 会员 ID=${memberId} 不存在`);
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
-    console.log(`找到會員: ID=${member.id}, 用戶名=${member.username}, 餘額=${member.balance}`);
+    console.log(`找到会员: ID=${member.id}, 用户名=${member.username}, 余额=${member.balance}`);
     
-    // 驗證會員歸屬關係（檢查是否為上級代理）
+    // 验证会员归属关系（检查是否为上级代理）
     const canManage = await canAgentManageMember(agent.id, member.id);
     if (!canManage) {
-      console.error(`會員點數轉移失敗: 代理 ${agent.username} 無權限操作會員 ${member.username}`);
+      console.error(`会员点数转移失败: 代理 ${agent.username} 无权限操作会员 ${member.username}`);
       return res.json({
         success: false,
-        message: '只能對下線代理創建的會員進行點數轉移'
+        message: '只能对下线代理创建的会员进行点数转移'
       });
     }
-    console.log(`權限檢查通過: 代理 ${agent.username} 可以操作會員 ${member.username}`);
+    console.log(`权限检查通过: 代理 ${agent.username} 可以操作会员 ${member.username}`);
     
     const transferAmount = Math.abs(parseFloat(amount));
-    console.log(`處理會員點數轉移: 金額=${transferAmount}, 類型=${type}`);
+    console.log(`处理会员点数转移: 金额=${transferAmount}, 类型=${type}`);
     
-          // 根據操作類型執行不同的點數轉移
+          // 根据操作类型执行不同的点数转移
       let result;
       try {
         if (type === 'deposit') {
-          // 代理存入點數給會員
-          console.log(`執行代理到會員的點數轉移: 金額=${transferAmount}`);
-          console.log(`🔍 調用transferFromAgentToMember: agentId=${agent.id}, memberId=${member.id}, amount=${transferAmount}, isCustomerServiceOperation=false`);
+          // 代理存入点数给会员
+          console.log(`执行代理到会员的点数转移: 金额=${transferAmount}`);
+          console.log(`🔍 调用transferFromAgentToMember: agentId=${agent.id}, memberId=${member.id}, amount=${transferAmount}, isCustomerServiceOperation=false`);
           result = await PointTransferModel.transferFromAgentToMember(
             agent.id, 
             member.id, 
             transferAmount, 
             description || '',
-            false // 一般點數轉移，不是客服操作
+            false // 一般点数转移，不是客服操作
           );
           
         } else if (type === 'withdraw') {
-          // 代理從會員提領點數
-          console.log(`執行會員到代理的點數轉移: 金額=${transferAmount}`);
-          console.log(`🔍 調用transferFromMemberToAgent: memberId=${member.id}, agentId=${agent.id}, amount=${transferAmount}, isCustomerServiceOperation=false`);
+          // 代理从会员提领点数
+          console.log(`执行会员到代理的点数转移: 金额=${transferAmount}`);
+          console.log(`🔍 调用transferFromMemberToAgent: memberId=${member.id}, agentId=${agent.id}, amount=${transferAmount}, isCustomerServiceOperation=false`);
           result = await PointTransferModel.transferFromMemberToAgent(
             member.id, 
             agent.id, 
             transferAmount, 
             description || '',
-            false // 一般點數轉移，不是客服操作
+            false // 一般点数转移，不是客服操作
           );
           
         } else {
-          console.error('會員點數轉移失敗: 無效的轉移類型');
+          console.error('会员点数转移失败: 无效的转移类型');
           return res.json({
             success: false,
-            message: '無效的轉移類型'
+            message: '无效的转移类型'
           });
         }
         
-        // 重新查詢最新的代理和會員餘額
+        // 重新查询最新的代理和会员余额
         const updatedAgent = await AgentModel.findById(agent.id);
         const updatedMember = await MemberModel.findById(member.id);
         
         const finalAgentBalance = parseFloat(updatedAgent.balance);
         const finalMemberBalance = parseFloat(updatedMember.balance);
         
-        console.log(`會員點數轉移成功: 代理餘額=${finalAgentBalance}, 會員餘額=${finalMemberBalance}`);
+        console.log(`会员点数转移成功: 代理余额=${finalAgentBalance}, 会员余额=${finalMemberBalance}`);
         
         res.json({
           success: true,
-          message: '會員點數轉移成功',
+          message: '会员点数转移成功',
           parentBalance: finalAgentBalance,
           memberBalance: finalMemberBalance
         });
       
     } catch (error) {
-      console.error('會員點數轉移處理出錯:', error);
+      console.error('会员点数转移处理出错:', error);
       res.status(500).json({
         success: false,
-        message: error.message || '會員點數轉移處理出錯，請稍後再試'
+        message: error.message || '会员点数转移处理出错，请稍后再试'
       });
     }
   } catch (error) {
-    console.error('會員點數轉移出錯:', error);
+    console.error('会员点数转移出错:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取公告
+// 获取公告
 app.get(`${API_PREFIX}/notices`, async (req, res) => {
   try {
     const { category = null, limit = 50 } = req.query;
     
-    // 獲取公告
+    // 获取公告
     const notices = await NoticeModel.findAll(parseInt(limit), category);
     
-    // 獲取所有分類
+    // 获取所有分类
     const categories = await NoticeModel.getCategories();
     
     res.json({
@@ -5484,186 +5484,186 @@ app.get(`${API_PREFIX}/notices`, async (req, res) => {
       categories
     });
   } catch (error) {
-    console.error('獲取公告出錯:', error);
+    console.error('获取公告出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 新增系統公告 (僅總代理可用)
+// 新增系统公告 (仅总代理可用)
 app.post(`${API_PREFIX}/create-notice`, async (req, res) => {
   try {
     const { operatorId, title, content, category } = req.body;
     
-    // 參數驗證
+    // 参数验证
     if (!operatorId || !title || !content) {
       return res.json({
         success: false,
-        message: '請提供操作員ID、標題和內容'
+        message: '请提供操作员ID、标题和内容'
       });
     }
     
-    // 檢查操作員是否為總代理（客服）
+    // 检查操作员是否为总代理（客服）
     const isCS = await AgentModel.isCustomerService(operatorId);
     if (!isCS) {
       return res.json({
         success: false,
-        message: '權限不足，只有總代理可以創建系統公告'
+        message: '权限不足，只有总代理可以创建系统公告'
       });
     }
     
-    // 驗證分類
-    const validCategories = ['最新公告', '維修', '活動'];
+    // 验证分类
+    const validCategories = ['最新公告', '维修', '活动'];
     const finalCategory = validCategories.includes(category) ? category : '最新公告';
     
-    // 創建公告
+    // 创建公告
     const newNotice = await NoticeModel.create(
-      title.substring(0, 100), // 限制標題長度
+      title.substring(0, 100), // 限制标题长度
       content,
       finalCategory
     );
     
-    console.log(`總代理 ${operatorId} 創建新公告: "${title}"`);
+    console.log(`总代理 ${operatorId} 创建新公告: "${title}"`);
     
     res.json({
       success: true,
-      message: '系統公告創建成功',
+      message: '系统公告创建成功',
       notice: newNotice
     });
     
   } catch (error) {
-    console.error('創建系統公告出錯:', error);
+    console.error('创建系统公告出错:', error);
     res.status(500).json({
       success: false,
-      message: '創建公告失敗，請稍後再試'
+      message: '创建公告失败，请稍后再试'
     });
   }
 });
 
-// 編輯系統公告 (僅總代理可用)
+// 编辑系统公告 (仅总代理可用)
 app.put(`${API_PREFIX}/notice/:id`, async (req, res) => {
   try {
     const { id } = req.params;
     const { operatorId, title, content, category } = req.body;
     
-    // 參數驗證
+    // 参数验证
     if (!operatorId || !title || !content) {
       return res.json({
         success: false,
-        message: '請提供操作員ID、標題和內容'
+        message: '请提供操作员ID、标题和内容'
       });
     }
     
-    // 檢查操作員是否為總代理（客服）
+    // 检查操作员是否为总代理（客服）
     const isCS = await AgentModel.isCustomerService(operatorId);
     if (!isCS) {
       return res.json({
         success: false,
-        message: '權限不足，只有總代理可以編輯系統公告'
+        message: '权限不足，只有总代理可以编辑系统公告'
       });
     }
     
-    // 檢查公告是否存在
+    // 检查公告是否存在
     const existingNotice = await NoticeModel.findById(id);
     if (!existingNotice) {
       return res.json({
         success: false,
-        message: '公告不存在或已被刪除'
+        message: '公告不存在或已被删除'
       });
     }
     
-    // 驗證分類
-    const validCategories = ['最新公告', '維修', '活動'];
+    // 验证分类
+    const validCategories = ['最新公告', '维修', '活动'];
     const finalCategory = validCategories.includes(category) ? category : '最新公告';
     
     // 更新公告
     const updatedNotice = await NoticeModel.update(
       id,
-      title.substring(0, 100), // 限制標題長度
+      title.substring(0, 100), // 限制标题长度
       content,
       finalCategory
     );
     
-    console.log(`總代理 ${operatorId} 編輯公告 ${id}: "${title}"`);
+    console.log(`总代理 ${operatorId} 编辑公告 ${id}: "${title}"`);
     
     res.json({
       success: true,
-      message: '系統公告更新成功',
+      message: '系统公告更新成功',
       notice: updatedNotice
     });
     
   } catch (error) {
-    console.error('編輯系統公告出錯:', error);
+    console.error('编辑系统公告出错:', error);
     res.status(500).json({
       success: false,
-      message: '編輯公告失敗，請稍後再試'
+      message: '编辑公告失败，请稍后再试'
     });
   }
 });
 
-// 刪除系統公告 (僅總代理可用)
+// 删除系统公告 (仅总代理可用)
 app.delete(`${API_PREFIX}/notice/:id`, async (req, res) => {
   try {
     const { id } = req.params;
     const { operatorId } = req.body;
     
-    // 參數驗證
+    // 参数验证
     if (!operatorId) {
       return res.json({
         success: false,
-        message: '請提供操作員ID'
+        message: '请提供操作员ID'
       });
     }
     
-    // 檢查操作員是否為總代理（客服）
+    // 检查操作员是否为总代理（客服）
     const isCS = await AgentModel.isCustomerService(operatorId);
     if (!isCS) {
       return res.json({
         success: false,
-        message: '權限不足，只有總代理可以刪除系統公告'
+        message: '权限不足，只有总代理可以删除系统公告'
       });
     }
     
-    // 檢查公告是否存在
+    // 检查公告是否存在
     const existingNotice = await NoticeModel.findById(id);
     if (!existingNotice) {
       return res.json({
         success: false,
-        message: '公告不存在或已被刪除'
+        message: '公告不存在或已被删除'
       });
     }
     
-    // 刪除公告（軟刪除）
+    // 删除公告（软删除）
     await NoticeModel.delete(id);
     
-    console.log(`總代理 ${operatorId} 刪除公告 ${id}: "${existingNotice.title}"`);
+    console.log(`总代理 ${operatorId} 删除公告 ${id}: "${existingNotice.title}"`);
     
     res.json({
       success: true,
-      message: '系統公告刪除成功'
+      message: '系统公告删除成功'
     });
     
   } catch (error) {
-    console.error('刪除系統公告出錯:', error);
+    console.error('删除系统公告出错:', error);
     res.status(500).json({
       success: false,
-      message: '刪除公告失敗，請稍後再試'
+      message: '删除公告失败，请稍后再试'
     });
   }
 });
 
-// 新增: 獲取總代理API端點
+// 新增: 获取总代理API端点
 app.get(`${API_PREFIX}/admin-agent`, async (req, res) => {
   try {
-    // 獲取總代理 (level = 0)，如果有多個則取第一個
+    // 获取总代理 (level = 0)，如果有多个则取第一个
     const adminAgents = await db.any('SELECT * FROM agents WHERE level = 0 ORDER BY id ASC LIMIT 1');
     
     if (adminAgents.length === 0) {
       return res.json({
         success: false,
-        message: '系統還未設置總代理'
+        message: '系统还未设置总代理'
       });
     }
     
@@ -5678,24 +5678,24 @@ app.get(`${API_PREFIX}/admin-agent`, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('獲取總代理信息出錯:', error);
+    console.error('获取总代理信息出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 添加系統級別的儀表板API - 使用適當的API前綴
+// 添加系统级别的仪表板API - 使用适当的API前缀
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
-    // 獲取所有代理
+    // 获取所有代理
     const agents = await db.one('SELECT COUNT(*) as count FROM agents');
     
-    // 獲取所有會員
+    // 获取所有会员
     const members = await db.one('SELECT COUNT(*) as count FROM members');
     
-    // 獲取今日交易總額
+    // 获取今日交易总额
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -5705,7 +5705,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
       WHERE created_at >= $1
     `, [today]);
     
-    // 獲取總佣金
+    // 获取总佣金
     const commission = await db.one(`
       SELECT COALESCE(SUM(total_commission), 0) as total 
       FROM agents
@@ -5722,20 +5722,20 @@ app.get('/api/dashboard/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('獲取儀表板統計數據出錯:', error);
+    console.error('获取仪表板统计数据出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 添加系統級別的會員列表API - 使用適當的API前綴
+// 添加系统级别的会员列表API - 使用适当的API前缀
 app.get('/api/dashboard/members', async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
   
   try {
-    // 獲取所有會員
+    // 获取所有会员
     const query = `
       SELECT m.*, a.username as agent_username 
       FROM members m
@@ -5747,7 +5747,7 @@ app.get('/api/dashboard/members', async (req, res) => {
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const members = await db.any(query, [limit, offset]);
     
-    // 獲取總數
+    // 获取总数
     const countQuery = `
       SELECT COUNT(*) as count
       FROM members m
@@ -5762,15 +5762,15 @@ app.get('/api/dashboard/members', async (req, res) => {
       total: parseInt(total)
     });
   } catch (error) {
-    console.error('獲取會員列表出錯:', error);
+    console.error('获取会员列表出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 切換會員狀態 - 支持三种状态：0=停用, 1=启用, 2=凍結
+// 切换会员状态 - 支持三种状态：0=停用, 1=启用, 2=冻结
 app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
   const { memberId, status } = req.body;
   
@@ -5778,37 +5778,37 @@ app.post(`${API_PREFIX}/toggle-member-status`, async (req, res) => {
     if (!memberId) {
       return res.json({
         success: false,
-        message: '請提供會員ID'
+        message: '请提供会员ID'
       });
     }
     
-    // 驗證狀態值：0=停用, 1=启用, 2=凍結
+    // 验证状态值：0=停用, 1=启用, 2=冻结
     const newStatus = parseInt(status);
     if (![0, 1, 2].includes(newStatus)) {
       return res.json({
         success: false,
-        message: '無效的狀態值，必須是0(停用)、1(启用)或2(凍結)'
+        message: '无效的状态值，必须是0(停用)、1(启用)或2(冻结)'
       });
     }
     
-    // 更新會員狀態
+    // 更新会员状态
     await db.none('UPDATE members SET status = $1 WHERE id = $2', [newStatus, memberId]);
     
-    const statusText = newStatus === 1 ? '启用' : newStatus === 0 ? '停用' : '凍結';
+    const statusText = newStatus === 1 ? '启用' : newStatus === 0 ? '停用' : '冻结';
     res.json({
       success: true,
-      message: `會員狀態已更新为: ${statusText}`
+      message: `会员状态已更新为: ${statusText}`
     });
   } catch (error) {
-    console.error('更新會員狀態出錯:', error);
+    console.error('更新会员状态出错:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取開獎結果歷史記錄 - 使用 result_history 表與遊戲端保持一致
+// 获取开奖结果历史记录 - 使用 result_history 表与游戏端保持一致
 app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
   try {
     const { page = 1, limit = 20, period = '', date = '' } = req.query;
@@ -5819,7 +5819,7 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
     let whereConditions = [];
     const params = [];
 
-    // 基本過濾條件 - 只過濾掉測試數據（序號大於300的）
+    // 基本过滤条件 - 只过滤掉测试数据（序号大于300的）
     whereConditions.push(`result IS NOT NULL`);
     whereConditions.push(`position_1 IS NOT NULL`);
     whereConditions.push(`CAST(SUBSTRING(period::text FROM 9) AS INTEGER) < 300`);
@@ -5830,13 +5830,13 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
     }
 
     if (date) {
-      // 基於期號中的日期而非創建時間
+      // 基于期号中的日期而非创建时间
       const dateStr = date.replace(/-/g, '');
       whereConditions.push(`period::text LIKE $${params.length + 1}`);
       params.push(`${dateStr}%`);
     }
 
-    // 如果是查詢今天的數據，過濾未來期號
+    // 如果是查询今天的数据，过滤未来期号
     if (date === new Date().toISOString().split('T')[0]) {
       const currentGameState = await db.oneOrNone('SELECT current_period FROM game_state ORDER BY id DESC LIMIT 1');
       const currentPeriod = currentGameState?.current_period || 99999999999;
@@ -5845,13 +5845,13 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // 計算總記錄數
+    // 计算总记录数
     const countQuery = `SELECT COUNT(*) FROM result_history ${whereClause}`;
     console.log(`Executing count query: ${countQuery} with params: ${JSON.stringify(params)}`);
     const totalResult = await db.one(countQuery, params);
     const totalRecords = parseInt(totalResult.count);
 
-    // 獲取分頁數據
+    // 获取分页数据
     const dataQuery = `
       SELECT period, result, created_at, draw_time,
              position_1, position_2, position_3, position_4, position_5,
@@ -5865,9 +5865,9 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
     console.log(`Executing data query: ${dataQuery} with params: ${JSON.stringify(params)}`);
     const records = await db.any(dataQuery, params);
 
-    // 轉換格式使其與前端相容
+    // 转换格式使其与前端相容
     const formattedRecords = records.map(record => {
-      // 使用位置欄位來建立正確的結果陣列
+      // 使用位置栏位来建立正确的结果阵列
       const positions = [];
       for (let i = 1; i <= 10; i++) {
         positions.push(record[`position_${i}`]);
@@ -5876,11 +5876,11 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
       return {
         period: record.period,
         result: positions,
-        draw_time: record.draw_time || record.created_at,  // 優先使用 draw_time
+        draw_time: record.draw_time || record.created_at,  // 优先使用 draw_time
         positions: positions,
-        // 計算額外的遊戲結果
-        sum: positions[0] + positions[1],  // 冠亞和
-        dragon_tiger: positions[0] > positions[9] ? '龍' : '虎'  // 龍虎
+        // 计算额外的游戏结果
+        sum: positions[0] + positions[1],  // 冠亚和
+        dragon_tiger: positions[0] > positions[9] ? '龙' : '虎'  // 龙虎
       };
     });
 
@@ -5895,19 +5895,19 @@ app.get(`${API_PREFIX}/draw-history`, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('獲取開獎歷史出錯:', error);
+    console.error('获取开奖历史出错:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '獲取開獎歷史失敗'
+      message: error.message || '获取开奖历史失败'
     });
   }
 });
 
 // API 路由
-// 獲取下注記錄 - 修復400錯誤，支持更多查詢參數
+// 获取下注记录 - 修复400错误，支持更多查询参数
 app.get(`${API_PREFIX}/bets`, async (req, res) => {
   try {
-    // 使用通用認證中間件
+    // 使用通用认证中间件
     const authResult = await authenticateAgent(req);
     if (!authResult.success) {
       return res.status(401).json(authResult);
@@ -5916,45 +5916,45 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     const { agent } = authResult;
     const { agentId, rootAgentId, includeDownline, username, date, startDate, endDate, period, page = 1, limit = 20 } = req.query;
     
-    // 基本參數驗證 - 支持agentId或rootAgentId
+    // 基本参数验证 - 支持agentId或rootAgentId
     const currentAgentId = agentId || rootAgentId;
     if (!currentAgentId) {
       return res.status(400).json({
         success: false,
-        message: '代理ID為必填項 (agentId或rootAgentId)'
+        message: '代理ID为必填项 (agentId或rootAgentId)'
       });
     }
     
-    console.log(`📡 查詢下注記錄: agentId=${currentAgentId}, includeDownline=${includeDownline}, username=${username}`);
+    console.log(`📡 查询下注记录: agentId=${currentAgentId}, includeDownline=${includeDownline}, username=${username}`);
     
-    // 查詢該代理下的所有會員
+    // 查询该代理下的所有会员
     let members = [];
     
-    // 如果指定了會員用戶名
+    // 如果指定了会员用户名
     if (username) {
-      // 檢查這個會員是否屬於該代理
+      // 检查这个会员是否属于该代理
       const member = await MemberModel.findByAgentAndUsername(currentAgentId, username);
       if (member) {
         members = [member];
       } else {
         return res.status(403).json({
           success: false,
-          message: '該會員不存在或不屬於你的下線'
+          message: '该会员不存在或不属于你的下线'
         });
       }
     } else {
-      // 根據includeDownline參數決定是否包含下級代理的會員
+      // 根据includeDownline参数决定是否包含下级代理的会员
       if (includeDownline === 'true') {
-        // 獲取所有下級代理的會員
+        // 获取所有下级代理的会员
         const downlineAgents = await getAllDownlineAgents(currentAgentId);
-        const allAgentIds = [parseInt(currentAgentId), ...downlineAgents]; // 修復：downlineAgents已經是整數數組
+        const allAgentIds = [parseInt(currentAgentId), ...downlineAgents]; // 修复：downlineAgents已经是整数数组
         
         for (const agentId of allAgentIds) {
           const agentMembers = await MemberModel.findByAgentId(agentId);
           members = members.concat(agentMembers || []);
         }
       } else {
-        // 只獲取直系下線會員
+        // 只获取直系下线会员
         const memberList = await MemberModel.findByAgentId(currentAgentId);
         members = memberList || [];
       }
@@ -5973,11 +5973,11 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
       });
     }
     
-    // 創建會員到代理的映射
+    // 创建会员到代理的映射
     const memberToAgentMap = {};
     const agentInfoMap = {};
     
-    // 獲取代理信息
+    // 获取代理信息
     for (const member of members) {
       memberToAgentMap[member.username] = member.agent_id;
       if (!agentInfoMap[member.agent_id]) {
@@ -5991,52 +5991,52 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
       }
     }
     
-    // 獲取這些會員的用戶名
+    // 获取这些会员的用户名
     const memberUsernames = members.map(m => m.username);
     
-    // 構建查詢條件
+    // 构建查询条件
     let whereClause = `WHERE username IN (${memberUsernames.map((_, i) => `$${i + 1}`).join(',')})`;
     let params = [...memberUsernames];
     let paramIndex = memberUsernames.length + 1;
     
-    // 添加日期過濾
+    // 添加日期过滤
     if (date) {
       whereClause += ` AND DATE(created_at) = $${paramIndex}`;
       params.push(date);
       paramIndex++;
     } else if (startDate && endDate) {
-      // 期間查詢
+      // 期间查询
       whereClause += ` AND DATE(created_at) BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
       params.push(startDate, endDate);
       paramIndex += 2;
     } else if (startDate) {
-      // 只有開始日期
+      // 只有开始日期
       whereClause += ` AND DATE(created_at) >= $${paramIndex}`;
       params.push(startDate);
       paramIndex++;
     } else if (endDate) {
-      // 只有結束日期
+      // 只有结束日期
       whereClause += ` AND DATE(created_at) <= $${paramIndex}`;
       params.push(endDate);
       paramIndex++;
     }
     
-    // 添加期數過濾  
+    // 添加期数过滤  
     if (period) {
       whereClause += ` AND period::text LIKE $${paramIndex}`;
       params.push(`%${period}%`);
       paramIndex++;
     }
     
-    // 計算總記錄數
+    // 计算总记录数
     const countQuery = `SELECT COUNT(*) AS total FROM bet_history ${whereClause}`;
     const totalResult = await db.one(countQuery, params);
     const total = parseInt(totalResult.total);
     
-    // 計算分頁
+    // 计算分页
     const offset = (page - 1) * limit;
     
-    // 獲取投注記錄
+    // 获取投注记录
     const betQuery = `
       SELECT * FROM bet_history 
       ${whereClause}
@@ -6047,7 +6047,7 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     params.push(limit, offset);
     const bets = await db.any(betQuery, params);
     
-    // 為每筆下注添加代理信息
+    // 为每笔下注添加代理信息
     const betsWithAgentInfo = bets.map(bet => {
       const agentId = memberToAgentMap[bet.username];
       const agentInfo = agentInfoMap[agentId];
@@ -6059,7 +6059,7 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
       };
     });
     
-    // 計算統計數據
+    // 计算统计数据
     const statsQuery = `
       SELECT 
         COUNT(*) AS total_bets,
@@ -6083,53 +6083,53 @@ app.get(`${API_PREFIX}/bets`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取下注記錄出錯:', error);
+    console.error('获取下注记录出错:', error);
     res.status(500).json({
       success: false,
-      message: '獲取下注記錄失敗',
+      message: '获取下注记录失败',
       error: error.message
     });
   }
 });
 
-// 獲取下級代理列表API - 修復404錯誤
+// 获取下级代理列表API - 修复404错误
 app.get(`${API_PREFIX}/downline-agents`, async (req, res) => {
   try {
     const { rootAgentId } = req.query;
     
-    console.log(`📡 獲取下級代理API: rootAgentId=${rootAgentId}`);
+    console.log(`📡 获取下级代理API: rootAgentId=${rootAgentId}`);
     
     if (!rootAgentId) {
       return res.status(400).json({
         success: false,
-        message: '缺少必要參數：rootAgentId'
+        message: '缺少必要参数：rootAgentId'
       });
     }
     
-    // 輔助函數：獲取級別名稱
+    // 辅助函数：获取级别名称
     function getLevelName(level) {
       const levels = {
-        0: '總代理',
-        1: '一級代理', 
-        2: '二級代理',
-        3: '三級代理',
-        4: '四級代理',
-        5: '五級代理',
-        6: '六級代理',
-        7: '七級代理',
-        8: '八級代理',
-        9: '九級代理',
-        10: '十級代理',
-        11: '十一級代理',
-        12: '十二級代理',
-        13: '十三級代理',
-        14: '十四級代理',
-        15: '十五級代理'
+        0: '总代理',
+        1: '一级代理', 
+        2: '二级代理',
+        3: '三级代理',
+        4: '四级代理',
+        5: '五级代理',
+        6: '六级代理',
+        7: '七级代理',
+        8: '八级代理',
+        9: '九级代理',
+        10: '十级代理',
+        11: '十一级代理',
+        12: '十二级代理',
+        13: '十三级代理',
+        14: '十四级代理',
+        15: '十五级代理'
       };
-      return levels[level] || `${level}級代理`;
+      return levels[level] || `${level}级代理`;
     }
     
-    // 獲取所有下級代理ID
+    // 获取所有下级代理ID
     const downlineAgentIds = await getAllDownlineAgents(rootAgentId);
     
     if (downlineAgentIds.length === 0) {
@@ -6140,14 +6140,14 @@ app.get(`${API_PREFIX}/downline-agents`, async (req, res) => {
       });
     }
     
-    // 查詢代理詳細信息
+    // 查询代理详细信息
     let agentQuery = 'SELECT id, username, level, balance, status FROM agents WHERE id IN (';
     agentQuery += downlineAgentIds.map((_, i) => `$${i + 1}`).join(',');
     agentQuery += ') ORDER BY level, username';
     
     const agents = await db.any(agentQuery, downlineAgentIds);
     
-    // 添加級別名稱
+    // 添加级别名称
     const agentsWithLevelName = agents.map(agent => ({
       ...agent,
       level_name: getLevelName(agent.level)
@@ -6160,48 +6160,48 @@ app.get(`${API_PREFIX}/downline-agents`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ 獲取下級代理錯誤:', error);
+    console.error('❌ 获取下级代理错误:', error);
     res.status(500).json({
       success: false,
-      message: '獲取下級代理失敗',
+      message: '获取下级代理失败',
       error: error.message
     });
   }
 });
 
-// 獲取整條代理線會員API - 修復404錯誤  
+// 获取整条代理线会员API - 修复404错误  
 app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
   try {
     const { rootAgentId } = req.query;
     
-    console.log(`📡 獲取整條代理線會員API: rootAgentId=${rootAgentId}`);
+    console.log(`📡 获取整条代理线会员API: rootAgentId=${rootAgentId}`);
     
     if (!rootAgentId) {
       return res.status(400).json({
         success: false,
-        message: '缺少必要參數：rootAgentId'
+        message: '缺少必要参数：rootAgentId'
       });
     }
     
-    // 首先獲取所有下級代理ID
+    // 首先获取所有下级代理ID
     const downlineAgents = await getAllDownlineAgents(rootAgentId);
     const allAgentIds = [parseInt(rootAgentId), ...downlineAgents];
     
-    // 獲取所有這些代理的會員
+    // 获取所有这些代理的会员
     let allMembers = [];
     
-    // 創建代理ID到代理資訊的映射，包含完整的代理信息
+    // 创建代理ID到代理资讯的映射，包含完整的代理信息
     const agentMap = {};
     
-    // 獲取根代理信息
+    // 获取根代理信息
     const rootAgent = await AgentModel.findById(rootAgentId);
     agentMap[rootAgentId] = { 
       username: rootAgent ? rootAgent.username : '未知代理',
       level: rootAgent ? rootAgent.level : 0,
-      level_name: rootAgent ? getLevelName(rootAgent.level) : '未知級別'
+      level_name: rootAgent ? getLevelName(rootAgent.level) : '未知级别'
     };
     
-    // 獲取所有下級代理的完整信息並添加到映射中
+    // 获取所有下级代理的完整信息并添加到映射中
     if (downlineAgents.length > 0) {
       let agentQuery = 'SELECT id, username, level FROM agents WHERE id IN (';
       agentQuery += downlineAgents.map((_, i) => `$${i + 1}`).join(',');
@@ -6218,34 +6218,34 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
       });
     }
     
-    // 輔助函數：獲取級別名稱
+    // 辅助函数：获取级别名称
     function getLevelName(level) {
       const levels = {
-        0: '總代理',
-        1: '一級代理', 
-        2: '二級代理',
-        3: '三級代理',
-        4: '四級代理',
-        5: '五級代理',
-        6: '六級代理',
-        7: '七級代理',
-        8: '八級代理',
-        9: '九級代理',
-        10: '十級代理',
-        11: '十一級代理',
-        12: '十二級代理',
-        13: '十三級代理',
-        14: '十四級代理',
-        15: '十五級代理'
+        0: '总代理',
+        1: '一级代理', 
+        2: '二级代理',
+        3: '三级代理',
+        4: '四级代理',
+        5: '五级代理',
+        6: '六级代理',
+        7: '七级代理',
+        8: '八级代理',
+        9: '九级代理',
+        10: '十级代理',
+        11: '十一级代理',
+        12: '十二级代理',
+        13: '十三级代理',
+        14: '十四级代理',
+        15: '十五级代理'
       };
-      return levels[level] || `${level}級代理`;
+      return levels[level] || `${level}级代理`;
     }
     
     for (const agentId of allAgentIds) {
       const { status, keyword } = req.query;
       const members = await MemberModel.findByAgentId(agentId, status !== '-1' ? status : null, 1, 1000);
       
-      // 如果有關鍵字篩選，進行過濾
+      // 如果有关键字筛选，进行过滤
       let filteredMembers = members;
       if (keyword) {
         filteredMembers = members.filter(member => 
@@ -6259,7 +6259,7 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
         agentId: agentId,
         agentUsername: agentMap[agentId]?.username || '未知代理',
         agentLevel: agentMap[agentId]?.level || 0,
-        agentLevelName: agentMap[agentId]?.level_name || '未知級別'
+        agentLevelName: agentMap[agentId]?.level_name || '未知级别'
       })));
     }
     
@@ -6270,26 +6270,26 @@ app.get(`${API_PREFIX}/downline-members`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ 獲取整條代理線會員錯誤:', error);
+    console.error('❌ 获取整条代理线会员错误:', error);
     res.status(500).json({
       success: false,
-      message: '獲取會員列表失敗',
+      message: '获取会员列表失败',
       error: error.message
     });
   }
 });
 
-// 獲取指定代理的會員API
+// 获取指定代理的会员API
 app.get(`${API_PREFIX}/agent-members`, async (req, res) => {
   try {
     const { agentId } = req.query;
     
-    console.log(`📡 獲取指定代理會員API: agentId=${agentId}`);
+    console.log(`📡 获取指定代理会员API: agentId=${agentId}`);
     
     if (!agentId) {
       return res.status(400).json({
         success: false,
-        message: '缺少必要參數：agentId'
+        message: '缺少必要参数：agentId'
       });
     }
     
@@ -6302,26 +6302,26 @@ app.get(`${API_PREFIX}/agent-members`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ 獲取指定代理會員錯誤:', error);
+    console.error('❌ 获取指定代理会员错误:', error);
     res.status(500).json({
       success: false,
-      message: '獲取會員列表失敗',
+      message: '获取会员列表失败',
       error: error.message
     });
   }
 });
 
-// 遞歸獲取所有下級代理的輔助函數
+// 递归获取所有下级代理的辅助函数
 async function getAllDownlineAgents(rootAgentId) {
   const allAgents = [];
   
-  // 獲取直接下級代理
+  // 获取直接下级代理
   const directSubAgents = await AgentModel.findByParentId(rootAgentId, null, null, 1, 1000);
   
   for (const agent of directSubAgents) {
-    allAgents.push(parseInt(agent.id)); // 只返回ID，確保是整數
+    allAgents.push(parseInt(agent.id)); // 只返回ID，确保是整数
     
-    // 遞歸獲取該代理的下級代理
+    // 递归获取该代理的下级代理
     const subAgents = await getAllDownlineAgents(agent.id);
     allAgents.push(...subAgents);
   }
@@ -6329,12 +6329,12 @@ async function getAllDownlineAgents(rootAgentId) {
   return allAgents;
 }
 
-// 定期同步開獎記錄的函數
+// 定期同步开奖记录的函数
 async function syncDrawRecords() {
   try {
-    console.log('開始同步開獎記錄...');
+    console.log('开始同步开奖记录...');
     
-    // 獲取draw_records表中最新的一筆記錄，用來確定從哪裡開始同步
+    // 获取draw_records表中最新的一笔记录，用来确定从哪里开始同步
     const latestRecord = await db.oneOrNone(`
       SELECT period FROM draw_records ORDER BY period DESC LIMIT 1
     `);
@@ -6345,12 +6345,12 @@ async function syncDrawRecords() {
     if (latestRecord && latestRecord.period) {
       whereClause = 'WHERE period > $1';
       params.push(latestRecord.period);
-      console.log(`從期數 ${latestRecord.period} 以後開始同步`);
+      console.log(`从期数 ${latestRecord.period} 以后开始同步`);
     } else {
-      console.log('沒有現有記錄，將同步全部開獎歷史');
+      console.log('没有现有记录，将同步全部开奖历史');
     }
     
-    // 從result_history表獲取需要同步的記錄
+    // 从result_history表获取需要同步的记录
     const recordsToSync = await db.any(`
       SELECT period, result, created_at 
       FROM result_history 
@@ -6359,22 +6359,22 @@ async function syncDrawRecords() {
     `, params);
     
     if (recordsToSync.length === 0) {
-      // console.log('沒有新的開獎記錄需要同步'); // 減少日誌輸出
+      // console.log('没有新的开奖记录需要同步'); // 减少日志输出
       return;
     }
     
-    console.log(`找到 ${recordsToSync.length} 筆開獎記錄需要同步`);
+    console.log(`找到 ${recordsToSync.length} 笔开奖记录需要同步`);
     
-    // 逐一同步記錄
+    // 逐一同步记录
     for (const record of recordsToSync) {
       try {
-        // 正確處理result為JSONB格式
+        // 正确处理result为JSONB格式
         let result = record.result;
         if (typeof result === 'string') {
           result = JSON.parse(result);
         }
         
-        // 使用to_jsonb轉換確保PostgreSQL正確處理JSONB類型
+        // 使用to_jsonb转换确保PostgreSQL正确处理JSONB类型
         await db.none(`
           INSERT INTO draw_records (period, result, draw_time, created_at)
           VALUES ($1, $2::jsonb, $3, $4)
@@ -6382,70 +6382,70 @@ async function syncDrawRecords() {
           SET result = $2::jsonb, draw_time = $3
         `, [record.period, JSON.stringify(result), record.created_at, new Date()]);
         
-        // console.log(`同步開獎記錄: 期數=${record.period} 成功`); // 減少日誌輸出
+        // console.log(`同步开奖记录: 期数=${record.period} 成功`); // 减少日志输出
       } catch (insertError) {
-        console.error(`同步開獎記錄: 期數=${record.period} 失敗:`, insertError);
+        console.error(`同步开奖记录: 期数=${record.period} 失败:`, insertError);
       }
     }
     
-    console.log('開獎記錄同步完成');
+    console.log('开奖记录同步完成');
   } catch (error) {
-    console.error('同步開獎記錄時出錯:', error);
+    console.error('同步开奖记录时出错:', error);
   }
 }
 
-// 在服務器啟動時調用一次同步函數
+// 在服务器启动时调用一次同步函数
 async function startServer() {
   try {
-    // 檢測是否在Render環境運行
+    // 检测是否在Render环境运行
     const isRenderPlatform = process.env.RENDER === 'true' || 
                              process.env.RENDER_EXTERNAL_URL || 
                              process.env.RENDER_SERVICE_ID;
     
-    // 檢查是否已經存在標記文件，用於判斷是否為首次運行
+    // 检查是否已经存在标记文件，用于判断是否为首次运行
     let isFirstRun = false;
     try {
-      // 嘗試讀取標記文件
+      // 尝试读取标记文件
       await fs.access(path.join(__dirname, '.render_initialized'));
-      console.log('檢測到Render初始化標記，非首次運行');
+      console.log('检测到Render初始化标记，非首次运行');
     } catch (err) {
-      // 文件不存在，說明是首次運行
+      // 文件不存在，说明是首次运行
       isFirstRun = true;
-      console.log('未檢測到Render初始化標記，視為首次運行');
+      console.log('未检测到Render初始化标记，视为首次运行');
     }
     
     if (isRenderPlatform) {
-      console.log('檢測到Render部署環境');
+      console.log('检测到Render部署环境');
       process.env.RENDER = 'true';
       
       if (isFirstRun) {
-        console.log('設置為Render首次運行，將在需要時修改總代理為ti2025');
+        console.log('设置为Render首次运行，将在需要时修改总代理为ti2025');
         process.env.RENDER_FIRST_RUN = 'true';
       }
     }
     
     await initDatabase();
     
-    // 初始化會話管理系統
+    // 初始化会话管理系统
     await SessionManager.initialize();
     
-    // 如果是Render環境且首次運行，創建標記文件避免下次重置
+    // 如果是Render环境且首次运行，创建标记文件避免下次重置
     if (isRenderPlatform && isFirstRun) {
       try {
-        // 創建標記文件
+        // 创建标记文件
         await fs.writeFile(
           path.join(__dirname, '.render_initialized'), 
           `Initialized at ${new Date().toISOString()}`
         );
-        console.log('已創建Render初始化標記文件');
+        console.log('已创建Render初始化标记文件');
       } catch (err) {
-        console.error('創建初始化標記文件失敗:', err);
+        console.error('创建初始化标记文件失败:', err);
       }
     }
     
-    // 子帳號相關 API
+    // 子帐号相关 API
     
-    // 獲取子帳號列表
+    // 获取子帐号列表
     app.get(`${API_PREFIX}/subaccounts`, async (req, res) => {
       try {
         const authResult = await authenticateAgent(req);
@@ -6455,7 +6455,7 @@ async function startServer() {
         
         const agentId = authResult.agent.id;
         
-        // 查詢該代理的所有子帳號
+        // 查询该代理的所有子帐号
         const subAccounts = await db.any(`
           SELECT id, username, status, last_login, created_at
           FROM sub_accounts
@@ -6468,118 +6468,118 @@ async function startServer() {
           subAccounts
         });
       } catch (error) {
-        console.error('獲取子帳號列表失敗:', error);
+        console.error('获取子帐号列表失败:', error);
         res.status(500).json({
           success: false,
-          message: '系統錯誤，請稍後再試'
+          message: '系统错误，请稍后再试'
         });
       }
     });
     
-    // 創建子帳號
+    // 创建子帐号
     app.post(`${API_PREFIX}/subaccounts`, async (req, res) => {
       try {
-        console.log('📝 創建子帳號請求:', req.body);
+        console.log('📝 创建子帐号请求:', req.body);
         
         const authResult = await authenticateAgent(req);
         if (!authResult.success) {
-          console.log('❌ 認證失敗');
+          console.log('❌ 认证失败');
           return res.status(401).json(authResult);
         }
         
         const agentId = authResult.agent.id;
         const { username, password } = req.body;
         
-        console.log('📋 代理ID:', agentId, '子帳號名稱:', username);
+        console.log('📋 代理ID:', agentId, '子帐号名称:', username);
         
-        // 輸入驗證
+        // 输入验证
         if (!username || !password) {
           return res.status(400).json({
             success: false,
-            message: '請提供子帳號名稱和密碼'
+            message: '请提供子帐号名称和密码'
           });
         }
         
-        // 檢查是否已有 2 個子帳號
+        // 检查是否已有 2 个子帐号
         const count = await db.one(`
           SELECT COUNT(*) as count
           FROM sub_accounts
           WHERE parent_agent_id = $1
         `, [agentId]);
         
-        console.log('📊 現有子帳號數量:', count.count);
+        console.log('📊 现有子帐号数量:', count.count);
         
         if (parseInt(count.count) >= 2) {
           return res.json({
             success: false,
-            message: '每個代理最多只能創建 2 個子帳號'
+            message: '每个代理最多只能创建 2 个子帐号'
           });
         }
         
-        // 檢查用戶名是否在三個表中都唯一
-        console.log('🔍 檢查用戶名唯一性:', username);
+        // 检查用户名是否在三个表中都唯一
+        console.log('🔍 检查用户名唯一性:', username);
         
-        // 檢查代理表
+        // 检查代理表
         const existingAgent = await db.oneOrNone(`
           SELECT id FROM agents WHERE username = $1
         `, [username]);
         
         if (existingAgent) {
-          console.log('❌ 用戶名已被代理使用');
+          console.log('❌ 用户名已被代理使用');
           return res.json({
             success: false,
-            message: '此用戶名已被代理使用，請選擇其他名稱'
+            message: '此用户名已被代理使用，请选择其他名称'
           });
         }
         
-        // 檢查會員表
+        // 检查会员表
         const existingMember = await db.oneOrNone(`
           SELECT id FROM members WHERE username = $1
         `, [username]);
         
         if (existingMember) {
-          console.log('❌ 用戶名已被會員使用');
+          console.log('❌ 用户名已被会员使用');
           return res.json({
             success: false,
-            message: '此用戶名已被會員使用，請選擇其他名稱'
+            message: '此用户名已被会员使用，请选择其他名称'
           });
         }
         
-        // 檢查子帳號表
+        // 检查子帐号表
         const existingSubAccount = await db.oneOrNone(`
           SELECT id FROM sub_accounts WHERE username = $1
         `, [username]);
         
         if (existingSubAccount) {
-          console.log('❌ 用戶名已被其他子帳號使用');
+          console.log('❌ 用户名已被其他子帐号使用');
           return res.json({
             success: false,
-            message: '此用戶名已被其他子帳號使用，請選擇其他名稱'
+            message: '此用户名已被其他子帐号使用，请选择其他名称'
           });
         }
         
-        console.log('✅ 用戶名可以使用');
+        console.log('✅ 用户名可以使用');
         
-        // 加密密碼
+        // 加密密码
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // 創建子帳號
+        // 创建子帐号
         const newSubAccount = await db.one(`
           INSERT INTO sub_accounts (parent_agent_id, username, password)
           VALUES ($1, $2, $3)
           RETURNING id, username, status, created_at
         `, [agentId, username, hashedPassword]);
         
-        console.log('✅ 子帳號創建成功:', newSubAccount);
+        console.log('✅ 子帐号创建成功:', newSubAccount);
         
         res.json({
           success: true,
-          message: '子帳號創建成功',
+          message: '子帐号创建成功',
           subAccount: newSubAccount
         });
       } catch (error) {
-        console.error('❌ 創建子帳號失敗:', error);
-        console.error('錯誤詳情:', {
+        console.error('❌ 创建子帐号失败:', error);
+        console.error('错误详情:', {
           name: error.name,
           message: error.message,
           code: error.code,
@@ -6588,27 +6588,27 @@ async function startServer() {
           constraint: error.constraint
         });
         
-        // 檢查是否是資料庫錯誤
+        // 检查是否是资料库错误
         if (error.code === '42P01') {
           res.status(500).json({
             success: false,
-            message: '資料表不存在，請聯繫系統管理員'
+            message: '资料表不存在，请联系系统管理员'
           });
         } else if (error.code === '23505') {
           res.status(400).json({
             success: false,
-            message: '子帳號名稱已存在'
+            message: '子帐号名称已存在'
           });
         } else {
           res.status(500).json({
             success: false,
-            message: '系統錯誤，請稍後再試'
+            message: '系统错误，请稍后再试'
           });
         }
       }
     });
     
-    // 更新子帳號狀態
+    // 更新子帐号状态
     app.put(`${API_PREFIX}/subaccounts/:id/status`, async (req, res) => {
       try {
         const authResult = await authenticateAgent(req);
@@ -6620,7 +6620,7 @@ async function startServer() {
         const subAccountId = req.params.id;
         const { status } = req.body;
         
-        // 確認子帳號屬於該代理
+        // 确认子帐号属于该代理
         const subAccount = await db.oneOrNone(`
           SELECT id FROM sub_accounts
           WHERE id = $1 AND parent_agent_id = $2
@@ -6629,11 +6629,11 @@ async function startServer() {
         if (!subAccount) {
           return res.json({
             success: false,
-            message: '找不到該子帳號'
+            message: '找不到该子帐号'
           });
         }
         
-        // 更新狀態
+        // 更新状态
         await db.none(`
           UPDATE sub_accounts
           SET status = $1, updated_at = CURRENT_TIMESTAMP
@@ -6642,18 +6642,18 @@ async function startServer() {
         
         res.json({
           success: true,
-          message: status === 1 ? '子帳號已啟用' : '子帳號已停用'
+          message: status === 1 ? '子帐号已启用' : '子帐号已停用'
         });
       } catch (error) {
-        console.error('更新子帳號狀態失敗:', error);
+        console.error('更新子帐号状态失败:', error);
         res.status(500).json({
           success: false,
-          message: '系統錯誤，請稍後再試'
+          message: '系统错误，请稍后再试'
         });
       }
     });
     
-    // 代理更改自己的密碼
+    // 代理更改自己的密码
     app.put(`${API_PREFIX}/change-password`, async (req, res) => {
       try {
         const authResult = await authenticateAgent(req);
@@ -6664,24 +6664,24 @@ async function startServer() {
         const agentId = authResult.agent.id;
         const { currentPassword, newPassword } = req.body;
         
-        console.log('📝 代理更改密碼請求，代理ID:', agentId);
+        console.log('📝 代理更改密码请求，代理ID:', agentId);
         
-        // 驗證輸入
+        // 验证输入
         if (!currentPassword || !newPassword) {
           return res.status(400).json({
             success: false,
-            message: '請提供當前密碼和新密碼'
+            message: '请提供当前密码和新密码'
           });
         }
         
         if (newPassword.length < 6) {
           return res.status(400).json({
             success: false,
-            message: '新密碼長度至少需要 6 個字符'
+            message: '新密码长度至少需要 6 个字符'
           });
         }
         
-        // 獲取代理當前密碼
+        // 获取代理当前密码
         const agent = await db.oneOrNone(`
           SELECT id, username, password 
           FROM agents 
@@ -6691,56 +6691,56 @@ async function startServer() {
         if (!agent) {
           return res.status(404).json({
             success: false,
-            message: '找不到代理資料'
+            message: '找不到代理资料'
           });
         }
         
-        // 驗證當前密碼
+        // 验证当前密码
         let isValidPassword = false;
         
-        // 檢查密碼是否已經是 bcrypt hash
+        // 检查密码是否已经是 bcrypt hash
         if (agent.password.startsWith('$2b$') || agent.password.startsWith('$2a$')) {
-          // 使用 bcrypt 驗證
+          // 使用 bcrypt 验证
           isValidPassword = await bcrypt.compare(currentPassword, agent.password);
         } else {
-          // 明文密碼直接比較
+          // 明文密码直接比较
           isValidPassword = (agent.password === currentPassword);
         }
         
         if (!isValidPassword) {
-          console.log('❌ 當前密碼驗證失敗');
+          console.log('❌ 当前密码验证失败');
           return res.status(401).json({
             success: false,
-            message: '當前密碼錯誤'
+            message: '当前密码错误'
           });
         }
         
-        // 加密新密碼
+        // 加密新密码
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
-        // 更新密碼
+        // 更新密码
         await db.none(`
           UPDATE agents 
           SET password = $1, updated_at = CURRENT_TIMESTAMP
           WHERE id = $2
         `, [hashedPassword, agentId]);
         
-        console.log('✅ 代理密碼更改成功:', agent.username);
+        console.log('✅ 代理密码更改成功:', agent.username);
         
         res.json({
           success: true,
-          message: '密碼已成功更改'
+          message: '密码已成功更改'
         });
       } catch (error) {
-        console.error('❌ 更改密碼失敗:', error);
+        console.error('❌ 更改密码失败:', error);
         res.status(500).json({
           success: false,
-          message: '系統錯誤，請稍後再試'
+          message: '系统错误，请稍后再试'
         });
       }
     });
     
-    // 重設子帳號密碼
+    // 重设子帐号密码
     app.put(`${API_PREFIX}/subaccounts/:id/password`, async (req, res) => {
       try {
         const authResult = await authenticateAgent(req);
@@ -6752,17 +6752,17 @@ async function startServer() {
         const subAccountId = req.params.id;
         const { newPassword } = req.body;
         
-        console.log('📝 重設子帳號密碼請求:', { subAccountId, agentId });
+        console.log('📝 重设子帐号密码请求:', { subAccountId, agentId });
         
-        // 驗證新密碼
+        // 验证新密码
         if (!newPassword || newPassword.length < 6) {
           return res.status(400).json({
             success: false,
-            message: '密碼長度至少需要 6 個字符'
+            message: '密码长度至少需要 6 个字符'
           });
         }
         
-        // 確認子帳號屬於該代理
+        // 确认子帐号属于该代理
         const subAccount = await db.oneOrNone(`
           SELECT id, username FROM sub_accounts
           WHERE id = $1 AND parent_agent_id = $2
@@ -6771,36 +6771,36 @@ async function startServer() {
         if (!subAccount) {
           return res.json({
             success: false,
-            message: '找不到該子帳號'
+            message: '找不到该子帐号'
           });
         }
         
-        // 加密新密碼
+        // 加密新密码
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
-        // 更新密碼
+        // 更新密码
         await db.none(`
           UPDATE sub_accounts 
           SET password = $1, updated_at = CURRENT_TIMESTAMP
           WHERE id = $2
         `, [hashedPassword, subAccountId]);
         
-        console.log('✅ 子帳號密碼重設成功:', subAccount.username);
+        console.log('✅ 子帐号密码重设成功:', subAccount.username);
         
         res.json({
           success: true,
-          message: '密碼已成功重設'
+          message: '密码已成功重设'
         });
       } catch (error) {
-        console.error('❌ 重設子帳號密碼失敗:', error);
+        console.error('❌ 重设子帐号密码失败:', error);
         res.status(500).json({
           success: false,
-          message: '系統錯誤，請稍後再試'
+          message: '系统错误，请稍后再试'
         });
       }
     });
     
-    // 刪除子帳號
+    // 删除子帐号
     app.delete(`${API_PREFIX}/subaccounts/:id`, async (req, res) => {
       try {
         const authResult = await authenticateAgent(req);
@@ -6811,7 +6811,7 @@ async function startServer() {
         const agentId = authResult.agent.id;
         const subAccountId = req.params.id;
         
-        // 確認子帳號屬於該代理
+        // 确认子帐号属于该代理
         const subAccount = await db.oneOrNone(`
           SELECT id FROM sub_accounts
           WHERE id = $1 AND parent_agent_id = $2
@@ -6820,63 +6820,63 @@ async function startServer() {
         if (!subAccount) {
           return res.json({
             success: false,
-            message: '找不到該子帳號'
+            message: '找不到该子帐号'
           });
         }
         
-        // 刪除子帳號
+        // 删除子帐号
         await db.none(`
           DELETE FROM sub_accounts WHERE id = $1
         `, [subAccountId]);
         
         res.json({
           success: true,
-          message: '子帳號已刪除'
+          message: '子帐号已删除'
         });
       } catch (error) {
-        console.error('刪除子帳號失敗:', error);
+        console.error('删除子帐号失败:', error);
         res.status(500).json({
           success: false,
-          message: '系統錯誤，請稍後再試'
+          message: '系统错误，请稍后再试'
         });
       }
     });
     
-    // 創建 HTTP 服務器
+    // 创建 HTTP 服务器
     const server = createServer(app);
     
     // 初始化 WebSocket
     wsManager.initialize(server);
     
-    // 先啟動Express服務器，確保 Render 能檢測到端口
+    // 先启动Express服务器，确保 Render 能检测到端口
     const PORT = process.env.PORT || 3003;
     server.listen(PORT, () => {
-      console.log(`代理管理系統後端運行在端口 ${PORT}`);
-      console.log('WebSocket 服務已啟動');
+      console.log(`代理管理系统后端运行在端口 ${PORT}`);
+      console.log('WebSocket 服务已启动');
       
-      // 端口啟動後，異步執行開獎記錄同步，避免阻塞部署
+      // 端口启动后，异步执行开奖记录同步，避免阻塞部署
       setImmediate(async () => {
         try {
-          console.log('開始異步同步開獎記錄...');
+          console.log('开始异步同步开奖记录...');
           await syncDrawRecords();
-          console.log('開獎記錄同步完成');
+          console.log('开奖记录同步完成');
           
-          // 每60秒同步一次開獎記錄作為備援（主要依靠即時同步）
+          // 每60秒同步一次开奖记录作为备援（主要依靠即时同步）
           setInterval(syncDrawRecords, 60 * 1000);
         } catch (error) {
-          console.error('同步開獎記錄失敗:', error);
-          // 即使同步失敗，服務器仍然可以運行
+          console.error('同步开奖记录失败:', error);
+          // 即使同步失败，服务器仍然可以运行
         }
       });
     });
   } catch (error) {
-    console.error('啟動服務器時出錯:', error);
+    console.error('启动服务器时出错:', error);
   }
 }
 
 // ... existing code ...
 
-// 會員下注記錄查詢 API
+// 会员下注记录查询 API
 app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -6887,19 +6887,19 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
     const { agent: currentAgent } = authResult;
     const { memberUsername, startDate, endDate, page = 1, limit = 20 } = req.query;
     
-    console.log('📊 查詢會員下注記錄:', { 
+    console.log('📊 查询会员下注记录:', { 
       memberUsername, startDate, endDate, page, limit, currentAgentId: currentAgent.id
     });
     
     if (!memberUsername) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名'
+        message: '请提供会员用户名'
       });
     }
 
     try {
-      // 驗證會員是否屬於當前代理的下線（簡化版，直接查詢會員）
+      // 验证会员是否属于当前代理的下线（简化版，直接查询会员）
       const member = await db.oneOrNone(`
         SELECT m.id, m.username, m.agent_id, m.balance, m.market_type
         FROM members m
@@ -6909,14 +6909,14 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
       if (!member) {
         return res.json({
           success: false,
-          message: '會員不存在'
+          message: '会员不存在'
         });
       }
 
-      // 檢查會員是否在當前代理的管理範圍內（暫時跳過，用於測試）
-      console.log('找到會員:', member);
+      // 检查会员是否在当前代理的管理范围内（暂时跳过，用于测试）
+      console.log('找到会员:', member);
 
-      // 構建查詢條件，支援結算狀態篩選
+      // 构建查询条件，支援结算状态筛选
       let whereClause = 'WHERE bh.username = $1';
       let params = [memberUsername];
       let paramIndex = 2;
@@ -6933,22 +6933,22 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
         paramIndex++;
       }
 
-      // 如果有結算狀態篩選
+      // 如果有结算状态筛选
       const { settlementStatus } = req.query;
       if (settlementStatus === 'settled') {
         whereClause += ` AND bh.settled = true`;
       } else if (settlementStatus === 'unsettled') {
         whereClause += ` AND bh.settled = false`;
       }
-      // 如果不指定或指定為空，則顯示全部（已結算和未結算）
+      // 如果不指定或指定为空，则显示全部（已结算和未结算）
 
-      // 查詢總數
+      // 查询总数
       const totalQuery = `SELECT COUNT(*) as total FROM bet_history bh ${whereClause}`;
       const totalResult = await db.one(totalQuery, params);
       const total = parseInt(totalResult.total);
       const totalPages = Math.ceil(total / limit);
 
-      // 查詢下注記錄（使用正確的欄位名稱）
+      // 查询下注记录（使用正确的栏位名称）
       const offset = (page - 1) * limit;
       const recordsQuery = `
         SELECT 
@@ -6972,47 +6972,47 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
       
       const records = await db.any(recordsQuery, params);
 
-      // 格式化記錄，加上必要的欄位和佔成明細
+      // 格式化记录，加上必要的栏位和占成明细
       const formattedRecords = await Promise.all(records.map(async (record) => {
-        // 獲取這筆下注的代理鏈佔成明細
+        // 获取这笔下注的代理链占成明细
         const commissionDetails = await getCommissionDetailsForBet(record.username, parseFloat(record.bet_amount));
         
-        // 判斷結算狀態和結果
+        // 判断结算状态和结果
         let result, profitLoss;
         if (!record.settled) {
-          // 未結算注單
-          result = '未結算';
-          profitLoss = 0; // 未結算時盈虧為0
+          // 未结算注单
+          result = '未结算';
+          profitLoss = 0; // 未结算时盈亏为0
         } else {
-          // 已結算注單
-          result = record.win ? '贏' : '輸';
+          // 已结算注单
+          result = record.win ? '赢' : '输';
           profitLoss = record.win ? parseFloat(record.win_amount) - parseFloat(record.bet_amount) : -parseFloat(record.bet_amount);
         }
         
         return {
           id: record.id,
-          bet_id: record.id, // 使用 id 作為 bet_id
+          bet_id: record.id, // 使用 id 作为 bet_id
           username: record.username,
           game_type: record.game_type,
-          bet_type: record.game_type, // 為前端兼容性添加 bet_type
+          bet_type: record.game_type, // 为前端兼容性添加 bet_type
           period_number: record.period,
           bet_content: record.bet_content,
-          bet_value: record.bet_content, // 為前端兼容性添加 bet_value
+          bet_value: record.bet_content, // 为前端兼容性添加 bet_value
           position: record.position, // 添加位置信息
           bet_amount: parseFloat(record.bet_amount),
           odds: parseFloat(record.odds),
           result: result,
           profit_loss: profitLoss,
-          settled: record.settled, // 添加結算狀態欄位
-          rebate_percentage: commissionDetails.length > 0 ? commissionDetails[0].rebate_rate * 100 : 2.0, // 轉換為百分比
-          market_type: member.market_type || 'A', // 從會員資料取得
+          settled: record.settled, // 添加结算状态栏位
+          rebate_percentage: commissionDetails.length > 0 ? commissionDetails[0].rebate_rate * 100 : 2.0, // 转换为百分比
+          market_type: member.market_type || 'A', // 从会员资料取得
           created_at: record.created_at,
           commission_rate: 0.0,
           commission_details: commissionDetails
         };
       }));
 
-      // 計算統計資訊
+      // 计算统计资讯
       const statsQuery = `
         SELECT 
           COUNT(*) as total_bets,
@@ -7026,7 +7026,7 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
 
       res.json({
         success: true,
-        data: formattedRecords, // 直接返回記錄陣列
+        data: formattedRecords, // 直接返回记录阵列
         memberInfo: {
           id: member.id,
           username: member.username,
@@ -7047,23 +7047,23 @@ app.get(`${API_PREFIX}/member-bet-records`, async (req, res) => {
       });
       
     } catch (dbError) {
-      console.error('查詢會員下注記錄數據庫錯誤:', dbError);
+      console.error('查询会员下注记录数据库错误:', dbError);
       res.json({
         success: false,
-        message: '查詢失敗，請稍後再試'
+        message: '查询失败，请稍后再试'
       });
     }
     
   } catch (error) {
-    console.error('查詢會員下注記錄失敗:', error);
+    console.error('查询会员下注记录失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 佔成明細查詢 API  
+// 占成明细查询 API  
 app.get(`${API_PREFIX}/bet-commission-details/:betId`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -7073,10 +7073,10 @@ app.get(`${API_PREFIX}/bet-commission-details/:betId`, async (req, res) => {
 
     const { betId } = req.params;
     
-    console.log('🔍 查詢佔成明細:', betId);
+    console.log('🔍 查询占成明细:', betId);
     
     try {
-      // 查詢投注記錄（使用正確的欄位名稱）
+      // 查询投注记录（使用正确的栏位名称）
       const bet = await db.oneOrNone(`
         SELECT id, username, amount as bet_amount, bet_type as game_type, period
         FROM bet_history 
@@ -7086,11 +7086,11 @@ app.get(`${API_PREFIX}/bet-commission-details/:betId`, async (req, res) => {
       if (!bet) {
         return res.json({
           success: false,
-          message: '投注記錄不存在'
+          message: '投注记录不存在'
         });
       }
 
-      // 模擬佔成明細數據（實際應從佣金分配表查詢）
+      // 模拟占成明细数据（实际应从佣金分配表查询）
       const commissionDetails = [
         {
           id: 1,
@@ -7117,23 +7117,23 @@ app.get(`${API_PREFIX}/bet-commission-details/:betId`, async (req, res) => {
       });
       
     } catch (dbError) {
-      console.error('查詢佔成明細數據庫錯誤:', dbError);
+      console.error('查询占成明细数据库错误:', dbError);
       res.json({
         success: false,
-        message: '查詢失敗，請稍後再試'
+        message: '查询失败，请稍后再试'
       });
     }
     
   } catch (error) {
-    console.error('查詢佔成明細失敗:', error);
+    console.error('查询占成明细失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 開獎結果查詢 API
+// 开奖结果查询 API
 app.get(`${API_PREFIX}/draw-result/:gameType/:periodNumber`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -7143,10 +7143,10 @@ app.get(`${API_PREFIX}/draw-result/:gameType/:periodNumber`, async (req, res) =>
 
     const { gameType, periodNumber } = req.params;
     
-    console.log('🎲 查詢開獎結果:', gameType, periodNumber);
+    console.log('🎲 查询开奖结果:', gameType, periodNumber);
     
     try {
-      // 查詢開獎結果
+      // 查询开奖结果
       const drawResult = await db.oneOrNone(`
         SELECT period, result, draw_time, created_at
         FROM draw_records 
@@ -7158,11 +7158,11 @@ app.get(`${API_PREFIX}/draw-result/:gameType/:periodNumber`, async (req, res) =>
       if (!drawResult) {
         return res.json({
           success: false,
-          message: '該期開獎結果暫未公布'
+          message: '该期开奖结果暂未公布'
         });
       }
 
-      // 解析開獎號碼
+      // 解析开奖号码
       let resultNumbers = [];
       try {
         if (typeof drawResult.result === 'string') {
@@ -7171,7 +7171,7 @@ app.get(`${API_PREFIX}/draw-result/:gameType/:periodNumber`, async (req, res) =>
           resultNumbers = drawResult.result;
         }
       } catch (parseError) {
-        console.warn('解析開獎號碼失敗:', parseError);
+        console.warn('解析开奖号码失败:', parseError);
         resultNumbers = [];
       }
 
@@ -7185,56 +7185,56 @@ app.get(`${API_PREFIX}/draw-result/:gameType/:periodNumber`, async (req, res) =>
       });
       
     } catch (dbError) {
-      console.error('查詢開獎結果數據庫錯誤:', dbError);
+      console.error('查询开奖结果数据库错误:', dbError);
       res.json({
         success: false,
-        message: '查詢失敗，請稍後再試'
+        message: '查询失败，请稍后再试'
       });
     }
     
   } catch (error) {
-    console.error('查詢開獎結果失敗:', error);
+    console.error('查询开奖结果失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// ... 保持 startServer() 函數的調用 ...
+// ... 保持 startServer() 函数的调用 ...
 startServer();
 
-// 客服專用: 代理點數轉移操作
+// 客服专用: 代理点数转移操作
 app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
   const { operatorId, targetAgentId, amount, transferType, description } = req.body;
   
   try {
-    console.log(`客服代理點數轉移: 操作員=${operatorId}, 目標代理=${targetAgentId}, 金額=${amount}, 類型=${transferType}`);
+    console.log(`客服代理点数转移: 操作员=${operatorId}, 目标代理=${targetAgentId}, 金额=${amount}, 类型=${transferType}`);
     
-    // 檢查操作員是否為客服
+    // 检查操作员是否为客服
     const isCS = await AgentModel.isCustomerService(operatorId);
     if (!isCS) {
       return res.json({
         success: false,
-        message: '權限不足，只有客服可以執行此操作'
+        message: '权限不足，只有客服可以执行此操作'
       });
     }
     
-    // 獲取客服代理（操作員）
+    // 获取客服代理（操作员）
     const csAgent = await AgentModel.findById(operatorId);
     if (!csAgent) {
       return res.json({
         success: false,
-        message: '客服用戶不存在'
+        message: '客服用户不存在'
       });
     }
     
-    // 獲取目標代理
+    // 获取目标代理
     const targetAgent = await AgentModel.findById(targetAgentId);
     if (!targetAgent) {
       return res.json({
         success: false,
-        message: '目標代理不存在'
+        message: '目标代理不存在'
       });
     }
     
@@ -7242,14 +7242,14 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
     let result;
     
     if (transferType === 'deposit') {
-      // 存款：客服 -> 目標代理
-      console.log(`執行存款操作: 客服(${csAgent.username}) -> 目標代理(${targetAgent.username}), 金額=${transferAmount}`);
+      // 存款：客服 -> 目标代理
+      console.log(`执行存款操作: 客服(${csAgent.username}) -> 目标代理(${targetAgent.username}), 金额=${transferAmount}`);
       
-      // 檢查客服餘額是否足夠
+      // 检查客服余额是否足够
       if (parseFloat(csAgent.balance) < transferAmount) {
         return res.json({
           success: false,
-          message: '客服餘額不足'
+          message: '客服余额不足'
         });
       }
       
@@ -7261,14 +7261,14 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
         true // 客服操作
       );
     } else if (transferType === 'withdraw') {
-      // 提款：目標代理 -> 客服
-      console.log(`執行提款操作: 目標代理(${targetAgent.username}) -> 客服(${csAgent.username}), 金額=${transferAmount}`);
+      // 提款：目标代理 -> 客服
+      console.log(`执行提款操作: 目标代理(${targetAgent.username}) -> 客服(${csAgent.username}), 金额=${transferAmount}`);
       
-      // 檢查目標代理餘額是否足夠
+      // 检查目标代理余额是否足够
       if (parseFloat(targetAgent.balance) < transferAmount) {
         return res.json({
           success: false,
-          message: '目標代理餘額不足'
+          message: '目标代理余额不足'
         });
       }
       
@@ -7282,61 +7282,61 @@ app.post(`${API_PREFIX}/cs-agent-transfer`, async (req, res) => {
     } else {
       return res.json({
         success: false,
-        message: '無效的轉移類型'
+        message: '无效的转移类型'
       });
     }
     
-    console.log(`客服代理點數轉移成功`);
+    console.log(`客服代理点数转移成功`);
     
-    // 獲取更新後的客服餘額
+    // 获取更新后的客服余额
     const updatedCSAgent = await AgentModel.findById(operatorId);
     
     res.json({
       success: true,
-      message: '代理點數轉移成功',
+      message: '代理点数转移成功',
       agent: {
         id: result.toAgent.id,
         username: result.toAgent.username,
         balance: result.toAgent.balance
       },
-      csBalance: updatedCSAgent.balance // 返回客服最新餘額
+      csBalance: updatedCSAgent.balance // 返回客服最新余额
     });
     
   } catch (error) {
-    console.error('客服代理點數轉移失敗:', error);
+    console.error('客服代理点数转移失败:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 客服專用: 會員點數轉移操作
+// 客服专用: 会员点数转移操作
 app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
   const { operatorId, agentId, targetMemberUsername, amount, transferType, description } = req.body;
   
   try {
-    console.log(`客服會員點數轉移: 操作員=${operatorId}, 代理=${agentId}, 目標會員=${targetMemberUsername}, 金額=${amount}, 類型=${transferType}`);
+    console.log(`客服会员点数转移: 操作员=${operatorId}, 代理=${agentId}, 目标会员=${targetMemberUsername}, 金额=${amount}, 类型=${transferType}`);
     
-    // 檢查操作員是否為客服
+    // 检查操作员是否为客服
     const isCS = await AgentModel.isCustomerService(operatorId);
     if (!isCS) {
       return res.json({
         success: false,
-        message: '權限不足，只有客服可以執行此操作'
+        message: '权限不足，只有客服可以执行此操作'
       });
     }
     
-    // 獲取客服代理（操作員）
+    // 获取客服代理（操作员）
     const csAgent = await AgentModel.findById(operatorId);
     if (!csAgent) {
       return res.json({
         success: false,
-        message: '客服用戶不存在'
+        message: '客服用户不存在'
       });
     }
     
-    // 獲取代理
+    // 获取代理
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -7345,20 +7345,20 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
       });
     }
     
-    // 獲取會員
+    // 获取会员
     const member = await MemberModel.findByUsername(targetMemberUsername);
     if (!member) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 驗證會員屬於該代理
+    // 验证会员属于该代理
     if (member.agent_id !== parseInt(agentId)) {
       return res.json({
         success: false,
-        message: '會員不屬於指定的代理'
+        message: '会员不属于指定的代理'
       });
     }
     
@@ -7366,29 +7366,29 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
     let result;
     
     if (transferType === 'deposit') {
-      // 存款：客服 -> 會員（先從客服轉給代理，再從代理轉給會員）
-      console.log(`執行存款操作: 客服(${csAgent.username}) -> 會員(${member.username}), 金額=${transferAmount}`);
+      // 存款：客服 -> 会员（先从客服转给代理，再从代理转给会员）
+      console.log(`执行存款操作: 客服(${csAgent.username}) -> 会员(${member.username}), 金额=${transferAmount}`);
       
-      // 檢查客服餘額是否足夠
+      // 检查客服余额是否足够
       if (parseFloat(csAgent.balance) < transferAmount) {
         return res.json({
           success: false,
-          message: '客服餘額不足'
+          message: '客服余额不足'
         });
       }
       
-      // 開始數據庫事務
+      // 开始数据库事务
       result = await db.tx(async t => {
-        // 1. 客服轉給代理
+        // 1. 客服转给代理
         await PointTransferModel.transferFromAgentToAgent(
           operatorId, 
           agentId, 
           transferAmount, 
-          `客服給${member.username}存款-轉給代理`,
+          `客服给${member.username}存款-转给代理`,
           true // 客服操作
         );
         
-        // 2. 代理轉給會員
+        // 2. 代理转给会员
         const memberResult = await PointTransferModel.transferFromAgentToMember(
           agentId, 
           member.id, 
@@ -7400,29 +7400,29 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
         return memberResult;
       });
     } else if (transferType === 'withdraw') {
-      // 提款：會員 -> 客服（先從會員轉給代理，再從代理轉給客服）
-      console.log(`執行提款操作: 會員(${member.username}) -> 客服(${csAgent.username}), 金額=${transferAmount}`);
+      // 提款：会员 -> 客服（先从会员转给代理，再从代理转给客服）
+      console.log(`执行提款操作: 会员(${member.username}) -> 客服(${csAgent.username}), 金额=${transferAmount}`);
       
-      // 檢查會員餘額是否足夠
+      // 检查会员余额是否足够
       if (parseFloat(member.balance) < transferAmount) {
         return res.json({
           success: false,
-          message: '會員餘額不足'
+          message: '会员余额不足'
         });
       }
       
-      // 開始數據庫事務
+      // 开始数据库事务
       result = await db.tx(async t => {
-        // 1. 會員轉給代理
+        // 1. 会员转给代理
         await PointTransferModel.transferFromMemberToAgent(
           member.id, 
           agentId, 
           transferAmount, 
-          `客服從${member.username}提款-先給代理`,
+          `客服从${member.username}提款-先给代理`,
           true // 客服操作
         );
         
-        // 2. 代理轉給客服
+        // 2. 代理转给客服
         await PointTransferModel.transferFromAgentToAgent(
           agentId, 
           operatorId, 
@@ -7431,63 +7431,63 @@ app.post(`${API_PREFIX}/cs-member-transfer`, async (req, res) => {
           true // 客服操作
         );
         
-        // 返回更新後的會員資料
+        // 返回更新后的会员资料
         return await MemberModel.findById(member.id);
       });
     } else {
       return res.json({
         success: false,
-        message: '無效的轉移類型'
+        message: '无效的转移类型'
       });
     }
     
-    console.log(`客服會員點數轉移成功`);
+    console.log(`客服会员点数转移成功`);
     
-    // 重新獲取最新的會員和客服資料
+    // 重新获取最新的会员和客服资料
     const updatedMember = await MemberModel.findById(member.id);
     const updatedCSAgent = await AgentModel.findById(operatorId);
     
     res.json({
       success: true,
-      message: '會員點數轉移成功',
+      message: '会员点数转移成功',
       member: {
         id: updatedMember.id,
         username: updatedMember.username,
         balance: updatedMember.balance
       },
-      csBalance: updatedCSAgent.balance // 返回客服最新餘額
+      csBalance: updatedCSAgent.balance // 返回客服最新余额
     });
     
   } catch (error) {
-    console.error('客服會員點數轉移失敗:', error);
+    console.error('客服会员点数转移失败:', error);
     res.status(500).json({
       success: false,
-      message: error.message || '系統錯誤，請稍後再試'
+      message: error.message || '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取客服交易記錄（包含所有cs_deposit和cs_withdraw類型的交易）
+// 获取客服交易记录（包含所有cs_deposit和cs_withdraw类型的交易）
 app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
   const { operatorId, page = 1, limit = 20, userType = 'all', transactionType = 'all' } = req.query;
   
   try {
-    console.log(`獲取客服交易記錄: 操作員=${operatorId}, 頁碼=${page}, 數量=${limit}`);
+    console.log(`获取客服交易记录: 操作员=${operatorId}, 页码=${page}, 数量=${limit}`);
     
-    // 檢查操作員是否為客服（總代理）
+    // 检查操作员是否为客服（总代理）
     const operator = await AgentModel.findById(operatorId);
     if (!operator || operator.level !== 0) {
       return res.json({
         success: false,
-        message: '權限不足，只有總代理可以查看此記錄'
+        message: '权限不足，只有总代理可以查看此记录'
       });
     }
     
-    // 獲取該總代理下的所有下級代理ID（包括自己）
+    // 获取该总代理下的所有下级代理ID（包括自己）
     const allDownlineAgents = await getAllDownlineAgents(operatorId);
     const allAgentIds = [...allDownlineAgents, parseInt(operatorId)]; // 包含自己
     
-    // 獲取這些代理下的所有會員ID - 使用IN語法替代ANY
+    // 获取这些代理下的所有会员ID - 使用IN语法替代ANY
     let memberQuery = 'SELECT id FROM members WHERE agent_id IN (';
     memberQuery += allAgentIds.map((_, i) => `$${i + 1}`).join(',');
     memberQuery += ')';
@@ -7510,7 +7510,7 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
       WHERE (t.transaction_type = 'cs_deposit' OR t.transaction_type = 'cs_withdraw')
     `;
     
-    // 使用IN語法替代ANY語法
+    // 使用IN语法替代ANY语法
     const params = [];
     if (allAgentIds.length > 0 && memberIds.length > 0) {
       const agentPlaceholders = allAgentIds.map((_, i) => `$${i + 1}`).join(',');
@@ -7522,34 +7522,34 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
       query += ` AND t.user_type = 'agent' AND t.user_id IN (${agentPlaceholders})`;
       params.push(...allAgentIds);
     } else {
-      // 沒有代理ID，返回空結果
+      // 没有代理ID，返回空结果
       query += ` AND 1=0`;
     }
     
-    // 篩選用戶類型
+    // 筛选用户类型
     if (userType !== 'all') {
       query += ` AND t.user_type = $${params.length + 1}`;
       params.push(userType);
     }
     
-    // 篩選交易類型
+    // 筛选交易类型
     if (transactionType !== 'all') {
       query += ` AND t.transaction_type = $${params.length + 1}`;
       params.push(transactionType);
     }
     
-    // 獲取總數
+    // 获取总数
     const countQuery = query.replace(/SELECT[\s\S]*?FROM/i, 'SELECT COUNT(*) FROM');
     const totalResult = await db.one(countQuery, params);
     const total = parseInt(totalResult.count);
     
-    // 添加排序和分頁
+    // 添加排序和分页
     query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
     
     const transactions = await db.any(query, params);
     
-    console.log(`獲取客服交易記錄成功: 找到 ${transactions.length} 筆記錄，總計 ${total} 筆`);
+    console.log(`获取客服交易记录成功: 找到 ${transactions.length} 笔记录，总计 ${total} 笔`);
     
     res.json({
       success: true,
@@ -7562,29 +7562,29 @@ app.get(`${API_PREFIX}/cs-transactions`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取客服交易記錄失敗:', error);
+    console.error('获取客服交易记录失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取代理交易記錄（按類型篩選）
+// 获取代理交易记录（按类型筛选）
 app.get(`${API_PREFIX}/transactions`, async (req, res) => {
   const { agentId, type, page = 1, limit = 20 } = req.query;
   
   try {
-    console.log(`獲取交易記錄: 代理ID=${agentId}, 類型=${type}, 頁碼=${page}, 數量=${limit}`);
+    console.log(`获取交易记录: 代理ID=${agentId}, 类型=${type}, 页码=${page}, 数量=${limit}`);
     
     if (!agentId) {
       return res.json({
         success: false,
-        message: '請提供代理ID'
+        message: '请提供代理ID'
       });
     }
 
-    // 檢查代理是否存在
+    // 检查代理是否存在
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
       return res.json({
@@ -7611,21 +7611,21 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     
     const params = [];
     
-    // 數據隔離：每個代理只能查看自己線下的交易記錄
+    // 数据隔离：每个代理只能查看自己线下的交易记录
     if (agent.level === 0) {
-      // 總代理只能查看自己盤口線下的交易記錄，不能查看其他盤口
-      // 獲取該總代理下的所有下級代理ID（包括自己）
+      // 总代理只能查看自己盘口线下的交易记录，不能查看其他盘口
+      // 获取该总代理下的所有下级代理ID（包括自己）
       const allDownlineAgents = await getAllDownlineAgents(agentId);
       const allAgentIds = [...allDownlineAgents, agentId]; // 包含自己
       
-      // 獲取這些代理下的所有會員ID - 使用IN語法替代ANY
+      // 获取这些代理下的所有会员ID - 使用IN语法替代ANY
       let memberQuery = 'SELECT id FROM members WHERE agent_id IN (';
       memberQuery += allAgentIds.map((_, i) => `$${i + 1}`).join(',');
       memberQuery += ')';
       const members = await db.any(memberQuery, allAgentIds);
       const memberIds = members.map(m => parseInt(m.id));
       
-      // 使用IN語法替代ANY語法
+      // 使用IN语法替代ANY语法
       if (allAgentIds.length > 0 && memberIds.length > 0) {
         const agentPlaceholders = allAgentIds.map((_, i) => `$${params.length + i + 1}`).join(',');
         const memberPlaceholders = memberIds.map((_, i) => `$${params.length + allAgentIds.length + i + 1}`).join(',');
@@ -7636,15 +7636,15 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
         query += ` AND t.user_type = 'agent' AND t.user_id IN (${agentPlaceholders})`;
         params.push(...allAgentIds);
       } else {
-        // 沒有代理ID，返回空結果
+        // 没有代理ID，返回空结果
         query += ` AND 1=0`;
       }
     } else {
-      // 非總代理只能查看自己和直接下級的交易
+      // 非总代理只能查看自己和直接下级的交易
       const members = await db.any('SELECT id FROM members WHERE agent_id = $1', [agentId]);
-      const memberIds = members.map(m => parseInt(m.id)); // 確保是整數
+      const memberIds = members.map(m => parseInt(m.id)); // 确保是整数
       
-      console.log(`非總代理${agentId}的會員IDs:`, memberIds);
+      console.log(`非总代理${agentId}的会员IDs:`, memberIds);
       
       if (memberIds.length > 0) {
         const memberPlaceholders = memberIds.map((_, i) => `$${params.length + 2 + i}`).join(',');
@@ -7656,33 +7656,33 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
       }
     }
     
-    // 按類型篩選 - 修復交易類型分類
+    // 按类型筛选 - 修复交易类型分类
     if (type === 'deposit') {
-      // 存款記錄：只有客服存款操作
+      // 存款记录：只有客服存款操作
       query += ` AND t.transaction_type = 'cs_deposit'`;
     } else if (type === 'withdraw') {
-      // 提款記錄：只有客服提款操作
+      // 提款记录：只有客服提款操作
       query += ` AND t.transaction_type = 'cs_withdraw'`;
     } else if (type === 'rebate') {
-      // 退水記錄
+      // 退水记录
       query += ` AND t.transaction_type = 'rebate'`;
     } else if (type === 'bet') {
-      // 下注記錄：包含遊戲下注和中獎
+      // 下注记录：包含游戏下注和中奖
       query += ` AND (t.transaction_type = 'game_bet' OR t.transaction_type = 'game_win')`;
     }
     
-    // 獲取總數
+    // 获取总数
     const countQuery = query.replace(/SELECT[\s\S]*?FROM/i, 'SELECT COUNT(*) FROM');
     const totalResult = await db.one(countQuery, params);
     const total = parseInt(totalResult.count);
     
-    // 添加排序和分頁
+    // 添加排序和分页
     query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
     
     const transactions = await db.any(query, params);
     
-    console.log(`獲取交易記錄成功: 找到 ${transactions.length} 筆記錄，總計 ${total} 筆`);
+    console.log(`获取交易记录成功: 找到 ${transactions.length} 笔记录，总计 ${total} 笔`);
     
     res.json({
       success: true,
@@ -7695,70 +7695,70 @@ app.get(`${API_PREFIX}/transactions`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取交易記錄失敗:', error);
+    console.error('获取交易记录失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
 // ... existing code ...
 
-// 重設代理密碼
+// 重设代理密码
 app.post(`${API_PREFIX}/reset-agent-password`, async (req, res) => {
   const { userId, newPassword, operatorId } = req.body;
   
   try {
-    console.log(`重設代理密碼: 代理ID=${userId}, 操作員=${operatorId}`);
+    console.log(`重设代理密码: 代理ID=${userId}, 操作员=${operatorId}`);
     
-    // 驗證參數
+    // 验证参数
     if (!userId || !newPassword || !operatorId) {
       return res.json({
         success: false,
-        message: '參數不完整'
+        message: '参数不完整'
       });
     }
     
-    // 驗證密碼長度
+    // 验证密码长度
     if (newPassword.length < 6) {
       return res.json({
         success: false,
-        message: '密碼長度至少6個字符'
+        message: '密码长度至少6个字符'
       });
     }
     
-    // 檢查操作員權限（只有上級代理可以重設下級密碼）
+    // 检查操作员权限（只有上级代理可以重设下级密码）
     const operator = await AgentModel.findById(operatorId);
     if (!operator) {
       return res.json({
         success: false,
-        message: '操作員不存在'
+        message: '操作员不存在'
       });
     }
     
-    // 檢查目標代理是否存在
+    // 检查目标代理是否存在
     const targetAgent = await AgentModel.findById(userId);
     if (!targetAgent) {
       return res.json({
         success: false,
-        message: '目標代理不存在'
+        message: '目标代理不存在'
       });
     }
     
-    // 權限檢查：只有總代理或直接上級可以重設密碼
+    // 权限检查：只有总代理或直接上级可以重设密码
     if (operator.level !== 0 && targetAgent.parent_id !== operator.id) {
       return res.json({
         success: false,
-        message: '權限不足，只能重設直接下級代理的密碼'
+        message: '权限不足，只能重设直接下级代理的密码'
       });
     }
     
-    // 更新密碼（後端會自動加密）
+    // 更新密码（后端会自动加密）
     const result = await AgentModel.updatePassword(userId, newPassword);
     
     if (result) {
-      // 記錄操作日誌
+      // 记录操作日志
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
@@ -7770,83 +7770,83 @@ app.post(`${API_PREFIX}/reset-agent-password`, async (req, res) => {
         'password_reset', 
         targetAgent.balance, 
         targetAgent.balance, 
-        `密碼重設 by ${operator.username}`
+        `密码重设 by ${operator.username}`
       ]);
       
-      console.log(`代理密碼重設成功: ${targetAgent.username}`);
+      console.log(`代理密码重设成功: ${targetAgent.username}`);
       res.json({
         success: true,
-        message: '密碼重設成功'
+        message: '密码重设成功'
       });
     } else {
       res.json({
         success: false,
-        message: '密碼重設失敗'
+        message: '密码重设失败'
       });
     }
   } catch (error) {
-    console.error('重設代理密碼錯誤:', error);
+    console.error('重设代理密码错误:', error);
     res.json({
       success: false,
-      message: '服務器錯誤'
+      message: '服务器错误'
     });
   }
 });
 
-// 重設會員密碼
+// 重设会员密码
 app.post(`${API_PREFIX}/reset-member-password`, async (req, res) => {
   const { userId, newPassword, operatorId } = req.body;
   
   try {
-    console.log(`重設會員密碼: 會員ID=${userId}, 操作員=${operatorId}`);
+    console.log(`重设会员密码: 会员ID=${userId}, 操作员=${operatorId}`);
     
-    // 驗證參數
+    // 验证参数
     if (!userId || !newPassword || !operatorId) {
       return res.json({
         success: false,
-        message: '參數不完整'
+        message: '参数不完整'
       });
     }
     
-    // 驗證密碼長度
+    // 验证密码长度
     if (newPassword.length < 6) {
       return res.json({
         success: false,
-        message: '密碼長度至少6個字符'
+        message: '密码长度至少6个字符'
       });
     }
     
-    // 檢查操作員權限
+    // 检查操作员权限
     const operator = await AgentModel.findById(operatorId);
     if (!operator) {
       return res.json({
         success: false,
-        message: '操作員不存在'
+        message: '操作员不存在'
       });
     }
     
-    // 檢查目標會員是否存在
+    // 检查目标会员是否存在
     const targetMember = await MemberModel.findById(userId);
     if (!targetMember) {
       return res.json({
         success: false,
-        message: '目標會員不存在'
+        message: '目标会员不存在'
       });
     }
     
-    // 權限檢查：只有該會員的代理或總代理可以重設密碼
+    // 权限检查：只有该会员的代理或总代理可以重设密码
     if (operator.level !== 0 && targetMember.agent_id !== operator.id) {
       return res.json({
         success: false,
-        message: '權限不足，只能重設自己旗下會員的密碼'
+        message: '权限不足，只能重设自己旗下会员的密码'
       });
     }
     
-    // 更新密碼
+    // 更新密码
     const result = await MemberModel.updatePassword(userId, newPassword);
     
     if (result) {
-      // 記錄操作日誌
+      // 记录操作日志
       await db.none(`
         INSERT INTO transaction_records 
         (user_type, user_id, amount, transaction_type, balance_before, balance_after, description) 
@@ -7858,64 +7858,64 @@ app.post(`${API_PREFIX}/reset-member-password`, async (req, res) => {
         'password_reset', 
         targetMember.balance, 
         targetMember.balance, 
-        `密碼重設 by ${operator.username}`
+        `密码重设 by ${operator.username}`
       ]);
       
-      console.log(`會員密碼重設成功: ${targetMember.username}`);
+      console.log(`会员密码重设成功: ${targetMember.username}`);
       res.json({
         success: true,
-        message: '密碼重設成功'
+        message: '密码重设成功'
       });
     } else {
       res.json({
         success: false,
-        message: '密碼重設失敗'
+        message: '密码重设失败'
       });
     }
   } catch (error) {
-    console.error('重設會員密碼錯誤:', error);
+    console.error('重设会员密码错误:', error);
     res.json({
       success: false,
-      message: '服務器錯誤'
+      message: '服务器错误'
     });
   }
 });
 
 // ... existing code ...
 
-//獲取代理個人資料
+//获取代理个人资料
 app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
   const { agentId } = req.params;
   
   try {
-    console.log(`獲取代理個人資料: 代理ID=${agentId}`);
+    console.log(`获取代理个人资料: 代理ID=${agentId}`);
     
-    // 參數驗證
+    // 参数验证
     const parsedAgentId = parseInt(agentId);
     if (isNaN(parsedAgentId)) {
-      console.error(`獲取個人資料失敗: 代理ID "${agentId}" 不是有效的數字`);
+      console.error(`获取个人资料失败: 代理ID "${agentId}" 不是有效的数字`);
       return res.json({
         success: false,
-        message: '代理ID格式錯誤'
+        message: '代理ID格式错误'
       });
     }
     
-    // 檢查代理是否存在
+    // 检查代理是否存在
     const agent = await AgentModel.findById(parsedAgentId);
     if (!agent) {
-      console.error(`獲取個人資料失敗: 代理ID ${parsedAgentId} 不存在`);
+      console.error(`获取个人资料失败: 代理ID ${parsedAgentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
     
-    // 查詢個人資料
+    // 查询个人资料
     const profile = await db.oneOrNone(`
       SELECT * FROM agents WHERE agent_id = $1
     `, [parsedAgentId]);
     
-    console.log('查詢到的個人資料:', profile);
+    console.log('查询到的个人资料:', profile);
     
     res.json({
       success: true,
@@ -7932,53 +7932,53 @@ app.get(`${API_PREFIX}/agent-profile/:agentId`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取代理個人資料錯誤:', error);
-    console.error('錯誤堆疊:', error.stack);
+    console.error('获取代理个人资料错误:', error);
+    console.error('错误堆叠:', error.stack);
     res.json({
       success: false,
-      message: '服務器錯誤'
+      message: '服务器错误'
     });
   }
 });
 
-// 更新代理個人資料
+// 更新代理个人资料
 app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
   const { agentId, realName, phone, email, lineId, telegram, address, remark } = req.body;
   
   try {
-    console.log(`更新代理個人資料: 代理ID=${agentId}`);
-    console.log('請求參數:', req.body);
+    console.log(`更新代理个人资料: 代理ID=${agentId}`);
+    console.log('请求参数:', req.body);
     
-    // 參數驗證
+    // 参数验证
     if (!agentId) {
-      console.error('更新個人資料失敗: 缺少代理ID');
+      console.error('更新个人资料失败: 缺少代理ID');
       return res.json({
         success: false,
         message: '缺少代理ID'
       });
     }
     
-    // 確保agentId是數字
+    // 确保agentId是数字
     const parsedAgentId = parseInt(agentId);
     if (isNaN(parsedAgentId)) {
-      console.error(`更新個人資料失敗: 代理ID "${agentId}" 不是有效的數字`);
+      console.error(`更新个人资料失败: 代理ID "${agentId}" 不是有效的数字`);
       return res.json({
         success: false,
-        message: '代理ID格式錯誤'
+        message: '代理ID格式错误'
       });
     }
     
-    // 檢查代理是否存在
+    // 检查代理是否存在
     const agent = await AgentModel.findById(parsedAgentId);
     if (!agent) {
-      console.error(`更新個人資料失敗: 代理ID ${parsedAgentId} 不存在`);
+      console.error(`更新个人资料失败: 代理ID ${parsedAgentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
     
-    // 處理可能為空的字段值
+    // 处理可能为空的字段值
     const safeRealName = realName || null;
     const safePhone = phone || null;
     const safeEmail = email || null;
@@ -7987,7 +7987,7 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
     const safeAddress = address || null;
     const safeRemark = remark || null;
     
-    console.log('安全處理後的參數:', {
+    console.log('安全处理后的参数:', {
       agentId: parsedAgentId,
       realName: safeRealName,
       phone: safePhone,
@@ -7998,14 +7998,14 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
       remark: safeRemark
     });
     
-    // 檢查是否已有個人資料記錄
+    // 检查是否已有个人资料记录
     const existingProfile = await db.oneOrNone(`
       SELECT * FROM agents WHERE agent_id = $1
     `, [parsedAgentId]);
     
     if (existingProfile) {
-      console.log(`找到現有個人資料記錄，ID=${existingProfile.id}，執行更新`);
-      // 更新現有記錄
+      console.log(`找到现有个人资料记录，ID=${existingProfile.id}，执行更新`);
+      // 更新现有记录
       await db.none(`
         UPDATE agents 
         SET real_name = $1, phone = $2, email = $3, line_id = $4, 
@@ -8013,38 +8013,38 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
             updated_at = CURRENT_TIMESTAMP
         WHERE agent_id = $8
       `, [safeRealName, safePhone, safeEmail, safeLineId, safeTelegram, safeAddress, safeRemark, parsedAgentId]);
-      console.log('個人資料更新完成');
+      console.log('个人资料更新完成');
     } else {
-      console.log('未找到現有記錄，創建新的個人資料記錄');
-      // 創建新記錄
+      console.log('未找到现有记录，创建新的个人资料记录');
+      // 创建新记录
       await db.none(`
         INSERT INTO agents 
         (agent_id, real_name, phone, email, line_id, telegram, address, remark)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [parsedAgentId, safeRealName, safePhone, safeEmail, safeLineId, safeTelegram, safeAddress, safeRemark]);
-      console.log('個人資料創建完成');
+      console.log('个人资料创建完成');
     }
     
-    console.log(`代理個人資料更新成功: ${agent.username}`);
+    console.log(`代理个人资料更新成功: ${agent.username}`);
     res.json({
       success: true,
-      message: '個人資料更新成功'
+      message: '个人资料更新成功'
     });
     
   } catch (error) {
-    console.error('更新代理個人資料錯誤:', error);
-    console.error('錯誤堆疊:', error.stack);
+    console.error('更新代理个人资料错误:', error);
+    console.error('错误堆叠:', error.stack);
     
-    // 更詳細的錯誤信息
-    let errorMessage = '服務器錯誤';
+    // 更详细的错误信息
+    let errorMessage = '服务器错误';
     if (error.code === '23505') {
-      errorMessage = '代理個人資料記錄已存在';
+      errorMessage = '代理个人资料记录已存在';
     } else if (error.code === '23503') {
-      errorMessage = '代理不存在或已被刪除';
+      errorMessage = '代理不存在或已被删除';
     } else if (error.code === '22001') {
-      errorMessage = '輸入的資料過長，請檢查各欄位長度';
+      errorMessage = '输入的资料过长，请检查各栏位长度';
     } else if (error.message) {
-      errorMessage = `數據庫錯誤: ${error.message}`;
+      errorMessage = `数据库错误: ${error.message}`;
     }
     
     res.json({
@@ -8056,132 +8056,132 @@ app.post(`${API_PREFIX}/update-agent-profile`, async (req, res) => {
 
 // ... existing code ...
 
-// 全局錯誤處理中間件
+// 全局错误处理中间件
 app.use((err, req, res, next) => {
-  console.error('未捕獲的錯誤:', err);
+  console.error('未捕获的错误:', err);
   
-  // 處理 pg-promise 的 "Multiple rows were not expected" 錯誤
+  // 处理 pg-promise 的 "Multiple rows were not expected" 错误
   if (err.message && err.message.includes('Multiple rows were not expected')) {
-    console.error('數據庫查詢返回了多筆記錄，但期望只有一筆');
+    console.error('数据库查询返回了多笔记录，但期望只有一笔');
     return res.status(500).json({
       success: false,
-      message: '數據庫查詢異常，請聯繫系統管理員'
+      message: '数据库查询异常，请联系系统管理员'
     });
   }
   
-  // 處理其他數據庫錯誤
+  // 处理其他数据库错误
   if (err.code) {
-    console.error('數據庫錯誤代碼:', err.code);
+    console.error('数据库错误代码:', err.code);
     return res.status(500).json({
       success: false,
-      message: '數據庫操作失敗'
+      message: '数据库操作失败'
     });
   }
   
-  // 通用錯誤處理
+  // 通用错误处理
   return res.status(500).json({
     success: false,
-    message: '系統內部錯誤'
+    message: '系统内部错误'
   });
 });
 
-// 特殊處理：期數格式的直接訪問 (例如 /20250705510)
+// 特殊处理：期数格式的直接访问 (例如 /20250705510)
 app.get(/^\/\d{11}$/, (req, res) => {
   const period = req.url.substring(1);
-  console.log(`🎯 檢測到期數格式的直接訪問: ${period}`);
-  console.log(`📍 請求來源: ${req.headers.referer || '直接訪問'}`);
+  console.log(`🎯 检测到期数格式的直接访问: ${period}`);
+  console.log(`📍 请求来源: ${req.headers.referer || '直接访问'}`);
   
   res.status(404).json({
     success: false,
-    message: `期數 ${period} 不能直接訪問，請使用 API`,
+    message: `期数 ${period} 不能直接访问，请使用 API`,
     error: 'PERIOD_DIRECT_ACCESS_NOT_ALLOWED',
-    suggestion: `請使用 /api/agent/draw-history?period=${period} 查詢開獎記錄`
+    suggestion: `请使用 /api/agent/draw-history?period=${period} 查询开奖记录`
   });
 });
 
-// 為所有客服相關 API 添加 try-catch 包裝器
+// 为所有客服相关 API 添加 try-catch 包装器
 function wrapAsync(fn) {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
 
-// 新增: 下注/中獎交易同步API（建立交易記錄用於統計）
+// 新增: 下注/中奖交易同步API（建立交易记录用于统计）
 app.post(`${API_PREFIX}/sync-bet-transaction`, async (req, res) => {
   const { agentId, username, amount, newBalance, type, description } = req.body;
   
-  console.log(`收到下注/中獎同步請求: 代理ID=${agentId}, 會員=${username}, 金額=${amount}, 新餘額=${newBalance}, 類型=${type}, 說明=${description}`);
+  console.log(`收到下注/中奖同步请求: 代理ID=${agentId}, 会员=${username}, 金额=${amount}, 新余额=${newBalance}, 类型=${type}, 说明=${description}`);
   
   try {
     if (!username || amount === undefined || !agentId || newBalance === undefined) {
-      console.error('同步下注/中獎失敗: 缺少必要參數');
+      console.error('同步下注/中奖失败: 缺少必要参数');
       return res.json({
         success: false,
-        message: '請提供完整的同步參數'
+        message: '请提供完整的同步参数'
       });
     }
     
-    // 查詢會員
+    // 查询会员
     const member = await MemberModel.findByUsername(username);
     if (!member) {
-      console.error(`同步下注/中獎失敗: 會員 ${username} 不存在`);
+      console.error(`同步下注/中奖失败: 会员 ${username} 不存在`);
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 查詢代理
+    // 查询代理
     const agent = await AgentModel.findById(agentId);
     if (!agent) {
-      console.error(`同步下注/中獎失敗: 代理 ID=${agentId} 不存在`);
+      console.error(`同步下注/中奖失败: 代理 ID=${agentId} 不存在`);
       return res.json({
         success: false,
         message: '代理不存在'
       });
     }
     
-    // 驗證會員是否屬於該代理
+    // 验证会员是否属于该代理
     if (member.agent_id !== agent.id) {
-      console.error(`同步下注/中獎失敗: 會員 ${username} 不屬於代理 ${agent.username}`);
+      console.error(`同步下注/中奖失败: 会员 ${username} 不属于代理 ${agent.username}`);
       return res.json({
         success: false,
-        message: '會員與代理不匹配'
+        message: '会员与代理不匹配'
       });
     }
     
-    // 更新會員餘額
+    // 更新会员余额
     await MemberModel.setBalance(username, newBalance);
-    console.log(`會員 ${username} 餘額已更新為: ${newBalance}`);
+    console.log(`会员 ${username} 余额已更新为: ${newBalance}`);
     
-    // 建立交易記錄用於統計
+    // 建立交易记录用于统计
     const transactionType = type === 'win' ? 'game_win' : 'game_bet';
     await TransactionModel.create({
       user_type: 'member',
       user_id: member.id,
       amount: parseFloat(amount),
       type: transactionType,
-      description: description || `遊戲${type === 'win' ? '中獎' : '下注'}`,
+      description: description || `游戏${type === 'win' ? '中奖' : '下注'}`,
       balance_after: parseFloat(newBalance)
     });
     
-    console.log(`交易記錄已建立: 會員ID=${member.id}, 金額=${amount}, 類型=${transactionType}`);
+    console.log(`交易记录已建立: 会员ID=${member.id}, 金额=${amount}, 类型=${transactionType}`);
     
     res.json({
       success: true,
-      message: '下注/中獎同步成功',
+      message: '下注/中奖同步成功',
       balance: newBalance
     });
   } catch (error) {
-    console.error('同步下注/中獎出錯:', error);
+    console.error('同步下注/中奖出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取會員信息API
+// 获取会员信息API
 app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
   try {
     const { username } = req.params;
@@ -8189,17 +8189,17 @@ app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
     if (!username) {
       return res.status(400).json({
         success: false,
-        message: '缺少用戶名參數'
+        message: '缺少用户名参数'
       });
     }
     
-    // 查找會員
+    // 查找会员
     const member = await MemberModel.findByUsername(username);
     
     if (!member) {
       return res.status(404).json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
@@ -8216,26 +8216,26 @@ app.get(`${API_PREFIX}/member/info/:username`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取會員信息失敗:', error);
+    console.error('获取会员信息失败:', error);
     res.status(500).json({
       success: false,
-      message: '獲取會員信息失敗',
+      message: '获取会员信息失败',
       error: error.message
     });
   }
 });
 
-// 新增: 扣除會員餘額API（用於遊戲下注）- 使用安全鎖定機制
+// 新增: 扣除会员余额API（用于游戏下注）- 使用安全锁定机制
 app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
   const { username, amount, reason } = req.body;
   
-  console.log(`收到扣除會員餘額請求: 會員=${username}, 金額=${amount}, 原因=${reason}`);
+  console.log(`收到扣除会员余额请求: 会员=${username}, 金额=${amount}, 原因=${reason}`);
   
   try {
     if (!username || amount === undefined) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名和扣除金額'
+        message: '请提供会员用户名和扣除金额'
       });
     }
     
@@ -8243,23 +8243,23 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
     if (isNaN(deductAmount) || deductAmount <= 0) {
       return res.json({
         success: false,
-        message: '扣除金額必須大於0'
+        message: '扣除金额必须大于0'
       });
     }
     
-    // 生成唯一的下注ID用於鎖定
+    // 生成唯一的下注ID用于锁定
     const betId = `bet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     try {
-      // 使用安全的扣款函數（帶鎖定機制）
+      // 使用安全的扣款函数（带锁定机制）
       const result = await db.one(`
         SELECT * FROM safe_bet_deduction($1, $2, $3)
       `, [username, deductAmount, betId]);
       
       if (result.success) {
-        console.log(`成功扣除會員 ${username} 餘額 ${deductAmount} 元，新餘額: ${result.balance}`);
+        console.log(`成功扣除会员 ${username} 余额 ${deductAmount} 元，新余额: ${result.balance}`);
         
-        // 記錄交易歷史
+        // 记录交易历史
         try {
           const member = await MemberModel.findByUsername(username);
           if (member) {
@@ -8269,21 +8269,21 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
               VALUES ($1, $2, $3, $4, $5, $6, $7)
             `, ['member', member.id, -deductAmount, 'game_bet', 
                 parseFloat(result.balance) + deductAmount, parseFloat(result.balance), 
-                reason || '遊戲下注']);
+                reason || '游戏下注']);
           }
         } catch (logError) {
-          console.error('記錄交易歷史失敗:', logError);
-          // 不影響主要操作
+          console.error('记录交易历史失败:', logError);
+          // 不影响主要操作
         }
         
         res.json({
           success: true,
-          message: '餘額扣除成功',
+          message: '余额扣除成功',
           balance: parseFloat(result.balance),
           deductedAmount: deductAmount
         });
       } else {
-        console.log(`扣除餘額失敗: ${result.message}`);
+        console.log(`扣除余额失败: ${result.message}`);
         res.json({
           success: false,
           message: result.message,
@@ -8291,26 +8291,26 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
         });
       }
     } catch (dbError) {
-      console.error('執行安全扣款函數失敗:', dbError);
+      console.error('执行安全扣款函数失败:', dbError);
       
-      // 如果函數不存在，使用傳統方式（向後兼容）
+      // 如果函数不存在，使用传统方式（向后兼容）
       if (dbError.code === '42883') { // function does not exist
-        console.log('安全扣款函數不存在，使用傳統方式');
+        console.log('安全扣款函数不存在，使用传统方式');
         
-        // 查詢會員
+        // 查询会员
         const member = await MemberModel.findByUsername(username);
         if (!member) {
-          console.log(`扣除餘額失敗: 會員 ${username} 不存在`);
+          console.log(`扣除余额失败: 会员 ${username} 不存在`);
           return res.json({
             success: false,
-            message: '會員不存在'
+            message: '会员不存在'
           });
         }
         
         const currentBalance = parseFloat(member.balance);
         const afterBalance = currentBalance - deductAmount;
         
-        // 檢查餘額是否足夠
+        // 检查余额是否足够
         if (afterBalance < 0) {
           console.log(`扣除余额失败: 会员 ${username} 余额不足 (当前: ${currentBalance}, 尝试扣除: ${deductAmount})`);
           return res.json({
@@ -8319,14 +8319,14 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
           });
         }
         
-        // 執行扣除操作（使用負金額表示扣除）
+        // 执行扣除操作（使用负金额表示扣除）
         const updatedMember = await MemberModel.updateBalance(username, -deductAmount);
         
-        console.log(`成功扣除會員 ${username} 餘額 ${deductAmount} 元，新餘額: ${updatedMember.balance}`);
+        console.log(`成功扣除会员 ${username} 余额 ${deductAmount} 元，新余额: ${updatedMember.balance}`);
         
         res.json({
           success: true,
-          message: '餘額扣除成功',
+          message: '余额扣除成功',
           balance: parseFloat(updatedMember.balance),
           deductedAmount: deductAmount
         });
@@ -8335,55 +8335,55 @@ app.post(`${API_PREFIX}/deduct-member-balance`, async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('扣除會員餘額出錯:', error);
+    console.error('扣除会员余额出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 新增: 批量扣除會員餘額API（用於多筆同時下注）
+// 新增: 批量扣除会员余额API（用于多笔同时下注）
 app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
   const { username, bets } = req.body;
   
-  console.log(`收到批量扣除會員餘額請求: 會員=${username}, 下注筆數=${bets?.length || 0}`);
+  console.log(`收到批量扣除会员余额请求: 会员=${username}, 下注笔数=${bets?.length || 0}`);
   
   try {
     if (!username || !bets || !Array.isArray(bets) || bets.length === 0) {
       return res.json({
         success: false,
-        message: '請提供會員用戶名和下注列表'
+        message: '请提供会员用户名和下注列表'
       });
     }
     
-    // 驗證所有下注金額
+    // 验证所有下注金额
     for (let i = 0; i < bets.length; i++) {
       const bet = bets[i];
       if (!bet.amount || parseFloat(bet.amount) <= 0) {
         return res.json({
           success: false,
-          message: `第 ${i + 1} 筆下注金額無效`
+          message: `第 ${i + 1} 笔下注金额无效`
         });
       }
     }
     
-    // 生成每筆下注的唯一ID
+    // 生成每笔下注的唯一ID
     const betsWithIds = bets.map((bet, index) => ({
       amount: parseFloat(bet.amount),
       bet_id: bet.bet_id || `bet_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
     }));
     
     try {
-      // 使用批量扣款函數
+      // 使用批量扣款函数
       const result = await db.one(`
         SELECT * FROM batch_bet_deduction($1, $2::jsonb)
       `, [username, JSON.stringify(betsWithIds)]);
       
       if (result.success) {
-        console.log(`成功批量扣除會員 ${username} 餘額，總金額: ${result.total_deducted} 元，新餘額: ${result.balance}`);
+        console.log(`成功批量扣除会员 ${username} 余额，总金额: ${result.total_deducted} 元，新余额: ${result.balance}`);
         
-        // 記錄交易歷史
+        // 记录交易历史
         try {
           const member = await MemberModel.findByUsername(username);
           if (member) {
@@ -8394,23 +8394,23 @@ app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
             `, ['member', member.id, -result.total_deducted, 'game_bet', 
                 parseFloat(result.balance) + parseFloat(result.total_deducted), 
                 parseFloat(result.balance), 
-                `批量下注 ${bets.length} 筆`]);
+                `批量下注 ${bets.length} 笔`]);
           }
         } catch (logError) {
-          console.error('記錄交易歷史失敗:', logError);
-          // 不影響主要操作
+          console.error('记录交易历史失败:', logError);
+          // 不影响主要操作
         }
         
         res.json({
           success: true,
-          message: '批量餘額扣除成功',
+          message: '批量余额扣除成功',
           balance: parseFloat(result.balance),
           totalDeducted: parseFloat(result.total_deducted),
           processedBets: betsWithIds,
           failedBets: result.failed_bets || []
         });
       } else {
-        console.log(`批量扣除餘額失敗: ${result.message}`);
+        console.log(`批量扣除余额失败: ${result.message}`);
         res.json({
           success: false,
           message: result.message,
@@ -8419,13 +8419,13 @@ app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
         });
       }
     } catch (dbError) {
-      console.error('執行批量扣款函數失敗:', dbError);
+      console.error('执行批量扣款函数失败:', dbError);
       
-      // 如果函數不存在，降級到逐筆處理
+      // 如果函数不存在，降级到逐笔处理
       if (dbError.code === '42883') { // function does not exist
-        console.log('批量扣款函數不存在，降級到逐筆處理');
+        console.log('批量扣款函数不存在，降级到逐笔处理');
         
-        // 使用事務逐筆處理
+        // 使用事务逐笔处理
         let totalDeducted = 0;
         let finalBalance = 0;
         const processedBets = [];
@@ -8433,10 +8433,10 @@ app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
         
         try {
           await db.tx(async t => {
-            // 先檢查總餘額是否足夠
+            // 先检查总余额是否足够
             const member = await t.oneOrNone('SELECT * FROM members WHERE username = $1 FOR UPDATE', [username]);
             if (!member) {
-              throw new Error('會員不存在');
+              throw new Error('会员不存在');
             }
             
             const totalAmount = betsWithIds.reduce((sum, bet) => sum + bet.amount, 0);
@@ -8444,7 +8444,7 @@ app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
               throw new Error('余额不足');
             }
             
-            // 執行批量扣款
+            // 执行批量扣款
             finalBalance = await t.one(`
               UPDATE members 
               SET balance = balance - $1 
@@ -8456,21 +8456,21 @@ app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
             processedBets.push(...betsWithIds);
           });
           
-          console.log(`降級處理成功: 總扣款 ${totalDeducted} 元，新餘額 ${finalBalance}`);
+          console.log(`降级处理成功: 总扣款 ${totalDeducted} 元，新余额 ${finalBalance}`);
           
           res.json({
             success: true,
-            message: '批量餘額扣除成功（降級處理）',
+            message: '批量余额扣除成功（降级处理）',
             balance: finalBalance,
             totalDeducted: totalDeducted,
             processedBets: processedBets,
             failedBets: failedBets
           });
         } catch (txError) {
-          console.error('降級處理失敗:', txError);
+          console.error('降级处理失败:', txError);
           res.json({
             success: false,
-            message: txError.message || '批量扣款失敗',
+            message: txError.message || '批量扣款失败',
             failedBets: betsWithIds
           });
         }
@@ -8479,18 +8479,18 @@ app.post(`${API_PREFIX}/batch-deduct-member-balance`, async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('批量扣除會員餘額出錯:', error);
+    console.error('批量扣除会员余额出错:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 登錄日誌API - 獲取當前用戶的登錄記錄
+// 登录日志API - 获取当前用户的登录记录
 app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
   try {
-    // 使用通用認證中間件
+    // 使用通用认证中间件
     const authResult = await authenticateAgent(req);
     if (!authResult.success) {
       return res.status(401).json(authResult);
@@ -8500,11 +8500,11 @@ app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
 
     const { startDate, endDate } = req.query;
     
-    // 構建查詢條件
+    // 构建查询条件
     let whereClause = 'WHERE username = $1';
     let queryParams = [agent.username];
     
-    // 檢查日期參數是否有效（不是空字符串、undefined或null）
+    // 检查日期参数是否有效（不是空字符串、undefined或null）
     const validStartDate = startDate && startDate.trim() !== '';
     const validEndDate = endDate && endDate.trim() !== '';
     
@@ -8519,7 +8519,7 @@ app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
       queryParams.push(endDate + ' 23:59:59');
     }
     
-    // 查詢登錄日誌（假設有 user_login_logs 表）
+    // 查询登录日志（假设有 user_login_logs 表）
     const logs = await db.any(`
       SELECT id, username, login_time, ip_address, ip_location
       FROM user_login_logs 
@@ -8534,29 +8534,29 @@ app.get(`${API_PREFIX}/login-logs`, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('獲取登錄日誌失敗:', error);
+    console.error('获取登录日志失败:', error);
     
-    // 如果表不存在，返回空數據而不是錯誤
+    // 如果表不存在，返回空数据而不是错误
     if (error.message.includes('does not exist') || error.message.includes('relation')) {
       return res.json({
         success: true,
         logs: [],
-        message: '登錄日誌表尚未創建'
+        message: '登录日志表尚未创建'
       });
     }
     
     res.status(500).json({
       success: false,
-      message: '獲取登錄日誌失敗',
+      message: '获取登录日志失败',
       error: error.message
     });
   }
 });
 
-// 報表查詢API - 獲取投注報表數據
+// 报表查询API - 获取投注报表数据
 app.get(`${API_PREFIX}/reports`, async (req, res) => {
   try {
-    // 使用通用認證中間件
+    // 使用通用认证中间件
     const authResult = await authenticateAgent(req);
     if (!authResult.success) {
       return res.status(401).json(authResult);
@@ -8566,15 +8566,15 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
 
     const { startDate, endDate, gameTypes, settlementStatus, betType, username, minAmount, maxAmount } = req.query;
     
-    // 構建查詢條件
+    // 构建查询条件
     let whereClause = 'WHERE 1=1';
     let queryParams = [];
     let paramIndex = 1;
     
-    // 暫時移除代理權限過濾，因為bet_history表沒有agent_id欄位
-    // TODO: 未來需要加入代理關聯查詢
+    // 暂时移除代理权限过滤，因为bet_history表没有agent_id栏位
+    // TODO: 未来需要加入代理关联查询
     
-    // 檢查日期參數是否有效
+    // 检查日期参数是否有效
     const validStartDate = startDate && startDate.trim() !== '';
     const validEndDate = endDate && endDate.trim() !== '';
     
@@ -8610,7 +8610,7 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
       paramIndex++;
     }
     
-    // 查詢投注記錄（使用真實的 bet_history 表）
+    // 查询投注记录（使用真实的 bet_history 表）
     let baseQuery = `
       SELECT 
         bh.period,
@@ -8642,10 +8642,10 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
       LIMIT 500
     `, queryParams);
 
-    // 計算統計數據
+    // 计算统计数据
     const totalBets = records.length;
     const totalAmount = records.reduce((sum, r) => sum + parseFloat(r.bet_amount || 0), 0);
-    const validAmount = totalAmount; // 假設所有投注都是有效投注
+    const validAmount = totalAmount; // 假设所有投注都是有效投注
     const profitLoss = records.reduce((sum, r) => sum + parseFloat(r.profit_loss || 0), 0);
 
     res.json({
@@ -8658,9 +8658,9 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('獲取報表數據失敗:', error);
+    console.error('获取报表数据失败:', error);
     
-    // 如果表不存在，返回空數據而不是錯誤
+    // 如果表不存在，返回空数据而不是错误
     if (error.message.includes('does not exist') || error.message.includes('relation')) {
       return res.json({
         success: true,
@@ -8669,19 +8669,19 @@ app.get(`${API_PREFIX}/reports`, async (req, res) => {
         validAmount: 0,
         profitLoss: 0,
         records: [],
-        message: '投注記錄表尚未創建'
+        message: '投注记录表尚未创建'
       });
     }
     
     res.status(500).json({
       success: false,
-      message: '獲取報表數據失敗',
+      message: '获取报表数据失败',
       error: error.message
     });
   }
 });
 
-// 層級會員管理 API
+// 层级会员管理 API
 app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
     try {
         const authResult = await authenticateAgent(req);
@@ -8693,39 +8693,39 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
         const queryAgentId = parseInt(req.query.agentId) || currentAgent.id;
         const { status, keyword } = req.query;
         
-        console.log('📊 層級會員管理API調用:', { queryAgentId, status, keyword });
+        console.log('📊 层级会员管理API调用:', { queryAgentId, status, keyword });
         
-        // 輔助函數：獲取級別名稱
+        // 辅助函数：获取级别名称
         function getLevelName(level) {
             const levels = {
-                0: '總代理',
-                1: '一級代理', 
-                2: '二級代理',
-                3: '三級代理',
-                4: '四級代理',
-                5: '五級代理',
-                6: '六級代理',
-                7: '七級代理',
-                8: '八級代理',
-                9: '九級代理',
-                10: '十級代理',
-                11: '十一級代理',
-                12: '十二級代理',
-                13: '十三級代理',
-                14: '十四級代理',
-                15: '十五級代理'
+                0: '总代理',
+                1: '一级代理', 
+                2: '二级代理',
+                3: '三级代理',
+                4: '四级代理',
+                5: '五级代理',
+                6: '六级代理',
+                7: '七级代理',
+                8: '八级代理',
+                9: '九级代理',
+                10: '十级代理',
+                11: '十一级代理',
+                12: '十二级代理',
+                13: '十三级代理',
+                14: '十四级代理',
+                15: '十五级代理'
             };
-            return levels[level] || `${level}級代理`;
+            return levels[level] || `${level}级代理`;
         }
         
-        // 獲取直接創建的代理
+        // 获取直接创建的代理
         const directAgents = await db.any(`
             SELECT id, username, level, balance, status, created_at, notes,
                    rebate_mode, rebate_percentage, max_rebate_percentage, market_type, betting_limit_level
             FROM agents WHERE parent_id = $1 ORDER BY level, username
         `, [queryAgentId]);
         
-        // 獲取直接創建的會員
+        // 获取直接创建的会员
         let memberQuery = `
             SELECT id, username, balance, status, created_at, notes, market_type
             FROM members WHERE agent_id = $1
@@ -8746,7 +8746,7 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
         
         const directMembers = await db.any(memberQuery, memberParams);
         
-        // 檢查每個代理是否有下級
+        // 检查每个代理是否有下级
         const agentsWithDownline = await Promise.all(
             directAgents.map(async (agent) => {
                 const subAgentCount = await db.one(`
@@ -8761,24 +8761,24 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
                     ...agent,
                     userType: 'agent',
                     hasDownline: parseInt(subAgentCount.count) + parseInt(subMemberCount.count) > 0,
-                    // 保持 level 為原始數字，讓前端處理顯示
+                    // 保持 level 为原始数字，让前端处理显示
                     level: agent.level
                 };
             })
         );
         
-        // 處理會員數據
+        // 处理会员数据
         const membersWithType = directMembers.map(member => ({
             ...member,
             userType: 'member',
             hasDownline: false,
-            level: '會員'
+            level: '会员'
         }));
         
-        // 合併代理和會員數據
+        // 合并代理和会员数据
         const combinedData = [...agentsWithDownline, ...membersWithType];
         
-        // 過濾關鍵字（如果有的話）
+        // 过滤关键字（如果有的话）
         let filteredData = combinedData;
         if (keyword) {
             filteredData = combinedData.filter(item => 
@@ -8787,7 +8787,7 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
             );
         }
         
-        // 過濾狀態（如果有的話）
+        // 过滤状态（如果有的话）
         if (status && status !== '-1') {
             filteredData = filteredData.filter(item => item.status === parseInt(status));
         }
@@ -8801,21 +8801,21 @@ app.get(`${API_PREFIX}/hierarchical-members`, async (req, res) => {
             success: true,
             data: filteredData,
             stats: stats,
-            message: '層級會員管理數據獲取成功'
+            message: '层级会员管理数据获取成功'
         });
         
     } catch (error) {
-        console.error('❌ 層級會員管理API錯誤:', error);
+        console.error('❌ 层级会员管理API错误:', error);
         res.status(500).json({
             success: false,
-            message: '獲取層級會員管理數據失敗',
+            message: '获取层级会员管理数据失败',
             error: error.message
         });
     }
 });
 
-// 代理層級分析報表API - 簡化版：統一顯示本級創建的代理和會員
-// 代理層級分析報表API - 高性能優化版本，消除遞歸查詢
+// 代理层级分析报表API - 简化版：统一显示本级创建的代理和会员
+// 代理层级分析报表API - 高性能优化版本，消除递归查询
 app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -8827,34 +8827,34 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     let queryAgentId = currentAgent.id;
     let queryAgent = currentAgent;
     
-    console.log(`🔍 當前登入代理: ${currentAgent.username} (退水: ${(currentAgent.rebate_percentage * 100).toFixed(1)}%)`);
-    console.log(`🎯 目標代理參數: ${targetAgent || '無'}`);
+    console.log(`🔍 当前登入代理: ${currentAgent.username} (退水: ${(currentAgent.rebate_percentage * 100).toFixed(1)}%)`);
+    console.log(`🎯 目标代理参数: ${targetAgent || '无'}`);
     
     if (targetAgent) {
       const targetAgentData = await AgentModel.findByUsername(targetAgent);
       if (targetAgentData) {
         queryAgentId = targetAgentData.id;
         queryAgent = targetAgentData;
-        console.log(`✅ 找到目標代理: ${targetAgentData.username} (退水: ${(targetAgentData.rebate_percentage * 100).toFixed(1)}%)`);
+        console.log(`✅ 找到目标代理: ${targetAgentData.username} (退水: ${(targetAgentData.rebate_percentage * 100).toFixed(1)}%)`);
       } else {
-        return res.json({ success: true, reportData: [], hasData: false, currentAgent: queryAgent, totalSummary: {}, message: `目標代理 ${targetAgent} 不存在` });
+        return res.json({ success: true, reportData: [], hasData: false, currentAgent: queryAgent, totalSummary: {}, message: `目标代理 ${targetAgent} 不存在` });
       }
     }
     
-    console.log('📊 代理層級分析查詢:', { queryAgentId, startDate, endDate, username, targetAgent });
+    console.log('📊 代理层级分析查询:', { queryAgentId, startDate, endDate, username, targetAgent });
     
-    // 查詢本級下所有直屬代理（包含退水百分比）
+    // 查询本级下所有直属代理（包含退水百分比）
     const agents = await db.any(`SELECT * FROM agents WHERE parent_id = $1 AND status = 1`, [queryAgentId]);
-    // 查詢本級下所有直屬會員
+    // 查询本级下所有直属会员
     const members = await db.any(`SELECT * FROM members WHERE agent_id = $1 AND status = 1`, [queryAgentId]);
     
-    // 獲取查詢代理的退水百分比
+    // 获取查询代理的退水百分比
     const queryAgentRebate = parseFloat(queryAgent.rebate_percentage || 0);
     
-    console.log(`📈 查詢結果: ${agents.length}個代理, ${members.length}個會員`);
-    console.log(`💰 查詢代理 ${queryAgent.username} 的退水設定: ${(queryAgentRebate * 100).toFixed(1)}%`);
+    console.log(`📈 查询结果: ${agents.length}个代理, ${members.length}个会员`);
+    console.log(`💰 查询代理 ${queryAgent.username} 的退水设定: ${(queryAgentRebate * 100).toFixed(1)}%`);
     
-    // 構建日期篩選條件
+    // 构建日期筛选条件
     let dateFilter = '';
     let dateParams = [];
     if (startDate && startDate.trim()) {
@@ -8866,19 +8866,19 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       dateParams.push(endDate + ' 23:59:59');
     }
     
-    // 統計每個代理的下注數據
+    // 统计每个代理的下注数据
     const agentStats = await Promise.all(agents.map(async agent => {
       let stats = { betcount: 0, betamount: 0, memberwinloss: 0 };
       
       if (dateParams.length > 0) {
-        // 有日期篩選條件時，查詢該期間的下注數據
+        // 有日期筛选条件时，查询该期间的下注数据
         stats = await db.oneOrNone(
           `SELECT COUNT(*) as betCount, COALESCE(SUM(amount),0) as betAmount, COALESCE(SUM(CASE WHEN settled THEN win_amount-amount ELSE 0 END),0) as memberWinLoss
            FROM bet_history bh WHERE username IN (SELECT username FROM members WHERE agent_id = $1) ${dateFilter}`, 
           [agent.id, ...dateParams]
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       } else {
-        // 無日期篩選條件時，查詢所有下注數據
+        // 无日期筛选条件时，查询所有下注数据
         stats = await db.oneOrNone(
           `SELECT COUNT(*) as betCount, COALESCE(SUM(amount),0) as betAmount, COALESCE(SUM(CASE WHEN settled THEN win_amount-amount ELSE 0 END),0) as memberWinLoss
            FROM bet_history WHERE username IN (SELECT username FROM members WHERE agent_id = $1)`, 
@@ -8886,13 +8886,13 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       }
       
-      // 新退水邏輯：查看下級代理時，顯示退水差額（自己的退水% - 下級代理的退水%）
+      // 新退水逻辑：查看下级代理时，显示退水差额（自己的退水% - 下级代理的退水%）
       const agentRebatePercentage = parseFloat(agent.rebate_percentage || 0);
       const queryAgentRebatePercentage = parseFloat(queryAgent.rebate_percentage || 0);
-      const earnedRebatePercentage = queryAgentRebatePercentage - agentRebatePercentage; // 退水差額
+      const earnedRebatePercentage = queryAgentRebatePercentage - agentRebatePercentage; // 退水差额
       const earnedRebateAmount = parseFloat(stats.betamount || 0) * earnedRebatePercentage;
       
-      console.log(`💰 下級代理 ${agent.username}: 查詢代理退水 ${(queryAgentRebatePercentage * 100).toFixed(1)}% - 下級代理退水 ${(agentRebatePercentage * 100).toFixed(1)}% = 賺水 ${(earnedRebatePercentage * 100).toFixed(1)}%`);
+      console.log(`💰 下级代理 ${agent.username}: 查询代理退水 ${(queryAgentRebatePercentage * 100).toFixed(1)}% - 下级代理退水 ${(agentRebatePercentage * 100).toFixed(1)}% = 赚水 ${(earnedRebatePercentage * 100).toFixed(1)}%`);
       
       return {
         id: agent.id,
@@ -8911,19 +8911,19 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       };
     }));
     
-    // 統計每個會員的下注數據
+    // 统计每个会员的下注数据
     const memberStats = await Promise.all(members.map(async member => {
       let stats = { betcount: 0, betamount: 0, memberwinloss: 0 };
       
       if (dateParams.length > 0) {
-        // 有日期篩選條件時，查詢該期間的下注數據
+        // 有日期筛选条件时，查询该期间的下注数据
         stats = await db.oneOrNone(
           `SELECT COUNT(*) as betCount, COALESCE(SUM(amount),0) as betAmount, COALESCE(SUM(CASE WHEN settled THEN win_amount-amount ELSE 0 END),0) as memberWinLoss
            FROM bet_history bh WHERE username = $1 ${dateFilter}`, 
           [member.username, ...dateParams]
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       } else {
-        // 無日期篩選條件時，查詢所有下注數據
+        // 无日期筛选条件时，查询所有下注数据
         stats = await db.oneOrNone(
           `SELECT COUNT(*) as betCount, COALESCE(SUM(amount),0) as betAmount, COALESCE(SUM(CASE WHEN settled THEN win_amount-amount ELSE 0 END),0) as memberWinLoss
            FROM bet_history WHERE username = $1`, 
@@ -8931,21 +8931,21 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
         ) || { betcount: 0, betamount: 0, memberwinloss: 0 };
       }
       
-      // 新退水邏輯：查看會員時，顯示自己的完整退水百分比
-      const earnedRebatePercentage = queryAgentRebate; // 使用查詢代理的完整退水設定
+      // 新退水逻辑：查看会员时，显示自己的完整退水百分比
+      const earnedRebatePercentage = queryAgentRebate; // 使用查询代理的完整退水设定
       const earnedRebateAmount = parseFloat(stats.betamount || 0) * earnedRebatePercentage;
       
       return {
         id: member.id,
         username: member.username,
         userType: 'member',
-        level: '會員',
+        level: '会员',
         balance: parseFloat(member.balance || 0),
         betCount: parseInt(stats.betcount) || 0,
         betAmount: parseFloat(stats.betamount) || 0,
         validAmount: parseFloat(stats.betamount) || 0,
         memberWinLoss: parseFloat(stats.memberwinloss) || 0,
-        rebatePercentage: 0, // 會員沒有退水
+        rebatePercentage: 0, // 会员没有退水
         earnedRebatePercentage: earnedRebatePercentage,
         earnedRebateAmount: earnedRebateAmount,
         hasDownline: false
@@ -8954,18 +8954,18 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
     
     const reportData = [...agentStats, ...memberStats];
     
-    // 計算總計時，賺水金額為所有個別項目的賺水金額之和
+    // 计算总计时，赚水金额为所有个别项目的赚水金额之和
     const totalBetAmount = reportData.reduce((a, b) => a + (b.betAmount || 0), 0);
     const totalEarnedRebateAmount = reportData.reduce((a, b) => a + (b.earnedRebateAmount || 0), 0);
     
-    console.log(`💵 總計計算: 總下注 ${totalBetAmount}, 總賺水 ${totalEarnedRebateAmount.toFixed(2)}`);
+    console.log(`💵 总计计算: 总下注 ${totalBetAmount}, 总赚水 ${totalEarnedRebateAmount.toFixed(2)}`);
     
     const totalSummary = {
       betCount: reportData.reduce((a, b) => a + (b.betCount || 0), 0),
       betAmount: totalBetAmount,
       validAmount: reportData.reduce((a, b) => a + (b.validAmount || 0), 0),
       memberWinLoss: reportData.reduce((a, b) => a + (b.memberWinLoss || 0), 0),
-      earnedRebateAmount: totalEarnedRebateAmount // 使用查詢代理的退水百分比計算
+      earnedRebateAmount: totalEarnedRebateAmount // 使用查询代理的退水百分比计算
     };
     
     // 添加agentInfo字段
@@ -8976,7 +8976,7 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       memberCount: members.length
     };
     
-    console.log(`📊 返回數據: ${reportData.length}個項目 (${agents.length}代理 + ${members.length}會員)`);
+    console.log(`📊 返回数据: ${reportData.length}个项目 (${agents.length}代理 + ${members.length}会员)`);
     
     res.json({ 
       success: true, 
@@ -8987,41 +8987,41 @@ app.get(`${API_PREFIX}/reports/agent-analysis`, async (req, res) => {
       agentInfo: agentInfo
     });
   } catch (error) {
-    console.error('代理層級分析API錯誤:', error);
+    console.error('代理层级分析API错误:', error);
     res.json({ success: false, reportData: [], totalSummary: {}, hasData: false, message: error.message });
   }
 });
 
 
 
-// 創建通用認證中間件
+// 创建通用认证中间件
 async function authenticateAgent(req) {
   const legacyToken = req.headers.authorization?.replace('Bearer ', '');
   const sessionToken = req.headers['x-session-token'] || req.headers['X-Session-Token'];
   
-  console.log('🔐 認證中間件調用:', { 
+  console.log('🔐 认证中间件调用:', { 
     hasLegacyToken: !!legacyToken, 
     hasSessionToken: !!sessionToken,
     headers: Object.keys(req.headers)
   });
   
-  // 優先使用新的session token
+  // 优先使用新的session token
   if (sessionToken) {
     try {
       const session = await SessionManager.validateSession(sessionToken);
       if (session && session.userType === 'agent') {
         const agent = await AgentModel.findById(session.userId);
         if (agent) {
-          console.log('✅ Session token認證成功:', agent.username);
+          console.log('✅ Session token认证成功:', agent.username);
           return { success: true, agent, session };
         }
       }
     } catch (error) {
-      console.error('Session token驗證失敗:', error);
+      console.error('Session token验证失败:', error);
     }
   }
   
-  // 向後兼容舊的legacy token
+  // 向后兼容旧的legacy token
   if (legacyToken) {
     try {
       // 解析legacy token格式: agentId:timestamp
@@ -9031,20 +9031,20 @@ async function authenticateAgent(req) {
       if (agentId && timestamp) {
         const agent = await AgentModel.findById(parseInt(agentId));
         if (agent) {
-          console.log('✅ Legacy token認證成功:', agent.username);
+          console.log('✅ Legacy token认证成功:', agent.username);
           return { success: true, agent, session: { userId: agent.id, userType: 'agent' } };
         }
       }
     } catch (error) {
-      console.error('Legacy token解析錯誤:', error);
+      console.error('Legacy token解析错误:', error);
     }
   }
   
-  console.log('❌ 認證失敗: 無有效token');
-  return { success: false, message: '無效的授權令牌' };
+  console.log('❌ 认证失败: 无有效token');
+  return { success: false, message: '无效的授权令牌' };
 }
 
-// 新增：代理層級分析API別名路由 - 優化版本，減少查詢次數並返回實際報表數據
+// 新增：代理层级分析API别名路由 - 优化版本，减少查询次数并返回实际报表数据
 app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
   try {
     const authResult = await authenticateAgent(req);
@@ -9055,14 +9055,14 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
     const { agent: currentAgent } = authResult;
     const { startDate, endDate, username, agentId } = req.query;
     
-    console.log('📊 代理層級分析API (優化版):', { 
+    console.log('📊 代理层级分析API (优化版):', { 
       startDate, endDate, username, agentId, currentAgentId: currentAgent.id
     });
     
     const targetAgentId = parseInt(agentId) || currentAgent.id;
     
     try {
-      // 使用單一SQL查詢獲取所有下級代理和會員的下注數據
+      // 使用单一SQL查询获取所有下级代理和会员的下注数据
       let whereClause = 'WHERE 1=1';
       let params = [];
       let paramIndex = 1;
@@ -9099,9 +9099,9 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         finalProfitLoss: 0.0
       };
       
-      // 獲取目標代理的直接下級代理和會員，以及他們的下注統計
+      // 获取目标代理的直接下级代理和会员，以及他们的下注统计
       try {
-        // 1. 獲取直接下級代理的統計  
+        // 1. 获取直接下级代理的统计  
         const agentQuery = `
           WITH RECURSIVE agent_tree AS (
             SELECT id, username, level, parent_id, 0 as depth
@@ -9140,11 +9140,11 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         `;
         const agentStats = await db.any(agentQuery, [targetAgentId].concat(params));
         
-        // 獲取當前查詢代理的退水百分比
+        // 获取当前查询代理的退水百分比
         const targetAgent = await db.oneOrNone('SELECT rebate_percentage FROM agents WHERE id = $1', [targetAgentId]);
         const targetAgentRebate = parseFloat(targetAgent?.rebate_percentage || 0.041);
         
-        // 2. 獲取直接會員的統計
+        // 2. 获取直接会员的统计
         const memberQuery = `
           SELECT m.id, m.username, m.balance,
                  COUNT(bh.id) as bet_count,
@@ -9159,20 +9159,20 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         `;
         const memberStats = await db.any(memberQuery, [targetAgentId].concat(params));
         
-        // 處理代理數據
+        // 处理代理数据
         for (const agent of agentStats) {
           if (parseInt(agent.bet_count) > 0) {
             const agentRebatePercentage = parseFloat(agent.rebate_percentage || 0);
-            // 新退水邏輯：查看下級代理時，顯示退水差額（自己的退水% - 下級代理的退水%）
-            const earnedRebatePercentage = targetAgentRebate - agentRebatePercentage; // 退水差額
+            // 新退水逻辑：查看下级代理时，显示退水差额（自己的退水% - 下级代理的退水%）
+            const earnedRebatePercentage = targetAgentRebate - agentRebatePercentage; // 退水差额
             const earnedRebateAmount = parseFloat(agent.total_bet_amount) * earnedRebatePercentage;
             
-            console.log(`📊 代理 ${agent.agent_username} 退水計算:`, {
-              查詢代理退水: `${(targetAgentRebate * 100).toFixed(1)}%`,
-              下級代理退水: `${(agentRebatePercentage * 100).toFixed(1)}%`,
-              退水差額: `${(earnedRebatePercentage * 100).toFixed(1)}%`,
-              下注金額: agent.total_bet_amount,
-              賺水金額: earnedRebateAmount.toFixed(2)
+            console.log(`📊 代理 ${agent.agent_username} 退水计算:`, {
+              查询代理退水: `${(targetAgentRebate * 100).toFixed(1)}%`,
+              下级代理退水: `${(agentRebatePercentage * 100).toFixed(1)}%`,
+              退水差额: `${(earnedRebatePercentage * 100).toFixed(1)}%`,
+              下注金额: agent.total_bet_amount,
+              赚水金额: earnedRebateAmount.toFixed(2)
             });
             
             reportData.push({
@@ -9198,17 +9198,17 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
           }
         }
         
-        // 處理會員數據
+        // 处理会员数据
         for (const member of memberStats) {
           if (parseInt(member.bet_count) > 0) {
-            // 新退水邏輯：查看會員時，顯示自己的完整退水百分比
-            const earnedRebatePercentage = targetAgentRebate; // 使用查詢代理的完整退水設定
+            // 新退水逻辑：查看会员时，显示自己的完整退水百分比
+            const earnedRebatePercentage = targetAgentRebate; // 使用查询代理的完整退水设定
             const earnedRebateAmount = parseFloat(member.total_bet_amount) * earnedRebatePercentage;
             
-            console.log(`👤 會員 ${member.username} 退水計算:`, {
-              代理退水設定: `${(targetAgentRebate * 100).toFixed(1)}%`,
-              下注金額: member.total_bet_amount,
-              賺水金額: earnedRebateAmount.toFixed(2)
+            console.log(`👤 会员 ${member.username} 退水计算:`, {
+              代理退水设定: `${(targetAgentRebate * 100).toFixed(1)}%`,
+              下注金额: member.total_bet_amount,
+              赚水金额: earnedRebateAmount.toFixed(2)
             });
             
             reportData.push({
@@ -9220,7 +9220,7 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
               betAmount: parseFloat(member.total_bet_amount),
               winAmount: parseFloat(member.total_win_amount),
               memberWinLoss: parseFloat(member.total_win_amount) - parseFloat(member.total_bet_amount),
-              rebatePercentage: 0, // 會員沒有退水
+              rebatePercentage: 0, // 会员没有退水
               earnedRebatePercentage: earnedRebatePercentage,
               earnedRebateAmount: earnedRebateAmount,
               hasActivity: true
@@ -9235,25 +9235,25 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         
         hasData = reportData.length > 0;
         
-        // 計算其他統計值
+        // 计算其他统计值
         totalSummary.validAmount = totalSummary.betAmount;
-        totalSummary.profitLoss = -totalSummary.memberWinLoss; // 平台盈虧與會員輸贏相反
+        totalSummary.profitLoss = -totalSummary.memberWinLoss; // 平台盈亏与会员输赢相反
         
-        // 新退水邏輯：總計賺水為所有個別項目的賺水金額之和
-        totalSummary.earnedRebateAmount = totalSummary.rebateProfit; // 已經在處理個別項目時累加了
-        totalSummary.finalProfitLoss = totalSummary.profitLoss + totalSummary.earnedRebateAmount; // 最終盈虧（含退水）
+        // 新退水逻辑：总计赚水为所有个别项目的赚水金额之和
+        totalSummary.earnedRebateAmount = totalSummary.rebateProfit; // 已经在处理个别项目时累加了
+        totalSummary.finalProfitLoss = totalSummary.profitLoss + totalSummary.earnedRebateAmount; // 最终盈亏（含退水）
         
-        console.log('📊 總計統計:', {
-          總下注金額: totalSummary.betAmount.toFixed(2),
-          總賺水金額: totalSummary.earnedRebateAmount.toFixed(2),
-          會員輸贏: totalSummary.memberWinLoss.toFixed(2),
-          最終盈虧: totalSummary.finalProfitLoss.toFixed(2)
+        console.log('📊 总计统计:', {
+          总下注金额: totalSummary.betAmount.toFixed(2),
+          总赚水金额: totalSummary.earnedRebateAmount.toFixed(2),
+          会员输赢: totalSummary.memberWinLoss.toFixed(2),
+          最终盈亏: totalSummary.finalProfitLoss.toFixed(2)
         });
         
       } catch (dbError) {
-        console.log('統計查詢出錯，嘗試簡化查詢:', dbError.message);
+        console.log('统计查询出错，尝试简化查询:', dbError.message);
         
-        // 簡化查詢：只檢查是否有下注記錄
+        // 简化查询：只检查是否有下注记录
         try {
           const simpleQuery = `
             SELECT COUNT(*) as total_bets
@@ -9269,7 +9269,7 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
         }
       }
       
-      // 獲取會員總數
+      // 获取会员总数
       let memberCount = 0;
       try {
         const memberCountResult = await db.oneOrNone(`
@@ -9301,11 +9301,11 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
           username: currentAgent.username,
           memberCount: memberCount
         },
-        message: hasData ? '查詢成功' : null
+        message: hasData ? '查询成功' : null
       });
       
     } catch (dbError) {
-      console.log('數據庫查詢出錯，返回空結果:', dbError.message);
+      console.log('数据库查询出错，返回空结果:', dbError.message);
       res.json({
         success: true,
         reportData: [],
@@ -9331,7 +9331,7 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
     }
     
   } catch (error) {
-    console.error('代理層級分析API錯誤:', error);
+    console.error('代理层级分析API错误:', error);
     res.status(500).json({
       success: false,
       reportData: [],
@@ -9348,15 +9348,15 @@ app.get(`${API_PREFIX}/agent-hierarchical-analysis`, async (req, res) => {
       },
       hasData: false,
       agentInfo: {},
-      message: error.message || '查詢失敗'
+      message: error.message || '查询失败'
     });
   }
 });
 
-// 獲取所有限紅配置
+// 获取所有限红配置
 app.get(`${API_PREFIX}/betting-limit-configs`, async (req, res) => {
   try {
-    console.log('獲取限紅配置列表');
+    console.log('获取限红配置列表');
     
     const configs = await db.any(`
       SELECT level_name, level_display_name, config, description 
@@ -9373,7 +9373,7 @@ app.get(`${API_PREFIX}/betting-limit-configs`, async (req, res) => {
         END
     `);
     
-    console.log(`找到 ${configs.length} 個限紅配置`);
+    console.log(`找到 ${configs.length} 个限红配置`);
     
     res.json({
       success: true,
@@ -9381,22 +9381,22 @@ app.get(`${API_PREFIX}/betting-limit-configs`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取限紅配置失敗:', error);
+    console.error('获取限红配置失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 獲取會員的限紅設定
+// 获取会员的限红设定
 app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
   const { memberId } = req.params;
   
   try {
-    console.log(`獲取會員 ${memberId} 的限紅設定`);
+    console.log(`获取会员 ${memberId} 的限红设定`);
     
-    // 獲取會員資料、限紅配置和所屬代理的限紅等級
+    // 获取会员资料、限红配置和所属代理的限红等级
     const memberData = await db.oneOrNone(`
       SELECT m.id, m.username, m.betting_limit_level, m.agent_id,
              blc.level_display_name, blc.config, blc.description,
@@ -9410,12 +9410,12 @@ app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
     if (!memberData) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    console.log(`會員 ${memberData.username} 當前限紅等級: ${memberData.betting_limit_level}`);
-    console.log(`所屬代理 ${memberData.agent_username} 限紅等級: ${memberData.agent_betting_limit_level}`);
+    console.log(`会员 ${memberData.username} 当前限红等级: ${memberData.betting_limit_level}`);
+    console.log(`所属代理 ${memberData.agent_username} 限红等级: ${memberData.agent_betting_limit_level}`);
     
     res.json({
       success: true,
@@ -9433,29 +9433,29 @@ app.get(`${API_PREFIX}/member-betting-limit/:memberId`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取會員限紅設定失敗:', error);
+    console.error('获取会员限红设定失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 根據用戶名獲取會員限紅設定
+// 根据用户名获取会员限红设定
 app.get(`${API_PREFIX}/member-betting-limit-by-username`, async (req, res) => {
   const { username } = req.query;
   
   try {
-    console.log(`根據用戶名 ${username} 獲取限紅設定`);
+    console.log(`根据用户名 ${username} 获取限红设定`);
     
     if (!username) {
       return res.json({
         success: false,
-        message: '請提供用戶名'
+        message: '请提供用户名'
       });
     }
     
-    // 獲取會員資料和限紅配置
+    // 获取会员资料和限红配置
     const memberData = await db.oneOrNone(`
       SELECT m.id, m.username, m.betting_limit_level,
              blc.level_display_name, blc.config, blc.description
@@ -9467,11 +9467,11 @@ app.get(`${API_PREFIX}/member-betting-limit-by-username`, async (req, res) => {
     if (!memberData) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    console.log(`會員 ${memberData.username} 當前限紅等級: ${memberData.betting_limit_level}`);
+    console.log(`会员 ${memberData.username} 当前限红等级: ${memberData.betting_limit_level}`);
     
     res.json({
       success: true,
@@ -9486,31 +9486,31 @@ app.get(`${API_PREFIX}/member-betting-limit-by-username`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('根據用戶名獲取會員限紅設定失敗:', error);
+    console.error('根据用户名获取会员限红设定失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新會員的限紅設定
+// 更新会员的限红设定
 app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
   const { operatorId, memberId, newLimitLevel, reason } = req.body;
   
   try {
-    console.log(`更新會員 ${memberId} 的限紅設定: ${newLimitLevel}`);
+    console.log(`更新会员 ${memberId} 的限红设定: ${newLimitLevel}`);
     
-    // 檢查操作權限 - 只有總代理可以修改限紅
+    // 检查操作权限 - 只有总代理可以修改限红
     const operator = await AgentModel.findById(operatorId);
     if (!operator || operator.level !== 0) {
       return res.json({
         success: false,
-        message: '權限不足，只有總代理可以調整會員限紅'
+        message: '权限不足，只有总代理可以调整会员限红'
       });
     }
     
-    // 驗證限紅等級是否存在
+    // 验证限红等级是否存在
     const limitConfig = await db.oneOrNone(`
       SELECT level_name, level_display_name 
       FROM betting_limit_configs 
@@ -9520,34 +9520,34 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
     if (!limitConfig) {
       return res.json({
         success: false,
-        message: '無效的限紅等級'
+        message: '无效的限红等级'
       });
     }
     
-    // 獲取會員資料
+    // 获取会员资料
     const member = await MemberModel.findById(memberId);
     if (!member) {
       return res.json({
         success: false,
-        message: '會員不存在'
+        message: '会员不存在'
       });
     }
     
-    // 獲取會員所屬代理的限紅等級
+    // 获取会员所属代理的限红等级
     const memberAgent = await AgentModel.findById(member.agent_id);
     if (!memberAgent) {
       return res.json({
         success: false,
-        message: '找不到會員所屬代理'
+        message: '找不到会员所属代理'
       });
     }
     
-    // 檢查新限紅等級是否超過代理的限紅等級
+    // 检查新限红等级是否超过代理的限红等级
     const levelOrder = {
       'level1': 1,  // 新手
       'level2': 2,  // 一般
-      'level3': 3,  // 標準
-      'level4': 4,  // 高級
+      'level3': 3,  // 标准
+      'level4': 4,  // 高级
       'level5': 5,  // VIP
       'level6': 6   // VVIP
     };
@@ -9558,20 +9558,20 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
     if (newLevel > agentLevel) {
       return res.json({
         success: false,
-        message: `不能設定高於代理限紅等級的限紅 (代理限紅: ${memberAgent.betting_limit_level || 'level3'})`
+        message: `不能设定高于代理限红等级的限红 (代理限红: ${memberAgent.betting_limit_level || 'level3'})`
       });
     }
     
     const oldLimitLevel = member.betting_limit_level;
     
-    // 更新會員限紅等級
+    // 更新会员限红等级
     await db.none(`
       UPDATE members 
       SET betting_limit_level = $1, updated_at = CURRENT_TIMESTAMP 
       WHERE id = $2
     `, [newLimitLevel, memberId]);
     
-    // 記錄操作日誌到交易記錄
+    // 记录操作日志到交易记录
     await db.none(`
       INSERT INTO transaction_records 
       (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
@@ -9583,14 +9583,14 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
       0, 
       0, 
       0, 
-      `限紅等級調整: ${oldLimitLevel || 'level1'} → ${newLimitLevel} (${reason || '管理員調整'})`
+      `限红等级调整: ${oldLimitLevel || 'level1'} → ${newLimitLevel} (${reason || '管理员调整'})`
     ]);
     
-    console.log(`✅ 會員 ${member.username} 限紅等級已更新: ${oldLimitLevel} → ${newLimitLevel}`);
+    console.log(`✅ 会员 ${member.username} 限红等级已更新: ${oldLimitLevel} → ${newLimitLevel}`);
     
     res.json({
       success: true,
-      message: '限紅設定更新成功',
+      message: '限红设定更新成功',
       member: {
         id: member.id,
         username: member.username,
@@ -9601,24 +9601,24 @@ app.post(`${API_PREFIX}/update-member-betting-limit`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('更新會員限紅設定失敗:', error);
+    console.error('更新会员限红设定失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 代理限紅設定相關 API
+// 代理限红设定相关 API
 
-// 獲取代理的限紅設定
+// 获取代理的限红设定
 app.get(`${API_PREFIX}/agent-betting-limit/:agentId`, async (req, res) => {
   const { agentId } = req.params;
   
   try {
-    console.log(`獲取代理 ${agentId} 的限紅設定`);
+    console.log(`获取代理 ${agentId} 的限红设定`);
     
-    // 獲取代理資料和限紅配置
+    // 获取代理资料和限红配置
     const agentData = await db.oneOrNone(`
       SELECT a.id, a.username, a.betting_limit_level,
              blc.level_display_name, blc.config, blc.description
@@ -9634,7 +9634,7 @@ app.get(`${API_PREFIX}/agent-betting-limit/:agentId`, async (req, res) => {
       });
     }
     
-    console.log(`代理 ${agentData.username} 當前限紅等級: ${agentData.betting_limit_level}`);
+    console.log(`代理 ${agentData.username} 当前限红等级: ${agentData.betting_limit_level}`);
     
     res.json({
       success: true,
@@ -9649,22 +9649,22 @@ app.get(`${API_PREFIX}/agent-betting-limit/:agentId`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('獲取代理限紅設定失敗:', error);
+    console.error('获取代理限红设定失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });
 
-// 更新代理的限紅設定
+// 更新代理的限红设定
 app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
   const { operatorId, agentId, newLimitLevel, reason } = req.body;
   
   try {
-    console.log(`更新代理 ${agentId} 的限紅設定: ${newLimitLevel}`);
+    console.log(`更新代理 ${agentId} 的限红设定: ${newLimitLevel}`);
     
-    // 檢查操作者權限
+    // 检查操作者权限
     const operator = await AgentModel.findById(operatorId);
     if (!operator) {
       return res.json({
@@ -9673,24 +9673,24 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
       });
     }
     
-    // 獲取目標代理資訊
+    // 获取目标代理资讯
     const targetAgent = await AgentModel.findById(agentId);
     if (!targetAgent) {
       return res.json({
         success: false,
-        message: '目標代理不存在'
+        message: '目标代理不存在'
       });
     }
     
-    // 檢查是否有權限修改（只能修改自己的下級代理）
+    // 检查是否有权限修改（只能修改自己的下级代理）
     if (targetAgent.parent_id !== operatorId && operator.level !== 0) {
       return res.json({
         success: false,
-        message: '無權限修改此代理的限紅設定'
+        message: '无权限修改此代理的限红设定'
       });
     }
     
-    // 檢查限紅等級是否存在
+    // 检查限红等级是否存在
     const limitConfig = await db.oneOrNone(`
       SELECT * FROM betting_limit_configs 
       WHERE level_name = $1
@@ -9699,16 +9699,16 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
     if (!limitConfig) {
       return res.json({
         success: false,
-        message: '無效的限紅等級'
+        message: '无效的限红等级'
       });
     }
     
-    // 獲取操作者的限紅等級，確保不能設定高於自己的等級
+    // 获取操作者的限红等级，确保不能设定高于自己的等级
     const operatorLimit = await db.oneOrNone(`
       SELECT betting_limit_level FROM agents WHERE id = $1
     `, [operatorId]);
     
-    // 比較限紅等級（level1 < level2 < level3 < level4 < level5 < level6）
+    // 比较限红等级（level1 < level2 < level3 < level4 < level5 < level6）
     const levelOrder = {
       'level1': 1,
       'level2': 2,
@@ -9721,20 +9721,20 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
     if (levelOrder[newLimitLevel] > levelOrder[operatorLimit.betting_limit_level]) {
       return res.json({
         success: false,
-        message: '不能設定高於自己限紅等級的代理'
+        message: '不能设定高于自己限红等级的代理'
       });
     }
     
     const oldLimitLevel = targetAgent.betting_limit_level || 'level3';
     
-    // 更新代理限紅等級
+    // 更新代理限红等级
     await db.none(`
       UPDATE agents 
       SET betting_limit_level = $1, updated_at = CURRENT_TIMESTAMP 
       WHERE id = $2
     `, [newLimitLevel, agentId]);
     
-    // 記錄操作日誌
+    // 记录操作日志
     await db.none(`
       INSERT INTO transaction_records 
       (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
@@ -9746,18 +9746,18 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
       0, 
       0, 
       0, 
-      `限紅等級變更: ${oldLimitLevel} -> ${newLimitLevel}, 操作者: ${operator.username}, 原因: ${reason || '未說明'}`
+      `限红等级变更: ${oldLimitLevel} -> ${newLimitLevel}, 操作者: ${operator.username}, 原因: ${reason || '未说明'}`
     ]);
     
-    console.log(`代理 ${targetAgent.username} 限紅等級已更新: ${oldLimitLevel} -> ${newLimitLevel}`);
+    console.log(`代理 ${targetAgent.username} 限红等级已更新: ${oldLimitLevel} -> ${newLimitLevel}`);
     
-    // 如果是調降限紅等級，需要連鎖調整所有下級
+    // 如果是调降限红等级，需要连锁调整所有下级
     if (levelOrder[newLimitLevel] < levelOrder[oldLimitLevel]) {
-      console.log(`開始連鎖調整代理 ${targetAgent.username} 的所有下級限紅等級...`);
+      console.log(`开始连锁调整代理 ${targetAgent.username} 的所有下级限红等级...`);
       
-      // 遞迴函數：調整所有下級代理和會員的限紅等級
+      // 递回函数：调整所有下级代理和会员的限红等级
       async function adjustDownlineBettingLimits(parentAgentId, maxLevel) {
-        // 獲取所有直接下級代理
+        // 获取所有直接下级代理
         const childAgents = await db.any(`
           SELECT id, username, betting_limit_level 
           FROM agents 
@@ -9767,7 +9767,7 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
         for (const childAgent of childAgents) {
           const childLevel = childAgent.betting_limit_level || 'level3';
           
-          // 如果下級代理的限紅等級超過上級的新限制，則調整為上級的限制
+          // 如果下级代理的限红等级超过上级的新限制，则调整为上级的限制
           if (levelOrder[childLevel] > levelOrder[maxLevel]) {
             await db.none(`
               UPDATE agents 
@@ -9775,9 +9775,9 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
               WHERE id = $2
             `, [maxLevel, childAgent.id]);
             
-            console.log(`  - 調整下級代理 ${childAgent.username} 的限紅等級: ${childLevel} -> ${maxLevel}`);
+            console.log(`  - 调整下级代理 ${childAgent.username} 的限红等级: ${childLevel} -> ${maxLevel}`);
             
-            // 記錄調整日誌
+            // 记录调整日志
             await db.none(`
               INSERT INTO transaction_records 
               (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
@@ -9789,15 +9789,15 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
               0, 
               0, 
               0, 
-              `限紅等級連鎖調整: ${childLevel} -> ${maxLevel} (因上級代理 ${targetAgent.username} 限紅調降)`
+              `限红等级连锁调整: ${childLevel} -> ${maxLevel} (因上级代理 ${targetAgent.username} 限红调降)`
             ]);
           }
           
-          // 遞迴處理此代理的下級
+          // 递回处理此代理的下级
           await adjustDownlineBettingLimits(childAgent.id, maxLevel);
         }
         
-        // 獲取該代理的所有會員
+        // 获取该代理的所有会员
         const members = await db.any(`
           SELECT id, username, betting_limit_level 
           FROM members 
@@ -9807,7 +9807,7 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
         for (const member of members) {
           const memberLevel = member.betting_limit_level || 'level1';
           
-          // 如果會員的限紅等級超過代理的新限制，則調整為代理的限制
+          // 如果会员的限红等级超过代理的新限制，则调整为代理的限制
           if (levelOrder[memberLevel] > levelOrder[maxLevel]) {
             await db.none(`
               UPDATE members 
@@ -9815,9 +9815,9 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
               WHERE id = $2
             `, [maxLevel, member.id]);
             
-            console.log(`  - 調整會員 ${member.username} 的限紅等級: ${memberLevel} -> ${maxLevel}`);
+            console.log(`  - 调整会员 ${member.username} 的限红等级: ${memberLevel} -> ${maxLevel}`);
             
-            // 記錄調整日誌
+            // 记录调整日志
             await db.none(`
               INSERT INTO transaction_records 
               (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
@@ -9829,19 +9829,19 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
               0, 
               0, 
               0, 
-              `限紅等級連鎖調整: ${memberLevel} -> ${maxLevel} (因所屬代理限紅調降)`
+              `限红等级连锁调整: ${memberLevel} -> ${maxLevel} (因所属代理限红调降)`
             ]);
           }
         }
       }
       
-      // 開始連鎖調整
+      // 开始连锁调整
       await adjustDownlineBettingLimits(agentId, newLimitLevel);
       
-      console.log(`連鎖調整完成`);
+      console.log(`连锁调整完成`);
     }
     
-    // 重新獲取更新後的代理資料
+    // 重新获取更新后的代理资料
     const updatedAgent = await db.oneOrNone(`
       SELECT id, username, betting_limit_level, level, status, balance
       FROM agents
@@ -9850,7 +9850,7 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
     
     res.json({
       success: true,
-      message: '限紅設定更新成功',
+      message: '限红设定更新成功',
       data: {
         agentId: agentId,
         username: targetAgent.username,
@@ -9862,10 +9862,10 @@ app.post(`${API_PREFIX}/update-agent-betting-limit`, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('更新代理限紅設定失敗:', error);
+    console.error('更新代理限红设定失败:', error);
     res.status(500).json({
       success: false,
-      message: '系統錯誤，請稍後再試'
+      message: '系统错误，请稍后再试'
     });
   }
 });

@@ -1,13 +1,13 @@
-// analyze-settlement-logic-issue.js - 分析結算邏輯問題
+// analyze-settlement-logic-issue.js - 分析结算逻辑问题
 import db from './db/config.js';
 import { checkWin } from './improved-settlement-system.js';
 
 async function analyzeSettlementLogicIssue() {
     try {
-        console.log('🔍 分析結算邏輯問題...\n');
+        console.log('🔍 分析结算逻辑问题...\n');
         
-        // 1. 檢查最近的結算日誌
-        console.log('📋 最近的結算日誌:');
+        // 1. 检查最近的结算日志
+        console.log('📋 最近的结算日志:');
         const recentLogs = await db.any(`
             SELECT period, settled_count, total_win_amount, created_at 
             FROM settlement_logs 
@@ -16,48 +16,48 @@ async function analyzeSettlementLogicIssue() {
         `);
         
         recentLogs.forEach(log => {
-            console.log(`期號 ${log.period}: ${log.settled_count}筆, 總中獎 $${log.total_win_amount} (${log.created_at.toLocaleString('zh-TW')})`);
+            console.log(`期号 ${log.period}: ${log.settled_count}笔, 总中奖 $${log.total_win_amount} (${log.created_at.toLocaleString('zh-TW')})`);
         });
         
-        // 2. 檢查checkWin函數是否正常工作
-        console.log('\n🧪 測試checkWin函數:');
+        // 2. 检查checkWin函数是否正常工作
+        console.log('\n🧪 测试checkWin函数:');
         
-        // 模擬測試案例
+        // 模拟测试案例
         const testCases = [
             {
                 bet: { bet_type: 'champion', bet_value: 'big' },
                 winResult: { positions: [7, 2, 3, 4, 5, 6, 8, 9, 10, 1] },
                 expected: true,
-                description: '冠軍大 (7號)'
+                description: '冠军大 (7号)'
             },
             {
                 bet: { bet_type: 'champion', bet_value: 'small' },
                 winResult: { positions: [3, 2, 1, 4, 5, 6, 7, 8, 9, 10] },
                 expected: true,
-                description: '冠軍小 (3號)'
+                description: '冠军小 (3号)'
             },
             {
                 bet: { bet_type: 'tenth', bet_value: 'odd' },
                 winResult: { positions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 7] },
                 expected: true,
-                description: '第十名單 (7號)'
+                description: '第十名单 (7号)'
             },
             {
                 bet: { bet_type: 'fifth', bet_value: 'even' },
                 winResult: { positions: [1, 2, 3, 4, 8, 6, 7, 5, 9, 10] },
                 expected: true,
-                description: '第五名雙 (8號)'
+                description: '第五名双 (8号)'
             }
         ];
         
         testCases.forEach(test => {
             const result = checkWin(test.bet, test.winResult);
             const status = result === test.expected ? '✅' : '❌';
-            console.log(`${status} ${test.description}: ${result ? '中獎' : '未中獎'}`);
+            console.log(`${status} ${test.description}: ${result ? '中奖' : '未中奖'}`);
         });
         
-        // 3. 檢查最近的投注記錄結算狀態
-        console.log('\n📊 最近期號的結算狀態:');
+        // 3. 检查最近的投注记录结算状态
+        console.log('\n📊 最近期号的结算状态:');
         const recentPeriods = await db.any(`
             SELECT period, 
                    COUNT(*) as total_bets,
@@ -73,11 +73,11 @@ async function analyzeSettlementLogicIssue() {
         `);
         
         recentPeriods.forEach(p => {
-            console.log(`期號 ${p.period}: ${p.total_bets}筆 (已結算${p.settled_bets}, 中獎${p.winning_bets}, 總獎金$${p.total_winnings || 0})`);
+            console.log(`期号 ${p.period}: ${p.total_bets}笔 (已结算${p.settled_bets}, 中奖${p.winning_bets}, 总奖金$${p.total_winnings || 0})`);
         });
         
-        // 4. 檢查bet_value的格式
-        console.log('\n🔍 檢查bet_value格式:');
+        // 4. 检查bet_value的格式
+        console.log('\n🔍 检查bet_value格式:');
         const betValueFormats = await db.any(`
             SELECT DISTINCT bet_value, COUNT(*) as count
             FROM bet_history 
@@ -87,60 +87,60 @@ async function analyzeSettlementLogicIssue() {
             ORDER BY count DESC
         `);
         
-        console.log('投注選項格式分佈:');
+        console.log('投注选项格式分布:');
         betValueFormats.forEach(v => {
-            console.log(`  "${v.bet_value}": ${v.count}筆`);
+            console.log(`  "${v.bet_value}": ${v.count}笔`);
         });
         
-        // 5. 分析可能的問題原因
-        console.log('\n🎯 問題分析:');
+        // 5. 分析可能的问题原因
+        console.log('\n🎯 问题分析:');
         
-        // 檢查是否有中文與英文混用問題
+        // 检查是否有中文与英文混用问题
         const mixedFormats = await db.any(`
             SELECT period, bet_type, bet_value, win, created_at
             FROM bet_history 
             WHERE username = 'justin111' 
                 AND period >= 20250714299
-                AND bet_value IN ('單', '雙', '大', '小')
+                AND bet_value IN ('单', '双', '大', '小')
             ORDER BY period DESC, created_at DESC
             LIMIT 10
         `);
         
         if (mixedFormats.length > 0) {
-            console.log('\n⚠️ 發現使用中文投注選項:');
+            console.log('\n⚠️ 发现使用中文投注选项:');
             mixedFormats.forEach(b => {
-                console.log(`  期號 ${b.period}: ${b.bet_type} ${b.bet_value} - ${b.win ? '中獎' : '輸'}`);
+                console.log(`  期号 ${b.period}: ${b.bet_type} ${b.bet_value} - ${b.win ? '中奖' : '输'}`);
             });
         }
         
-        // 6. 檢查checkWin函數對中文的支援
-        console.log('\n🧪 測試checkWin對中文的支援:');
+        // 6. 检查checkWin函数对中文的支援
+        console.log('\n🧪 测试checkWin对中文的支援:');
         const chineseTests = [
             {
                 bet: { bet_type: 'champion', bet_value: '大' },
                 winResult: { positions: [7, 2, 3, 4, 5, 6, 8, 9, 10, 1] },
-                description: '冠軍大(中文) (7號)'
+                description: '冠军大(中文) (7号)'
             },
             {
-                bet: { bet_type: 'champion', bet_value: '單' },
+                bet: { bet_type: 'champion', bet_value: '单' },
                 winResult: { positions: [7, 2, 3, 4, 5, 6, 8, 9, 10, 1] },
-                description: '冠軍單(中文) (7號)'
+                description: '冠军单(中文) (7号)'
             }
         ];
         
         chineseTests.forEach(test => {
             const result = checkWin(test.bet, test.winResult);
             const status = result ? '✅' : '❌';
-            console.log(`${status} ${test.description}: ${result ? '中獎' : '未中獎'}`);
+            console.log(`${status} ${test.description}: ${result ? '中奖' : '未中奖'}`);
         });
         
-        console.log('\n💡 結論:');
-        console.log('問題可能是checkWin函數不支援中文的"大"、"小"、"單"、"雙"');
-        console.log('需要更新checkWin函數以支援中文投注選項');
+        console.log('\n💡 结论:');
+        console.log('问题可能是checkWin函数不支援中文的"大"、"小"、"单"、"双"');
+        console.log('需要更新checkWin函数以支援中文投注选项');
         
         await db.$pool.end();
     } catch (error) {
-        console.error('分析過程中發生錯誤:', error);
+        console.error('分析过程中发生错误:', error);
         await db.$pool.end();
     }
 }

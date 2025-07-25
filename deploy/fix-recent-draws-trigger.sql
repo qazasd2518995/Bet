@@ -1,16 +1,16 @@
--- 修復 auto_sync_recent_draws 觸發器函數的類型問題
+-- 修复 auto_sync_recent_draws 触发器函数的类型问题
 
--- 刪除舊的觸發器和函數
+-- 删除旧的触发器和函数
 DROP TRIGGER IF EXISTS auto_sync_recent_draws_trigger ON result_history;
 DROP FUNCTION IF EXISTS auto_sync_recent_draws();
 
--- 創建修正後的函數
+-- 创建修正后的函数
 CREATE OR REPLACE FUNCTION auto_sync_recent_draws()
 RETURNS TRIGGER AS $$
 DECLARE
     min_period BIGINT;
 BEGIN
-    -- 只處理有效的新記錄
+    -- 只处理有效的新记录
     IF NEW.result IS NOT NULL 
        AND NEW.position_1 IS NOT NULL 
        AND LENGTH(NEW.period::text) = 11 THEN
@@ -42,13 +42,13 @@ BEGIN
             position_10 = EXCLUDED.position_10,
             draw_time = EXCLUDED.draw_time;
         
-        -- 獲取第10筆記錄的期號（確保類型一致）
+        -- 获取第10笔记录的期号（确保类型一致）
         SELECT period INTO min_period
         FROM recent_draws
         ORDER BY period DESC
         LIMIT 1 OFFSET 9;
         
-        -- 刪除超過10筆的舊記錄（確保類型一致）
+        -- 删除超过10笔的旧记录（确保类型一致）
         IF min_period IS NOT NULL THEN
             DELETE FROM recent_draws
             WHERE period < min_period;
@@ -59,11 +59,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 重新創建觸發器
+-- 重新创建触发器
 CREATE TRIGGER auto_sync_recent_draws_trigger
 AFTER INSERT OR UPDATE ON result_history
 FOR EACH ROW
 EXECUTE FUNCTION auto_sync_recent_draws();
 
--- 顯示結果
-SELECT '✅ 觸發器函數已修復' as result;
+-- 显示结果
+SELECT '✅ 触发器函数已修复' as result;

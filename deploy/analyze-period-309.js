@@ -1,21 +1,21 @@
-// analyze-period-309.js - 分析期號309的結算問題
+// analyze-period-309.js - 分析期号309的结算问题
 import db from './db/config.js';
 import { checkWin } from './improved-settlement-system.js';
 
 async function analyzePeriod309() {
     try {
-        console.log('🔍 分析期號309的結算問題...\n');
+        console.log('🔍 分析期号309的结算问题...\n');
         
-        // 1. 獲取期號309的開獎結果
+        // 1. 获取期号309的开奖结果
         const result = await db.oneOrNone('SELECT period, result FROM result_history WHERE period = 20250714309');
         if (!result) {
-            console.log('❌ 找不到期號309的開獎結果');
+            console.log('❌ 找不到期号309的开奖结果');
             await db.$pool.end();
             return;
         }
         
-        console.log('期號309開獎結果:');
-        console.log('原始結果:', result.result);
+        console.log('期号309开奖结果:');
+        console.log('原始结果:', result.result);
         
         let positions = [];
         if (Array.isArray(result.result)) {
@@ -24,16 +24,16 @@ async function analyzePeriod309() {
             positions = result.result.split(',').map(n => parseInt(n.trim()));
         }
         
-        console.log('解析後位置:', positions);
+        console.log('解析后位置:', positions);
         console.log('\n各位置分析:');
-        const positionNames = ['冠軍', '亞軍', '第三名', '第四名', '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'];
+        const positionNames = ['冠军', '亚军', '第三名', '第四名', '第五名', '第六名', '第七名', '第八名', '第九名', '第十名'];
         positions.forEach((num, index) => {
             const size = num >= 6 ? '大' : '小';
-            const oddEven = num % 2 === 0 ? '雙' : '單';
+            const oddEven = num % 2 === 0 ? '双' : '单';
             console.log(`  ${positionNames[index]}: ${num} (${size}, ${oddEven})`);
         });
         
-        // 2. 獲取所有期號309的投注記錄
+        // 2. 获取所有期号309的投注记录
         const allBets = await db.any(`
             SELECT id, bet_type, bet_value, position, amount, odds, win, win_amount, settled, created_at
             FROM bet_history 
@@ -41,14 +41,14 @@ async function analyzePeriod309() {
             ORDER BY id
         `);
         
-        console.log(`\n📊 期號309投注統計:`);
-        console.log(`總投注記錄數: ${allBets.length}`);
-        console.log(`已結算投注數: ${allBets.filter(b => b.settled).length}`);
-        console.log(`顯示為中獎的投注數: ${allBets.filter(b => b.win).length}`);
-        console.log(`顯示為輸的投注數: ${allBets.filter(b => !b.win).length}`);
+        console.log(`\n📊 期号309投注统计:`);
+        console.log(`总投注记录数: ${allBets.length}`);
+        console.log(`已结算投注数: ${allBets.filter(b => b.settled).length}`);
+        console.log(`显示为中奖的投注数: ${allBets.filter(b => b.win).length}`);
+        console.log(`显示为输的投注数: ${allBets.filter(b => !b.win).length}`);
         
-        // 3. 分析哪些應該中獎
-        console.log('\n🎯 應該中獎的投注:');
+        // 3. 分析哪些应该中奖
+        console.log('\n🎯 应该中奖的投注:');
         
         const betTypeMapping = {
             'champion': 0, '冠军': 0,
@@ -67,7 +67,7 @@ async function analyzePeriod309() {
         const winResult = { positions };
         
         allBets.forEach(bet => {
-            // 測試checkWin函數
+            // 测试checkWin函数
             const isWin = checkWin(bet, winResult);
             
             if (isWin && !bet.win) {
@@ -77,17 +77,17 @@ async function analyzePeriod309() {
                     ...bet,
                     positionIndex,
                     positionValue,
-                    reason: `${bet.bet_type} ${bet.bet_value} (開出${positionValue})`
+                    reason: `${bet.bet_type} ${bet.bet_value} (开出${positionValue})`
                 });
-                console.log(`❌ ID ${bet.id}: ${bet.bet_type} ${bet.bet_value} 應該中獎但顯示為輸 (開出${positionValue})`);
+                console.log(`❌ ID ${bet.id}: ${bet.bet_type} ${bet.bet_value} 应该中奖但显示为输 (开出${positionValue})`);
             }
         });
         
-        console.log(`\n📈 統計結果:`);
-        console.log(`應該中獎但顯示為輸的投注數: ${shouldWinBets.length}`);
-        console.log(`遺失的中獎金額: $${shouldWinBets.length * 198}`);
+        console.log(`\n📈 统计结果:`);
+        console.log(`应该中奖但显示为输的投注数: ${shouldWinBets.length}`);
+        console.log(`遗失的中奖金额: $${shouldWinBets.length * 198}`);
         
-        // 4. 按投注類型統計
+        // 4. 按投注类型统计
         const betStats = {};
         allBets.forEach(bet => {
             const key = `${bet.bet_type}_${bet.bet_value}`;
@@ -98,12 +98,12 @@ async function analyzePeriod309() {
             if (bet.win) betStats[key].wins++;
         });
         
-        console.log('\n📋 各投注類型統計:');
+        console.log('\n📋 各投注类型统计:');
         Object.entries(betStats).forEach(([key, stats]) => {
-            console.log(`  ${key}: ${stats.count}筆 (中獎${stats.wins}筆)`);
+            console.log(`  ${key}: ${stats.count}笔 (中奖${stats.wins}笔)`);
         });
         
-        // 5. 檢查結算日誌
+        // 5. 检查结算日志
         const settlementLog = await db.oneOrNone(`
             SELECT period, settled_count, total_win_amount, created_at
             FROM settlement_logs 
@@ -113,12 +113,12 @@ async function analyzePeriod309() {
         `);
         
         if (settlementLog) {
-            console.log('\n📋 結算日誌:');
-            console.log(`  結算時間: ${settlementLog.created_at}`);
-            console.log(`  結算數量: ${settlementLog.settled_count}`);
-            console.log(`  總中獎金額: $${settlementLog.total_win_amount}`);
+            console.log('\n📋 结算日志:');
+            console.log(`  结算时间: ${settlementLog.created_at}`);
+            console.log(`  结算数量: ${settlementLog.settled_count}`);
+            console.log(`  总中奖金额: $${settlementLog.total_win_amount}`);
         } else {
-            console.log('\n❌ 找不到結算日誌');
+            console.log('\n❌ 找不到结算日志');
         }
         
         // 6. 返回需要修正的投注列表
@@ -132,12 +132,12 @@ async function analyzePeriod309() {
         await db.$pool.end();
         return shouldWinBets;
     } catch (error) {
-        console.error('分析過程中發生錯誤:', error);
+        console.error('分析过程中发生错误:', error);
         await db.$pool.end();
     }
 }
 
-// 如果直接運行此檔案
+// 如果直接运行此档案
 if (import.meta.url === `file://${process.argv[1]}`) {
     analyzePeriod309();
 }

@@ -1,12 +1,12 @@
-// diagnose-multiple-bet-settlement.js - 診斷多筆下注結算問題
+// diagnose-multiple-bet-settlement.js - 诊断多笔下注结算问题
 import db from './db/config.js';
 
 async function diagnoseMultipleBetSettlement() {
-    console.log('🔍 診斷多筆下注結算問題...\n');
+    console.log('🔍 诊断多笔下注结算问题...\n');
     
     try {
-        // 1. 查找 justin111 最近的下注記錄
-        console.log('📊 查找 justin111 最近的下注記錄：');
+        // 1. 查找 justin111 最近的下注记录
+        console.log('📊 查找 justin111 最近的下注记录：');
         const recentBets = await db.manyOrNone(`
             SELECT 
                 id,
@@ -29,9 +29,9 @@ async function diagnoseMultipleBetSettlement() {
         `);
         
         if (recentBets && recentBets.length > 0) {
-            console.log(`找到 ${recentBets.length} 筆最近的下注記錄：`);
+            console.log(`找到 ${recentBets.length} 笔最近的下注记录：`);
             
-            // 按期號分組
+            // 按期号分组
             const betsByPeriod = {};
             recentBets.forEach(bet => {
                 if (!betsByPeriod[bet.period]) {
@@ -40,10 +40,10 @@ async function diagnoseMultipleBetSettlement() {
                 betsByPeriod[bet.period].push(bet);
             });
             
-            // 顯示每期的下注詳情
+            // 显示每期的下注详情
             for (const [period, bets] of Object.entries(betsByPeriod)) {
-                console.log(`\n期號 ${period}：`);
-                console.log(`  下注數量：${bets.length}`);
+                console.log(`\n期号 ${period}：`);
+                console.log(`  下注数量：${bets.length}`);
                 
                 let totalBetAmount = 0;
                 let totalWinAmount = 0;
@@ -56,22 +56,22 @@ async function diagnoseMultipleBetSettlement() {
                         totalWinAmount += parseFloat(bet.win_amount || 0);
                     }
                     
-                    console.log(`  - ID: ${bet.id}, 類型: ${bet.bet_type}, 值: ${bet.bet_value}, 金額: ${bet.amount}, 中獎: ${bet.win ? '是' : '否'}, 獎金: ${bet.win_amount || 0}`);
+                    console.log(`  - ID: ${bet.id}, 类型: ${bet.bet_type}, 值: ${bet.bet_value}, 金额: ${bet.amount}, 中奖: ${bet.win ? '是' : '否'}, 奖金: ${bet.win_amount || 0}`);
                 });
                 
-                console.log(`  總下注: ${totalBetAmount}, 中獎數: ${winCount}, 總獎金: ${totalWinAmount}`);
+                console.log(`  总下注: ${totalBetAmount}, 中奖数: ${winCount}, 总奖金: ${totalWinAmount}`);
                 
-                // 檢查是否有異常
+                // 检查是否有异常
                 if (winCount === 1 && bets.length > 1 && totalWinAmount > 1000) {
-                    console.log(`  ⚠️ 可能的異常：只有1個中獎但總獎金過高`);
+                    console.log(`  ⚠️ 可能的异常：只有1个中奖但总奖金过高`);
                 }
             }
         } else {
-            console.log('沒有找到最近的下注記錄');
+            console.log('没有找到最近的下注记录');
         }
         
-        // 2. 查看最近的交易記錄
-        console.log('\n📊 查看 justin111 最近的交易記錄：');
+        // 2. 查看最近的交易记录
+        console.log('\n📊 查看 justin111 最近的交易记录：');
         const recentTransactions = await db.manyOrNone(`
             SELECT 
                 tr.id,
@@ -90,14 +90,14 @@ async function diagnoseMultipleBetSettlement() {
         `);
         
         if (recentTransactions && recentTransactions.length > 0) {
-            console.log(`找到 ${recentTransactions.length} 筆交易記錄：`);
+            console.log(`找到 ${recentTransactions.length} 笔交易记录：`);
             recentTransactions.forEach(tx => {
-                console.log(`  - ${tx.created_at}: ${tx.transaction_type} ${tx.amount}, 餘額: ${tx.balance_before} → ${tx.balance_after}, 說明: ${tx.description}`);
+                console.log(`  - ${tx.created_at}: ${tx.transaction_type} ${tx.amount}, 余额: ${tx.balance_before} → ${tx.balance_after}, 说明: ${tx.description}`);
             });
         }
         
-        // 3. 檢查結算日誌
-        console.log('\n📊 檢查最近的結算日誌：');
+        // 3. 检查结算日志
+        console.log('\n📊 检查最近的结算日志：');
         const settlementLogs = await db.manyOrNone(`
             SELECT 
                 period,
@@ -112,31 +112,31 @@ async function diagnoseMultipleBetSettlement() {
         `);
         
         if (settlementLogs && settlementLogs.length > 0) {
-            console.log(`找到 ${settlementLogs.length} 筆結算日誌：`);
+            console.log(`找到 ${settlementLogs.length} 笔结算日志：`);
             settlementLogs.forEach(log => {
-                console.log(`\n  期號 ${log.period}：`);
-                console.log(`  - 結算數量: ${log.settled_count}`);
-                console.log(`  - 總獎金: ${log.total_win_amount}`);
-                console.log(`  - 時間: ${log.created_at}`);
+                console.log(`\n  期号 ${log.period}：`);
+                console.log(`  - 结算数量: ${log.settled_count}`);
+                console.log(`  - 总奖金: ${log.total_win_amount}`);
+                console.log(`  - 时间: ${log.created_at}`);
                 
-                // 解析詳細信息
+                // 解析详细信息
                 if (log.settlement_details) {
                     const details = log.settlement_details;
                     const justinBets = details.filter(d => d.username === 'justin111');
                     if (justinBets.length > 0) {
-                        console.log(`  - justin111 的注單：`);
+                        console.log(`  - justin111 的注单：`);
                         justinBets.forEach(d => {
-                            console.log(`    ID: ${d.betId}, 中獎: ${d.isWin}, 獎金: ${d.winAmount}`);
+                            console.log(`    ID: ${d.betId}, 中奖: ${d.isWin}, 奖金: ${d.winAmount}`);
                         });
                     }
                 }
             });
         }
         
-        // 4. 分析可能的問題
-        console.log('\n🔍 分析可能的問題：');
+        // 4. 分析可能的问题
+        console.log('\n🔍 分析可能的问题：');
         
-        // 檢查是否有重複的中獎記錄
+        // 检查是否有重复的中奖记录
         const duplicateWins = await db.manyOrNone(`
             SELECT 
                 period,
@@ -155,39 +155,39 @@ async function diagnoseMultipleBetSettlement() {
         `);
         
         if (duplicateWins && duplicateWins.length > 0) {
-            console.log('發現多筆下注的期號：');
+            console.log('发现多笔下注的期号：');
             duplicateWins.forEach(record => {
-                console.log(`  期號 ${record.period}: ${record.bet_count} 筆下注, ${record.win_count} 筆中獎, 總下注 ${record.total_bet}, 總獎金 ${record.total_win}`);
+                console.log(`  期号 ${record.period}: ${record.bet_count} 笔下注, ${record.win_count} 笔中奖, 总下注 ${record.total_bet}, 总奖金 ${record.total_win}`);
                 
-                // 計算預期獎金
-                const expectedWin = parseFloat(record.total_bet) * 0.89; // 假設賠率是 0.89
+                // 计算预期奖金
+                const expectedWin = parseFloat(record.total_bet) * 0.89; // 假设赔率是 0.89
                 const actualWin = parseFloat(record.total_win || 0);
                 
                 if (Math.abs(actualWin - expectedWin) > 100 && record.win_count === 1) {
-                    console.log(`  ⚠️ 獎金異常：預期 ${expectedWin.toFixed(2)}, 實際 ${actualWin.toFixed(2)}`);
+                    console.log(`  ⚠️ 奖金异常：预期 ${expectedWin.toFixed(2)}, 实际 ${actualWin.toFixed(2)}`);
                 }
             });
         }
         
-        console.log('\n💡 建議：');
-        console.log('1. 檢查 calculateWinAmount 函數是否正確處理號碼投注的賠率');
-        console.log('2. 確認結算時是否正確識別中獎注單');
-        console.log('3. 檢查是否有重複執行結算的情況');
+        console.log('\n💡 建议：');
+        console.log('1. 检查 calculateWinAmount 函数是否正确处理号码投注的赔率');
+        console.log('2. 确认结算时是否正确识别中奖注单');
+        console.log('3. 检查是否有重复执行结算的情况');
         
     } catch (error) {
-        console.error('❌ 診斷過程中發生錯誤:', error);
+        console.error('❌ 诊断过程中发生错误:', error);
     }
 }
 
-// 如果直接執行此文件
+// 如果直接执行此文件
 if (process.argv[1] === new URL(import.meta.url).pathname) {
     diagnoseMultipleBetSettlement()
         .then(() => {
-            console.log('\n診斷完成');
+            console.log('\n诊断完成');
             process.exit(0);
         })
         .catch(error => {
-            console.error('診斷失敗:', error);
+            console.error('诊断失败:', error);
             process.exit(1);
         });
 }

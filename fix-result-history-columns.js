@@ -8,12 +8,12 @@ async function fixResultHistoryColumns() {
     const client = await pool.connect();
     
     try {
-        console.log('🔧 修復 result_history 表結構...\n');
+        console.log('🔧 修复 result_history 表结构...\n');
         
-        // 開始事務
+        // 开始事务
         await client.query('BEGIN');
         
-        // 檢查現有的列
+        // 检查现有的列
         const checkColumns = await client.query(`
             SELECT column_name 
             FROM information_schema.columns 
@@ -22,7 +22,7 @@ async function fixResultHistoryColumns() {
         `);
         
         const existingColumns = checkColumns.rows.map(row => row.column_name);
-        console.log('現有的 position 列:', existingColumns);
+        console.log('现有的 position 列:', existingColumns);
         
         // 添加缺少的 position 列
         for (let i = 1; i <= 10; i++) {
@@ -36,8 +36,8 @@ async function fixResultHistoryColumns() {
             }
         }
         
-        // 如果有舊的數據，從 result 陣列中提取值
-        console.log('\n更新現有記錄的 position 值...');
+        // 如果有旧的数据，从 result 阵列中提取值
+        console.log('\n更新现有记录的 position 值...');
         const updateQuery = `
             UPDATE result_history 
             SET 
@@ -57,13 +57,13 @@ async function fixResultHistoryColumns() {
         `;
         
         const updateResult = await client.query(updateQuery);
-        console.log(`更新了 ${updateResult.rowCount} 筆記錄`);
+        console.log(`更新了 ${updateResult.rowCount} 笔记录`);
         
-        // 提交事務
+        // 提交事务
         await client.query('COMMIT');
-        console.log('\n✅ result_history 表結構修復完成！');
+        console.log('\n✅ result_history 表结构修复完成！');
         
-        // 驗證結構
+        // 验证结构
         const verifyColumns = await client.query(`
             SELECT column_name, data_type 
             FROM information_schema.columns 
@@ -72,14 +72,14 @@ async function fixResultHistoryColumns() {
             ORDER BY column_name
         `);
         
-        console.log('\n當前 position 列結構:');
+        console.log('\n当前 position 列结构:');
         verifyColumns.rows.forEach(col => {
             console.log(`- ${col.column_name}: ${col.data_type}`);
         });
         
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ 修復失敗:', error.message);
+        console.error('❌ 修复失败:', error.message);
         throw error;
     } finally {
         client.release();
@@ -87,5 +87,5 @@ async function fixResultHistoryColumns() {
     }
 }
 
-// 執行修復
+// 执行修复
 fixResultHistoryColumns().catch(console.error);

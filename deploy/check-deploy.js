@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// check-deploy.js - 部署前檢查腳本
+// check-deploy.js - 部署前检查脚本
 
 import fs from 'fs';
 import path from 'path';
@@ -8,9 +8,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🔍 開始檢查部署環境...\n');
+console.log('🔍 开始检查部署环境...\n');
 
-// 檢查必要的檔案
+// 检查必要的档案
 const requiredFiles = [
   'package.json',
   'render.yaml',
@@ -26,19 +26,19 @@ const requiredFiles = [
 
 let allFilesExist = true;
 
-console.log('📁 檢查必要檔案:');
+console.log('📁 检查必要档案:');
 requiredFiles.forEach(file => {
   const filePath = path.join(__dirname, file);
   if (fs.existsSync(filePath)) {
     console.log(`  ✅ ${file}`);
   } else {
-    console.log(`  ❌ ${file} - 檔案不存在`);
+    console.log(`  ❌ ${file} - 档案不存在`);
     allFilesExist = false;
   }
 });
 
-// 檢查 package.json 中的腳本
-console.log('\n📦 檢查 package.json 腳本:');
+// 检查 package.json 中的脚本
+console.log('\n📦 检查 package.json 脚本:');
 try {
   const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
   
@@ -47,17 +47,17 @@ try {
     if (packageJson.scripts[script]) {
       console.log(`  ✅ ${script}: ${packageJson.scripts[script]}`);
     } else {
-      console.log(`  ❌ ${script} 腳本未定義`);
+      console.log(`  ❌ ${script} 脚本未定义`);
       allFilesExist = false;
     }
   });
 } catch (error) {
-  console.log('  ❌ 無法讀取 package.json');
+  console.log('  ❌ 无法读取 package.json');
   allFilesExist = false;
 }
 
-// 檢查環境變數配置
-console.log('\n🔧 檢查環境變數配置:');
+// 检查环境变数配置
+console.log('\n🔧 检查环境变数配置:');
 const requiredEnvVars = [
   'DATABASE_URL',
   'DB_HOST',
@@ -78,47 +78,47 @@ try {
     }
   });
 } catch (error) {
-  console.log('  ❌ 無法讀取 render.yaml');
+  console.log('  ❌ 无法读取 render.yaml');
   allFilesExist = false;
 }
 
-// 檢查資料庫配置
-console.log('\n🗄️ 檢查資料庫配置:');
+// 检查资料库配置
+console.log('\n🗄️ 检查资料库配置:');
 try {
   const dbConfig = fs.readFileSync(path.join(__dirname, 'db/config.js'), 'utf8');
   if (dbConfig.includes('dpg-d0e2imc9c44c73che3kg-a')) {
-    console.log('  ✅ 資料庫主機已配置');
+    console.log('  ✅ 资料库主机已配置');
   } else {
-    console.log('  ❌ 資料庫主機配置不正確');
+    console.log('  ❌ 资料库主机配置不正确');
     allFilesExist = false;
   }
   
   if (dbConfig.includes('bet_game')) {
-    console.log('  ✅ 資料庫名稱已配置');
+    console.log('  ✅ 资料库名称已配置');
   } else {
-    console.log('  ❌ 資料庫名稱配置不正確');
+    console.log('  ❌ 资料库名称配置不正确');
     allFilesExist = false;
   }
 } catch (error) {
-  console.log('  ❌ 無法讀取資料庫配置檔案');
+  console.log('  ❌ 无法读取资料库配置档案');
   allFilesExist = false;
 }
 
-// 總結
+// 总结
 console.log('\n' + '='.repeat(50));
 if (allFilesExist) {
-  console.log('🎉 所有檢查都通過！您的專案已準備好部署到 Render。');
-  console.log('\n📋 接下來的步驟:');
-  console.log('1. 推送代碼到 GitHub');
-  console.log('2. 在 Render 中創建 Blueprint 或手動創建服務');
-  console.log('3. 設置環境變數');
-  console.log('4. 部署完成後訪問 /api/init-db 初始化資料庫');
+  console.log('🎉 所有检查都通过！您的专案已准备好部署到 Render。');
+  console.log('\n📋 接下来的步骤:');
+  console.log('1. 推送代码到 GitHub');
+  console.log('2. 在 Render 中创建 Blueprint 或手动创建服务');
+  console.log('3. 设置环境变数');
+  console.log('4. 部署完成后访问 /api/init-db 初始化资料库');
 } else {
-  console.log('❌ 發現問題，請修復後再嘗試部署。');
+  console.log('❌ 发现问题，请修复后再尝试部署。');
   process.exit(1);
 }
 
-console.log('\n🔧 修復建議:');
-console.log('如果遇到客服操作錯誤，請運行: node fix-db-issues.js');
-console.log('然後運行資料庫測試: node test-db-queries.js');
-console.log('\n📖 詳細部署指南請參考 DEPLOY.md 檔案'); 
+console.log('\n🔧 修复建议:');
+console.log('如果遇到客服操作错误，请运行: node fix-db-issues.js');
+console.log('然后运行资料库测试: node test-db-queries.js');
+console.log('\n📖 详细部署指南请参考 DEPLOY.md 档案'); 

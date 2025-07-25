@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkRecentRebates() {
   try {
-    console.log('=== 檢查最近的退水記錄 ===');
+    console.log('=== 检查最近的退水记录 ===');
     
-    // 檢查最近的交易記錄
+    // 检查最近的交易记录
     const recentRebates = await db.any(`
       SELECT 
         tr.id,
@@ -28,34 +28,34 @@ async function checkRecentRebates() {
       LIMIT 20
     `);
     
-    console.log(`找到 ${recentRebates.length} 筆最近24小時的退水記錄`);
+    console.log(`找到 ${recentRebates.length} 笔最近24小时的退水记录`);
     
-    // 按期號分組顯示
+    // 按期号分组显示
     const rebatesByPeriod = {};
     for (const rebate of recentRebates) {
-      const period = rebate.period || '未知期號';
+      const period = rebate.period || '未知期号';
       if (!rebatesByPeriod[period]) {
         rebatesByPeriod[period] = [];
       }
       rebatesByPeriod[period].push(rebate);
     }
     
-    // 顯示每期的退水記錄
+    // 显示每期的退水记录
     for (const [period, rebates] of Object.entries(rebatesByPeriod)) {
-      console.log(`\n期號 ${period}:`);
+      console.log(`\n期号 ${period}:`);
       
-      // 計算該期退水總額
+      // 计算该期退水总额
       const periodTotal = rebates.reduce((sum, r) => sum + parseFloat(r.amount), 0);
       
       for (const rebate of rebates) {
-        console.log(`  ${rebate.created_at.toISOString()}: ${rebate.username} 獲得退水 ${rebate.amount} 元 - ${rebate.description}`);
+        console.log(`  ${rebate.created_at.toISOString()}: ${rebate.username} 获得退水 ${rebate.amount} 元 - ${rebate.description}`);
       }
       
-      console.log(`  該期退水總額: ${periodTotal.toFixed(2)} 元`);
+      console.log(`  该期退水总额: ${periodTotal.toFixed(2)} 元`);
     }
     
-    // 檢查是否有重複退水
-    console.log('\n=== 檢查重複退水 ===');
+    // 检查是否有重复退水
+    console.log('\n=== 检查重复退水 ===');
     const duplicates = await db.any(`
       SELECT 
         period,
@@ -74,7 +74,7 @@ async function checkRecentRebates() {
     `);
     
     if (duplicates.length > 0) {
-      console.log('發現重複退水記錄:');
+      console.log('发现重复退水记录:');
       for (const dup of duplicates) {
         const user = await db.oneOrNone(
           dup.user_type === 'agent' 
@@ -82,15 +82,15 @@ async function checkRecentRebates() {
             : 'SELECT username FROM members WHERE id = $1',
           [dup.user_id]
         );
-        console.log(`期號 ${dup.period}: ${user?.username || '未知'} 收到 ${dup.count} 次退水，總額 ${dup.total_amount} 元`);
+        console.log(`期号 ${dup.period}: ${user?.username || '未知'} 收到 ${dup.count} 次退水，总额 ${dup.total_amount} 元`);
         console.log(`  描述: ${dup.descriptions}`);
       }
     } else {
-      console.log('沒有發現重複退水記錄');
+      console.log('没有发现重复退水记录');
     }
     
-    // 檢查特定用戶的退水詳情
-    console.log('\n=== ti2025A 最近的退水詳情 ===');
+    // 检查特定用户的退水详情
+    console.log('\n=== ti2025A 最近的退水详情 ===');
     const ti2025ARebates = await db.any(`
       SELECT 
         tr.*,
@@ -106,13 +106,13 @@ async function checkRecentRebates() {
     `);
     
     for (const rebate of ti2025ARebates) {
-      console.log(`${rebate.created_at.toISOString()}: 期號${rebate.period || '未知'}, 金額=${rebate.amount}, 描述=${rebate.description}`);
+      console.log(`${rebate.created_at.toISOString()}: 期号${rebate.period || '未知'}, 金额=${rebate.amount}, 描述=${rebate.description}`);
     }
     
     process.exit(0);
     
   } catch (error) {
-    console.error('錯誤:', error);
+    console.error('错误:', error);
     process.exit(1);
   }
 }

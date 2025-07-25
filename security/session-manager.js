@@ -1,45 +1,45 @@
-// security/session-manager.js - 會話管理系統
+// security/session-manager.js - 会话管理系统
 import db from '../db/config.js';
 import crypto from 'crypto';
 import wsManager from '../websocket/ws-manager.js';
 
 /**
- * 會話管理器
- * 用於控制同一帳號不能同時在不同裝置登入
+ * 会话管理器
+ * 用于控制同一帐号不能同时在不同装置登入
  */
 class SessionManager {
   
   /**
-   * 創建新會話
-   * @param {string} userType - 用戶類型 ('agent' 或 'member')
-   * @param {number} userId - 用戶ID
+   * 创建新会话
+   * @param {string} userType - 用户类型 ('agent' 或 'member')
+   * @param {number} userId - 用户ID
    * @param {string} ipAddress - IP地址
-   * @param {string} userAgent - 用戶代理字符串
-   * @param {number} expiresInMinutes - 會話過期時間（分鐘）
+   * @param {string} userAgent - 用户代理字符串
+   * @param {number} expiresInMinutes - 会话过期时间（分钟）
    * @returns {string} session token
    */
   static async createSession(userType, userId, ipAddress, userAgent, expiresInMinutes = 480) {
     try {
-      // 生成唯一的會話token
+      // 生成唯一的会话token
       const sessionToken = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
       
-      // 檢查是否已有活躍會話
+      // 检查是否已有活跃会话
       const existingSessions = await this.getActiveSessions(userType, userId);
       
       if (existingSessions.length > 0) {
-        console.log(`用戶 ${userType}:${userId} 已有活躍會話，將強制登出其他裝置`);
+        console.log(`用户 ${userType}:${userId} 已有活跃会话，将强制登出其他装置`);
         
-        // 通知所有現有會話即時登出
+        // 通知所有现有会话即时登出
         for (const session of existingSessions) {
           wsManager.notifySessionInvalidated(session.session_token);
         }
         
-        // 強制登出所有現有會話
+        // 强制登出所有现有会话
         await this.invalidateUserSessions(userType, userId);
       }
       
-      // 創建新會話
+      // 创建新会话
       await db.none(`
         INSERT INTO user_sessions (
           session_token, user_type, user_id, ip_address, user_agent, 
@@ -47,20 +47,20 @@ class SessionManager {
         ) VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
       `, [sessionToken, userType, userId, ipAddress, userAgent, expiresAt]);
       
-      console.log(`✅ 創建新會話: ${userType}:${userId}, token: ${sessionToken.substring(0, 8)}...`);
+      console.log(`✅ 创建新会话: ${userType}:${userId}, token: ${sessionToken.substring(0, 8)}...`);
       
       return sessionToken;
       
     } catch (error) {
-      console.error('創建會話失敗:', error);
-      throw new Error('會話創建失敗');
+      console.error('创建会话失败:', error);
+      throw new Error('会话创建失败');
     }
   }
   
   /**
-   * 驗證會話
-   * @param {string} sessionToken - 會話token
-   * @returns {Object|null} 會話信息或null
+   * 验证会话
+   * @param {string} sessionToken - 会话token
+   * @returns {Object|null} 会话信息或null
    */
   static async validateSession(sessionToken) {
     try {
@@ -79,7 +79,7 @@ class SessionManager {
         return null;
       }
       
-      // 更新最後活動時間
+      // 更新最后活动时间
       await db.none(`
         UPDATE user_sessions 
         SET last_activity = NOW() 
@@ -96,16 +96,16 @@ class SessionManager {
       };
       
     } catch (error) {
-      console.error('驗證會話失敗:', error);
+      console.error('验证会话失败:', error);
       return null;
     }
   }
   
   /**
-   * 獲取用戶的活躍會話
-   * @param {string} userType - 用戶類型
-   * @param {number} userId - 用戶ID
-   * @returns {Array} 活躍會話列表
+   * 获取用户的活跃会话
+   * @param {string} userType - 用户类型
+   * @param {number} userId - 用户ID
+   * @returns {Array} 活跃会话列表
    */
   static async getActiveSessions(userType, userId) {
     try {
@@ -122,19 +122,19 @@ class SessionManager {
       return sessions;
       
     } catch (error) {
-      console.error('獲取活躍會話失敗:', error);
+      console.error('获取活跃会话失败:', error);
       return [];
     }
   }
   
   /**
-   * 強制登出用戶的所有會話
-   * @param {string} userType - 用戶類型
-   * @param {number} userId - 用戶ID
+   * 强制登出用户的所有会话
+   * @param {string} userType - 用户类型
+   * @param {number} userId - 用户ID
    */
   static async invalidateUserSessions(userType, userId) {
     try {
-      // 獲取所有活躍會話的 token
+      // 获取所有活跃会话的 token
       const sessions = await db.any(`
         SELECT session_token 
         FROM user_sessions 
@@ -143,12 +143,12 @@ class SessionManager {
         AND is_active = true
       `, [userType, userId]);
       
-      // 通知每個會話被強制登出
+      // 通知每个会话被强制登出
       for (const session of sessions) {
         wsManager.notifySessionInvalidated(session.session_token);
       }
       
-      // 更新資料庫標記為無效
+      // 更新资料库标记为无效
       await db.none(`
         UPDATE user_sessions 
         SET is_active = false 
@@ -157,17 +157,17 @@ class SessionManager {
         AND is_active = true
       `, [userType, userId]);
       
-      console.log(`✅ 已強制登出用戶 ${userType}:${userId} 的所有會話`);
+      console.log(`✅ 已强制登出用户 ${userType}:${userId} 的所有会话`);
       
     } catch (error) {
-      console.error('強制登出會話失敗:', error);
-      throw new Error('強制登出失敗');
+      console.error('强制登出会话失败:', error);
+      throw new Error('强制登出失败');
     }
   }
   
   /**
-   * 登出特定會話
-   * @param {string} sessionToken - 會話token
+   * 登出特定会话
+   * @param {string} sessionToken - 会话token
    */
   static async logout(sessionToken) {
     try {
@@ -181,16 +181,16 @@ class SessionManager {
         WHERE session_token = $1
       `, [sessionToken]);
       
-      console.log(`✅ 會話已登出: ${sessionToken.substring(0, 8)}...`);
+      console.log(`✅ 会话已登出: ${sessionToken.substring(0, 8)}...`);
       
     } catch (error) {
-      console.error('登出會話失敗:', error);
-      throw new Error('登出失敗');
+      console.error('登出会话失败:', error);
+      throw new Error('登出失败');
     }
   }
   
   /**
-   * 清理過期會話
+   * 清理过期会话
    */
   static async cleanupExpiredSessions() {
     try {
@@ -201,17 +201,17 @@ class SessionManager {
       `);
       
       if (result.rowCount > 0) {
-        console.log(`🗑️ 清理了 ${result.rowCount} 個過期會話`);
+        console.log(`🗑️ 清理了 ${result.rowCount} 个过期会话`);
       }
       
     } catch (error) {
-      console.error('清理過期會話失敗:', error);
+      console.error('清理过期会话失败:', error);
     }
   }
   
   /**
-   * 獲取會話統計信息
-   * @returns {Object} 統計信息
+   * 获取会话统计信息
+   * @returns {Object} 统计信息
    */
   static async getSessionStats() {
     try {
@@ -233,7 +233,7 @@ class SessionManager {
       };
       
     } catch (error) {
-      console.error('獲取會話統計失敗:', error);
+      console.error('获取会话统计失败:', error);
       return {
         totalSessions: 0,
         activeSessions: 0,
@@ -244,10 +244,10 @@ class SessionManager {
   }
   
   /**
-   * 檢查IP是否有異常登入行為
+   * 检查IP是否有异常登入行为
    * @param {string} ipAddress - IP地址
-   * @param {number} timeWindowMinutes - 時間窗口（分鐘）
-   * @returns {boolean} 是否異常
+   * @param {number} timeWindowMinutes - 时间窗口（分钟）
+   * @returns {boolean} 是否异常
    */
   static async checkSuspiciousActivity(ipAddress, timeWindowMinutes = 60) {
     try {
@@ -258,22 +258,22 @@ class SessionManager {
         AND created_at > NOW() - INTERVAL '${timeWindowMinutes} minutes'
       `, [ipAddress]);
       
-      // 如果同一IP在時間窗口內登入了超過3個不同用戶，標記為可疑
+      // 如果同一IP在时间窗口内登入了超过3个不同用户，标记为可疑
       return parseInt(count.unique_users) > 3;
       
     } catch (error) {
-      console.error('檢查可疑活動失敗:', error);
+      console.error('检查可疑活动失败:', error);
       return false;
     }
   }
   
   /**
-   * 初始化會話管理系統
-   * 創建必要的資料庫表和定時清理任務
+   * 初始化会话管理系统
+   * 创建必要的资料库表和定时清理任务
    */
   static async initialize() {
     try {
-      // 確保user_sessions表存在
+      // 确保user_sessions表存在
       await db.none(`
         CREATE TABLE IF NOT EXISTS user_sessions (
           id SERIAL PRIMARY KEY,
@@ -289,21 +289,21 @@ class SessionManager {
         )
       `);
       
-      // 創建索引
+      // 创建索引
       await db.none(`CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token)`);
       await db.none(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_type, user_id)`);
       await db.none(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)`);
       await db.none(`CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active)`);
       
-      console.log('✅ 會話管理系統初始化完成');
+      console.log('✅ 会话管理系统初始化完成');
       
-      // 設定定時清理過期會話（每30分鐘執行一次）
+      // 设定定时清理过期会话（每30分钟执行一次）
       setInterval(() => {
         this.cleanupExpiredSessions();
       }, 30 * 60 * 1000);
       
     } catch (error) {
-      console.error('初始化會話管理系統失敗:', error);
+      console.error('初始化会话管理系统失败:', error);
       throw error;
     }
   }

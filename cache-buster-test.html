@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>表格修正測試 v2.1</title>
+    <title>表格修正测试 v2.1</title>
     <style>
-        /* 強制重置表格Grid布局 v2.1 */
+        /* 强制重置表格Grid布局 v2.1 */
         .weekly-table-header {
             display: grid !important;
             grid-template-columns: 1.5fr 1fr 1fr 1fr !important;
@@ -101,7 +101,7 @@
             font-weight: 600;
         }
 
-        /* 週報表響應式設計 - 修正版本 v2.1 強制刷新 */
+        /* 周报表响应式设计 - 修正版本 v2.1 强制刷新 */
         @media (max-width: 768px) {
             .weekly-table-header, .table-row {
                 grid-template-columns: 1.2fr 0.8fr 1fr 1fr !important;
@@ -120,7 +120,7 @@
                 word-wrap: break-word;
             }
 
-            /* 輸贏欄位 - 關鍵修正 v2.1 */
+            /* 输赢栏位 - 关键修正 v2.1 */
             .row-cell:nth-child(4),
             .profit-cell {
                 min-width: 55px !important;
@@ -168,24 +168,24 @@
 </head>
 <body>
     <div class="container">
-        <div class="title">盈虧記錄表格測試 v2.1</div>
+        <div class="title">盈亏记录表格测试 v2.1</div>
         
         <div class="test-info">
-            <strong>測試內容：</strong>檢查4欄表格是否正確顯示<br>
-            <strong>預期結果：</strong>日期 | 注數 | 有效金額 | 輸贏<br>
-            <strong>版本：</strong>v2.1 強制刷新 + !important
+            <strong>测试内容：</strong>检查4栏表格是否正确显示<br>
+            <strong>预期结果：</strong>日期 | 注数 | 有效金额 | 输赢<br>
+            <strong>版本：</strong>v2.1 强制刷新 + !important
         </div>
         
         <div class="weekly-profit-content">
-            <!-- 表格頭部 -->
+            <!-- 表格头部 -->
             <div class="weekly-table-header">
                 <div class="header-cell">日期</div>
-                <div class="header-cell">注數</div>
+                <div class="header-cell">注数</div>
                 <div class="header-cell">有效金额</div>
-                <div class="header-cell">輸贏</div>
+                <div class="header-cell">输赢</div>
             </div>
             
-            <!-- 週報表數據 -->
+            <!-- 周报表数据 -->
             <div class="weekly-table-body">
                 <div class="table-row">
                     <div class="row-cell date-cell">
@@ -219,7 +219,7 @@
     </div>
     
     <script>
-        // 檢查CSS是否正確載入
+        // 检查CSS是否正确载入
         document.addEventListener('DOMContentLoaded', function() {
             const firstRow = document.querySelector('.table-row');
             const computedStyle = window.getComputedStyle(firstRow);
@@ -228,18 +228,18 @@
             console.log('Display:', computedStyle.display);
             console.log('Width:', computedStyle.width);
             
-            // 檢查第4個欄位
+            // 检查第4个栏位
             const fourthCell = firstRow.querySelector('.row-cell:nth-child(4)');
             if (fourthCell) {
                 const cellStyle = window.getComputedStyle(fourthCell);
-                console.log('第4欄位 Grid Column:', cellStyle.gridColumn);
-                console.log('第4欄位 Width:', cellStyle.width);
-                console.log('第4欄位內容:', fourthCell.textContent);
+                console.log('第4栏位 Grid Column:', cellStyle.gridColumn);
+                console.log('第4栏位 Width:', cellStyle.width);
+                console.log('第4栏位内容:', fourthCell.textContent);
             }
             
-            // 視覺檢查
+            // 视觉检查
             setTimeout(() => {
-                alert('請檢查表格是否正確顯示4欄：\n日期 | 注數 | 有效金額 | 輸贏\n\n如果第4欄(輸贏)顯示正常，修正成功！');
+                alert('请检查表格是否正确显示4栏：\n日期 | 注数 | 有效金额 | 输赢\n\n如果第4栏(输赢)显示正常，修正成功！');
             }, 1000);
         });
     </script>

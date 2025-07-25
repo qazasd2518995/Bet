@@ -1,57 +1,57 @@
-// fix-settlement-issues.js - 修復結算系統的兩個主要問題
+// fix-settlement-issues.js - 修复结算系统的两个主要问题
 
 import fs from 'fs';
 import path from 'path';
 
-console.log('🔧 開始修復結算系統問題...\n');
+console.log('🔧 开始修复结算系统问题...\n');
 
-// 1. 修復結算邏輯錯誤：數字比較問題
-console.log('📝 修復問題 1: 結算邏輯中的數字比較問題');
+// 1. 修复结算逻辑错误：数字比较问题
+console.log('📝 修复问题 1: 结算逻辑中的数字比较问题');
 
 const enhancedSettlementPath = './enhanced-settlement-system.js';
 let enhancedContent = fs.readFileSync(enhancedSettlementPath, 'utf8');
 
-// 修復嚴格相等比較問題
+// 修复严格相等比较问题
 const oldComparison = `const winningNumber = positions[position - 1];
         const isWin = winningNumber === betNumber;`;
 
 const newComparison = `const winningNumber = positions[position - 1];
-        // 確保數字類型一致的比較
+        // 确保数字类型一致的比较
         const isWin = parseInt(winningNumber) === parseInt(betNumber);`;
 
 if (enhancedContent.includes(oldComparison)) {
     enhancedContent = enhancedContent.replace(oldComparison, newComparison);
-    console.log('✅ 已修復數字比較邏輯');
+    console.log('✅ 已修复数字比较逻辑');
 } else {
-    console.log('⚠️ 未找到需要修復的數字比較代碼');
+    console.log('⚠️ 未找到需要修复的数字比较代码');
 }
 
-// 添加更詳細的日誌
-const oldLog = `settlementLog.info(\`檢查投注: id=\${bet.id}, type=\${betType}, value=\${betValue}, position=\${bet.position}\`);`;
-const newLog = `settlementLog.info(\`檢查投注: id=\${bet.id}, type=\${betType}, value=\${betValue}, position=\${bet.position}\`);
+// 添加更详细的日志
+const oldLog = `settlementLog.info(\`检查投注: id=\${bet.id}, type=\${betType}, value=\${betValue}, position=\${bet.position}\`);`;
+const newLog = `settlementLog.info(\`检查投注: id=\${bet.id}, type=\${betType}, value=\${betValue}, position=\${bet.position}\`);
     if (betType === 'number' && bet.position) {
-        settlementLog.info(\`號碼投注詳情: 位置=\${bet.position}, 下注號碼=\${betValue}, 開獎號碼=\${positions[parseInt(bet.position) - 1]}\`);
+        settlementLog.info(\`号码投注详情: 位置=\${bet.position}, 下注号码=\${betValue}, 开奖号码=\${positions[parseInt(bet.position) - 1]}\`);
     }`;
 
 enhancedContent = enhancedContent.replace(oldLog, newLog);
 
 fs.writeFileSync(enhancedSettlementPath, enhancedContent);
-console.log('✅ 結算邏輯修復完成\n');
+console.log('✅ 结算逻辑修复完成\n');
 
-// 2. 修復提前結算問題
-console.log('📝 修復問題 2: 避免在開獎階段顯示結算結果');
+// 2. 修复提前结算问题
+console.log('📝 修复问题 2: 避免在开奖阶段显示结算结果');
 
 const backendPath = './backend.js';
 let backendContent = fs.readFileSync(backendPath, 'utf8');
 
-// 在遊戲狀態API中添加結算狀態檢查
+// 在游戏状态API中添加结算状态检查
 const gameDataEndpoint = `app.get('/api/game-data', async (req, res) => {`;
 const modifiedEndpoint = `app.get('/api/game-data', async (req, res) => {
   try {
     const gameData = await getGameData();
     
-    // 在開獎階段（drawing）時，不返回剛結算的注單
-    // 這樣前端在開獎動畫期間不會看到結算結果
+    // 在开奖阶段（drawing）时，不返回刚结算的注单
+    // 这样前端在开奖动画期间不会看到结算结果
     if (gameData.status === 'drawing') {
       gameData.hideRecentSettlements = true;
     }
@@ -61,46 +61,46 @@ const modifiedEndpoint = `app.get('/api/game-data', async (req, res) => {
       ...gameData
     });
   } catch (error) {
-    console.error('獲取遊戲數據失敗:', error);
-    res.status(500).json({ success: false, message: '獲取遊戲數據失敗' });
+    console.error('获取游戏数据失败:', error);
+    res.status(500).json({ success: false, message: '获取游戏数据失败' });
   }
 });
 
-// 原始的端點處理保持不變，以下是繼續的代碼...
+// 原始的端点处理保持不变，以下是继续的代码...
 app.get('/api/game-data-original', async (req, res) => {`;
 
-// 查找並替換
+// 查找并替换
 const endpointMatch = backendContent.match(/app\.get\('\/api\/game-data',[\s\S]*?\}\);/);
 if (endpointMatch) {
     const originalEndpoint = endpointMatch[0];
-    // 保存原始邏輯
+    // 保存原始逻辑
     const modifiedBackend = backendContent.replace(originalEndpoint, modifiedEndpoint + '\n' + originalEndpoint.replace("'/api/game-data'", "'/api/game-data-original'"));
     
     fs.writeFileSync(backendPath, modifiedBackend);
-    console.log('✅ 已修改 /api/game-data 端點，在開獎階段隱藏結算狀態');
+    console.log('✅ 已修改 /api/game-data 端点，在开奖阶段隐藏结算状态');
 } else {
-    console.log('⚠️ 未找到 /api/game-data 端點');
+    console.log('⚠️ 未找到 /api/game-data 端点');
 }
 
-// 3. 修復輸贏控制影響結算的問題
-console.log('\n📝 修復問題 3: 確保輸贏控制不影響正確的結算判定');
+// 3. 修复输赢控制影响结算的问题
+console.log('\n📝 修复问题 3: 确保输赢控制不影响正确的结算判定');
 
-// 在結算前添加日誌，記錄輸贏控制狀態
+// 在结算前添加日志，记录输赢控制状态
 const settlementFunction = `export async function enhancedSettlement(period, drawResult) {`;
 const modifiedSettlement = `export async function enhancedSettlement(period, drawResult) {
-    // 檢查是否有輸贏控制影響
+    // 检查是否有输赢控制影响
     const controlCheck = await checkWinLossControlStatus(period);
     if (controlCheck.enabled) {
-        settlementLog.warn(\`⚠️ 注意：期號 \${period} 有輸贏控制設定 - 模式: \${controlCheck.mode}, 目標: \${controlCheck.target}\`);
-        settlementLog.warn(\`輸贏控制不應影響結算判定，僅影響開獎結果生成\`);
+        settlementLog.warn(\`⚠️ 注意：期号 \${period} 有输赢控制设定 - 模式: \${controlCheck.mode}, 目标: \${controlCheck.target}\`);
+        settlementLog.warn(\`输赢控制不应影响结算判定，仅影响开奖结果生成\`);
     }`;
 
 enhancedContent = fs.readFileSync(enhancedSettlementPath, 'utf8');
 enhancedContent = enhancedContent.replace(settlementFunction, modifiedSettlement);
 
-// 添加輸贏控制檢查函數
+// 添加输赢控制检查函数
 const controlCheckFunction = `
-// 檢查輸贏控制狀態（僅用於日誌記錄）
+// 检查输赢控制状态（仅用于日志记录）
 async function checkWinLossControlStatus(period) {
     try {
         const response = await fetch(\`\${AGENT_API_URL}/api/agent/internal/win-loss-control/active\`);
@@ -115,64 +115,64 @@ async function checkWinLossControlStatus(period) {
             }
         }
     } catch (error) {
-        // 忽略錯誤
+        // 忽略错误
     }
     return { enabled: false };
 }
 `;
 
-// 在文件末尾添加函數
+// 在文件末尾添加函数
 enhancedContent = enhancedContent.replace(
     'export default {',
     controlCheckFunction + '\nexport default {'
 );
 
 fs.writeFileSync(enhancedSettlementPath, enhancedContent);
-console.log('✅ 已添加輸贏控制狀態檢查');
+console.log('✅ 已添加输赢控制状态检查');
 
-// 4. 創建前端修復
-console.log('\n📝 修復問題 4: 修改前端在開獎階段的顯示邏輯');
+// 4. 创建前端修复
+console.log('\n📝 修复问题 4: 修改前端在开奖阶段的显示逻辑');
 
 const frontendFixContent = `
-// 前端修復建議：在 frontend/js/main.js 中
+// 前端修复建议：在 frontend/js/main.js 中
 
-// 1. 在 updateBetHistory 函數中添加狀態檢查
+// 1. 在 updateBetHistory 函数中添加状态检查
 async updateBetHistory() {
-    // 如果當前是開獎狀態，延遲更新
+    // 如果当前是开奖状态，延迟更新
     if (this.gameState.status === 'drawing') {
-        console.log('開獎中，延遲更新投注記錄');
+        console.log('开奖中，延迟更新投注记录');
         return;
     }
     
-    // 原有的更新邏輯...
+    // 原有的更新逻辑...
 }
 
-// 2. 在遊戲狀態變更時控制顯示
+// 2. 在游戏状态变更时控制显示
 watch: {
     'gameState.status'(newStatus, oldStatus) {
         if (newStatus === 'drawing') {
-            // 進入開獎階段，隱藏最新的結算結果
+            // 进入开奖阶段，隐藏最新的结算结果
             this.hideRecentSettlements = true;
         } else if (oldStatus === 'drawing' && newStatus === 'betting') {
-            // 開獎結束，顯示結算結果
+            // 开奖结束，显示结算结果
             this.hideRecentSettlements = false;
-            this.updateBetHistory(); // 更新投注記錄
+            this.updateBetHistory(); // 更新投注记录
         }
     }
 }
 `;
 
 fs.writeFileSync('./fix-frontend-settlement-display.txt', frontendFixContent);
-console.log('✅ 已創建前端修復建議文件: fix-frontend-settlement-display.txt');
+console.log('✅ 已创建前端修复建议文件: fix-frontend-settlement-display.txt');
 
-console.log('\n🎉 結算系統修復完成！');
-console.log('\n修復內容總結：');
-console.log('1. ✅ 修正了數字比較邏輯，使用 parseInt 確保類型一致');
-console.log('2. ✅ 在開獎階段隱藏結算狀態');
-console.log('3. ✅ 添加輸贏控制日誌，確保不影響結算判定');
-console.log('4. ✅ 提供前端修復建議');
+console.log('\n🎉 结算系统修复完成！');
+console.log('\n修复内容总结：');
+console.log('1. ✅ 修正了数字比较逻辑，使用 parseInt 确保类型一致');
+console.log('2. ✅ 在开奖阶段隐藏结算状态');
+console.log('3. ✅ 添加输赢控制日志，确保不影响结算判定');
+console.log('4. ✅ 提供前端修复建议');
 
 console.log('\n下一步：');
-console.log('1. 重啟後端服務');
-console.log('2. 按照 fix-frontend-settlement-display.txt 修改前端代碼');
-console.log('3. 測試結算是否正確');
+console.log('1. 重启后端服务');
+console.log('2. 按照 fix-frontend-settlement-display.txt 修改前端代码');
+console.log('3. 测试结算是否正确');

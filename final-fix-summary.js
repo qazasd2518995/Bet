@@ -3,7 +3,7 @@ import axios from 'axios';
 const AGENT_API = 'https://bet-agent.onrender.com/api/agent';
 const GAME_API = 'https://bet-game-vcje.onrender.com';
 
-console.log('🎯 A盤D盤功能修復總結與驗證');
+console.log('🎯 A盘D盘功能修复总结与验证');
 console.log('='.repeat(70));
 
 async function finalVerification() {
@@ -15,10 +15,10 @@ async function finalVerification() {
   };
 
   try {
-    console.log('\n🔧 第一部分：代理系統檢驗');
+    console.log('\n🔧 第一部分：代理系统检验');
     console.log('-'.repeat(50));
     
-    // 1. 檢查代理市場類型設置
+    // 1. 检查代理市场类型设置
     results.agentSystem.total++;
     const agents = [
       { name: 'ti2025A', password: 'ti2025A', expectedType: 'A' },
@@ -33,16 +33,16 @@ async function finalVerification() {
       });
       
       if (agentLogin.data.success && agentLogin.data.agent.market_type === agent.expectedType) {
-        console.log(`✅ ${agent.name} 市場類型正確: ${agentLogin.data.agent.market_type}`);
+        console.log(`✅ ${agent.name} 市场类型正确: ${agentLogin.data.agent.market_type}`);
         results.agentSystem.passed++;
       } else {
-        console.log(`❌ ${agent.name} 市場類型錯誤: ${agentLogin.data.agent?.market_type || 'undefined'}`);
+        console.log(`❌ ${agent.name} 市场类型错误: ${agentLogin.data.agent?.market_type || 'undefined'}`);
       }
       results.agentSystem.total++;
     }
     
-    // 2. 檢查會員繼承市場類型
-    console.log('\n📋 檢查會員市場類型繼承...');
+    // 2. 检查会员继承市场类型
+    console.log('\n📋 检查会员市场类型继承...');
     const aAgentLogin = await axios.post(`${AGENT_API}/login`, {
       username: 'A01agent',
       password: 'A01pass'
@@ -58,19 +58,19 @@ async function finalVerification() {
         if (a01member) {
           results.agentSystem.total++;
           if (a01member.market_type === 'A') {
-            console.log(`✅ A01member 正確繼承A盤類型`);
+            console.log(`✅ A01member 正确继承A盘类型`);
             results.agentSystem.passed++;
           } else {
-            console.log(`❌ A01member 市場類型: ${a01member.market_type || 'undefined'}`);
+            console.log(`❌ A01member 市场类型: ${a01member.market_type || 'undefined'}`);
           }
         }
       }
     }
     
-    console.log('\n🔧 第二部分：會員登入API檢驗');
+    console.log('\n🔧 第二部分：会员登入API检验');
     console.log('-'.repeat(50));
     
-    // 3. 檢查會員登入返回數據
+    // 3. 检查会员登入返回数据
     results.memberLogin.total++;
     try {
       const memberLoginResponse = await axios.post(`${GAME_API}/api/member/login`, {
@@ -78,27 +78,27 @@ async function finalVerification() {
         password: 'A01mem'
       });
       
-      console.log('會員登入API完整回應:');
+      console.log('会员登入API完整回应:');
       console.log(JSON.stringify(memberLoginResponse.data, null, 2));
       
       if (memberLoginResponse.data.success) {
-        console.log(`✅ 會員登入成功`);
+        console.log(`✅ 会员登入成功`);
         
         if (memberLoginResponse.data.member?.market_type) {
-          console.log(`✅ 回應包含市場類型: ${memberLoginResponse.data.member.market_type}`);
+          console.log(`✅ 回应包含市场类型: ${memberLoginResponse.data.member.market_type}`);
           results.memberLogin.passed++;
         } else {
-          console.log(`❌ 回應缺少市場類型字段`);
-          console.log(`member對象內容:`, Object.keys(memberLoginResponse.data.member || {}));
+          console.log(`❌ 回应缺少市场类型字段`);
+          console.log(`member对象内容:`, Object.keys(memberLoginResponse.data.member || {}));
         }
       } else {
-        console.log(`❌ 會員登入失敗: ${memberLoginResponse.data.message}`);
+        console.log(`❌ 会员登入失败: ${memberLoginResponse.data.message}`);
       }
     } catch (error) {
-      console.log(`❌ 會員登入API錯誤: ${error.response?.data?.message || error.message}`);
+      console.log(`❌ 会员登入API错误: ${error.response?.data?.message || error.message}`);
     }
     
-    // 4. 檢查代理系統會員驗證API
+    // 4. 检查代理系统会员验证API
     results.memberLogin.total++;
     try {
       const verifyResponse = await axios.post(`${AGENT_API}/member/verify-login`, {
@@ -106,72 +106,72 @@ async function finalVerification() {
         password: 'A01mem'
       });
       
-      console.log('\n代理系統驗證API回應:');
+      console.log('\n代理系统验证API回应:');
       console.log(JSON.stringify(verifyResponse.data, null, 2));
       
       if (verifyResponse.data.success && verifyResponse.data.member?.market_type) {
-        console.log(`✅ 代理系統驗證API包含市場類型: ${verifyResponse.data.member.market_type}`);
+        console.log(`✅ 代理系统验证API包含市场类型: ${verifyResponse.data.member.market_type}`);
         results.memberLogin.passed++;
       } else {
-        console.log(`❌ 代理系統驗證API缺少市場類型`);
+        console.log(`❌ 代理系统验证API缺少市场类型`);
       }
     } catch (error) {
-      console.log(`❌ 代理系統驗證API錯誤: ${error.response?.data?.message || error.message}`);
+      console.log(`❌ 代理系统验证API错误: ${error.response?.data?.message || error.message}`);
     }
     
-    console.log('\n🔧 第三部分：API整合檢驗');
+    console.log('\n🔧 第三部分：API整合检验');
     console.log('-'.repeat(50));
     
-    // 5. 檢查會員信息API
+    // 5. 检查会员信息API
     results.apiIntegration.total++;
     try {
       const memberInfoResponse = await axios.get(`${AGENT_API}/member/info/A01member`);
       
       if (memberInfoResponse.data.success && memberInfoResponse.data.member?.market_type === 'A') {
-        console.log(`✅ 會員信息API正確返回A盤類型`);
+        console.log(`✅ 会员信息API正确返回A盘类型`);
         results.apiIntegration.passed++;
       } else {
-        console.log(`❌ 會員信息API市場類型錯誤: ${memberInfoResponse.data.member?.market_type}`);
+        console.log(`❌ 会员信息API市场类型错误: ${memberInfoResponse.data.member?.market_type}`);
       }
     } catch (error) {
-      console.log(`❌ 會員信息API錯誤: ${error.message}`);
+      console.log(`❌ 会员信息API错误: ${error.message}`);
     }
     
-    // 6. 檢查遊戲數據API
+    // 6. 检查游戏数据API
     results.apiIntegration.total++;
     try {
       const gameDataResponse = await axios.get(`${GAME_API}/api/game-data`);
       
       if (gameDataResponse.data && gameDataResponse.data.odds) {
-        console.log(`✅ 遊戲數據API正常運作`);
-        console.log(`   當前市場類型: ${gameDataResponse.data.marketType || 'N/A'}`);
+        console.log(`✅ 游戏数据API正常运作`);
+        console.log(`   当前市场类型: ${gameDataResponse.data.marketType || 'N/A'}`);
         results.apiIntegration.passed++;
       } else {
-        console.log(`❌ 遊戲數據API無賠率信息`);
+        console.log(`❌ 游戏数据API无赔率信息`);
       }
     } catch (error) {
-      console.log(`❌ 遊戲數據API錯誤: ${error.message}`);
+      console.log(`❌ 游戏数据API错误: ${error.message}`);
     }
     
-    console.log('\n🔧 第四部分：前端同步檢驗');
+    console.log('\n🔧 第四部分：前端同步检验');
     console.log('-'.repeat(50));
     
-    // 7. 測試前端能否正確處理市場類型
+    // 7. 测试前端能否正确处理市场类型
     results.frontendSync.total++;
-    console.log(`📝 前端修復檢查列表:`);
-    console.log(`   ✅ 修復frontend/src/scripts/vue-app.js登入邏輯`);
-    console.log(`   ✅ 修復deploy/frontend/src/scripts/vue-app.js登入邏輯`);
-    console.log(`   ✅ 添加sessionStorage市場類型保存`);
-    console.log(`   ✅ 修復checkLoginStatus方法讀取市場類型`);
-    console.log(`   ✅ 確保updateOddsDisplay根據市場類型更新賠率`);
+    console.log(`📝 前端修复检查列表:`);
+    console.log(`   ✅ 修复frontend/src/scripts/vue-app.js登入逻辑`);
+    console.log(`   ✅ 修复deploy/frontend/src/scripts/vue-app.js登入逻辑`);
+    console.log(`   ✅ 添加sessionStorage市场类型保存`);
+    console.log(`   ✅ 修复checkLoginStatus方法读取市场类型`);
+    console.log(`   ✅ 确保updateOddsDisplay根据市场类型更新赔率`);
     results.frontendSync.passed++;
     
-    console.log('\n📊 總體測試結果');
+    console.log('\n📊 总体测试结果');
     console.log('='.repeat(70));
     
     const categories = [
-      { name: '代理系統', key: 'agentSystem' },
-      { name: '會員登入', key: 'memberLogin' },
+      { name: '代理系统', key: 'agentSystem' },
+      { name: '会员登入', key: 'memberLogin' },
       { name: 'API整合', key: 'apiIntegration' },
       { name: '前端同步', key: 'frontendSync' }
     ];
@@ -191,39 +191,39 @@ async function finalVerification() {
     
     const overallPercentage = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : '0';
     
-    console.log('\n🎯 整體結果:');
+    console.log('\n🎯 整体结果:');
     console.log(`   成功率: ${totalPassed}/${totalTests} (${overallPercentage}%)`);
     
-    console.log('\n🔍 修復狀態分析:');
+    console.log('\n🔍 修复状态分析:');
     
     if (overallPercentage >= 80) {
-      console.log(`✅ A盤D盤功能基本修復完成`);
-      console.log(`   主要修復項目:`);
-      console.log(`   - 代理系統市場類型正確設置和繼承`);
-      console.log(`   - 會員登入API架構準備完成`);
-      console.log(`   - 前端賠率更新邏輯修復`);
-      console.log(`   - API端點正確返回市場類型信息`);
+      console.log(`✅ A盘D盘功能基本修复完成`);
+      console.log(`   主要修复项目:`);
+      console.log(`   - 代理系统市场类型正确设置和继承`);
+      console.log(`   - 会员登入API架构准备完成`);
+      console.log(`   - 前端赔率更新逻辑修复`);
+      console.log(`   - API端点正确返回市场类型信息`);
     } else if (overallPercentage >= 60) {
-      console.log(`⚠️  A盤D盤功能部分修復`);
-      console.log(`   需要進一步檢查的項目:`);
+      console.log(`⚠️  A盘D盘功能部分修复`);
+      console.log(`   需要进一步检查的项目:`);
       if (results.memberLogin.passed < results.memberLogin.total) {
-        console.log(`   - 會員登入API市場類型返回`);
+        console.log(`   - 会员登入API市场类型返回`);
       }
       if (results.apiIntegration.passed < results.apiIntegration.total) {
-        console.log(`   - API整合和數據一致性`);
+        console.log(`   - API整合和数据一致性`);
       }
     } else {
-      console.log(`❌ A盤D盤功能需要進一步修復`);
+      console.log(`❌ A盘D盘功能需要进一步修复`);
     }
     
-    console.log('\n🚀 建議下一步操作:');
-    console.log(`   1. 重新部署後端服務確保修復生效`);
-    console.log(`   2. 測試會員重新登入查看賠率變化`);
-    console.log(`   3. 驗證新創建的A盤/D盤會員功能`);
-    console.log(`   4. 檢查前端賠率顯示邏輯`);
+    console.log('\n🚀 建议下一步操作:');
+    console.log(`   1. 重新部署后端服务确保修复生效`);
+    console.log(`   2. 测试会员重新登入查看赔率变化`);
+    console.log(`   3. 验证新创建的A盘/D盘会员功能`);
+    console.log(`   4. 检查前端赔率显示逻辑`);
     
   } catch (error) {
-    console.error('驗證過程發生錯誤:', error.message);
+    console.error('验证过程发生错误:', error.message);
   }
 }
 

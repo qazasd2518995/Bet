@@ -1,12 +1,12 @@
-// 修復號碼投注結算邏輯
+// 修复号码投注结算逻辑
 import db from './db/config.js';
 
 async function analyzeAndFixNumberBetLogic() {
-    console.log('🔍 分析號碼投注結算邏輯問題\n');
+    console.log('🔍 分析号码投注结算逻辑问题\n');
 
     try {
-        // 1. 檢查期號 412 的詳細數據
-        console.log('📌 步驟1：檢查期號 20250717412 的數據類型...');
+        // 1. 检查期号 412 的详细数据
+        console.log('📌 步骤1：检查期号 20250717412 的数据类型...');
         const period412Data = await db.oneOrNone(`
             SELECT 
                 period,
@@ -20,15 +20,15 @@ async function analyzeAndFixNumberBetLogic() {
         `);
 
         if (period412Data) {
-            console.log('開獎數據：');
+            console.log('开奖数据：');
             console.log(`- position_10 值：${period412Data.position_10}`);
-            console.log(`- position_10 類型：${period412Data.position_10_type}`);
+            console.log(`- position_10 类型：${period412Data.position_10_type}`);
             console.log(`- position_10 文本：${period412Data.position_10_text}`);
-            console.log(`- result 陣列：${JSON.stringify(period412Data.result)}`);
+            console.log(`- result 阵列：${JSON.stringify(period412Data.result)}`);
         }
 
-        // 2. 檢查投注數據
-        console.log('\n📌 步驟2：檢查投注數據類型...');
+        // 2. 检查投注数据
+        console.log('\n📌 步骤2：检查投注数据类型...');
         const betData = await db.manyOrNone(`
             SELECT 
                 id,
@@ -45,24 +45,24 @@ async function analyzeAndFixNumberBetLogic() {
             ORDER BY bet_value
         `);
 
-        console.log(`\n找到 ${betData.length} 筆投注：`);
+        console.log(`\n找到 ${betData.length} 笔投注：`);
         betData.forEach(bet => {
             console.log(`\nID ${bet.id}:`);
-            console.log(`- bet_value: "${bet.bet_value}" (類型: ${bet.bet_value_type})`);
-            console.log(`- position: "${bet.position}" (類型: ${bet.position_type})`);
-            console.log(`- 中獎狀態: ${bet.win}`);
+            console.log(`- bet_value: "${bet.bet_value}" (类型: ${bet.bet_value_type})`);
+            console.log(`- position: "${bet.position}" (类型: ${bet.position_type})`);
+            console.log(`- 中奖状态: ${bet.win}`);
         });
 
-        // 3. 模擬結算邏輯
-        console.log('\n📌 步驟3：模擬結算邏輯...');
+        // 3. 模拟结算逻辑
+        console.log('\n📌 步骤3：模拟结算逻辑...');
         if (period412Data && betData.length > 0) {
             const winningNumber = period412Data.position_10;
-            console.log(`\n第10名開獎號碼：${winningNumber}`);
+            console.log(`\n第10名开奖号码：${winningNumber}`);
             
             betData.forEach(bet => {
-                console.log(`\n測試投注 ${bet.bet_value}：`);
+                console.log(`\n测试投注 ${bet.bet_value}：`);
                 
-                // 各種比較方式
+                // 各种比较方式
                 const test1 = bet.bet_value == winningNumber;
                 const test2 = bet.bet_value === winningNumber;
                 const test3 = parseInt(bet.bet_value) === parseInt(winningNumber);
@@ -74,17 +74,17 @@ async function analyzeAndFixNumberBetLogic() {
                 console.log(`- parseInt(bet.bet_value) === parseInt(winningNumber): ${test3}`);
                 console.log(`- bet.bet_value === winningNumber.toString(): ${test4}`);
                 console.log(`- bet.bet_value == winningNumber.toString(): ${test5}`);
-                console.log(`- 實際中獎狀態: ${bet.win}`);
+                console.log(`- 实际中奖状态: ${bet.win}`);
                 
-                const shouldWin = test3; // 使用 parseInt 比較
+                const shouldWin = test3; // 使用 parseInt 比较
                 if (bet.win !== shouldWin) {
-                    console.log(`❌ 錯誤！應該是 ${shouldWin}`);
+                    console.log(`❌ 错误！应该是 ${shouldWin}`);
                 }
             });
         }
 
-        // 4. 檢查可能的數據污染
-        console.log('\n📌 步驟4：檢查數據是否有隱藏字符...');
+        // 4. 检查可能的数据污染
+        console.log('\n📌 步骤4：检查数据是否有隐藏字符...');
         const suspiciousBets = await db.manyOrNone(`
             SELECT 
                 id,
@@ -101,41 +101,41 @@ async function analyzeAndFixNumberBetLogic() {
         `);
 
         if (suspiciousBets.length > 0) {
-            console.log('\n⚠️ 發現可疑數據：');
+            console.log('\n⚠️ 发现可疑数据：');
             suspiciousBets.forEach(bet => {
-                console.log(`- ID ${bet.id}: bet_value="${bet.bet_value}" (長度:${bet.value_length}), position="${bet.position}" (長度:${bet.position_length})`);
+                console.log(`- ID ${bet.id}: bet_value="${bet.bet_value}" (长度:${bet.value_length}), position="${bet.position}" (长度:${bet.position_length})`);
             });
         }
 
-        // 5. 提供修復建議
-        console.log('\n📌 步驟5：修復建議...');
-        console.log('\n建議修改 enhanced-settlement-system.js 的第299-300行：');
+        // 5. 提供修复建议
+        console.log('\n📌 步骤5：修复建议...');
+        console.log('\n建议修改 enhanced-settlement-system.js 的第299-300行：');
         console.log(`
-原代碼：
+原代码：
 const isWin = parseInt(winningNumber) === parseInt(betNumber);
 
-建議改為：
-// 確保移除任何空白字符並進行嚴格的數字比較
+建议改为：
+// 确保移除任何空白字符并进行严格的数字比较
 const cleanWinningNumber = String(winningNumber).trim();
 const cleanBetNumber = String(betNumber).trim();
 const isWin = parseInt(cleanWinningNumber, 10) === parseInt(cleanBetNumber, 10);
 
-// 添加調試日誌
+// 添加调试日志
 if (bet.id) {
-    settlementLog.info(\`號碼比較: 開獎=\${cleanWinningNumber}(轉換後:\${parseInt(cleanWinningNumber, 10)}), 投注=\${cleanBetNumber}(轉換後:\${parseInt(cleanBetNumber, 10)}), 結果=\${isWin}\`);
+    settlementLog.info(\`号码比较: 开奖=\${cleanWinningNumber}(转换后:\${parseInt(cleanWinningNumber, 10)}), 投注=\${cleanBetNumber}(转换后:\${parseInt(cleanBetNumber, 10)}), 结果=\${isWin}\`);
 }
 `);
 
     } catch (error) {
-        console.error('分析失敗：', error);
+        console.error('分析失败：', error);
     }
 }
 
-// 執行分析
+// 执行分析
 analyzeAndFixNumberBetLogic().then(() => {
     console.log('\n✅ 分析完成');
     process.exit(0);
 }).catch(error => {
-    console.error('❌ 錯誤：', error);
+    console.error('❌ 错误：', error);
     process.exit(1);
 });

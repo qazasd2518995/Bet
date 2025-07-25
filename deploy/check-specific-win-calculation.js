@@ -1,11 +1,11 @@
-// check-specific-win-calculation.js - 檢查特定的中獎計算問題
+// check-specific-win-calculation.js - 检查特定的中奖计算问题
 import db from './db/config.js';
 
 async function checkWinCalculation() {
-    console.log('🔍 檢查9碼投注的中獎計算...\n');
+    console.log('🔍 检查9码投注的中奖计算...\n');
     
     try {
-        // 檢查最近的9碼投注（號碼9的投注）
+        // 检查最近的9码投注（号码9的投注）
         const recentBets = await db.any(`
             SELECT 
                 bh.*,
@@ -21,57 +21,57 @@ async function checkWinCalculation() {
             LIMIT 20
         `);
         
-        console.log(`找到 ${recentBets.length} 筆9碼投注記錄\n`);
+        console.log(`找到 ${recentBets.length} 笔9码投注记录\n`);
         
-        // 分析每筆投注
+        // 分析每笔投注
         for (const bet of recentBets) {
-            console.log(`期號: ${bet.period}`);
-            console.log(`用戶: ${bet.username}, 當前餘額: ${bet.user_balance}`);
+            console.log(`期号: ${bet.period}`);
+            console.log(`用户: ${bet.username}, 当前余额: ${bet.user_balance}`);
             console.log(`投注: ${bet.bet_type} = ${bet.bet_value}, 位置: ${bet.position || 'N/A'}`);
-            console.log(`金額: ${bet.amount}, 賠率: ${bet.odds || '未記錄'}`);
-            console.log(`結算狀態: ${bet.settled ? '已結算' : '未結算'}`);
+            console.log(`金额: ${bet.amount}, 赔率: ${bet.odds || '未记录'}`);
+            console.log(`结算状态: ${bet.settled ? '已结算' : '未结算'}`);
             
             if (bet.settled) {
-                console.log(`中獎: ${bet.win ? '是' : '否'}, 中獎金額: ${bet.win_amount || 0}`);
+                console.log(`中奖: ${bet.win ? '是' : '否'}, 中奖金额: ${bet.win_amount || 0}`);
                 
                 if (bet.win && bet.win_amount) {
                     const expectedWin = parseFloat(bet.amount) * 9.89;
                     const actualWin = parseFloat(bet.win_amount);
                     const netProfit = actualWin - parseFloat(bet.amount);
                     
-                    console.log(`預期中獎: ${expectedWin.toFixed(2)}`);
-                    console.log(`實際中獎: ${actualWin.toFixed(2)}`);
-                    console.log(`淨利潤: ${netProfit.toFixed(2)}`);
+                    console.log(`预期中奖: ${expectedWin.toFixed(2)}`);
+                    console.log(`实际中奖: ${actualWin.toFixed(2)}`);
+                    console.log(`净利润: ${netProfit.toFixed(2)}`);
                     
                     if (Math.abs(actualWin - expectedWin) > 0.01) {
-                        console.log(`⚠️ 中獎金額異常！`);
+                        console.log(`⚠️ 中奖金额异常！`);
                     }
                 }
             }
             
             if (bet.result) {
                 const result = JSON.parse(bet.result);
-                console.log(`開獎結果: ${result.positions.join(', ')}`);
+                console.log(`开奖结果: ${result.positions.join(', ')}`);
                 
-                // 檢查是否應該中獎
+                // 检查是否应该中奖
                 let shouldWin = false;
                 if (bet.bet_type === 'champion' && result.positions[0] === 9) shouldWin = true;
                 else if (bet.bet_type === 'runnerup' && result.positions[1] === 9) shouldWin = true;
                 else if (bet.bet_type === 'number' && bet.position && result.positions[bet.position - 1] === 9) shouldWin = true;
-                // ... 其他位置類似
+                // ... 其他位置类似
                 
                 if (shouldWin && !bet.win) {
-                    console.log(`❌ 應該中獎但未中獎！`);
+                    console.log(`❌ 应该中奖但未中奖！`);
                 } else if (!shouldWin && bet.win) {
-                    console.log(`❌ 不應該中獎但中獎了！`);
+                    console.log(`❌ 不应该中奖但中奖了！`);
                 }
             }
             
             console.log('---\n');
         }
         
-        // 檢查該用戶的交易記錄
-        console.log('📊 檢查相關的交易記錄...\n');
+        // 检查该用户的交易记录
+        console.log('📊 检查相关的交易记录...\n');
         const transactions = await db.any(`
             SELECT 
                 tr.*,
@@ -85,18 +85,18 @@ async function checkWinCalculation() {
             LIMIT 20
         `);
         
-        console.log(`找到 ${transactions.length} 筆中獎交易記錄：`);
+        console.log(`找到 ${transactions.length} 笔中奖交易记录：`);
         transactions.forEach(tx => {
-            console.log(`  用戶: ${tx.username}`);
-            console.log(`  金額: ${tx.amount}`);
-            console.log(`  餘額: ${tx.balance_before} → ${tx.balance_after}`);
+            console.log(`  用户: ${tx.username}`);
+            console.log(`  金额: ${tx.amount}`);
+            console.log(`  余额: ${tx.balance_before} → ${tx.balance_after}`);
             console.log(`  描述: ${tx.description}`);
-            console.log(`  時間: ${tx.created_at}`);
+            console.log(`  时间: ${tx.created_at}`);
             console.log('  ---');
         });
         
-        // 檢查是否有多次結算的情況
-        console.log('\n🔄 檢查是否有多次結算...\n');
+        // 检查是否有多次结算的情况
+        console.log('\n🔄 检查是否有多次结算...\n');
         const multipleWins = await db.any(`
             WITH win_analysis AS (
                 SELECT 
@@ -115,28 +115,28 @@ async function checkWinCalculation() {
                 HAVING COUNT(CASE WHEN win THEN 1 END) > 0
             )
             SELECT * FROM win_analysis
-            WHERE total_win > total_bet_amount * 2  -- 中獎金額超過下注金額的2倍
+            WHERE total_win > total_bet_amount * 2  -- 中奖金额超过下注金额的2倍
             ORDER BY period DESC, total_win DESC
         `);
         
         if (multipleWins.length > 0) {
-            console.log(`⚠️ 發現異常高的中獎記錄：`);
+            console.log(`⚠️ 发现异常高的中奖记录：`);
             multipleWins.forEach(record => {
-                console.log(`  期號: ${record.period}, 用戶: ${record.username}`);
+                console.log(`  期号: ${record.period}, 用户: ${record.username}`);
                 console.log(`  下注: ${record.bet_count}次, 共${record.total_bet_amount}元`);
-                console.log(`  中獎: ${record.win_count}次, 共${record.total_win}元`);
-                console.log(`  中獎投注: ${record.winning_bets}`);
+                console.log(`  中奖: ${record.win_count}次, 共${record.total_win}元`);
+                console.log(`  中奖投注: ${record.winning_bets}`);
                 console.log(`  倍率: ${(record.total_win / record.total_bet_amount).toFixed(2)}x`);
                 console.log('  ---');
             });
         }
         
     } catch (error) {
-        console.error('檢查過程中發生錯誤:', error);
+        console.error('检查过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行檢查
+// 执行检查
 checkWinCalculation();

@@ -1,7 +1,7 @@
 -- check-settlement-issue.sql
--- 檢查 justin111 最近的交易和餘額問題
+-- 检查 justin111 最近的交易和余额问题
 
--- 1. 查看最近的交易記錄
+-- 1. 查看最近的交易记录
 SELECT 
     tr.id,
     tr.transaction_type,
@@ -17,7 +17,7 @@ AND tr.created_at > NOW() - INTERVAL '2 hours'
 ORDER BY tr.created_at DESC
 LIMIT 30;
 
--- 2. 查看可能的重複交易
+-- 2. 查看可能的重复交易
 WITH potential_duplicates AS (
     SELECT 
         tr.user_id,
@@ -39,7 +39,7 @@ WITH potential_duplicates AS (
 SELECT * FROM potential_duplicates
 ORDER BY minute_bucket DESC;
 
--- 3. 查看當前餘額
+-- 3. 查看当前余额
 SELECT 
     id,
     username,
@@ -50,7 +50,7 @@ SELECT
 FROM members
 WHERE username = 'justin111';
 
--- 4. 計算理論餘額（基於交易記錄）
+-- 4. 计算理论余额（基于交易记录）
 WITH balance_calculation AS (
     SELECT 
         m.username,
@@ -82,7 +82,7 @@ SELECT
     last_transaction
 FROM balance_calculation;
 
--- 5. 查看今天的下注和中獎情況
+-- 5. 查看今天的下注和中奖情况
 SELECT 
     period,
     COUNT(*) as bet_count,

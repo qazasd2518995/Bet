@@ -10,17 +10,17 @@ class WebSocketManager {
         this.wss = new WebSocketServer({ server });
 
         this.wss.on('connection', (ws, req) => {
-            console.log('新的 WebSocket 連接');
+            console.log('新的 WebSocket 连接');
 
             ws.on('message', (data) => {
                 try {
                     const message = JSON.parse(data);
                     
                     if (message.type === 'auth') {
-                        // 認證連接
+                        // 认证连接
                         const sessionToken = message.sessionToken;
                         if (sessionToken) {
-                            // 如果該 session 已有連接，關閉舊連接
+                            // 如果该 session 已有连接，关闭旧连接
                             if (this.clients.has(sessionToken)) {
                                 const oldWs = this.clients.get(sessionToken);
                                 if (oldWs.readyState === 1) { // OPEN
@@ -28,42 +28,42 @@ class WebSocketManager {
                                 }
                             }
                             
-                            // 保存新連接
+                            // 保存新连接
                             this.clients.set(sessionToken, ws);
                             ws.sessionToken = sessionToken;
                             
-                            // 發送認證成功消息
+                            // 发送认证成功消息
                             ws.send(JSON.stringify({
                                 type: 'auth_success',
-                                message: '認證成功'
+                                message: '认证成功'
                             }));
                         }
                     }
                 } catch (error) {
-                    console.error('處理 WebSocket 消息錯誤:', error);
+                    console.error('处理 WebSocket 消息错误:', error);
                 }
             });
 
             ws.on('close', () => {
-                // 移除連接
+                // 移除连接
                 if (ws.sessionToken) {
                     this.clients.delete(ws.sessionToken);
                 }
-                console.log('WebSocket 連接關閉');
+                console.log('WebSocket 连接关闭');
             });
 
             ws.on('error', (error) => {
-                console.error('WebSocket 錯誤:', error);
+                console.error('WebSocket 错误:', error);
             });
 
-            // 心跳檢測
+            // 心跳检测
             ws.isAlive = true;
             ws.on('pong', () => {
                 ws.isAlive = true;
             });
         });
 
-        // 心跳檢測定時器
+        // 心跳检测定时器
         const interval = setInterval(() => {
             this.wss.clients.forEach((ws) => {
                 if (ws.isAlive === false) {
@@ -83,7 +83,7 @@ class WebSocketManager {
         });
     }
 
-    // 通知會話失效
+    // 通知会话失效
     notifySessionInvalidated(sessionToken) {
         const ws = this.clients.get(sessionToken);
         if (ws && ws.readyState === 1) { // OPEN
@@ -92,7 +92,7 @@ class WebSocketManager {
                 message: '您的账号在另一个设备登入，您已被登出'
             }));
             
-            // 給客戶端一點時間接收消息後關閉連接
+            // 给客户端一点时间接收消息后关闭连接
             setTimeout(() => {
                 if (ws.readyState === 1) {
                     ws.close();
@@ -102,7 +102,7 @@ class WebSocketManager {
         }
     }
 
-    // 廣播消息給所有連接的客戶端
+    // 广播消息给所有连接的客户端
     broadcast(message) {
         const messageStr = JSON.stringify(message);
         this.wss.clients.forEach((ws) => {
@@ -112,7 +112,7 @@ class WebSocketManager {
         });
     }
 
-    // 發送消息給特定會話
+    // 发送消息给特定会话
     sendToSession(sessionToken, message) {
         const ws = this.clients.get(sessionToken);
         if (ws && ws.readyState === 1) {

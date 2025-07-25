@@ -2,31 +2,31 @@ import db from './db/config.js';
 
 async function checkBetBalanceIssue() {
   try {
-    console.log('=== 檢查下注餘額問題 ===');
+    console.log('=== 检查下注余额问题 ===');
     
-    // 1. 檢查期號 20250715107 的下注記錄
-    console.log('\n1. 檢查期號 20250715107 的下注記錄:');
+    // 1. 检查期号 20250715107 的下注记录
+    console.log('\n1. 检查期号 20250715107 的下注记录:');
     const bets = await db.any(`
       SELECT * FROM bet_history 
       WHERE period = $1 
       ORDER BY created_at DESC
     `, ['20250715107']);
     
-    console.log(`找到 ${bets.length} 筆下注記錄`);
+    console.log(`找到 ${bets.length} 笔下注记录`);
     for (const bet of bets) {
       console.log(`\nID: ${bet.id}`);
-      console.log(`用戶: ${bet.username}`);
-      console.log(`金額: ${bet.amount}`);
-      console.log(`類型: ${bet.bet_type} - ${bet.bet_value}`);
+      console.log(`用户: ${bet.username}`);
+      console.log(`金额: ${bet.amount}`);
+      console.log(`类型: ${bet.bet_type} - ${bet.bet_value}`);
       console.log(`位置: ${bet.position}`);
-      console.log(`賠率: ${bet.odds}`);
-      console.log(`結算: ${bet.settled ? '是' : '否'}`);
-      console.log(`中獎: ${bet.win ? '是' : '否'}`);
-      console.log(`創建時間: ${bet.created_at}`);
+      console.log(`赔率: ${bet.odds}`);
+      console.log(`结算: ${bet.settled ? '是' : '否'}`);
+      console.log(`中奖: ${bet.win ? '是' : '否'}`);
+      console.log(`创建时间: ${bet.created_at}`);
     }
     
-    // 2. 檢查 justin111 的交易記錄
-    console.log('\n2. 檢查 justin111 最近的交易記錄:');
+    // 2. 检查 justin111 的交易记录
+    console.log('\n2. 检查 justin111 最近的交易记录:');
     const transactions = await db.any(`
       SELECT * FROM transaction_records 
       WHERE user_type = 'member' 
@@ -37,16 +37,16 @@ async function checkBetBalanceIssue() {
     `);
     
     for (const tx of transactions) {
-      console.log(`\n時間: ${tx.created_at}`);
-      console.log(`類型: ${tx.transaction_type}`);
-      console.log(`金額: ${tx.amount}`);
-      console.log(`餘額前: ${tx.balance_before}`);
-      console.log(`餘額後: ${tx.balance_after}`);
+      console.log(`\n时间: ${tx.created_at}`);
+      console.log(`类型: ${tx.transaction_type}`);
+      console.log(`金额: ${tx.amount}`);
+      console.log(`余额前: ${tx.balance_before}`);
+      console.log(`余额后: ${tx.balance_after}`);
       console.log(`描述: ${tx.description}`);
     }
     
-    // 3. 檢查當前餘額
-    console.log('\n3. 當前餘額:');
+    // 3. 检查当前余额
+    console.log('\n3. 当前余额:');
     const member = await db.oneOrNone('SELECT username, balance FROM members WHERE username = $1', ['justin111']);
     const agents = await db.any(`
       SELECT username, balance FROM agents 
@@ -62,22 +62,22 @@ async function checkBetBalanceIssue() {
       console.log(`${agent.username}: ${agent.balance} 元`);
     }
     
-    // 4. 檢查該期號的結算狀態
-    console.log('\n4. 檢查期號 20250715107 的結算狀態:');
+    // 4. 检查该期号的结算状态
+    console.log('\n4. 检查期号 20250715107 的结算状态:');
     const drawResult = await db.oneOrNone(`
       SELECT * FROM result_history 
       WHERE period = $1
     `, ['20250715107']);
     
     if (drawResult) {
-      console.log('開獎結果:', drawResult.result);
-      console.log('開獎時間:', drawResult.created_at);
+      console.log('开奖结果:', drawResult.result);
+      console.log('开奖时间:', drawResult.created_at);
     } else {
-      console.log('該期號尚未開獎');
+      console.log('该期号尚未开奖');
     }
     
-    // 5. 檢查是否有退水記錄
-    console.log('\n5. 檢查該期號的退水記錄:');
+    // 5. 检查是否有退水记录
+    console.log('\n5. 检查该期号的退水记录:');
     const rebates = await db.any(`
       SELECT * FROM transaction_records 
       WHERE transaction_type = 'rebate' 
@@ -85,7 +85,7 @@ async function checkBetBalanceIssue() {
       ORDER BY created_at DESC
     `, ['20250715107']);
     
-    console.log(`找到 ${rebates.length} 筆退水記錄`);
+    console.log(`找到 ${rebates.length} 笔退水记录`);
     for (const rebate of rebates) {
       const user = await db.oneOrNone(
         rebate.user_type === 'agent' 
@@ -93,13 +93,13 @@ async function checkBetBalanceIssue() {
           : 'SELECT username FROM members WHERE id = $1',
         [rebate.user_id]
       );
-      console.log(`${rebate.created_at}: ${user?.username || '未知'} 獲得退水 ${rebate.amount} 元`);
+      console.log(`${rebate.created_at}: ${user?.username || '未知'} 获得退水 ${rebate.amount} 元`);
     }
     
     process.exit(0);
     
   } catch (error) {
-    console.error('錯誤:', error);
+    console.error('错误:', error);
     process.exit(1);
   }
 }

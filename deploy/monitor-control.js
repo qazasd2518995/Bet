@@ -1,4 +1,4 @@
-// monitor-control.js - 退水監控系統控制面板
+// monitor-control.js - 退水监控系统控制面板
 import { spawn } from 'child_process';
 import readline from 'readline';
 
@@ -12,12 +12,12 @@ class MonitorController {
     }
 
     async start() {
-        console.log('🎮 退水機制監控控制面板');
+        console.log('🎮 退水机制监控控制面板');
         console.log('=' .repeat(50));
         console.log('命令:');
-        console.log('  start  - 啟動監控系統');
-        console.log('  stop   - 停止監控系統');
-        console.log('  status - 查看監控狀態');
+        console.log('  start  - 启动监控系统');
+        console.log('  stop   - 停止监控系统');
+        console.log('  status - 查看监控状态');
         console.log('  exit   - 退出控制面板');
         console.log('=' .repeat(50));
         
@@ -25,7 +25,7 @@ class MonitorController {
     }
 
     showPrompt() {
-        this.rl.question('\n🔧 請輸入命令: ', (command) => {
+        this.rl.question('\n🔧 请输入命令: ', (command) => {
             this.handleCommand(command.trim().toLowerCase());
         });
     }
@@ -49,7 +49,7 @@ class MonitorController {
                 this.showHelp();
                 break;
             default:
-                console.log('❌ 未知命令。輸入 help 查看可用命令。');
+                console.log('❌ 未知命令。输入 help 查看可用命令。');
                 break;
         }
         
@@ -58,11 +58,11 @@ class MonitorController {
 
     async startMonitor() {
         if (this.monitorProcess) {
-            console.log('⚠️ 監控系統已在運行中');
+            console.log('⚠️ 监控系统已在运行中');
             return;
         }
 
-        console.log('🚀 啟動退水機制監控系統...');
+        console.log('🚀 启动退水机制监控系统...');
         
         this.monitorProcess = spawn('node', ['real-time-rebate-monitor.js'], {
             stdio: ['pipe', 'pipe', 'pipe']
@@ -77,43 +77,43 @@ class MonitorController {
         });
 
         this.monitorProcess.on('close', (code) => {
-            console.log(`\n📝 監控系統已退出 (代碼: ${code})`);
+            console.log(`\n📝 监控系统已退出 (代码: ${code})`);
             this.monitorProcess = null;
         });
 
         this.monitorProcess.on('error', (error) => {
-            console.error(`❌ 啟動監控系統失敗: ${error.message}`);
+            console.error(`❌ 启动监控系统失败: ${error.message}`);
             this.monitorProcess = null;
         });
 
-        // 等待一下確保啟動
+        // 等待一下确保启动
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         if (this.monitorProcess && !this.monitorProcess.killed) {
-            console.log('✅ 監控系統已啟動');
+            console.log('✅ 监控系统已启动');
         }
     }
 
     async stopMonitor() {
         if (!this.monitorProcess) {
-            console.log('⚠️ 監控系統未運行');
+            console.log('⚠️ 监控系统未运行');
             return;
         }
 
-        console.log('🛑 停止監控系統...');
+        console.log('🛑 停止监控系统...');
         
-        // 發送 SIGINT 信號（相當於 Ctrl+C）
+        // 发送 SIGINT 信号（相当于 Ctrl+C）
         this.monitorProcess.kill('SIGINT');
         
-        // 等待進程退出
+        // 等待进程退出
         await new Promise((resolve) => {
             if (this.monitorProcess) {
                 this.monitorProcess.on('close', resolve);
                 
-                // 如果5秒後還沒退出，強制終止
+                // 如果5秒后还没退出，强制终止
                 setTimeout(() => {
                     if (this.monitorProcess && !this.monitorProcess.killed) {
-                        console.log('🔨 強制終止監控系統...');
+                        console.log('🔨 强制终止监控系统...');
                         this.monitorProcess.kill('SIGKILL');
                     }
                     resolve();
@@ -124,34 +124,34 @@ class MonitorController {
         });
 
         this.monitorProcess = null;
-        console.log('✅ 監控系統已停止');
+        console.log('✅ 监控系统已停止');
     }
 
     showStatus() {
         if (this.monitorProcess && !this.monitorProcess.killed) {
-            console.log('📊 監控系統狀態: 🟢 運行中');
+            console.log('📊 监控系统状态: 🟢 运行中');
             console.log(`   PID: ${this.monitorProcess.pid}`);
-            console.log(`   啟動時間: ${this.getUptime()}`);
+            console.log(`   启动时间: ${this.getUptime()}`);
         } else {
-            console.log('📊 監控系統狀態: 🔴 未運行');
+            console.log('📊 监控系统状态: 🔴 未运行');
         }
     }
 
     showHelp() {
-        console.log('\n📖 命令說明:');
-        console.log('  start  - 啟動實時退水監控系統');
-        console.log('           * 自動檢測新下注');
-        console.log('           * 等待開獎並驗證退水');
-        console.log('           * 發現問題時自動報警');
+        console.log('\n📖 命令说明:');
+        console.log('  start  - 启动实时退水监控系统');
+        console.log('           * 自动检测新下注');
+        console.log('           * 等待开奖并验证退水');
+        console.log('           * 发现问题时自动报警');
         console.log('');
-        console.log('  stop   - 優雅停止監控系統');
-        console.log('  status - 顯示監控系統運行狀態');
+        console.log('  stop   - 优雅停止监控系统');
+        console.log('  status - 显示监控系统运行状态');
         console.log('  exit   - 退出控制面板');
         console.log('');
         console.log('💡 使用技巧:');
-        console.log('  - 啟動監控後，去下注測試');
-        console.log('  - 監控會即時顯示每期的退水處理狀態');
-        console.log('  - 如果發現退水問題，會自動嘗試修復');
+        console.log('  - 启动监控后，去下注测试');
+        console.log('  - 监控会即时显示每期的退水处理状态');
+        console.log('  - 如果发现退水问题，会自动尝试修复');
     }
 
     getUptime() {
@@ -183,15 +183,15 @@ class MonitorController {
     }
 }
 
-// 處理 Ctrl+C
+// 处理 Ctrl+C
 process.on('SIGINT', async () => {
-    console.log('\n\n收到退出信號...');
+    console.log('\n\n收到退出信号...');
     process.exit(0);
 });
 
-// 啟動控制面板
+// 启动控制面板
 const controller = new MonitorController();
 controller.start().catch(error => {
-    console.error('❌ 啟動控制面板失敗:', error);
+    console.error('❌ 启动控制面板失败:', error);
     process.exit(1);
 });

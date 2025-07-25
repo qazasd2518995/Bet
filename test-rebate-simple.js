@@ -6,11 +6,11 @@ const AGENT_API_URL = 'http://localhost:3003/api/agent';
 const GAME_API_URL = 'http://localhost:3000/api';
 
 async function testRebateSystem() {
-    console.log('=== 簡化退水系統測試 ===\n');
+    console.log('=== 简化退水系统测试 ===\n');
     
     try {
-        // 1. 直接從資料庫找一個 A 盤總代理
-        console.log('1. 尋找 A 盤總代理...');
+        // 1. 直接从资料库找一个 A 盘总代理
+        console.log('1. 寻找 A 盘总代理...');
         const topAgent = await db.oneOrNone(`
             SELECT id, username, balance, market_type 
             FROM agents 
@@ -19,14 +19,14 @@ async function testRebateSystem() {
         `);
         
         if (!topAgent) {
-            console.error('找不到 A 盤總代理');
+            console.error('找不到 A 盘总代理');
             return;
         }
         
-        console.log(`✓ 找到總代理: ${topAgent.username} (ID: ${topAgent.id}, 餘額: ${topAgent.balance})\n`);
+        console.log(`✓ 找到总代理: ${topAgent.username} (ID: ${topAgent.id}, 余额: ${topAgent.balance})\n`);
         
-        // 2. 找一個該總代理下的會員
-        console.log('2. 尋找該總代理下的會員...');
+        // 2. 找一个该总代理下的会员
+        console.log('2. 寻找该总代理下的会员...');
         const member = await db.oneOrNone(`
             WITH RECURSIVE agent_chain AS (
                 SELECT id FROM agents WHERE id = $1
@@ -42,7 +42,7 @@ async function testRebateSystem() {
         `, [topAgent.id]);
         
         if (!member) {
-            console.log('該總代理下沒有會員，嘗試找任何 A 盤會員...');
+            console.log('该总代理下没有会员，尝试找任何 A 盘会员...');
             const anyMember = await db.oneOrNone(`
                 SELECT m.id, m.username, m.balance, m.agent_id, a.market_type
                 FROM members m
@@ -52,25 +52,25 @@ async function testRebateSystem() {
             `);
             
             if (!anyMember) {
-                console.error('找不到任何 A 盤會員');
+                console.error('找不到任何 A 盘会员');
                 return;
             }
             
-            console.log(`✓ 找到會員: ${anyMember.username} (餘額: ${anyMember.balance})\n`);
+            console.log(`✓ 找到会员: ${anyMember.username} (余额: ${anyMember.balance})\n`);
             
-            // 3. 記錄初始餘額
-            console.log('3. 記錄退水前餘額...');
+            // 3. 记录初始余额
+            console.log('3. 记录退水前余额...');
             const initialTopAgentBalance = parseFloat(topAgent.balance);
-            console.log(`總代理初始餘額: ${initialTopAgentBalance}\n`);
+            console.log(`总代理初始余额: ${initialTopAgentBalance}\n`);
             
-            // 4. 模擬下注
-            console.log('4. 模擬會員下注 1000 元...');
+            // 4. 模拟下注
+            console.log('4. 模拟会员下注 1000 元...');
             const betAmount = 1000;
-            const expectedRebate = betAmount * 0.011; // A盤 1.1%
+            const expectedRebate = betAmount * 0.011; // A盘 1.1%
             
-            // 直接在資料庫插入下注記錄
-            const randomSuffix = Math.floor(Math.random() * 900) + 100; // 隨機3位數
-            const currentPeriod = new Date().toISOString().slice(0, 10).replace(/-/g, '') + randomSuffix; // 測試期號
+            // 直接在资料库插入下注记录
+            const randomSuffix = Math.floor(Math.random() * 900) + 100; // 随机3位数
+            const currentPeriod = new Date().toISOString().slice(0, 10).replace(/-/g, '') + randomSuffix; // 测试期号
             
             await db.none(`
                 INSERT INTO bet_history (
@@ -89,12 +89,12 @@ async function testRebateSystem() {
                 false
             ]);
             
-            console.log(`✓ 下注記錄已創建\n`);
+            console.log(`✓ 下注记录已创建\n`);
             
-            // 5. 手動觸發退水處理
-            console.log('5. 觸發退水處理...');
+            // 5. 手动触发退水处理
+            console.log('5. 触发退水处理...');
             
-            // 先獲取會員的代理資訊
+            // 先获取会员的代理资讯
             const memberWithAgent = await db.one(`
                 SELECT m.*, a.market_type as agent_market_type, a.id as agent_id
                 FROM members m
@@ -102,7 +102,7 @@ async function testRebateSystem() {
                 WHERE m.username = $1
             `, [anyMember.username]);
             
-            // 獲取代理鏈找到總代理
+            // 获取代理链找到总代理
             const agentChain = await db.any(`
                 WITH RECURSIVE agent_chain AS (
                     SELECT id, username, parent_id, rebate_percentage, market_type, 0 as level
@@ -119,19 +119,19 @@ async function testRebateSystem() {
                 SELECT * FROM agent_chain ORDER BY level DESC
             `, [memberWithAgent.agent_id]);
             
-            console.log('代理鏈:', agentChain.map(a => `${a.username}(L${a.level})`).join(' -> '));
+            console.log('代理链:', agentChain.map(a => `${a.username}(L${a.level})`).join(' -> '));
             
-            const chainTopAgent = agentChain[0]; // DESC排序，第一個是最頂層
+            const chainTopAgent = agentChain[0]; // DESC排序，第一个是最顶层
             const marketType = chainTopAgent.market_type || 'D';
             const rebatePercentage = marketType === 'A' ? 0.011 : 0.041;
             const rebateAmount = Math.round(betAmount * rebatePercentage * 100) / 100;
             
-            console.log(`${marketType}盤，退水 ${(rebatePercentage*100).toFixed(1)}% = ${rebateAmount} 元`);
-            console.log(`退水將分配給總代理: ${chainTopAgent.username}\n`);
+            console.log(`${marketType}盘，退水 ${(rebatePercentage*100).toFixed(1)}% = ${rebateAmount} 元`);
+            console.log(`退水将分配给总代理: ${chainTopAgent.username}\n`);
             
-            // 手動執行退水分配
+            // 手动执行退水分配
             await db.tx(async t => {
-                // 獲取當前餘額
+                // 获取当前余额
                 const currentBalance = await t.one(`
                     SELECT balance FROM agents WHERE id = $1
                 `, [chainTopAgent.id]);
@@ -139,12 +139,12 @@ async function testRebateSystem() {
                 const balanceBefore = parseFloat(currentBalance.balance);
                 const balanceAfter = balanceBefore + rebateAmount;
                 
-                // 更新餘額
+                // 更新余额
                 await t.none(`
                     UPDATE agents SET balance = balance + $1 WHERE id = $2
                 `, [rebateAmount, chainTopAgent.id]);
                 
-                // 記錄交易
+                // 记录交易
                 await t.none(`
                     INSERT INTO transaction_records (
                         user_type, user_id, transaction_type, amount, 
@@ -154,22 +154,22 @@ async function testRebateSystem() {
                 `, [
                     'agent', chainTopAgent.id, 'rebate', rebateAmount,
                     balanceBefore, balanceAfter,
-                    `退水 - 期號 ${currentPeriod} 會員 ${anyMember.username} 下注 ${betAmount} (${marketType}盤 ${(rebatePercentage*100).toFixed(1)}%)`,
+                    `退水 - 期号 ${currentPeriod} 会员 ${anyMember.username} 下注 ${betAmount} (${marketType}盘 ${(rebatePercentage*100).toFixed(1)}%)`,
                     anyMember.username, betAmount, rebatePercentage, currentPeriod
                 ]);
             });
             
             console.log('✓ 退水已分配\n');
             
-            // 6. 驗證退水結果
-            console.log('6. 驗證退水結果...');
+            // 6. 验证退水结果
+            console.log('6. 验证退水结果...');
             const finalTopAgent = await db.one(`
                 SELECT balance FROM agents WHERE id = $1
             `, [chainTopAgent.id]);
             
             const finalBalance = parseFloat(finalTopAgent.balance);
             
-            // 獲取該總代理的初始餘額（在退水之前）
+            // 获取该总代理的初始余额（在退水之前）
             const beforeBalance = await db.one(`
                 SELECT balance_before FROM transaction_records 
                 WHERE user_id = $1 AND transaction_type = 'rebate' 
@@ -179,29 +179,29 @@ async function testRebateSystem() {
             
             const actualRebate = finalBalance - parseFloat(beforeBalance.balance_before);
             
-            console.log(`預期退水: ${expectedRebate.toFixed(2)} 元`);
-            console.log(`實際退水: ${actualRebate.toFixed(2)} 元`);
-            console.log(`總代理最終餘額: ${finalBalance.toFixed(2)} 元`);
+            console.log(`预期退水: ${expectedRebate.toFixed(2)} 元`);
+            console.log(`实际退水: ${actualRebate.toFixed(2)} 元`);
+            console.log(`总代理最终余额: ${finalBalance.toFixed(2)} 元`);
             
             if (Math.abs(actualRebate - expectedRebate) < 0.01) {
-                console.log('✓ 退水分配正確！');
+                console.log('✓ 退水分配正确！');
             } else {
-                console.log('✗ 退水分配異常！');
+                console.log('✗ 退水分配异常！');
             }
             
         } else {
-            console.log(`✓ 找到會員: ${member.username} (餘額: ${member.balance})`);
-            // ... 繼續測試邏輯
+            console.log(`✓ 找到会员: ${member.username} (余额: ${member.balance})`);
+            // ... 继续测试逻辑
         }
         
-        console.log('\n=== 測試完成 ===');
+        console.log('\n=== 测试完成 ===');
         
     } catch (error) {
-        console.error('測試失敗:', error);
+        console.error('测试失败:', error);
     } finally {
         process.exit(0);
     }
 }
 
-// 執行測試
+// 执行测试
 testRebateSystem();

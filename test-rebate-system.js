@@ -4,10 +4,10 @@ import axios from 'axios';
 const AGENT_API_URL = 'http://localhost:3003/api/agent';
 const GAME_API_URL = 'http://localhost:3000/api';
 
-// 設定 axios 預設超時
-axios.defaults.timeout = 5000; // 5 秒超時
+// 设定 axios 预设超时
+axios.defaults.timeout = 5000; // 5 秒超时
 
-// 測試數據
+// 测试数据
 const testData = {
     topAgent: {
         username: 'MA@x9Kp#2025$zL7',
@@ -49,16 +49,16 @@ const testData = {
     ]
 };
 
-// 輔助函數
+// 辅助函数
 async function login(username, password, isAgent = true) {
     try {
         const url = isAgent ? `${AGENT_API_URL}/login` : `${GAME_API_URL}/login`;
-        console.log(`   嘗試登入: ${url}`);
+        console.log(`   尝试登入: ${url}`);
         const response = await axios.post(url, { username, password });
         return response.data.token;
     } catch (error) {
-        console.error(`登入失敗 ${username}:`, error.response?.data || error.message);
-        console.error(`錯誤詳情:`, error.response?.status, error.code);
+        console.error(`登入失败 ${username}:`, error.response?.data || error.message);
+        console.error(`错误详情:`, error.response?.status, error.code);
         throw error;
     }
 }
@@ -70,7 +70,7 @@ async function createAgent(token, agentData) {
         });
         return response.data;
     } catch (error) {
-        console.error(`創建代理失敗 ${agentData.username}:`, error.response?.data || error.message);
+        console.error(`创建代理失败 ${agentData.username}:`, error.response?.data || error.message);
         throw error;
     }
 }
@@ -82,7 +82,7 @@ async function createMember(token, memberData) {
         });
         return response.data;
     } catch (error) {
-        console.error(`創建會員失敗 ${memberData.username}:`, error.response?.data || error.message);
+        console.error(`创建会员失败 ${memberData.username}:`, error.response?.data || error.message);
         throw error;
     }
 }
@@ -94,13 +94,13 @@ async function allocatePoints(token, agentId, memberId, amount) {
             memberId,
             amount,
             type: 'deposit',
-            description: '測試分配點數'
+            description: '测试分配点数'
         }, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
     } catch (error) {
-        console.error(`分配點數失敗:`, error.response?.data || error.message);
+        console.error(`分配点数失败:`, error.response?.data || error.message);
         throw error;
     }
 }
@@ -112,7 +112,7 @@ async function placeBet(token, betData) {
         });
         return response.data;
     } catch (error) {
-        console.error(`下注失敗:`, error.response?.data || error.message);
+        console.error(`下注失败:`, error.response?.data || error.message);
         throw error;
     }
 }
@@ -124,7 +124,7 @@ async function getAgentBalance(token, agentId) {
         });
         return response.data.balance;
     } catch (error) {
-        console.error(`獲取代理餘額失敗:`, error.response?.data || error.message);
+        console.error(`获取代理余额失败:`, error.response?.data || error.message);
         throw error;
     }
 }
@@ -137,33 +137,33 @@ async function getHierarchicalReport(token, startDate, endDate) {
         });
         return response.data;
     } catch (error) {
-        console.error(`獲取報表失敗:`, error.response?.data || error.message);
+        console.error(`获取报表失败:`, error.response?.data || error.message);
         throw error;
     }
 }
 
-// 主測試函數
+// 主测试函数
 async function runTest() {
-    console.log('=== 開始退水系統綜合測試 ===\n');
+    console.log('=== 开始退水系统综合测试 ===\n');
     
     try {
-        // 1. 登入總代理
-        console.log('1. 登入總代理...');
+        // 1. 登入总代理
+        console.log('1. 登入总代理...');
         const topAgentToken = await login(testData.topAgent.username, testData.topAgent.password);
-        console.log('✓ 總代理登入成功\n');
+        console.log('✓ 总代理登入成功\n');
         
-        // 記錄創建的代理和會員
+        // 记录创建的代理和会员
         const createdAgents = {};
         const createdMembers = {};
         const agentTokens = {};
         
-        // 2. 創建多層代理結構
-        console.log('2. 創建多層代理結構...');
+        // 2. 创建多层代理结构
+        console.log('2. 创建多层代理结构...');
         let currentToken = topAgentToken;
         let currentParent = null;
         
         for (const agent of testData.agents) {
-            console.log(`   創建 ${agent.level} 級代理: ${agent.username} (退水: ${agent.rebatePercentage * 100}%)`);
+            console.log(`   创建 ${agent.level} 级代理: ${agent.username} (退水: ${agent.rebatePercentage * 100}%)`);
             
             // 如果有父代理，先登入父代理
             if (agent.parent) {
@@ -173,64 +173,64 @@ async function runTest() {
             const agentResult = await createAgent(currentToken, {
                 username: agent.username,
                 password: agent.password,
-                name: `測試代理${agent.level}`,
+                name: `测试代理${agent.level}`,
                 rebatePercentage: agent.rebatePercentage,
                 market_type: 'A'
             });
             
-            console.log(`   代理創建回應:`, JSON.stringify(agentResult));
+            console.log(`   代理创建回应:`, JSON.stringify(agentResult));
             
-            // 從回應中獲取代理資料
+            // 从回应中获取代理资料
             const createdAgentData = agentResult.agent || agentResult;
             createdAgents[agent.username] = createdAgentData;
             
-            // 登入新創建的代理以便創建下級
+            // 登入新创建的代理以便创建下级
             const agentToken = await login(agent.username, agent.password);
             agentTokens[agent.username] = agentToken;
             
-            console.log(`   ✓ ${agent.username} 創建成功 (ID: ${createdAgentData.id || 'N/A'})`);
+            console.log(`   ✓ ${agent.username} 创建成功 (ID: ${createdAgentData.id || 'N/A'})`);
         }
         console.log('\n');
         
-        // 3. 創建會員並分配點數
-        console.log('3. 創建會員並分配點數...');
+        // 3. 创建会员并分配点数
+        console.log('3. 创建会员并分配点数...');
         for (const member of testData.members) {
-            console.log(`   創建會員: ${member.username} (所屬代理: ${member.agent})`);
+            console.log(`   创建会员: ${member.username} (所属代理: ${member.agent})`);
             
             const agentToken = agentTokens[member.agent];
             const memberResult = await createMember(agentToken, {
                 username: member.username,
                 password: member.password,
                 agentId: createdAgents[member.agent].id,
-                notes: '測試會員'
+                notes: '测试会员'
             });
             
             createdMembers[member.username] = memberResult.member;
             
-            // 分配1000點數給會員
+            // 分配1000点数给会员
             await allocatePoints(agentToken, createdAgents[member.agent].id, memberResult.member.id, 1000);
-            console.log(`   ✓ ${member.username} 創建成功並分配 1000 點數`);
+            console.log(`   ✓ ${member.username} 创建成功并分配 1000 点数`);
         }
         console.log('\n');
         
-        // 記錄總代理初始餘額
-        // 先透過資料庫查詢找到總代理ID
+        // 记录总代理初始余额
+        // 先透过资料库查询找到总代理ID
         const topAgentInfo = await axios.get(`${AGENT_API_URL}/sub-agents`, {
             headers: { Authorization: `Bearer ${topAgentToken}` },
             params: { page: 1, limit: 1 }
         });
         
-        // 使用stats API獲取當前代理資訊
+        // 使用stats API获取当前代理资讯
         const statsResponse = await axios.get(`${AGENT_API_URL}/stats`, {
             headers: { Authorization: `Bearer ${topAgentToken}` }
         });
         const topAgentId = statsResponse.data.agentId;
         const initialBalance = statsResponse.data.balance;
-        console.log(`4. 總代理初始餘額: ${initialBalance}\n`);
+        console.log(`4. 总代理初始余额: ${initialBalance}\n`);
         
-        // 4. 模擬會員下注
-        console.log('5. 模擬會員下注...');
-        const betAmounts = [500, 300]; // 每個會員的下注金額
+        // 4. 模拟会员下注
+        console.log('5. 模拟会员下注...');
+        const betAmounts = [500, 300]; // 每个会员的下注金额
         
         for (let i = 0; i < testData.members.length; i++) {
             const member = testData.members[i];
@@ -238,7 +238,7 @@ async function runTest() {
             
             console.log(`   ${member.username} 下注 ${betAmount} 元...`);
             
-            // 登入會員
+            // 登入会员
             const memberToken = await login(member.username, member.password, false);
             
             // 下注
@@ -256,80 +256,80 @@ async function runTest() {
         }
         console.log('\n');
         
-        // 等待幾秒讓系統處理退水
-        console.log('6. 等待系統處理退水...');
+        // 等待几秒让系统处理退水
+        console.log('6. 等待系统处理退水...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         
-        // 5. 驗證退水分配
-        console.log('7. 驗證退水分配...');
-        // 重新獲取餘額
+        // 5. 验证退水分配
+        console.log('7. 验证退水分配...');
+        // 重新获取余额
         const finalStatsResponse = await axios.get(`${AGENT_API_URL}/stats`, {
             headers: { Authorization: `Bearer ${topAgentToken}` }
         });
         const finalBalance = finalStatsResponse.data.balance;
         const totalBetAmount = betAmounts.reduce((a, b) => a + b, 0);
-        const expectedRebate = totalBetAmount * 0.011; // A盤 1.1%
+        const expectedRebate = totalBetAmount * 0.011; // A盘 1.1%
         const actualRebate = finalBalance - initialBalance;
         
-        console.log(`   總下注金額: ${totalBetAmount}`);
-        console.log(`   預期退水 (1.1%): ${expectedRebate.toFixed(2)}`);
-        console.log(`   實際退水增加: ${actualRebate.toFixed(2)}`);
-        console.log(`   總代理最終餘額: ${finalBalance}`);
+        console.log(`   总下注金额: ${totalBetAmount}`);
+        console.log(`   预期退水 (1.1%): ${expectedRebate.toFixed(2)}`);
+        console.log(`   实际退水增加: ${actualRebate.toFixed(2)}`);
+        console.log(`   总代理最终余额: ${finalBalance}`);
         
         if (Math.abs(actualRebate - expectedRebate) < 0.01) {
-            console.log('   ✓ 退水分配正確！所有退水都給了總代理\n');
+            console.log('   ✓ 退水分配正确！所有退水都给了总代理\n');
         } else {
-            console.log('   ✗ 退水分配異常！\n');
+            console.log('   ✗ 退水分配异常！\n');
         }
         
-        // 6. 檢查各層代理報表
-        console.log('8. 檢查各層代理報表...');
+        // 6. 检查各层代理报表
+        console.log('8. 检查各层代理报表...');
         const today = new Date().toISOString().split('T')[0];
         
         for (const agent of testData.agents) {
-            console.log(`\n   === ${agent.username} 的報表 ===`);
+            console.log(`\n   === ${agent.username} 的报表 ===`);
             const token = agentTokens[agent.username];
             const report = await getHierarchicalReport(token, today, today);
             
             if (report.data && report.data.length > 0) {
                 report.data.forEach(item => {
                     console.log(`   代理: ${item.agentUsername}`);
-                    console.log(`   下注金額: ${item.betAmount}`);
-                    console.log(`   賺水比例: ${(item.earnedRebatePercentage * 100).toFixed(1)}%`);
-                    console.log(`   賺水金額: ${item.earnedRebateAmount.toFixed(2)}`);
+                    console.log(`   下注金额: ${item.betAmount}`);
+                    console.log(`   赚水比例: ${(item.earnedRebatePercentage * 100).toFixed(1)}%`);
+                    console.log(`   赚水金额: ${item.earnedRebateAmount.toFixed(2)}`);
                     console.log(`   ---`);
                 });
                 
-                // 檢查總計
+                // 检查总计
                 const summary = report.summary;
-                console.log(`   總下注金額: ${summary.totalBetAmount}`);
-                console.log(`   總賺水金額: ${summary.totalEarnedRebateAmount.toFixed(2)}`);
+                console.log(`   总下注金额: ${summary.totalBetAmount}`);
+                console.log(`   总赚水金额: ${summary.totalEarnedRebateAmount.toFixed(2)}`);
                 
-                // 驗證賺水計算是否正確（應該是該代理的退水設定）
+                // 验证赚水计算是否正确（应该是该代理的退水设定）
                 const expectedEarnedRebate = summary.totalBetAmount * agent.rebatePercentage;
                 if (Math.abs(summary.totalEarnedRebateAmount - expectedEarnedRebate) < 0.01) {
-                    console.log(`   ✓ 賺水計算正確！基於代理退水設定 ${(agent.rebatePercentage * 100).toFixed(1)}%`);
+                    console.log(`   ✓ 赚水计算正确！基于代理退水设定 ${(agent.rebatePercentage * 100).toFixed(1)}%`);
                 } else {
-                    console.log(`   ✗ 賺水計算異常！預期: ${expectedEarnedRebate.toFixed(2)}, 實際: ${summary.totalEarnedRebateAmount.toFixed(2)}`);
+                    console.log(`   ✗ 赚水计算异常！预期: ${expectedEarnedRebate.toFixed(2)}, 实际: ${summary.totalEarnedRebateAmount.toFixed(2)}`);
                 }
             } else {
-                console.log('   無下注記錄');
+                console.log('   无下注记录');
             }
         }
         
-        console.log('\n=== 測試完成 ===');
+        console.log('\n=== 测试完成 ===');
         
     } catch (error) {
-        console.error('\n測試失敗:', error.message);
+        console.error('\n测试失败:', error.message);
         process.exit(1);
     }
 }
 
-// 執行測試
+// 执行测试
 runTest().then(() => {
-    console.log('\n所有測試通過！');
+    console.log('\n所有测试通过！');
     process.exit(0);
 }).catch(error => {
-    console.error('測試過程出錯:', error);
+    console.error('测试过程出错:', error);
     process.exit(1);
 });

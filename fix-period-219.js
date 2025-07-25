@@ -1,39 +1,39 @@
-// fix-period-219.js - 修復期號219的結算錯誤
+// fix-period-219.js - 修复期号219的结算错误
 import db from './db/config.js';
 
 async function fixPeriod219() {
-    console.log('🔧 修復期號 20250714219 的結算錯誤...\n');
+    console.log('🔧 修复期号 20250714219 的结算错误...\n');
     
     try {
-        // 開始事務
+        // 开始事务
         await db.tx(async t => {
-            console.log('📊 修復前狀態檢查：');
+            console.log('📊 修复前状态检查：');
             
-            // 1. 獲取用戶當前餘額
+            // 1. 获取用户当前余额
             const member = await t.one(`
                 SELECT id, balance FROM members
                 WHERE username = 'justin111'
             `);
             
-            console.log(`用戶當前餘額: $${member.balance}`);
+            console.log(`用户当前余额: $${member.balance}`);
             
-            // 2. 修復投注ID 1652 (3號投注，錯誤判為中獎)
-            console.log('\n🔧 修復投注ID 1652 (投注3號，錯誤判為中獎):');
+            // 2. 修复投注ID 1652 (3号投注，错误判为中奖)
+            console.log('\n🔧 修复投注ID 1652 (投注3号，错误判为中奖):');
             
             const bet1652 = await t.one(`
                 SELECT * FROM bet_history WHERE id = 1652
             `);
             
-            console.log(`當前狀態: win=${bet1652.win}, win_amount=${bet1652.win_amount}`);
+            console.log(`当前状态: win=${bet1652.win}, win_amount=${bet1652.win_amount}`);
             
-            // 將此注單改為未中獎
+            // 将此注单改为未中奖
             await t.none(`
                 UPDATE bet_history
                 SET win = false, win_amount = 0
                 WHERE id = 1652
             `);
             
-            // 扣除錯誤發放的中獎金額
+            // 扣除错误发放的中奖金额
             const newBalance1 = parseFloat(member.balance) - 989.00;
             await t.none(`
                 UPDATE members
@@ -41,33 +41,33 @@ async function fixPeriod219() {
                 WHERE id = $2
             `, [newBalance1, member.id]);
             
-            // 記錄調整交易
+            // 记录调整交易
             await t.none(`
                 INSERT INTO transaction_records
                 (user_type, user_id, transaction_type, amount, balance_before, balance_after, description, created_at)
                 VALUES ('member', $1, 'adjustment', $2, $3, $4, $5, NOW())
-            `, [member.id, -989.00, parseFloat(member.balance), newBalance1, '期號 20250714219 投注3號錯誤中獎調整']);
+            `, [member.id, -989.00, parseFloat(member.balance), newBalance1, '期号 20250714219 投注3号错误中奖调整']);
             
-            console.log(`✅ 投注3號改為未中獎，扣除 $989.00`);
-            console.log(`餘額: $${member.balance} → $${newBalance1}`);
+            console.log(`✅ 投注3号改为未中奖，扣除 $989.00`);
+            console.log(`余额: $${member.balance} → $${newBalance1}`);
             
-            // 3. 修復投注ID 1654 (2號投注，錯誤判為未中獎)
-            console.log('\n🔧 修復投注ID 1654 (投注2號，錯誤判為未中獎):');
+            // 3. 修复投注ID 1654 (2号投注，错误判为未中奖)
+            console.log('\n🔧 修复投注ID 1654 (投注2号，错误判为未中奖):');
             
             const bet1654 = await t.one(`
                 SELECT * FROM bet_history WHERE id = 1654
             `);
             
-            console.log(`當前狀態: win=${bet1654.win}, win_amount=${bet1654.win_amount}`);
+            console.log(`当前状态: win=${bet1654.win}, win_amount=${bet1654.win_amount}`);
             
-            // 將此注單改為中獎
+            // 将此注单改为中奖
             await t.none(`
                 UPDATE bet_history
                 SET win = true, win_amount = 989.00
                 WHERE id = 1654
             `);
             
-            // 增加應得的中獎金額
+            // 增加应得的中奖金额
             const finalBalance = newBalance1 + 989.00;
             await t.none(`
                 UPDATE members
@@ -75,18 +75,18 @@ async function fixPeriod219() {
                 WHERE id = $2
             `, [finalBalance, member.id]);
             
-            // 記錄中獎交易
+            // 记录中奖交易
             await t.none(`
                 INSERT INTO transaction_records
                 (user_type, user_id, transaction_type, amount, balance_before, balance_after, description, created_at)
                 VALUES ('member', $1, 'win', $2, $3, $4, $5, NOW())
-            `, [member.id, 989.00, newBalance1, finalBalance, '期號 20250714219 投注2號中獎補發']);
+            `, [member.id, 989.00, newBalance1, finalBalance, '期号 20250714219 投注2号中奖补发']);
             
-            console.log(`✅ 投注2號改為中獎，增加 $989.00`);
-            console.log(`餘額: $${newBalance1} → $${finalBalance}`);
+            console.log(`✅ 投注2号改为中奖，增加 $989.00`);
+            console.log(`余额: $${newBalance1} → $${finalBalance}`);
             
-            // 4. 驗證修復結果
-            console.log('\n📊 修復後驗證：');
+            // 4. 验证修复结果
+            console.log('\n📊 修复后验证：');
             
             const verifyBets = await t.any(`
                 SELECT id, bet_value, win, win_amount
@@ -97,29 +97,29 @@ async function fixPeriod219() {
                 ORDER BY id
             `);
             
-            console.log('第7名所有投注結果:');
+            console.log('第7名所有投注结果:');
             verifyBets.forEach(bet => {
-                const shouldWin = bet.bet_value === '2'; // 第7名開出2號
+                const shouldWin = bet.bet_value === '2'; // 第7名开出2号
                 const status = bet.win === shouldWin ? '✅' : '❌';
-                console.log(`${status} ID ${bet.id}: 投注${bet.bet_value}號, ${bet.win ? '中獎' : '未中獎'} $${bet.win_amount || 0}`);
+                console.log(`${status} ID ${bet.id}: 投注${bet.bet_value}号, ${bet.win ? '中奖' : '未中奖'} $${bet.win_amount || 0}`);
             });
             
             const finalMember = await t.one(`
                 SELECT balance FROM members WHERE username = 'justin111'
             `);
             
-            console.log(`\n最終餘額: $${finalMember.balance}`);
-            console.log(`淨變化: $${parseFloat(finalMember.balance) - parseFloat(member.balance)} (應該是 $0.00)`);
+            console.log(`\n最终余额: $${finalMember.balance}`);
+            console.log(`净变化: $${parseFloat(finalMember.balance) - parseFloat(member.balance)} (应该是 $0.00)`);
         });
         
-        console.log('\n✅ 期號219結算錯誤修復完成！');
+        console.log('\n✅ 期号219结算错误修复完成！');
         
     } catch (error) {
-        console.error('修復過程中發生錯誤:', error);
+        console.error('修复过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行修復
+// 执行修复
 fixPeriod219();

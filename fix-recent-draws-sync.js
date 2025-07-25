@@ -1,12 +1,12 @@
-// 修復近期開獎記錄同步問題
+// 修复近期开奖记录同步问题
 import db from './db/config.js';
 
 async function fixRecentDrawsSync() {
-    console.log('🔧 修復近期開獎記錄同步問題\n');
+    console.log('🔧 修复近期开奖记录同步问题\n');
 
     try {
-        // 1. 創建 recent_draws 表（如果不存在）
-        console.log('📌 步驟1：創建 recent_draws 表...');
+        // 1. 创建 recent_draws 表（如果不存在）
+        console.log('📌 步骤1：创建 recent_draws 表...');
         await db.none(`
             CREATE TABLE IF NOT EXISTS recent_draws (
                 id SERIAL PRIMARY KEY,
@@ -27,18 +27,18 @@ async function fixRecentDrawsSync() {
             );
         `);
         
-        // 創建索引
+        // 创建索引
         await db.none(`
             CREATE INDEX IF NOT EXISTS idx_recent_draws_period ON recent_draws(period);
             CREATE INDEX IF NOT EXISTS idx_recent_draws_draw_time ON recent_draws(draw_time DESC);
         `);
         
-        console.log('✅ recent_draws 表創建成功');
+        console.log('✅ recent_draws 表创建成功');
 
-        // 2. 清理異常數據
-        console.log('\n📌 步驟2：清理異常的開獎記錄...');
+        // 2. 清理异常数据
+        console.log('\n📌 步骤2：清理异常的开奖记录...');
         
-        // 刪除結果為 null 的記錄
+        // 删除结果为 null 的记录
         const deletedNull = await db.result(`
             DELETE FROM result_history 
             WHERE result IS NULL 
@@ -46,18 +46,18 @@ async function fixRecentDrawsSync() {
             OR position_2 IS NULL
             RETURNING period
         `);
-        console.log(`刪除了 ${deletedNull.rowCount} 筆空結果記錄`);
+        console.log(`删除了 ${deletedNull.rowCount} 笔空结果记录`);
 
-        // 刪除期號格式異常的記錄
+        // 删除期号格式异常的记录
         const deletedInvalid = await db.result(`
             DELETE FROM result_history 
             WHERE NOT (period ~ '^[0-9]{11}$')
             RETURNING period
         `);
-        console.log(`刪除了 ${deletedInvalid.rowCount} 筆格式異常的記錄`);
+        console.log(`删除了 ${deletedInvalid.rowCount} 笔格式异常的记录`);
 
-        // 3. 獲取最新的有效開獎記錄
-        console.log('\n📌 步驟3：獲取最新10期有效開獎記錄...');
+        // 3. 获取最新的有效开奖记录
+        console.log('\n📌 步骤3：获取最新10期有效开奖记录...');
         const validDraws = await db.manyOrNone(`
             SELECT * FROM result_history
             WHERE result IS NOT NULL
@@ -67,11 +67,11 @@ async function fixRecentDrawsSync() {
             LIMIT 10
         `);
 
-        console.log(`找到 ${validDraws.length} 筆有效記錄`);
+        console.log(`找到 ${validDraws.length} 笔有效记录`);
 
         // 4. 同步到 recent_draws 表
         if (validDraws.length > 0) {
-            console.log('\n📌 步驟4：同步到 recent_draws 表...');
+            console.log('\n📌 步骤4：同步到 recent_draws 表...');
             
             // 清空 recent_draws 表
             await db.none('TRUNCATE TABLE recent_draws');
@@ -102,15 +102,15 @@ async function fixRecentDrawsSync() {
             console.log('✅ 同步完成');
         }
 
-        // 5. 創建觸發器自動維護最新10期
-        console.log('\n📌 步驟5：創建自動維護觸發器...');
+        // 5. 创建触发器自动维护最新10期
+        console.log('\n📌 步骤5：创建自动维护触发器...');
         
-        // 創建函數
+        // 创建函数
         await db.none(`
             CREATE OR REPLACE FUNCTION maintain_recent_draws()
             RETURNS TRIGGER AS $$
             BEGIN
-                -- 插入新記錄到 recent_draws
+                -- 插入新记录到 recent_draws
                 INSERT INTO recent_draws (
                     period, result,
                     position_1, position_2, position_3, position_4, position_5,
@@ -137,7 +137,7 @@ async function fixRecentDrawsSync() {
                     position_10 = EXCLUDED.position_10,
                     draw_time = EXCLUDED.draw_time;
                 
-                -- 保留最新10筆，刪除舊記錄
+                -- 保留最新10笔，删除旧记录
                 DELETE FROM recent_draws
                 WHERE period NOT IN (
                     SELECT period FROM recent_draws
@@ -150,7 +150,7 @@ async function fixRecentDrawsSync() {
             $$ LANGUAGE plpgsql;
         `);
 
-        // 創建觸發器
+        // 创建触发器
         await db.none(`
             DROP TRIGGER IF EXISTS maintain_recent_draws_trigger ON result_history;
             
@@ -160,10 +160,10 @@ async function fixRecentDrawsSync() {
             EXECUTE FUNCTION maintain_recent_draws();
         `);
         
-        console.log('✅ 自動維護觸發器創建成功');
+        console.log('✅ 自动维护触发器创建成功');
 
-        // 6. 創建優化的視圖
-        console.log('\n📌 步驟6：創建優化視圖...');
+        // 6. 创建优化的视图
+        console.log('\n📌 步骤6：创建优化视图...');
         await db.none(`
             CREATE OR REPLACE VIEW v_recent_draws AS
             SELECT 
@@ -177,22 +177,22 @@ async function fixRecentDrawsSync() {
             ORDER BY CAST(period AS BIGINT) DESC;
         `);
         
-        console.log('✅ 視圖創建成功');
+        console.log('✅ 视图创建成功');
 
-        // 7. 顯示最終結果
-        console.log('\n📊 最新10期開獎記錄：');
+        // 7. 显示最终结果
+        console.log('\n📊 最新10期开奖记录：');
         const finalRecords = await db.manyOrNone(`
             SELECT * FROM v_recent_draws
         `);
         
         finalRecords.forEach((record, index) => {
-            console.log(`${index + 1}. 期號：${record.period} | 時間：${record.formatted_time} | 第1名：${record.position_1} | 第5名：${record.position_5} | 第10名：${record.position_10}`);
+            console.log(`${index + 1}. 期号：${record.period} | 时间：${record.formatted_time} | 第1名：${record.position_1} | 第5名：${record.position_5} | 第10名：${record.position_10}`);
         });
 
-        // 8. 提供前端調用建議
-        console.log('\n💡 前端調用建議：');
-        console.log('1. 直接查詢 recent_draws 表或 v_recent_draws 視圖');
-        console.log('2. API 優化範例：');
+        // 8. 提供前端调用建议
+        console.log('\n💡 前端调用建议：');
+        console.log('1. 直接查询 recent_draws 表或 v_recent_draws 视图');
+        console.log('2. API 优化范例：');
         console.log(`
 // backend.js 中添加新的 API
 app.get('/api/recent-draws', async (req, res) => {
@@ -205,22 +205,22 @@ app.get('/api/recent-draws', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: '獲取近期開獎記錄失敗'
+            message: '获取近期开奖记录失败'
         });
     }
 });
         `);
 
     } catch (error) {
-        console.error('修復失敗：', error);
+        console.error('修复失败：', error);
     }
 }
 
-// 執行修復
+// 执行修复
 fixRecentDrawsSync().then(() => {
-    console.log('\n✅ 修復完成');
+    console.log('\n✅ 修复完成');
     process.exit(0);
 }).catch(error => {
-    console.error('❌ 錯誤：', error);
+    console.error('❌ 错误：', error);
     process.exit(1);
 });

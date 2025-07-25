@@ -2,11 +2,11 @@ import db from './db/config.js';
 
 async function checkSpecificRebates() {
     try {
-        // 查詢特定期號的退水
+        // 查询特定期号的退水
         const periods = ['20250715019', '20250715004'];
         
         for (const period of periods) {
-            console.log(`\n=== 期號 ${period} 的退水記錄 ===`);
+            console.log(`\n=== 期号 ${period} 的退水记录 ===`);
             
             const rebates = await db.any(`
                 SELECT 
@@ -27,23 +27,23 @@ async function checkSpecificRebates() {
             rebates.forEach(r => {
                 const amount = parseFloat(r.amount);
                 total += amount;
-                console.log(`${r.agent_name} (L${r.agent_level}, ${r.market_type}盤): ${amount} 元`);
-                console.log(`  - 記錄的退水比例: ${(parseFloat(r.rebate_percentage || 0) * 100).toFixed(1)}%`);
-                console.log(`  - 代理設定的退水比例: ${(parseFloat(r.agent_rebate_percentage || 0) * 100).toFixed(1)}%`);
-                console.log(`  - 時間: ${new Date(r.created_at).toLocaleString()}`);
+                console.log(`${r.agent_name} (L${r.agent_level}, ${r.market_type}盘): ${amount} 元`);
+                console.log(`  - 记录的退水比例: ${(parseFloat(r.rebate_percentage || 0) * 100).toFixed(1)}%`);
+                console.log(`  - 代理设定的退水比例: ${(parseFloat(r.agent_rebate_percentage || 0) * 100).toFixed(1)}%`);
+                console.log(`  - 时间: ${new Date(r.created_at).toLocaleString()}`);
             });
             
-            console.log(`總退水: ${total.toFixed(2)} 元 (${(total/1000*100).toFixed(1)}%)`);
+            console.log(`总退水: ${total.toFixed(2)} 元 (${(total/1000*100).toFixed(1)}%)`);
             
             if (total > 11) {
-                console.log(`❌ 退水異常！應該是 11 元 (1.1%)，實際是 ${total} 元`);
+                console.log(`❌ 退水异常！应该是 11 元 (1.1%)，实际是 ${total} 元`);
             } else if (total === 11) {
-                console.log(`✅ 退水正確`);
+                console.log(`✅ 退水正确`);
             }
         }
         
-        // 檢查代理的退水設定
-        console.log(`\n=== 代理退水設定 ===`);
+        // 检查代理的退水设定
+        console.log(`\n=== 代理退水设定 ===`);
         const agents = await db.any(`
             SELECT username, level, market_type, rebate_percentage
             FROM agents
@@ -52,11 +52,11 @@ async function checkSpecificRebates() {
         `);
         
         agents.forEach(a => {
-            console.log(`${a.username} (L${a.level}, ${a.market_type}盤): 退水比例 ${(parseFloat(a.rebate_percentage) * 100).toFixed(1)}%`);
+            console.log(`${a.username} (L${a.level}, ${a.market_type}盘): 退水比例 ${(parseFloat(a.rebate_percentage) * 100).toFixed(1)}%`);
         });
         
-        // 檢查會員所屬代理
-        console.log(`\n=== 會員代理關係 ===`);
+        // 检查会员所属代理
+        console.log(`\n=== 会员代理关系 ===`);
         const memberInfo = await db.oneOrNone(`
             SELECT 
                 m.username as member,
@@ -70,11 +70,11 @@ async function checkSpecificRebates() {
         `);
         
         if (memberInfo) {
-            console.log(`會員 ${memberInfo.member} 的直屬代理: ${memberInfo.agent_name} (L${memberInfo.level}, ${memberInfo.market_type}盤)`);
+            console.log(`会员 ${memberInfo.member} 的直属代理: ${memberInfo.agent_name} (L${memberInfo.level}, ${memberInfo.market_type}盘)`);
         }
         
     } catch (error) {
-        console.error('查詢時發生錯誤:', error);
+        console.error('查询时发生错误:', error);
     } finally {
         process.exit(0);
     }

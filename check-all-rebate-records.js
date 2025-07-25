@@ -2,12 +2,12 @@ import db from './db/config.js';
 
 async function checkAllRebateRecords() {
     try {
-        console.log('=== 檢查所有退水記錄 ===\n');
+        console.log('=== 检查所有退水记录 ===\n');
 
         const testPeriod = '20250714546';
 
-        // 1. 檢查所有該期的交易記錄
-        console.log(`1. 檢查期號 ${testPeriod} 的所有交易記錄...`);
+        // 1. 检查所有该期的交易记录
+        console.log(`1. 检查期号 ${testPeriod} 的所有交易记录...`);
         const allTransactions = await db.any(`
             SELECT 
                 tr.*,
@@ -22,20 +22,20 @@ async function checkAllRebateRecords() {
             ORDER BY tr.created_at DESC
         `, [testPeriod]);
 
-        console.log(`找到 ${allTransactions.length} 筆交易記錄`);
+        console.log(`找到 ${allTransactions.length} 笔交易记录`);
         for (const tx of allTransactions) {
             console.log(`\nID: ${tx.id}`);
-            console.log(`用戶類型: ${tx.user_type}`);
-            console.log(`用戶: ${tx.username}`);
-            console.log(`交易類型: ${tx.transaction_type}`);
-            console.log(`金額: ${tx.amount}`);
-            console.log(`餘額: ${tx.balance_before} -> ${tx.balance_after}`);
+            console.log(`用户类型: ${tx.user_type}`);
+            console.log(`用户: ${tx.username}`);
+            console.log(`交易类型: ${tx.transaction_type}`);
+            console.log(`金额: ${tx.amount}`);
+            console.log(`余额: ${tx.balance_before} -> ${tx.balance_after}`);
             console.log(`描述: ${tx.description}`);
-            console.log(`時間: ${tx.created_at}`);
+            console.log(`时间: ${tx.created_at}`);
         }
 
-        // 2. 檢查最近的退水交易
-        console.log('\n\n2. 檢查最近的退水交易...');
+        // 2. 检查最近的退水交易
+        console.log('\n\n2. 检查最近的退水交易...');
         const recentRebates = await db.any(`
             SELECT 
                 tr.*,
@@ -50,17 +50,17 @@ async function checkAllRebateRecords() {
             LIMIT 10
         `);
 
-        console.log(`最近10分鐘的退水交易 (${recentRebates.length} 筆)：`);
+        console.log(`最近10分钟的退水交易 (${recentRebates.length} 笔)：`);
         for (const tx of recentRebates) {
             console.log(`\n代理: ${tx.username}`);
-            console.log(`期號: ${tx.period}`);
-            console.log(`金額: ${tx.amount}`);
-            console.log(`會員: ${tx.member_username}`);
-            console.log(`時間: ${tx.created_at}`);
+            console.log(`期号: ${tx.period}`);
+            console.log(`金额: ${tx.amount}`);
+            console.log(`会员: ${tx.member_username}`);
+            console.log(`时间: ${tx.created_at}`);
         }
 
-        // 3. 檢查代理最近的交易
-        console.log('\n\n3. 檢查特定代理的最近交易...');
+        // 3. 检查代理最近的交易
+        console.log('\n\n3. 检查特定代理的最近交易...');
         const agentTransactions = await db.any(`
             SELECT 
                 tr.*,
@@ -73,15 +73,15 @@ async function checkAllRebateRecords() {
             LIMIT 20
         `);
 
-        console.log(`justin2025A 和 ti2025A 最近1小時的交易 (${agentTransactions.length} 筆)：`);
+        console.log(`justin2025A 和 ti2025A 最近1小时的交易 (${agentTransactions.length} 笔)：`);
         for (const tx of agentTransactions) {
-            console.log(`\n${tx.username}: ${tx.transaction_type} ${tx.amount} (期號: ${tx.period})`);
-            console.log(`餘額: ${tx.balance_before} -> ${tx.balance_after}`);
-            console.log(`時間: ${tx.created_at}`);
+            console.log(`\n${tx.username}: ${tx.transaction_type} ${tx.amount} (期号: ${tx.period})`);
+            console.log(`余额: ${tx.balance_before} -> ${tx.balance_after}`);
+            console.log(`时间: ${tx.created_at}`);
         }
 
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

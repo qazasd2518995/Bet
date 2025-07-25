@@ -116,7 +116,7 @@ async function manualFix() {
           INSERT INTO transaction_records 
           (user_type, user_id, transaction_type, amount, balance_before, balance_after, description, created_at)
           VALUES ('member', (SELECT id FROM members WHERE username = 'justin111'), 'win', $1, $2, $3, $4, NOW())
-        `, [totalWinAmount, currentBalance, currentBalance + totalWinAmount, `期號 ${period} 中獎修復 (${winCount}筆)`]);
+        `, [totalWinAmount, currentBalance, currentBalance + totalWinAmount, `期号 ${period} 中奖修复 (${winCount}笔)`]);
       }
       
       await client.query('COMMIT');

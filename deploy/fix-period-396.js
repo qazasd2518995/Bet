@@ -1,11 +1,11 @@
-// fix-period-396.js - 修正396期錯誤結算
+// fix-period-396.js - 修正396期错误结算
 import db from './db/config.js';
 
 async function fixPeriod396() {
     try {
-        console.log('🔧 修正期號 20250714396 的錯誤結算...\n');
+        console.log('🔧 修正期号 20250714396 的错误结算...\n');
         
-        // 找到需要修正的投注（第3名號碼1，應該中獎但被標記為未中獎）
+        // 找到需要修正的投注（第3名号码1，应该中奖但被标记为未中奖）
         const incorrectBet = await db.oneOrNone(`
             SELECT id, username, amount, odds, win, win_amount
             FROM bet_history 
@@ -23,23 +23,23 @@ async function fixPeriod396() {
         
         console.log('找到需要修正的投注:');
         console.log(`  ID: ${incorrectBet.id}`);
-        console.log(`  用戶: ${incorrectBet.username}`);
-        console.log(`  金額: ${incorrectBet.amount}`);
-        console.log(`  賠率: ${incorrectBet.odds}`);
+        console.log(`  用户: ${incorrectBet.username}`);
+        console.log(`  金额: ${incorrectBet.amount}`);
+        console.log(`  赔率: ${incorrectBet.odds}`);
         
         const winAmount = parseFloat(incorrectBet.amount) * parseFloat(incorrectBet.odds);
-        console.log(`  應得派彩: ${winAmount}`);
+        console.log(`  应得派彩: ${winAmount}`);
         
-        // 在事務中執行修正
+        // 在事务中执行修正
         await db.tx(async t => {
-            // 1. 更新投注狀態
+            // 1. 更新投注状态
             await t.none(`
                 UPDATE bet_history 
                 SET win = true, win_amount = $1
                 WHERE id = $2
             `, [winAmount, incorrectBet.id]);
             
-            // 2. 獲取用戶當前餘額
+            // 2. 获取用户当前余额
             const member = await t.one(`
                 SELECT id, balance FROM members WHERE username = $1 FOR UPDATE
             `, [incorrectBet.username]);
@@ -47,12 +47,12 @@ async function fixPeriod396() {
             const currentBalance = parseFloat(member.balance);
             const newBalance = currentBalance + winAmount;
             
-            // 3. 更新用戶餘額
+            // 3. 更新用户余额
             await t.none(`
                 UPDATE members SET balance = $1 WHERE id = $2
             `, [newBalance, member.id]);
             
-            // 4. 記錄交易
+            // 4. 记录交易
             await t.none(`
                 INSERT INTO transaction_records 
                 (user_type, user_id, transaction_type, amount, balance_before, balance_after, description, created_at)
@@ -62,16 +62,16 @@ async function fixPeriod396() {
                 winAmount,
                 currentBalance,
                 newBalance,
-                `期號 20250714396 結算修正 - 第3名號碼1中獎`
+                `期号 20250714396 结算修正 - 第3名号码1中奖`
             ]);
             
             console.log(`\n✅ 修正完成:`);
-            console.log(`  投注ID ${incorrectBet.id} 已標記為中獎`);
-            console.log(`  派彩金額: ${winAmount}`);
-            console.log(`  用戶餘額: ${currentBalance} → ${newBalance}`);
+            console.log(`  投注ID ${incorrectBet.id} 已标记为中奖`);
+            console.log(`  派彩金额: ${winAmount}`);
+            console.log(`  用户余额: ${currentBalance} → ${newBalance}`);
         });
         
-        // 5. 更新結算日誌
+        // 5. 更新结算日志
         await db.none(`
             UPDATE settlement_logs 
             SET total_win_amount = $1,
@@ -79,11 +79,11 @@ async function fixPeriod396() {
             WHERE period = 20250714396
         `, [winAmount, JSON.stringify({ correction: `Bet ID ${incorrectBet.id} corrected to win ${winAmount}` })]);
         
-        console.log(`\n🎉 期號 20250714396 結算修正完成！`);
+        console.log(`\n🎉 期号 20250714396 结算修正完成！`);
         
         await db.$pool.end();
     } catch (error) {
-        console.error('修正過程中發生錯誤:', error);
+        console.error('修正过程中发生错误:', error);
         await db.$pool.end();
     }
 }

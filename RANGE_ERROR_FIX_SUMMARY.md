@@ -1,42 +1,42 @@
-# RangeNotSatisfiableError 修復說明
+# RangeNotSatisfiableError 修复说明
 
-## 問題描述
-生產環境出現 `RangeNotSatisfiableError: Range Not Satisfiable` 錯誤，返回 416 狀態碼。這是因為瀏覽器嘗試請求部分內容（使用 Range headers），但伺服器無法滿足該範圍請求。
+## 问题描述
+生产环境出现 `RangeNotSatisfiableError: Range Not Satisfiable` 错误，返回 416 状态码。这是因为浏览器尝试请求部分内容（使用 Range headers），但伺服器无法满足该范围请求。
 
-## 修復內容
+## 修复内容
 
-### 1. 禁用靜態文件的範圍請求
-修改了 `backend.js` 和 `deploy/backend.js` 中的 Express 靜態文件中間件配置：
+### 1. 禁用静态文件的范围请求
+修改了 `backend.js` 和 `deploy/backend.js` 中的 Express 静态文件中间件配置：
 
 ```javascript
-// 修復前
+// 修复前
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// 修復後
+// 修复后
 app.use(express.static(path.join(__dirname, 'frontend'), {
-    acceptRanges: false,    // 禁用範圍請求
+    acceptRanges: false,    // 禁用范围请求
     etag: false,           // 禁用 ETag
-    lastModified: false,   // 禁用最後修改時間
+    lastModified: false,   // 禁用最后修改时间
     setHeaders: (res, path, stat) => {
-        res.set('Cache-Control', 'no-store');  // 禁用緩存
+        res.set('Cache-Control', 'no-store');  // 禁用缓存
     }
 }));
 ```
 
-### 2. 添加錯誤處理中間件
-在所有路由之後添加了專門處理 416 錯誤的中間件：
+### 2. 添加错误处理中间件
+在所有路由之后添加了专门处理 416 错误的中间件：
 
 ```javascript
 app.use((err, req, res, next) => {
   if (err.status === 416 || err.message === 'Range Not Satisfiable') {
-    console.log('處理 Range Not Satisfiable 錯誤:', req.url);
-    // 返回200狀態，讓瀏覽器重新請求完整文件
+    console.log('处理 Range Not Satisfiable 错误:', req.url);
+    // 返回200状态，让浏览器重新请求完整文件
     res.status(200).sendFile(path.join(__dirname, 'frontend', req.path));
   } else {
-    console.error('伺服器錯誤:', err);
+    console.error('伺服器错误:', err);
     res.status(err.status || 500).json({
       success: false,
-      message: err.message || '伺服器內部錯誤'
+      message: err.message || '伺服器内部错误'
     });
   }
 });
@@ -46,13 +46,13 @@ app.use((err, req, res, next) => {
 1. `/Users/justin/Desktop/Bet/backend.js`
 2. `/Users/justin/Desktop/Bet/deploy/backend.js`
 
-## 部署說明
-這些修改需要重新部署到生產環境才能生效。部署後，系統將：
-- 不再接受部分內容請求
-- 當收到範圍請求時，返回完整文件而非錯誤
-- 禁用文件緩存，確保客戶端始終獲取最新版本
+## 部署说明
+这些修改需要重新部署到生产环境才能生效。部署后，系统将：
+- 不再接受部分内容请求
+- 当收到范围请求时，返回完整文件而非错误
+- 禁用文件缓存，确保客户端始终获取最新版本
 
-## 預期效果
-- 消除 416 Range Not Satisfiable 錯誤
-- 提高靜態文件服務的穩定性
-- 確保所有瀏覽器都能正常加載資源
+## 预期效果
+- 消除 416 Range Not Satisfiable 错误
+- 提高静态文件服务的稳定性
+- 确保所有浏览器都能正常加载资源

@@ -3,9 +3,9 @@ import { processRebates } from './enhanced-settlement-system.js';
 
 async function processMissingRebates() {
   try {
-    console.log('=== 處理遺漏的退水 ===\n');
+    console.log('=== 处理遗漏的退水 ===\n');
     
-    // 查詢最近24小時內已結算但沒有退水的期號
+    // 查询最近24小时内已结算但没有退水的期号
     const missingRebatePeriods = await db.any(`
       WITH settled_periods AS (
         SELECT DISTINCT period, COUNT(*) as bet_count, SUM(amount) as total_amount
@@ -28,34 +28,34 @@ async function processMissingRebates() {
       ORDER BY sp.period DESC
     `);
     
-    console.log(`找到 ${missingRebatePeriods.length} 個需要處理退水的期號:\n`);
+    console.log(`找到 ${missingRebatePeriods.length} 个需要处理退水的期号:\n`);
     
     if (missingRebatePeriods.length === 0) {
-      console.log('✅ 沒有遺漏的退水需要處理');
+      console.log('✅ 没有遗漏的退水需要处理');
       process.exit(0);
     }
     
-    // 計算總計
+    // 计算总计
     const totalAmount = missingRebatePeriods.reduce((sum, p) => sum + parseFloat(p.total_amount), 0);
     const totalBets = missingRebatePeriods.reduce((sum, p) => sum + parseInt(p.bet_count), 0);
     
-    console.log(`總計: ${totalBets} 筆下注，總金額 $${totalAmount.toFixed(2)}`);
-    console.log(`預計產生退水: $${(totalAmount * 0.011).toFixed(2)} (A盤 1.1%)\n`);
+    console.log(`总计: ${totalBets} 笔下注，总金额 $${totalAmount.toFixed(2)}`);
+    console.log(`预计产生退水: $${(totalAmount * 0.011).toFixed(2)} (A盘 1.1%)\n`);
     
-    // 逐一處理每個期號
+    // 逐一处理每个期号
     let successCount = 0;
     let failCount = 0;
     
     for (const period of missingRebatePeriods) {
-      console.log(`\n處理期號 ${period.period}:`);
-      console.log(`  下注: ${period.bet_count} 筆，金額: $${period.total_amount}`);
+      console.log(`\n处理期号 ${period.period}:`);
+      console.log(`  下注: ${period.bet_count} 笔，金额: $${period.total_amount}`);
       
       try {
         await processRebates(period.period);
         successCount++;
-        console.log(`  ✅ 退水處理成功`);
+        console.log(`  ✅ 退水处理成功`);
         
-        // 驗證退水結果
+        // 验证退水结果
         const rebates = await db.any(`
           SELECT tr.amount, a.username
           FROM transaction_records tr
@@ -72,16 +72,16 @@ async function processMissingRebates() {
         }
       } catch (error) {
         failCount++;
-        console.error(`  ❌ 處理失敗: ${error.message}`);
+        console.error(`  ❌ 处理失败: ${error.message}`);
       }
     }
     
-    console.log('\n=== 處理完成 ===');
-    console.log(`成功: ${successCount} 個期號`);
-    console.log(`失敗: ${failCount} 個期號`);
+    console.log('\n=== 处理完成 ===');
+    console.log(`成功: ${successCount} 个期号`);
+    console.log(`失败: ${failCount} 个期号`);
     
-    // 顯示最新餘額
-    console.log('\n代理最新餘額:');
+    // 显示最新余额
+    console.log('\n代理最新余额:');
     const agents = await db.any(`
       SELECT username, balance FROM agents 
       WHERE username IN ($1, $2)
@@ -95,7 +95,7 @@ async function processMissingRebates() {
     process.exit(0);
     
   } catch (error) {
-    console.error('處理過程中發生錯誤:', error);
+    console.error('处理过程中发生错误:', error);
     process.exit(1);
   }
 }

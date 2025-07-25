@@ -1,5 +1,5 @@
 // filepath: /Users/justin/Desktop/Bet/frontend/src/components/DrawHistory.js
-// 开奖历史組件 - 显示历史开奖结果，支持多種視圖模式
+// 开奖历史组件 - 显示历史开奖结果，支持多种视图模式
 Vue.component('draw-history', {
   template: /* html */`
     <div class="draw-history">
@@ -12,17 +12,17 @@ Vue.component('draw-history', {
         <div class="tabs">
           <div :class="['tab', viewMode === 'number' ? 'active' : '']" @click="viewMode = 'number'">号码</div>
           <div :class="['tab', viewMode === 'bigSmall' ? 'active' : '']" @click="viewMode = 'bigSmall'">大小</div>
-          <div :class="['tab', viewMode === 'oddEven' ? 'active' : '']" @click="viewMode = 'oddEven'">單双</div>
-          <div :class="['tab', viewMode === 'dragonTiger' ? 'active' : '']" @click="viewMode = 'dragonTiger'">冠亞和/龙虎</div>
+          <div :class="['tab', viewMode === 'oddEven' ? 'active' : '']" @click="viewMode = 'oddEven'">单双</div>
+          <div :class="['tab', viewMode === 'dragonTiger' ? 'active' : '']" @click="viewMode = 'dragonTiger'">冠亚和/龙虎</div>
         </div>
       </div>
       
-      <!-- 日期选择區域 -->
+      <!-- 日期选择区域 -->
       <div class="date-selector">
         <div class="current-date" @click="showDatePicker = !showDatePicker">
           {{ formatDate(selectedDate) }} <i class="fas fa-calendar-alt"></i>
         </div>
-        <!-- 日期选择器彈窗 -->
+        <!-- 日期选择器弹窗 -->
         <div class="date-picker" v-if="showDatePicker">
           <div class="picker-header">
             <button @click="changeMonth(-1)">&lt;</button>
@@ -51,7 +51,7 @@ Vue.component('draw-history', {
       
       <!-- 开奖记录列表 -->
       <div class="history-list">
-        <!-- 号码視圖 -->
+        <!-- 号码视图 -->
         <div v-if="viewMode === 'number'" class="number-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -67,7 +67,7 @@ Vue.component('draw-history', {
           </div>
         </div>
         
-        <!-- 大小視圖 -->
+        <!-- 大小视图 -->
         <div v-if="viewMode === 'bigSmall'" class="bigsmall-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -83,7 +83,7 @@ Vue.component('draw-history', {
           </div>
         </div>
         
-        <!-- 單双視圖 -->
+        <!-- 单双视图 -->
         <div v-if="viewMode === 'oddEven'" class="oddeven-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -93,13 +93,13 @@ Vue.component('draw-history', {
             <div class="result-indicators">
               <div v-for="(number, ballIndex) in record.result" :key="ballIndex" 
                    :class="['indicator', number % 2 === 1 ? 'odd' : 'even']">
-                {{ number % 2 === 1 ? '單' : '双' }}
+                {{ number % 2 === 1 ? '单' : '双' }}
               </div>
             </div>
           </div>
         </div>
         
-        <!-- 冠亞和/龙虎視圖 -->
+        <!-- 冠亚和/龙虎视图 -->
         <div v-if="viewMode === 'dragonTiger'" class="dragontiger-view">
           <div v-for="(record, index) in historyRecords" :key="record.period" class="history-item">
             <div class="period-info">
@@ -127,9 +127,9 @@ Vue.component('draw-history', {
           查看更多开奖结果
         </div>
         
-        <!-- 無记录提示 -->
+        <!-- 无记录提示 -->
         <div class="no-records" v-if="historyRecords.length === 0">
-          暫無开奖记录
+          暂无开奖记录
         </div>
       </div>
     </div>
@@ -144,20 +144,20 @@ Vue.component('draw-history', {
   
   data() {
     return {
-      viewMode: 'number', // 視圖模式: number, bigSmall, oddEven, dragonTiger
+      viewMode: 'number', // 视图模式: number, bigSmall, oddEven, dragonTiger
       historyRecords: [], // 历史记录
       selectedDate: new Date(), // 当前选中日期
-      currentYear: new Date().getFullYear(), // 当前日曆年份
-      currentMonth: new Date().getMonth() + 1, // 当前日曆月份
+      currentYear: new Date().getFullYear(), // 当前日历年份
+      currentMonth: new Date().getMonth() + 1, // 当前日历月份
       showDatePicker: false, // 是否显示日期选择器
       hasMoreHistory: true, // 是否有更多历史记录
-      page: 1, // 当前页碼
-      itemsPerPage: 10 // 每页记录數
+      page: 1, // 当前页码
+      itemsPerPage: 10 // 每页记录数
     };
   },
   
   computed: {
-    // 计算日曆天數
+    // 计算日历天数
     calendarDays() {
       const year = this.currentYear;
       const month = this.currentMonth - 1;
@@ -166,10 +166,10 @@ Vue.component('draw-history', {
       const firstDayOfMonth = new Date(year, month, 1);
       const lastDayOfMonth = new Date(year, month + 1, 0);
       
-      // 获取当前月份第一天是星期幾
+      // 获取当前月份第一天是星期几
       const firstDayWeekday = firstDayOfMonth.getDay();
       
-      // 获取上个月的最后幾天
+      // 获取上个月的最后几天
       const days = [];
       const prevMonthLastDay = new Date(year, month, 0).getDate();
       
@@ -224,7 +224,7 @@ Vue.component('draw-history', {
         });
         
         if (this.page === 1) {
-          // 首次载入替換所有记录
+          // 首次载入替换所有记录
           this.historyRecords = response.data.records || [];
         } else {
           // 加载更多时追加记录
@@ -256,7 +256,7 @@ Vue.component('draw-history', {
       this.loadHistoryRecords();
     },
     
-    // 改變月份
+    // 改变月份
     changeMonth(diff) {
       let newMonth = this.currentMonth + diff;
       let newYear = this.currentYear;
@@ -273,10 +273,10 @@ Vue.component('draw-history', {
       this.currentYear = newYear;
     },
     
-    // 切換年份选择器
+    // 切换年份选择器
     toggleYearSelector() {
-      // 这里可以實現年份选择的彈窗
-      // 簡化版先不實現
+      // 这里可以实现年份选择的弹窗
+      // 简化版先不实现
     },
     
     // 格式化日期显示
@@ -301,7 +301,7 @@ Vue.component('draw-history', {
       return `${hours}:${minutes}`;
     },
     
-    // 获取和值的樣式類
+    // 获取和值的样式类
     getSumClass(sum) {
       let classes = [];
       if (sum > 11) {
@@ -319,7 +319,7 @@ Vue.component('draw-history', {
       return classes.join(' ');
     },
     
-    // 获取和值的標籤
+    // 获取和值的标签
     getSumLabel(sum) {
       let label = '';
       if (sum > 11) {
@@ -329,7 +329,7 @@ Vue.component('draw-history', {
       }
       
       if (sum % 2 === 1) {
-        label += '單';
+        label += '单';
       } else {
         label += '双';
       }

@@ -4,30 +4,30 @@ import path from 'path';
 
 async function diagnoseLocalSettlement() {
     try {
-        console.log('=== 診斷本地結算系統 ===\n');
+        console.log('=== 诊断本地结算系统 ===\n');
         
-        // 1. 檢查使用的結算檔案
-        console.log('1. 檢查結算系統檔案：');
+        // 1. 检查使用的结算档案
+        console.log('1. 检查结算系统档案：');
         const backendPath = './backend.js';
         const backendContent = fs.readFileSync(backendPath, 'utf8');
         
-        // 查找導入的結算系統
+        // 查找导入的结算系统
         const settlementImports = backendContent.match(/import.*settlement.*from.*/g);
         if (settlementImports) {
-            console.log('找到的結算系統導入：');
+            console.log('找到的结算系统导入：');
             settlementImports.forEach(imp => console.log(`  - ${imp}`));
         }
         
-        // 查找 settleBets 函數調用
+        // 查找 settleBets 函数调用
         const settleCalls = backendContent.match(/settleBets|settlement.*\(/g);
         if (settleCalls) {
-            console.log('\n結算函數調用：');
+            console.log('\n结算函数调用：');
             const uniqueCalls = [...new Set(settleCalls)];
             uniqueCalls.forEach(call => console.log(`  - ${call}`));
         }
         
-        // 2. 檢查最近的結算記錄
-        console.log('\n2. 最近的結算記錄：');
+        // 2. 检查最近的结算记录
+        console.log('\n2. 最近的结算记录：');
         const recentSettlements = await db.any(`
             SELECT 
                 period,
@@ -42,11 +42,11 @@ async function diagnoseLocalSettlement() {
         `);
         
         recentSettlements.forEach(s => {
-            console.log(`  期號 ${s.period}: ${s.settled_count}/${s.bet_count} 已結算, 最後結算時間: ${s.last_settled_at || '未結算'}`);
+            console.log(`  期号 ${s.period}: ${s.settled_count}/${s.bet_count} 已结算, 最后结算时间: ${s.last_settled_at || '未结算'}`);
         });
         
-        // 3. 檢查結算日誌
-        console.log('\n3. 結算日誌記錄：');
+        // 3. 检查结算日志
+        console.log('\n3. 结算日志记录：');
         const settlementLogs = await db.any(`
             SELECT * FROM settlement_log
             WHERE created_at > NOW() - INTERVAL '1 hour'
@@ -56,29 +56,29 @@ async function diagnoseLocalSettlement() {
         
         if (settlementLogs.length > 0) {
             settlementLogs.forEach(log => {
-                console.log(`  [${log.created_at}] 期號 ${log.period}: ${log.status}`);
-                if (log.details) console.log(`    詳情: ${log.details}`);
+                console.log(`  [${log.created_at}] 期号 ${log.period}: ${log.status}`);
+                if (log.details) console.log(`    详情: ${log.details}`);
             });
         } else {
-            console.log('  ❌ 最近1小時沒有結算日誌');
+            console.log('  ❌ 最近1小时没有结算日志');
         }
         
-        // 4. 檢查退水邏輯是否被觸發
-        console.log('\n4. 檢查退水處理：');
+        // 4. 检查退水逻辑是否被触发
+        console.log('\n4. 检查退水处理：');
         
-        // 查看 enhanced-settlement-system.js 的內容
+        // 查看 enhanced-settlement-system.js 的内容
         const enhancedPath = './enhanced-settlement-system.js';
         if (fs.existsSync(enhancedPath)) {
             const enhancedContent = fs.readFileSync(enhancedPath, 'utf8');
             const hasProcessRebates = enhancedContent.includes('processRebates');
             const hasRebateCall = enhancedContent.includes('processRebates(');
             console.log(`  enhanced-settlement-system.js:`);
-            console.log(`    - 包含 processRebates 函數: ${hasProcessRebates ? '✅' : '❌'}`);
-            console.log(`    - 調用 processRebates: ${hasRebateCall ? '✅' : '❌'}`);
+            console.log(`    - 包含 processRebates 函数: ${hasProcessRebates ? '✅' : '❌'}`);
+            console.log(`    - 调用 processRebates: ${hasRebateCall ? '✅' : '❌'}`);
         }
         
-        // 5. 檢查最近的退水記錄
-        console.log('\n5. 最近的退水記錄：');
+        // 5. 检查最近的退水记录
+        console.log('\n5. 最近的退水记录：');
         const recentRebates = await db.any(`
             SELECT 
                 tr.period,
@@ -96,30 +96,30 @@ async function diagnoseLocalSettlement() {
         
         if (recentRebates.length > 0) {
             recentRebates.forEach(r => {
-                console.log(`  期號 ${r.period}: ${r.count}筆, 總額 ${r.total}元`);
+                console.log(`  期号 ${r.period}: ${r.count}笔, 总额 ${r.total}元`);
             });
         } else {
-            console.log('  ❌ 最近2小時沒有退水記錄');
+            console.log('  ❌ 最近2小时没有退水记录');
         }
         
-        // 6. 檢查 backend.js 中的開獎流程
-        console.log('\n6. 分析開獎流程：');
+        // 6. 检查 backend.js 中的开奖流程
+        console.log('\n6. 分析开奖流程：');
         const drawPattern = /drawWinningNumbers.*\{[\s\S]*?\}/;
         const drawMatch = backendContent.match(drawPattern);
         if (drawMatch) {
             const hasSettleCall = drawMatch[0].includes('settleBets') || drawMatch[0].includes('settlement');
-            console.log(`  drawWinningNumbers 函數中有結算調用: ${hasSettleCall ? '✅' : '❌'}`);
+            console.log(`  drawWinningNumbers 函数中有结算调用: ${hasSettleCall ? '✅' : '❌'}`);
         }
         
-        // 7. 建議
-        console.log('\n=== 診斷結果 ===');
-        console.log('可能的問題：');
-        console.log('1. 結算系統可能沒有在開獎後自動調用');
-        console.log('2. 退水邏輯可能沒有在結算時被觸發');
-        console.log('3. 本地服務可能沒有正確運行');
+        // 7. 建议
+        console.log('\n=== 诊断结果 ===');
+        console.log('可能的问题：');
+        console.log('1. 结算系统可能没有在开奖后自动调用');
+        console.log('2. 退水逻辑可能没有在结算时被触发');
+        console.log('3. 本地服务可能没有正确运行');
         
     } catch (error) {
-        console.error('診斷錯誤:', error);
+        console.error('诊断错误:', error);
     } finally {
         process.exit(0);
     }

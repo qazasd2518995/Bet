@@ -81,13 +81,13 @@
         <h1>🔧 清除快取工具</h1>
         
         <p style="text-align: center; color: #666;">
-            這個工具可以幫助您清除瀏覽器快取，確保載入最新版本的網站。
+            这个工具可以帮助您清除浏览器快取，确保载入最新版本的网站。
         </p>
         
         <div class="button-group">
             <button class="primary" onclick="clearCache()">清除快取</button>
-            <button class="success" onclick="hardReload()">強制重新載入</button>
-            <button class="warning" onclick="clearAndReload()">清除並重新載入</button>
+            <button class="success" onclick="hardReload()">强制重新载入</button>
+            <button class="warning" onclick="clearAndReload()">清除并重新载入</button>
         </div>
         
         <div id="log" class="log">
@@ -96,13 +96,13 @@
         
         <hr style="margin: 30px 0;">
         
-        <h3>快速連結</h3>
+        <h3>快速连结</h3>
         <div class="button-group">
             <button class="primary" onclick="window.open('https://bet-game-vcje.onrender.com', '_blank')">
-                開啟遊戲端
+                开启游戏端
             </button>
             <button class="success" onclick="window.open('https://bet-agent.onrender.com', '_blank')">
-                開啟代理端
+                开启代理端
             </button>
         </div>
     </div>
@@ -121,14 +121,14 @@
         }
         
         function clearCache() {
-            addLog('開始清除快取...', 'info');
+            addLog('开始清除快取...', 'info');
             
             // 清除localStorage
             try {
                 localStorage.clear();
                 addLog('✅ localStorage 已清除', 'success');
             } catch (e) {
-                addLog('❌ 清除 localStorage 失敗: ' + e.message, 'error');
+                addLog('❌ 清除 localStorage 失败: ' + e.message, 'error');
             }
             
             // 清除sessionStorage
@@ -136,7 +136,7 @@
                 sessionStorage.clear();
                 addLog('✅ sessionStorage 已清除', 'success');
             } catch (e) {
-                addLog('❌ 清除 sessionStorage 失敗: ' + e.message, 'error');
+                addLog('❌ 清除 sessionStorage 失败: ' + e.message, 'error');
             }
             
             // 清除cookies
@@ -159,23 +159,23 @@
         }
         
         function hardReload() {
-            addLog('執行強制重新載入...', 'info');
+            addLog('执行强制重新载入...', 'info');
             location.reload(true);
         }
         
         function clearAndReload() {
             clearCache();
             setTimeout(() => {
-                addLog('3秒後將重新載入頁面...', 'info');
+                addLog('3秒后将重新载入页面...', 'info');
                 setTimeout(() => {
                     location.reload(true);
                 }, 3000);
             }, 1000);
         }
         
-        // 顯示當前環境信息
-        addLog('瀏覽器: ' + navigator.userAgent);
-        addLog('當前URL: ' + window.location.href);
+        // 显示当前环境信息
+        addLog('浏览器: ' + navigator.userAgent);
+        addLog('当前URL: ' + window.location.href);
     </script>
 </body>
 </html>

@@ -1,12 +1,12 @@
-// check-period-20250717579.js - 檢查期號 20250717579 的結算錯誤
+// check-period-20250717579.js - 检查期号 20250717579 的结算错误
 import db from './db/config.js';
 
 async function checkPeriod579() {
-    console.log('=== 檢查期號 20250717579 ===\n');
+    console.log('=== 检查期号 20250717579 ===\n');
     
     try {
-        // 1. 檢查開獎結果
-        console.log('1. 開獎結果:');
+        // 1. 检查开奖结果
+        console.log('1. 开奖结果:');
         const result = await db.oneOrNone(`
             SELECT 
                 period,
@@ -19,21 +19,21 @@ async function checkPeriod579() {
         `);
         
         if (result) {
-            console.log(`期號: ${result.period}`);
-            console.log(`開獎時間: ${result.draw_time}`);
-            console.log(`開獎結果:`);
+            console.log(`期号: ${result.period}`);
+            console.log(`开奖时间: ${result.draw_time}`);
+            console.log(`开奖结果:`);
             for (let i = 1; i <= 10; i++) {
                 const pos = result[`position_${i}`];
-                console.log(`  第${i}名: ${pos}號`);
+                console.log(`  第${i}名: ${pos}号`);
             }
-            console.log(`JSON結果: ${result.result}`);
-            console.log(`\n冠軍號碼: ${result.position_1} (${result.position_1 >= 6 ? '大' : '小'})`);
+            console.log(`JSON结果: ${result.result}`);
+            console.log(`\n冠军号码: ${result.position_1} (${result.position_1 >= 6 ? '大' : '小'})`);
         } else {
-            console.log('找不到該期開獎結果！');
+            console.log('找不到该期开奖结果！');
         }
         
-        // 2. 檢查相關投注
-        console.log('\n2. 相關投注記錄:');
+        // 2. 检查相关投注
+        console.log('\n2. 相关投注记录:');
         const bets = await db.manyOrNone(`
             SELECT 
                 id, username, bet_type, bet_value, position,
@@ -42,7 +42,7 @@ async function checkPeriod579() {
             FROM bet_history
             WHERE period = '20250717579'
             AND (
-                (bet_type = '冠軍' AND bet_value IN ('大', '小'))
+                (bet_type = '冠军' AND bet_value IN ('大', '小'))
                 OR (bet_type = 'champion' AND bet_value IN ('big', 'small'))
                 OR (bet_type = 'number' AND position = '1')
             )
@@ -50,27 +50,27 @@ async function checkPeriod579() {
         `);
         
         if (bets && bets.length > 0) {
-            console.log(`找到 ${bets.length} 筆相關投注：`);
+            console.log(`找到 ${bets.length} 笔相关投注：`);
             for (const bet of bets) {
                 console.log(`\n投注ID: ${bet.id}`);
-                console.log(`  用戶: ${bet.username}`);
-                console.log(`  類型: ${bet.bet_type}`);
-                console.log(`  內容: ${bet.bet_value}`);
+                console.log(`  用户: ${bet.username}`);
+                console.log(`  类型: ${bet.bet_type}`);
+                console.log(`  内容: ${bet.bet_value}`);
                 console.log(`  位置: ${bet.position || 'N/A'}`);
-                console.log(`  金額: ${bet.amount}`);
-                console.log(`  賠率: ${bet.odds}`);
-                console.log(`  已結算: ${bet.settled ? '是' : '否'}`);
-                console.log(`  中獎: ${bet.win ? '是' : '否'}`);
+                console.log(`  金额: ${bet.amount}`);
+                console.log(`  赔率: ${bet.odds}`);
+                console.log(`  已结算: ${bet.settled ? '是' : '否'}`);
+                console.log(`  中奖: ${bet.win ? '是' : '否'}`);
                 console.log(`  派彩: ${bet.win_amount || 0}`);
-                console.log(`  下注時間: ${bet.created_at}`);
-                console.log(`  結算時間: ${bet.settled_at || 'N/A'}`);
+                console.log(`  下注时间: ${bet.created_at}`);
+                console.log(`  结算时间: ${bet.settled_at || 'N/A'}`);
             }
         } else {
-            console.log('沒有找到相關投注記錄');
+            console.log('没有找到相关投注记录');
         }
         
-        // 3. 檢查結算日誌
-        console.log('\n3. 結算日誌:');
+        // 3. 检查结算日志
+        console.log('\n3. 结算日志:');
         const logs = await db.manyOrNone(`
             SELECT 
                 id, status, message, details, created_at
@@ -80,54 +80,54 @@ async function checkPeriod579() {
         `);
         
         if (logs && logs.length > 0) {
-            console.log(`找到 ${logs.length} 筆結算日誌：`);
+            console.log(`找到 ${logs.length} 笔结算日志：`);
             for (const log of logs) {
-                console.log(`\n日誌ID: ${log.id}`);
-                console.log(`  狀態: ${log.status}`);
-                console.log(`  訊息: ${log.message}`);
-                console.log(`  詳情: ${log.details}`);
-                console.log(`  時間: ${log.created_at}`);
+                console.log(`\n日志ID: ${log.id}`);
+                console.log(`  状态: ${log.status}`);
+                console.log(`  讯息: ${log.message}`);
+                console.log(`  详情: ${log.details}`);
+                console.log(`  时间: ${log.created_at}`);
             }
         } else {
-            console.log('沒有找到結算日誌');
+            console.log('没有找到结算日志');
         }
         
-        // 4. 檢查所有"冠軍小"的投注
-        console.log('\n4. 所有"冠軍小"的投注:');
+        // 4. 检查所有"冠军小"的投注
+        console.log('\n4. 所有"冠军小"的投注:');
         const smallBets = await db.manyOrNone(`
             SELECT 
                 id, username, amount, win, win_amount, settled_at
             FROM bet_history
             WHERE period = '20250717579'
-            AND ((bet_type = '冠軍' AND bet_value = '小') 
+            AND ((bet_type = '冠军' AND bet_value = '小') 
                  OR (bet_type = 'champion' AND bet_value = 'small'))
         `);
         
         if (smallBets && smallBets.length > 0) {
-            console.log(`找到 ${smallBets.length} 筆"冠軍小"投注：`);
+            console.log(`找到 ${smallBets.length} 笔"冠军小"投注：`);
             let totalWrong = 0;
             for (const bet of smallBets) {
                 if (bet.win) {
                     totalWrong++;
-                    console.log(`❌ 錯誤結算 - ID: ${bet.id}, 用戶: ${bet.username}, 金額: ${bet.amount}, 派彩: ${bet.win_amount}`);
+                    console.log(`❌ 错误结算 - ID: ${bet.id}, 用户: ${bet.username}, 金额: ${bet.amount}, 派彩: ${bet.win_amount}`);
                 } else {
-                    console.log(`✅ 正確結算 - ID: ${bet.id}, 用戶: ${bet.username}, 金額: ${bet.amount}`);
+                    console.log(`✅ 正确结算 - ID: ${bet.id}, 用户: ${bet.username}, 金额: ${bet.amount}`);
                 }
             }
             if (totalWrong > 0) {
-                console.log(`\n⚠️ 發現 ${totalWrong} 筆錯誤結算！`);
+                console.log(`\n⚠️ 发现 ${totalWrong} 笔错误结算！`);
             }
         }
         
-        // 5. 檢查結算時的系統狀態
-        console.log('\n5. 檢查開獎和結算時序:');
+        // 5. 检查结算时的系统状态
+        console.log('\n5. 检查开奖和结算时序:');
         
-        // 獲取開獎時間
+        // 获取开奖时间
         if (result) {
             const drawTime = new Date(result.draw_time);
-            console.log(`開獎時間: ${drawTime.toISOString()}`);
+            console.log(`开奖时间: ${drawTime.toISOString()}`);
             
-            // 獲取第一筆結算時間
+            // 获取第一笔结算时间
             const firstSettlement = await db.oneOrNone(`
                 SELECT MIN(settled_at) as first_settled
                 FROM bet_history
@@ -136,15 +136,15 @@ async function checkPeriod579() {
             
             if (firstSettlement?.first_settled) {
                 const settlementTime = new Date(firstSettlement.first_settled);
-                console.log(`首次結算時間: ${settlementTime.toISOString()}`);
+                console.log(`首次结算时间: ${settlementTime.toISOString()}`);
                 
                 const timeDiff = (settlementTime - drawTime) / 1000;
-                console.log(`時間差: ${timeDiff.toFixed(1)} 秒`);
+                console.log(`时间差: ${timeDiff.toFixed(1)} 秒`);
             }
         }
         
     } catch (error) {
-        console.error('檢查失敗:', error);
+        console.error('检查失败:', error);
     } finally {
         await db.$pool.end();
     }

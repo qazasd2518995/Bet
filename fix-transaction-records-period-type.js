@@ -1,8 +1,8 @@
 import fs from 'fs';
 
-console.log('=== 修復 transaction_records 期號類型問題 ===\n');
+console.log('=== 修复 transaction_records 期号类型问题 ===\n');
 
-// 需要修復的檔案
+// 需要修复的档案
 const files = [
   './enhanced-settlement-system.js',
   './backend.js',
@@ -15,20 +15,20 @@ const files = [
 let totalFixed = 0;
 
 files.forEach(filePath => {
-  console.log(`\n檢查檔案: ${filePath}`);
+  console.log(`\n检查档案: ${filePath}`);
   
   if (!fs.existsSync(filePath)) {
-    console.log('  ❌ 檔案不存在');
+    console.log('  ❌ 档案不存在');
     return;
   }
   
   let content = fs.readFileSync(filePath, 'utf8');
   let fixCount = 0;
   
-  // 修復模式 1: 在查詢 transaction_records 時確保 period 的類型匹配
-  // 當查詢 transaction_records 表時，period 是 varchar，需要將參數轉為字符串
+  // 修复模式 1: 在查询 transaction_records 时确保 period 的类型匹配
+  // 当查询 transaction_records 表时，period 是 varchar，需要将参数转为字符串
   
-  // 找到涉及 transaction_records 的查詢並添加正確的類型轉換
+  // 找到涉及 transaction_records 的查询并添加正确的类型转换
   const transactionQueries = [
     {
       // 基本模式：WHERE period = $1 在 transaction_records 表中
@@ -41,7 +41,7 @@ files.forEach(filePath => {
       replacement: '$1AND period = $$$2::text'
     },
     {
-      // 表別名模式：tr.period = $1
+      // 表别名模式：tr.period = $1
       pattern: /(FROM transaction_records[\s\S]*?)([a-z]+\.)?period = \$(\d+)(?!\s*::)/g,
       replacement: '$1$2period = $$$3::text'
     }
@@ -52,34 +52,34 @@ files.forEach(filePath => {
     if (newContent !== content) {
       fixCount++;
       content = newContent;
-      console.log(`  修復了查詢 transaction_records 的期號參數`);
+      console.log(`  修复了查询 transaction_records 的期号参数`);
     }
   });
   
-  // 修復模式 2: JOIN 查詢中的類型轉換
-  // 當 JOIN bet_history 和 transaction_records 時，需要確保 period 類型匹配
+  // 修复模式 2: JOIN 查询中的类型转换
+  // 当 JOIN bet_history 和 transaction_records 时，需要确保 period 类型匹配
   const joinPattern = /(JOIN.*transaction_records.*ON.*period = .*\.period)(?!\s*::text)/g;
   const newContent2 = content.replace(joinPattern, '$1::text');
   if (newContent2 !== content) {
     fixCount++;
     content = newContent2;
-    console.log(`  修復了 JOIN 查詢中的期號類型轉換`);
+    console.log(`  修复了 JOIN 查询中的期号类型转换`);
   }
   
-  // 修復模式 3: INSERT INTO transaction_records 確保 period 參數是字符串
-  // 找到所有插入 transaction_records 的語句
+  // 修复模式 3: INSERT INTO transaction_records 确保 period 参数是字符串
+  // 找到所有插入 transaction_records 的语句
   const insertPattern = /INSERT INTO transaction_records[\s\S]*?VALUES[\s\S]*?\(/g;
   let matches = content.match(insertPattern);
   if (matches) {
     matches.forEach((match, index) => {
-      // 檢查是否包含 period 參數
+      // 检查是否包含 period 参数
       if (match.includes('period') || content.includes('period') && content.indexOf(match) > -1) {
-        // 在這個插入語句後面找到對應的參數數組
+        // 在这个插入语句后面找到对应的参数数组
         let insertIndex = content.indexOf(match);
         let afterInsert = content.substring(insertIndex);
         let valuesMatch = afterInsert.match(/VALUES.*?\((.*?)\)/);
         if (valuesMatch) {
-          console.log(`  檢查 INSERT 語句 ${index + 1} 的參數處理`);
+          console.log(`  检查 INSERT 语句 ${index + 1} 的参数处理`);
         }
       }
     });
@@ -87,27 +87,27 @@ files.forEach(filePath => {
   
   if (fixCount > 0) {
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`  ✅ 修復了 ${fixCount} 處期號類型問題`);
+    console.log(`  ✅ 修复了 ${fixCount} 处期号类型问题`);
     totalFixed += fixCount;
   } else {
-    console.log('  ℹ️ 沒有找到需要修復的地方');
+    console.log('  ℹ️ 没有找到需要修复的地方');
   }
 });
 
-console.log(`\n總共修復了 ${totalFixed} 處期號類型問題`);
+console.log(`\n总共修复了 ${totalFixed} 处期号类型问题`);
 
-// 更重要的是直接修復資料庫層面的問題
-console.log('\n建議的資料庫修復方案：');
-console.log('1. 統一所有表的 period 欄位類型');
-console.log('2. 或者在應用層統一處理類型轉換');
-console.log('\n當前狀況：');
+// 更重要的是直接修复资料库层面的问题
+console.log('\n建议的资料库修复方案：');
+console.log('1. 统一所有表的 period 栏位类型');
+console.log('2. 或者在应用层统一处理类型转换');
+console.log('\n当前状况：');
 console.log('- bet_history.period: bigint');
 console.log('- result_history.period: bigint'); 
 console.log('- transaction_records.period: varchar');
-console.log('\n建議執行 SQL：');
+console.log('\n建议执行 SQL：');
 console.log('ALTER TABLE transaction_records ALTER COLUMN period TYPE bigint USING period::bigint;');
 
 if (totalFixed > 0) {
   console.log('\n⚠️ 重要提醒:');
-  console.log('程式碼已修復，但需要重啟後端服務才能生效！');
+  console.log('程式码已修复，但需要重启后端服务才能生效！');
 }

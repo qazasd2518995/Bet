@@ -13,7 +13,7 @@ async function adminLogin() {
   if (response.data.success) {
     const { token, sessionToken } = response.data;
     authHeaders = { 'Authorization': token, 'x-session-token': sessionToken };
-    console.log('✅ 管理員登錄成功!');
+    console.log('✅ 管理员登录成功!');
     return true;
   }
   return false;
@@ -26,28 +26,28 @@ async function cleanupOldControls() {
     });
     
     if (response.data.success && response.data.data.length > 0) {
-      console.log('🧹 清理舊控制設定...');
+      console.log('🧹 清理旧控制设定...');
       for (const control of response.data.data) {
         await axios.delete(`${AGENT_URL}/win-loss-control/${control.id}`, {
           headers: authHeaders
         });
       }
-      console.log('✅ 舊控制設定已清理');
+      console.log('✅ 旧控制设定已清理');
     }
   } catch (error) {
-    console.log('清理舊控制時出錯:', error.message);
+    console.log('清理旧控制时出错:', error.message);
   }
 }
 
 async function createCorrectControl() {
   try {
-    // 獲取當前期數
+    // 获取当前期数
     const gameData = await axios.get(`${GAME_URL}/api/game-data`);
     const currentPeriod = parseInt(gameData.data.gameData.currentPeriod);
     const nextPeriod = currentPeriod + 1;
     
-    console.log(`🎯 當前期數: ${currentPeriod}`);
-    console.log(`🎯 設置控制期數: ${nextPeriod}`);
+    console.log(`🎯 当前期数: ${currentPeriod}`);
+    console.log(`🎯 设置控制期数: ${nextPeriod}`);
     
     const controlData = {
       control_mode: 'single_member',
@@ -59,7 +59,7 @@ async function createCorrectControl() {
       start_period: nextPeriod.toString()
     };
     
-    console.log('📋 控制設定:', JSON.stringify(controlData, null, 2));
+    console.log('📋 控制设定:', JSON.stringify(controlData, null, 2));
     
     const response = await axios.post(`${AGENT_URL}/win-loss-control`, controlData, {
       headers: authHeaders
@@ -67,7 +67,7 @@ async function createCorrectControl() {
     
     if (response.data.success) {
       const controlId = response.data.data.id;
-      console.log(`✅ 控制創建成功 (ID: ${controlId})`);
+      console.log(`✅ 控制创建成功 (ID: ${controlId})`);
       
       // 激活控制
       await axios.put(`${AGENT_URL}/win-loss-control/${controlId}/activate`, {}, {
@@ -76,25 +76,25 @@ async function createCorrectControl() {
       
       console.log('✅ 控制已激活');
       
-      // 驗證激活
+      // 验证激活
       const activeResponse = await axios.get(`${AGENT_URL}/win-loss-control/active`, {
         headers: authHeaders
       });
       
-      console.log('✅ 激活驗證:', JSON.stringify(activeResponse.data, null, 2));
+      console.log('✅ 激活验证:', JSON.stringify(activeResponse.data, null, 2));
       
       return { controlId, targetPeriod: nextPeriod };
     }
     
     return null;
   } catch (error) {
-    console.error('創建控制失敗:', error.response?.data || error.message);
+    console.error('创建控制失败:', error.response?.data || error.message);
     return null;
   }
 }
 
 async function main() {
-  console.log('🔧 正確的輸贏控制測試');
+  console.log('🔧 正确的输赢控制测试');
   console.log('=' .repeat(50));
   
   await adminLogin();
@@ -103,10 +103,10 @@ async function main() {
   const controlInfo = await createCorrectControl();
   
   if (controlInfo) {
-    console.log(`\n🎉 準備就緒！`);
-    console.log(`   控制期數: ${controlInfo.targetPeriod}`);
-    console.log(`   memberA1將在該期100%中獎`);
-    console.log('\n⚠️ 請在下一期下注測試！');
+    console.log(`\n🎉 准备就绪！`);
+    console.log(`   控制期数: ${controlInfo.targetPeriod}`);
+    console.log(`   memberA1将在该期100%中奖`);
+    console.log('\n⚠️ 请在下一期下注测试！');
   }
 }
 

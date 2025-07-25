@@ -1,25 +1,25 @@
-// 修復 recent_draws 表的 period 欄位類型
+// 修复 recent_draws 表的 period 栏位类型
 import db from './db/config.js';
 
 async function fixRecentDrawsColumnType() {
-    console.log('🔧 修復 recent_draws 表的 period 欄位類型\n');
+    console.log('🔧 修复 recent_draws 表的 period 栏位类型\n');
 
     try {
-        // 1. 刪除舊的觸發器
-        console.log('📌 步驟1：暫時停用觸發器...');
+        // 1. 删除旧的触发器
+        console.log('📌 步骤1：暂时停用触发器...');
         await db.none('DROP TRIGGER IF EXISTS auto_sync_recent_draws_trigger ON result_history');
-        console.log('✅ 觸發器已暫時停用');
+        console.log('✅ 触发器已暂时停用');
 
-        // 2. 備份現有數據
-        console.log('\n📌 步驟2：備份現有數據...');
+        // 2. 备份现有数据
+        console.log('\n📌 步骤2：备份现有数据...');
         const backupData = await db.manyOrNone('SELECT * FROM recent_draws');
-        console.log(`備份了 ${backupData.length} 筆記錄`);
+        console.log(`备份了 ${backupData.length} 笔记录`);
 
-        // 3. 刪除舊表
-        console.log('\n📌 步驟3：重建 recent_draws 表...');
+        // 3. 删除旧表
+        console.log('\n📌 步骤3：重建 recent_draws 表...');
         await db.none('DROP TABLE IF EXISTS recent_draws CASCADE');
         
-        // 4. 創建新表（period 使用 BIGINT）
+        // 4. 创建新表（period 使用 BIGINT）
         await db.none(`
             CREATE TABLE recent_draws (
                 id SERIAL PRIMARY KEY,
@@ -40,16 +40,16 @@ async function fixRecentDrawsColumnType() {
             )
         `);
         
-        // 創建索引
+        // 创建索引
         await db.none(`
             CREATE INDEX idx_recent_draws_period ON recent_draws(period DESC);
             CREATE INDEX idx_recent_draws_draw_time ON recent_draws(draw_time DESC);
         `);
         
-        console.log('✅ 新表創建成功（period 使用 BIGINT）');
+        console.log('✅ 新表创建成功（period 使用 BIGINT）');
 
-        // 5. 還原數據
-        console.log('\n📌 步驟4：還原數據...');
+        // 5. 还原数据
+        console.log('\n📌 步骤4：还原数据...');
         for (const record of backupData) {
             await db.none(`
                 INSERT INTO recent_draws (
@@ -64,17 +64,17 @@ async function fixRecentDrawsColumnType() {
                     $13, $14
                 )
             `, [
-                parseInt(record.period), // 確保轉換為整數
+                parseInt(record.period), // 确保转换为整数
                 record.result,
                 record.position_1, record.position_2, record.position_3, record.position_4, record.position_5,
                 record.position_6, record.position_7, record.position_8, record.position_9, record.position_10,
                 record.draw_time, record.created_at
             ]);
         }
-        console.log(`✅ 還原了 ${backupData.length} 筆記錄`);
+        console.log(`✅ 还原了 ${backupData.length} 笔记录`);
 
-        // 6. 重新創建視圖
-        console.log('\n📌 步驟5：重新創建視圖...');
+        // 6. 重新创建视图
+        console.log('\n📌 步骤5：重新创建视图...');
         await db.none(`
             CREATE OR REPLACE VIEW v_api_recent_draws AS
             SELECT 
@@ -88,10 +88,10 @@ async function fixRecentDrawsColumnType() {
             FROM recent_draws
             ORDER BY period DESC;
         `);
-        console.log('✅ 視圖重新創建成功');
+        console.log('✅ 视图重新创建成功');
 
-        // 7. 重新創建觸發器函數（確保類型匹配）
-        console.log('\n📌 步驟6：重新創建觸發器函數...');
+        // 7. 重新创建触发器函数（确保类型匹配）
+        console.log('\n📌 步骤6：重新创建触发器函数...');
         await db.none('DROP FUNCTION IF EXISTS auto_sync_recent_draws()');
         await db.none(`
             CREATE OR REPLACE FUNCTION auto_sync_recent_draws()
@@ -99,7 +99,7 @@ async function fixRecentDrawsColumnType() {
             DECLARE
                 min_period BIGINT;
             BEGIN
-                -- 只處理有效的新記錄
+                -- 只处理有效的新记录
                 IF NEW.result IS NOT NULL 
                    AND NEW.position_1 IS NOT NULL 
                    AND LENGTH(NEW.period::text) = 11 THEN
@@ -131,13 +131,13 @@ async function fixRecentDrawsColumnType() {
                         position_10 = EXCLUDED.position_10,
                         draw_time = EXCLUDED.draw_time;
                     
-                    -- 獲取第10筆記錄的期號
+                    -- 获取第10笔记录的期号
                     SELECT period INTO min_period
                     FROM recent_draws
                     ORDER BY period DESC
                     LIMIT 1 OFFSET 9;
                     
-                    -- 刪除超過10筆的舊記錄
+                    -- 删除超过10笔的旧记录
                     IF min_period IS NOT NULL THEN
                         DELETE FROM recent_draws
                         WHERE period < min_period;
@@ -149,44 +149,44 @@ async function fixRecentDrawsColumnType() {
             $$ LANGUAGE plpgsql;
         `);
 
-        // 8. 重新創建觸發器
+        // 8. 重新创建触发器
         await db.none(`
             CREATE TRIGGER auto_sync_recent_draws_trigger
             AFTER INSERT OR UPDATE ON result_history
             FOR EACH ROW
             EXECUTE FUNCTION auto_sync_recent_draws()
         `);
-        console.log('✅ 觸發器重新創建成功');
+        console.log('✅ 触发器重新创建成功');
 
-        // 9. 驗證
-        console.log('\n📌 步驟7：驗證修復結果...');
+        // 9. 验证
+        console.log('\n📌 步骤7：验证修复结果...');
         const finalCount = await db.one('SELECT COUNT(*) FROM recent_draws');
-        console.log(`recent_draws 表最終有 ${finalCount.count} 筆記錄`);
+        console.log(`recent_draws 表最终有 ${finalCount.count} 笔记录`);
         
-        // 檢查數據類型
+        // 检查数据类型
         const columnInfo = await db.one(`
             SELECT data_type 
             FROM information_schema.columns 
             WHERE table_name = 'recent_draws' 
             AND column_name = 'period'
         `);
-        console.log(`period 欄位類型：${columnInfo.data_type}`);
+        console.log(`period 栏位类型：${columnInfo.data_type}`);
 
-        console.log('\n✅ 修復完成！');
-        console.log('recent_draws.period 現在使用 BIGINT 類型');
-        console.log('觸發器已重新啟用，系統將自動維護最新10期記錄');
+        console.log('\n✅ 修复完成！');
+        console.log('recent_draws.period 现在使用 BIGINT 类型');
+        console.log('触发器已重新启用，系统将自动维护最新10期记录');
 
     } catch (error) {
-        console.error('修復失敗：', error);
+        console.error('修复失败：', error);
         throw error;
     }
 }
 
-// 執行修復
+// 执行修复
 fixRecentDrawsColumnType().then(() => {
     console.log('\n✅ 所有操作完成');
     process.exit(0);
 }).catch(error => {
-    console.error('❌ 錯誤：', error);
+    console.error('❌ 错误：', error);
     process.exit(1);
 });

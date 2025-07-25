@@ -1,7 +1,7 @@
-// comprehensive-settlement-system.js - 完整的結算系統，支援所有投注類型
+// comprehensive-settlement-system.js - 完整的结算系统，支援所有投注类型
 import db from './db/config.js';
 
-// 建立結算日誌以追蹤問題
+// 建立结算日志以追踪问题
 const settlementLog = {
     info: (msg, data) => console.log(`[SETTLEMENT INFO] ${msg}`, data || ''),
     warn: (msg, data) => console.warn(`[SETTLEMENT WARN] ${msg}`, data || ''),
@@ -9,28 +9,28 @@ const settlementLog = {
 };
 
 /**
- * 主要結算函數 - 處理指定期號的所有未結算投注
- * @param {string} period - 期號
- * @param {Object} drawResult - 開獎結果 (可能是 {positions: []} 或 {result: []} 格式)
- * @returns {Object} 結算結果
+ * 主要结算函数 - 处理指定期号的所有未结算投注
+ * @param {string} period - 期号
+ * @param {Object} drawResult - 开奖结果 (可能是 {positions: []} 或 {result: []} 格式)
+ * @returns {Object} 结算结果
  */
 export async function comprehensiveSettlement(period, drawResult) {
     const startTime = Date.now();
-    settlementLog.info(`開始結算期號 ${period}`);
-    settlementLog.info(`開獎結果原始數據:`, JSON.stringify(drawResult));
+    settlementLog.info(`开始结算期号 ${period}`);
+    settlementLog.info(`开奖结果原始数据:`, JSON.stringify(drawResult));
     
     try {
-        // 1. 標準化開獎結果格式
+        // 1. 标准化开奖结果格式
         const winResult = normalizeDrawResult(drawResult);
-        settlementLog.info('標準化開獎結果:', winResult);
+        settlementLog.info('标准化开奖结果:', winResult);
         
         if (!winResult || !winResult.positions || winResult.positions.length !== 10) {
-            throw new Error('無效的開獎結果格式');
+            throw new Error('无效的开奖结果格式');
         }
         
-        // 2. 使用事務處理整個結算
+        // 2. 使用事务处理整个结算
         const result = await db.tx(async t => {
-            // 2.1 獲取並鎖定所有未結算投注
+            // 2.1 获取并锁定所有未结算投注
             const unsettledBets = await t.manyOrNone(`
                 SELECT 
                     bh.*,
@@ -44,13 +44,13 @@ export async function comprehensiveSettlement(period, drawResult) {
             `, [period]);
             
             if (!unsettledBets || unsettledBets.length === 0) {
-                settlementLog.info('沒有未結算的投注');
+                settlementLog.info('没有未结算的投注');
                 return { success: true, settledCount: 0, totalWinAmount: 0 };
             }
             
-            settlementLog.info(`找到 ${unsettledBets.length} 筆未結算投注`);
+            settlementLog.info(`找到 ${unsettledBets.length} 笔未结算投注`);
             
-            // 2.2 計算每筆投注的中獎結果
+            // 2.2 计算每笔投注的中奖结果
             const settlementResults = [];
             const balanceUpdates = new Map();
             let totalWinAmount = 0;
@@ -58,17 +58,17 @@ export async function comprehensiveSettlement(period, drawResult) {
             
             for (const bet of unsettledBets) {
                 try {
-                    // 檢查是否中獎
+                    // 检查是否中奖
                     const winCheck = checkBetWin(bet, winResult);
                     let winAmount = 0;
                     
                     if (winCheck.isWin) {
-                        // 計算中獎金額
+                        // 计算中奖金额
                         winAmount = calculateWinAmount(bet, winCheck.odds);
                         totalWinAmount += winAmount;
                         winCount++;
                         
-                        // 累計用戶餘額更新
+                        // 累计用户余额更新
                         const userUpdate = balanceUpdates.get(bet.username) || {
                             memberId: bet.member_id,
                             currentBalance: parseFloat(bet.current_balance),
@@ -86,7 +86,7 @@ export async function comprehensiveSettlement(period, drawResult) {
                         });
                         balanceUpdates.set(bet.username, userUpdate);
                         
-                        settlementLog.info(`投注 ${bet.id} 中獎: ${bet.bet_type} ${bet.bet_value} 位置${bet.position || '-'} 贏得 ${winAmount}`);
+                        settlementLog.info(`投注 ${bet.id} 中奖: ${bet.bet_type} ${bet.bet_value} 位置${bet.position || '-'} 赢得 ${winAmount}`);
                     }
                     
                     settlementResults.push({
@@ -97,8 +97,8 @@ export async function comprehensiveSettlement(period, drawResult) {
                     });
                     
                 } catch (betError) {
-                    settlementLog.error(`處理投注 ${bet.id} 時發生錯誤:`, betError);
-                    // 記錄錯誤但繼續處理其他投注
+                    settlementLog.error(`处理投注 ${bet.id} 时发生错误:`, betError);
+                    // 记录错误但继续处理其他投注
                     settlementResults.push({
                         id: bet.id,
                         win: false,
@@ -108,9 +108,9 @@ export async function comprehensiveSettlement(period, drawResult) {
                 }
             }
             
-            // 2.3 批量更新投注狀態
+            // 2.3 批量更新投注状态
             if (settlementResults.length > 0) {
-                // 建構批量更新的 VALUES
+                // 建构批量更新的 VALUES
                 const updateValues = settlementResults.map(r => 
                     `(${r.id}, ${r.win}, ${r.winAmount})`
                 ).join(',');
@@ -126,12 +126,12 @@ export async function comprehensiveSettlement(period, drawResult) {
                     WHERE b.id = u.id::integer
                 `);
                 
-                settlementLog.info(`批量更新了 ${settlementResults.length} 筆投注狀態`);
+                settlementLog.info(`批量更新了 ${settlementResults.length} 笔投注状态`);
             }
             
-            // 2.4 更新用戶餘額並記錄交易
+            // 2.4 更新用户余额并记录交易
             if (balanceUpdates.size > 0) {
-                // 批量更新餘額
+                // 批量更新余额
                 for (const [username, update] of balanceUpdates.entries()) {
                     const newBalance = update.currentBalance + update.winAmount;
                     
@@ -141,7 +141,7 @@ export async function comprehensiveSettlement(period, drawResult) {
                         WHERE username = $2
                     `, [newBalance, username]);
                     
-                    // 記錄交易
+                    // 记录交易
                     await t.none(`
                         INSERT INTO transaction_records 
                         (user_type, user_id, transaction_type, amount, balance_before, balance_after, description, created_at)
@@ -151,14 +151,14 @@ export async function comprehensiveSettlement(period, drawResult) {
                         update.winAmount,
                         update.currentBalance,
                         newBalance,
-                        `期號 ${period} 中獎 (${update.winBets.length}筆)`
+                        `期号 ${period} 中奖 (${update.winBets.length}笔)`
                     ]);
                 }
                 
-                settlementLog.info(`更新了 ${balanceUpdates.size} 個用戶的餘額`);
+                settlementLog.info(`更新了 ${balanceUpdates.size} 个用户的余额`);
             }
             
-            // 2.5 記錄結算摘要
+            // 2.5 记录结算摘要
             await t.none(`
                 INSERT INTO settlement_logs 
                 (period, settled_count, win_count, total_win_amount, execution_time, created_at)
@@ -175,11 +175,11 @@ export async function comprehensiveSettlement(period, drawResult) {
             };
         });
         
-        settlementLog.info(`結算完成: ${result.settledCount}筆投注, ${result.winCount}筆中獎, 總派彩${result.totalWinAmount}, 耗時${result.executionTime}ms`);
+        settlementLog.info(`结算完成: ${result.settledCount}笔投注, ${result.winCount}笔中奖, 总派彩${result.totalWinAmount}, 耗时${result.executionTime}ms`);
         return result;
         
     } catch (error) {
-        settlementLog.error('結算失敗:', error);
+        settlementLog.error('结算失败:', error);
         return { 
             success: false, 
             error: error.message,
@@ -189,24 +189,24 @@ export async function comprehensiveSettlement(period, drawResult) {
 }
 
 /**
- * 標準化開獎結果格式
- * @param {Object} drawResult - 原始開獎結果
- * @returns {Object} 標準化的結果 {positions: [1-10的數字陣列]}
+ * 标准化开奖结果格式
+ * @param {Object} drawResult - 原始开奖结果
+ * @returns {Object} 标准化的结果 {positions: [1-10的数字阵列]}
  */
 function normalizeDrawResult(drawResult) {
     if (!drawResult) return null;
     
-    // 如果已經是標準格式
+    // 如果已经是标准格式
     if (drawResult.positions && Array.isArray(drawResult.positions)) {
         return drawResult;
     }
     
-    // 如果是 result 欄位格式（從資料庫讀取）
+    // 如果是 result 栏位格式（从资料库读取）
     if (drawResult.result && Array.isArray(drawResult.result)) {
         return { positions: drawResult.result };
     }
     
-    // 如果是單獨的 position_1 到 position_10 欄位
+    // 如果是单独的 position_1 到 position_10 栏位
     if (drawResult.position_1 !== undefined) {
         const positions = [];
         for (let i = 1; i <= 10; i++) {
@@ -215,7 +215,7 @@ function normalizeDrawResult(drawResult) {
         return { positions };
     }
     
-    // 如果直接是數字陣列
+    // 如果直接是数字阵列
     if (Array.isArray(drawResult) && drawResult.length === 10) {
         return { positions: drawResult };
     }
@@ -224,26 +224,26 @@ function normalizeDrawResult(drawResult) {
 }
 
 /**
- * 檢查投注是否中獎
- * @param {Object} bet - 投注記錄
- * @param {Object} winResult - 標準化的開獎結果
+ * 检查投注是否中奖
+ * @param {Object} bet - 投注记录
+ * @param {Object} winResult - 标准化的开奖结果
  * @returns {Object} {isWin: boolean, reason: string, odds: number}
  */
 function checkBetWin(bet, winResult) {
     const positions = winResult.positions;
     const betType = bet.bet_type;
-    const betValue = String(bet.bet_value); // 確保是字串以便比較
+    const betValue = String(bet.bet_value); // 确保是字串以便比较
     
-    // 記錄檢查過程
-    settlementLog.info(`檢查投注: id=${bet.id}, type=${betType}, value=${betValue}, position=${bet.position}, username=${bet.username}`);
+    // 记录检查过程
+    settlementLog.info(`检查投注: id=${bet.id}, type=${betType}, value=${betValue}, position=${bet.position}, username=${bet.username}`);
     
-    // 1. 號碼投注（所有位置）
+    // 1. 号码投注（所有位置）
     if (betType === 'number' && bet.position) {
         const position = parseInt(bet.position);
         const betNumber = parseInt(betValue);
         
         if (position < 1 || position > 10 || isNaN(betNumber)) {
-            return { isWin: false, reason: '無效的位置或號碼' };
+            return { isWin: false, reason: '无效的位置或号码' };
         }
         
         const winningNumber = positions[position - 1];
@@ -251,16 +251,16 @@ function checkBetWin(bet, winResult) {
         
         return {
             isWin: isWin,
-            reason: `位置${position}開出${winningNumber}，投注${betNumber}${isWin ? '中獎' : '未中'}`,
-            odds: bet.odds || 9.85 // 預設A盤賠率
+            reason: `位置${position}开出${winningNumber}，投注${betNumber}${isWin ? '中奖' : '未中'}`,
+            odds: bet.odds || 9.85 // 预设A盘赔率
         };
     }
     
-    // 2. 位置投注（冠軍到第十名）
+    // 2. 位置投注（冠军到第十名）
     const positionMap = {
-        '冠軍': 1, 'champion': 1,
-        '亞軍': 2, 'runnerup': 2,
-        '季軍': 3, '第三名': 3, 'third': 3,
+        '冠军': 1, 'champion': 1,
+        '亚军': 2, 'runnerup': 2,
+        '季军': 3, '第三名': 3, 'third': 3,
         '第四名': 4, 'fourth': 4,
         '第五名': 5, 'fifth': 5,
         '第六名': 6, 'sixth': 6,
@@ -273,16 +273,16 @@ function checkBetWin(bet, winResult) {
     const positionIndex = positionMap[betType];
     if (positionIndex) {
         const winningNumber = positions[positionIndex - 1];
-        settlementLog.info(`位置投注檢查: betType=${betType}, positionIndex=${positionIndex}, winningNumber=${winningNumber}, betValue=${betValue}`);
+        settlementLog.info(`位置投注检查: betType=${betType}, positionIndex=${positionIndex}, winningNumber=${winningNumber}, betValue=${betValue}`);
         
-        // 號碼投注
+        // 号码投注
         if (/^\d+$/.test(betValue)) {
             const betNumber = parseInt(betValue);
             const isWin = winningNumber === betNumber;
-            settlementLog.info(`位置號碼投注結果: betNumber=${betNumber}, winningNumber=${winningNumber}, isWin=${isWin}`);
+            settlementLog.info(`位置号码投注结果: betNumber=${betNumber}, winningNumber=${winningNumber}, isWin=${isWin}`);
             return {
                 isWin: isWin,
-                reason: `${betType}開出${winningNumber}，投注${betNumber}${isWin ? '中獎' : '未中'}`,
+                reason: `${betType}开出${winningNumber}，投注${betNumber}${isWin ? '中奖' : '未中'}`,
                 odds: bet.odds || 9.85
             };
         }
@@ -292,7 +292,7 @@ function checkBetWin(bet, winResult) {
             const isWin = winningNumber >= 6;
             return {
                 isWin: isWin,
-                reason: `${betType}開出${winningNumber}(${winningNumber >= 6 ? '大' : '小'})`,
+                reason: `${betType}开出${winningNumber}(${winningNumber >= 6 ? '大' : '小'})`,
                 odds: bet.odds || 1.985
             };
         }
@@ -300,41 +300,41 @@ function checkBetWin(bet, winResult) {
             const isWin = winningNumber <= 5;
             return {
                 isWin: isWin,
-                reason: `${betType}開出${winningNumber}(${winningNumber <= 5 ? '小' : '大'})`,
+                reason: `${betType}开出${winningNumber}(${winningNumber <= 5 ? '小' : '大'})`,
                 odds: bet.odds || 1.985
             };
         }
         
-        // 單雙投注
-        if (betValue === 'odd' || betValue === '單') {
+        // 单双投注
+        if (betValue === 'odd' || betValue === '单') {
             const isWin = winningNumber % 2 === 1;
             return {
                 isWin: isWin,
-                reason: `${betType}開出${winningNumber}(${winningNumber % 2 === 1 ? '單' : '雙'})`,
+                reason: `${betType}开出${winningNumber}(${winningNumber % 2 === 1 ? '单' : '双'})`,
                 odds: bet.odds || 1.985
             };
         }
-        if (betValue === 'even' || betValue === '雙') {
+        if (betValue === 'even' || betValue === '双') {
             const isWin = winningNumber % 2 === 0;
             return {
                 isWin: isWin,
-                reason: `${betType}開出${winningNumber}(${winningNumber % 2 === 0 ? '雙' : '單'})`,
+                reason: `${betType}开出${winningNumber}(${winningNumber % 2 === 0 ? '双' : '单'})`,
                 odds: bet.odds || 1.985
             };
         }
     }
     
-    // 3. 冠亞和投注
-    if (betType === 'sum' || betType === 'sumValue' || betType === '冠亞和') {
+    // 3. 冠亚和投注
+    if (betType === 'sum' || betType === 'sumValue' || betType === '冠亚和') {
         const sum = positions[0] + positions[1];
         
-        // 和值數字投注
+        // 和值数字投注
         if (/^\d+$/.test(betValue)) {
             const betSum = parseInt(betValue);
             const isWin = sum === betSum;
             return {
                 isWin: isWin,
-                reason: `冠亞和開出${sum}，投注${betSum}${isWin ? '中獎' : '未中'}`,
+                reason: `冠亚和开出${sum}，投注${betSum}${isWin ? '中奖' : '未中'}`,
                 odds: bet.odds || getSumOdds(betSum)
             };
         }
@@ -344,7 +344,7 @@ function checkBetWin(bet, winResult) {
             const isWin = sum >= 12;
             return {
                 isWin: isWin,
-                reason: `冠亞和開出${sum}(${sum >= 12 ? '大' : '小'})`,
+                reason: `冠亚和开出${sum}(${sum >= 12 ? '大' : '小'})`,
                 odds: bet.odds || 1.985
             };
         }
@@ -352,32 +352,32 @@ function checkBetWin(bet, winResult) {
             const isWin = sum <= 11;
             return {
                 isWin: isWin,
-                reason: `冠亞和開出${sum}(${sum <= 11 ? '小' : '大'})`,
+                reason: `冠亚和开出${sum}(${sum <= 11 ? '小' : '大'})`,
                 odds: bet.odds || 1.985
             };
         }
         
-        // 和值單雙
-        if (betValue === 'odd' || betValue === '單') {
+        // 和值单双
+        if (betValue === 'odd' || betValue === '单') {
             const isWin = sum % 2 === 1;
             return {
                 isWin: isWin,
-                reason: `冠亞和開出${sum}(${sum % 2 === 1 ? '單' : '雙'})`,
+                reason: `冠亚和开出${sum}(${sum % 2 === 1 ? '单' : '双'})`,
                 odds: bet.odds || 1.985
             };
         }
-        if (betValue === 'even' || betValue === '雙') {
+        if (betValue === 'even' || betValue === '双') {
             const isWin = sum % 2 === 0;
             return {
                 isWin: isWin,
-                reason: `冠亞和開出${sum}(${sum % 2 === 0 ? '雙' : '單'})`,
+                reason: `冠亚和开出${sum}(${sum % 2 === 0 ? '双' : '单'})`,
                 odds: bet.odds || 1.985
             };
         }
     }
     
-    // 4. 龍虎投注
-    if (betType === 'dragon_tiger' || betType === 'dragonTiger' || betType === '龍虎') {
+    // 4. 龙虎投注
+    if (betType === 'dragon_tiger' || betType === 'dragonTiger' || betType === '龙虎') {
         let pos1, pos2, betSide;
         
         // 新格式: dragon_1_10 或 tiger_1_10
@@ -387,7 +387,7 @@ function checkBetWin(bet, winResult) {
             pos1 = parseInt(parts[1]);
             pos2 = parseInt(parts[2]);
         } else {
-            // 舊格式: 1_10 (預設為龍)
+            // 旧格式: 1_10 (预设为龙)
             const parts = betValue.split('_');
             pos1 = parseInt(parts[0]);
             pos2 = parseInt(parts[1]);
@@ -403,14 +403,14 @@ function checkBetWin(bet, winResult) {
             
             return {
                 isWin: isWin,
-                reason: `${pos1}位(${num1}) vs ${pos2}位(${num2})，${num1 > num2 ? '龍' : '虎'}贏`,
+                reason: `${pos1}位(${num1}) vs ${pos2}位(${num2})，${num1 > num2 ? '龙' : '虎'}赢`,
                 odds: bet.odds || 1.985
             };
         }
     }
     
-    // 5. 兩面投注（各位置的大小單雙）
-    if (betType === '兩面' || betType === 'two_sides') {
+    // 5. 两面投注（各位置的大小单双）
+    if (betType === '两面' || betType === 'two_sides') {
         // 格式: position_type (如: 1_big, 2_small, 3_odd, 4_even)
         const parts = betValue.split('_');
         if (parts.length === 2) {
@@ -431,55 +431,55 @@ function checkBetWin(bet, winResult) {
                         isWin = winningNumber <= 5;
                         break;
                     case 'odd':
-                    case '單':
+                    case '单':
                         isWin = winningNumber % 2 === 1;
                         break;
                     case 'even':
-                    case '雙':
+                    case '双':
                         isWin = winningNumber % 2 === 0;
                         break;
                 }
                 
                 return {
                     isWin: isWin,
-                    reason: `位置${position}開出${winningNumber}`,
+                    reason: `位置${position}开出${winningNumber}`,
                     odds: bet.odds || 1.985
                 };
             }
         }
     }
     
-    // 未知投注類型
+    // 未知投注类型
     return {
         isWin: false,
-        reason: `未知的投注類型: ${betType} ${betValue}`,
+        reason: `未知的投注类型: ${betType} ${betValue}`,
         odds: 0
     };
 }
 
 /**
- * 計算中獎金額
- * @param {Object} bet - 投注記錄
- * @param {number} odds - 賠率
- * @returns {number} 中獎金額（含本金）
+ * 计算中奖金额
+ * @param {Object} bet - 投注记录
+ * @param {number} odds - 赔率
+ * @returns {number} 中奖金额（含本金）
  */
 function calculateWinAmount(bet, odds) {
     const betAmount = parseFloat(bet.amount);
     const finalOdds = odds || parseFloat(bet.odds) || 0;
     
     if (finalOdds <= 0) {
-        settlementLog.warn(`投注 ${bet.id} 沒有有效賠率`);
+        settlementLog.warn(`投注 ${bet.id} 没有有效赔率`);
         return 0;
     }
     
-    // 返回總獎金（含本金）
+    // 返回总奖金（含本金）
     return parseFloat((betAmount * finalOdds).toFixed(2));
 }
 
 /**
- * 獲取冠亞和的賠率
+ * 获取冠亚和的赔率
  * @param {number} sum - 和值
- * @returns {number} 賠率
+ * @returns {number} 赔率
  */
 function getSumOdds(sum) {
     const sumOdds = {
@@ -492,11 +492,11 @@ function getSumOdds(sum) {
 }
 
 /**
- * 創建結算所需的資料表
+ * 创建结算所需的资料表
  */
 export async function createSettlementTables() {
     try {
-        // 創建結算日誌表
+        // 创建结算日志表
         await db.none(`
             CREATE TABLE IF NOT EXISTS settlement_logs (
                 id SERIAL PRIMARY KEY,
@@ -511,7 +511,7 @@ export async function createSettlementTables() {
             )
         `);
         
-        // 創建結算錯誤表
+        // 创建结算错误表
         await db.none(`
             CREATE TABLE IF NOT EXISTS settlement_errors (
                 id SERIAL PRIMARY KEY,
@@ -531,15 +531,15 @@ export async function createSettlementTables() {
             CREATE INDEX IF NOT EXISTS idx_bet_history_period_settled ON bet_history(period, settled);
         `);
         
-        settlementLog.info('結算相關資料表建立完成');
+        settlementLog.info('结算相关资料表建立完成');
         
     } catch (error) {
-        settlementLog.error('建立資料表失敗:', error);
+        settlementLog.error('建立资料表失败:', error);
         throw error;
     }
 }
 
-// 導出所有功能
+// 导出所有功能
 export default {
     comprehensiveSettlement,
     createSettlementTables,

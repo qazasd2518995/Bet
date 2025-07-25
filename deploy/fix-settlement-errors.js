@@ -1,63 +1,63 @@
-// fix-settlement-errors.js - 修復結算錯誤
+// fix-settlement-errors.js - 修复结算错误
 import db from './db/config.js';
 import { enhancedSettlement } from './enhanced-settlement-system.js';
 
 async function fixSettlementErrors() {
-    // 需要修復的期號
+    // 需要修复的期号
     const periodsToFix = [
-        '20250718477', // 大小結算錯誤
-        '20250718478', // 號碼結算錯誤
-        '20250718479'  // 龍虎結算錯誤
+        '20250718477', // 大小结算错误
+        '20250718478', // 号码结算错误
+        '20250718479'  // 龙虎结算错误
     ];
     
     for (const period of periodsToFix) {
-        console.log(`\n========== 修復期號 ${period} ==========`);
+        console.log(`\n========== 修复期号 ${period} ==========`);
         
         try {
-            // 1. 查詢開獎結果
+            // 1. 查询开奖结果
             const drawResult = await db.oneOrNone(`
                 SELECT * FROM result_history WHERE period = $1
             `, [period]);
             
             if (!drawResult) {
-                console.error(`找不到期號 ${period} 的開獎結果`);
+                console.error(`找不到期号 ${period} 的开奖结果`);
                 continue;
             }
             
-            console.log('開獎結果：');
+            console.log('开奖结果：');
             const positions = [];
             for (let i = 1; i <= 10; i++) {
                 const pos = drawResult[`position_${i}`];
                 positions.push(pos);
-                console.log(`  第${i}名: ${pos}號`);
+                console.log(`  第${i}名: ${pos}号`);
             }
             
-            // 2. 查詢該期所有投注
+            // 2. 查询该期所有投注
             const bets = await db.manyOrNone(`
                 SELECT * FROM bet_history 
                 WHERE period = $1
                 ORDER BY id
             `, [period]);
             
-            console.log(`\n找到 ${bets.length} 筆投注，開始重新結算...`);
+            console.log(`\n找到 ${bets.length} 笔投注，开始重新结算...`);
             
-            // 3. 先將所有投注標記為未結算
+            // 3. 先将所有投注标记为未结算
             await db.none(`
                 UPDATE bet_history 
                 SET settled = false, win = false, win_amount = 0
                 WHERE period = $1
             `, [period]);
             
-            // 4. 執行增強結算
+            // 4. 执行增强结算
             const result = await enhancedSettlement(period, { positions });
             
             if (result.success) {
-                console.log('\n結算完成：');
-                console.log(`  結算筆數: ${result.settledCount}`);
-                console.log(`  中獎筆數: ${result.winCount}`);
-                console.log(`  總派彩: $${result.totalWinAmount}`);
+                console.log('\n结算完成：');
+                console.log(`  结算笔数: ${result.settledCount}`);
+                console.log(`  中奖笔数: ${result.winCount}`);
+                console.log(`  总派彩: $${result.totalWinAmount}`);
                 
-                // 5. 顯示結算後的結果
+                // 5. 显示结算后的结果
                 const updatedBets = await db.manyOrNone(`
                     SELECT id, username, bet_type, bet_value, position, amount, win, win_amount
                     FROM bet_history 
@@ -65,22 +65,22 @@ async function fixSettlementErrors() {
                     ORDER BY id
                 `, [period]);
                 
-                console.log('\n結算詳情：');
+                console.log('\n结算详情：');
                 for (const bet of updatedBets) {
-                    console.log(`  ID ${bet.id}: ${bet.bet_type} ${bet.bet_value}${bet.position ? ` (位置${bet.position})` : ''}, $${bet.amount} → ${bet.win ? `✓贏 $${bet.win_amount}` : '✗輸'}`);
+                    console.log(`  ID ${bet.id}: ${bet.bet_type} ${bet.bet_value}${bet.position ? ` (位置${bet.position})` : ''}, $${bet.amount} → ${bet.win ? `✓赢 $${bet.win_amount}` : '✗输'}`);
                 }
             } else {
-                console.error(`結算失敗: ${result.error}`);
+                console.error(`结算失败: ${result.error}`);
             }
             
         } catch (error) {
-            console.error(`處理期號 ${period} 時出錯:`, error);
+            console.error(`处理期号 ${period} 时出错:`, error);
         }
     }
     
-    console.log('\n\n修復完成！');
+    console.log('\n\n修复完成！');
     process.exit();
 }
 
-// 執行修復
+// 执行修复
 fixSettlementErrors();

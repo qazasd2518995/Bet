@@ -1,11 +1,11 @@
-// check-bet-table.js - 檢查下注表結構
+// check-bet-table.js - 检查下注表结构
 import db from './db/config.js';
 
 async function checkBetTable() {
-    console.log('🔍 檢查 bet_history 表結構...\n');
+    console.log('🔍 检查 bet_history 表结构...\n');
     
     try {
-        // 1. 檢查表結構
+        // 1. 检查表结构
         const columns = await db.any(`
             SELECT 
                 column_name,
@@ -17,13 +17,13 @@ async function checkBetTable() {
             ORDER BY ordinal_position
         `);
         
-        console.log('📊 bet_history 表結構:');
+        console.log('📊 bet_history 表结构:');
         columns.forEach(col => {
             console.log(`  ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? 'NOT NULL' : 'NULL'} ${col.column_default ? `DEFAULT ${col.column_default}` : ''}`);
         });
         
-        // 2. 檢查最近的下注記錄
-        console.log('\n📋 最近的下注記錄:');
+        // 2. 检查最近的下注记录
+        console.log('\n📋 最近的下注记录:');
         const recentBets = await db.any(`
             SELECT 
                 id,
@@ -46,38 +46,38 @@ async function checkBetTable() {
         if (recentBets.length > 0) {
             recentBets.forEach(bet => {
                 console.log(`\nID: ${bet.id}`);
-                console.log(`  期號: ${bet.period}`);
-                console.log(`  類型: ${bet.bet_type}`);
+                console.log(`  期号: ${bet.period}`);
+                console.log(`  类型: ${bet.bet_type}`);
                 console.log(`  值: ${bet.bet_value}`);
                 console.log(`  位置: ${bet.position}`);
-                console.log(`  金額: ${bet.amount}`);
-                console.log(`  結算: ${bet.settled ? '是' : '否'}`);
-                console.log(`  中獎: ${bet.win ? '是' : '否'}`);
-                console.log(`  中獎金額: ${bet.win_amount || 0}`);
+                console.log(`  金额: ${bet.amount}`);
+                console.log(`  结算: ${bet.settled ? '是' : '否'}`);
+                console.log(`  中奖: ${bet.win ? '是' : '否'}`);
+                console.log(`  中奖金额: ${bet.win_amount || 0}`);
             });
         } else {
-            console.log('沒有找到下注記錄');
+            console.log('没有找到下注记录');
         }
         
-        // 3. 檢查位置映射
-        console.log('\n📍 位置映射檢查:');
-        console.log('champion 應該對應 position = 1');
-        console.log('runnerup 應該對應 position = 2');
-        console.log('third 應該對應 position = 3');
+        // 3. 检查位置映射
+        console.log('\n📍 位置映射检查:');
+        console.log('champion 应该对应 position = 1');
+        console.log('runnerup 应该对应 position = 2');
+        console.log('third 应该对应 position = 3');
         console.log('...');
         
     } catch (error) {
-        console.error('❌ 檢查過程中發生錯誤:', error);
+        console.error('❌ 检查过程中发生错误:', error);
     }
 }
 
-// 執行
+// 执行
 checkBetTable()
     .then(() => {
-        console.log('\n檢查完成');
+        console.log('\n检查完成');
         process.exit(0);
     })
     .catch(error => {
-        console.error('執行失敗:', error);
+        console.error('执行失败:', error);
         process.exit(1);
     });

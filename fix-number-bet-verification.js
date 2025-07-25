@@ -7,17 +7,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🔧 修復號碼投注驗證邏輯...\n');
+console.log('🔧 修复号码投注验证逻辑...\n');
 
-// 讀取 enhanced-settlement-system.js
+// 读取 enhanced-settlement-system.js
 const filePath = path.join(__dirname, 'enhanced-settlement-system.js');
 let content = fs.readFileSync(filePath, 'utf8');
 
-// 找到有問題的驗證邏輯
-const problematicCode = `        // 額外的安全檢查：如果中獎，再次驗證
+// 找到有问题的验证逻辑
+const problematicCode = `        // 额外的安全检查：如果中奖，再次验证
         if (isWin) {
-            settlementLog.warn(\`⚠️ 中獎驗證: 投注ID=\${bet.id}, 期號=\${bet.period}, 位置\${position}, 投注\${betNum}=開獎\${winNum}\`);
-            // 直接從數據庫再次查詢驗證
+            settlementLog.warn(\`⚠️ 中奖验证: 投注ID=\${bet.id}, 期号=\${bet.period}, 位置\${position}, 投注\${betNum}=开奖\${winNum}\`);
+            // 直接从数据库再次查询验证
             const verifyResult = await db.oneOrNone(\`
                 SELECT position_\${position} as winning_number
                 FROM result_history
@@ -25,45 +25,45 @@ const problematicCode = `        // 額外的安全檢查：如果中獎，再�
             \`, [bet.period]);
             
             if (verifyResult && parseInt(verifyResult.winning_number) !== betNum) {
-                settlementLog.error(\`❌ 中獎驗證失敗！數據庫中第\${position}名是\${verifyResult.winning_number}，不是\${betNum}\`);
+                settlementLog.error(\`❌ 中奖验证失败！数据库中第\${position}名是\${verifyResult.winning_number}，不是\${betNum}\`);
                 return {
                     isWin: false,
-                    reason: \`驗證失敗：第\${position}名實際開出\${verifyResult.winning_number}\`,
+                    reason: \`验证失败：第\${position}名实际开出\${verifyResult.winning_number}\`,
                     odds: bet.odds || 9.85
                 };
             }
         }`;
 
-// 修復的代碼 - 移除有問題的額外驗證，因為我們已經有準確的開獎結果
-const fixedCode = `        // 移除額外的數據庫驗證，因為可能有時序問題
-        // 我們已經有準確的開獎結果在 positions 陣列中
+// 修复的代码 - 移除有问题的额外验证，因为我们已经有准确的开奖结果
+const fixedCode = `        // 移除额外的数据库验证，因为可能有时序问题
+        // 我们已经有准确的开奖结果在 positions 阵列中
         if (isWin) {
-            settlementLog.info(\`✅ 號碼投注中獎確認: 投注ID=\${bet.id}, 期號=\${bet.period}, 位置\${position}, 投注\${betNum}=開獎\${winNum}\`);
+            settlementLog.info(\`✅ 号码投注中奖确认: 投注ID=\${bet.id}, 期号=\${bet.period}, 位置\${position}, 投注\${betNum}=开奖\${winNum}\`);
         }`;
 
-// 替換代碼
+// 替换代码
 if (content.includes(problematicCode)) {
     content = content.replace(problematicCode, fixedCode);
     
-    // 寫回文件
+    // 写回文件
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log('✅ 成功修復 enhanced-settlement-system.js 中的號碼投注驗證邏輯');
-    console.log('\n修復內容：');
-    console.log('- 移除了可能導致錯誤的額外數據庫驗證');
-    console.log('- 保留了基本的中獎判斷邏輯');
-    console.log('- 避免了時序問題和數據不一致的情況');
+    console.log('✅ 成功修复 enhanced-settlement-system.js 中的号码投注验证逻辑');
+    console.log('\n修复内容：');
+    console.log('- 移除了可能导致错误的额外数据库验证');
+    console.log('- 保留了基本的中奖判断逻辑');
+    console.log('- 避免了时序问题和数据不一致的情况');
 } else {
-    console.log('⚠️ 未找到需要修復的代碼，可能已經修復過了');
+    console.log('⚠️ 未找到需要修复的代码，可能已经修复过了');
 }
 
-// 同時創建一個備份
+// 同时创建一个备份
 const backupPath = filePath + '.backup.' + Date.now();
 fs.copyFileSync(filePath, backupPath);
-console.log(`\n📄 備份文件已創建: ${path.basename(backupPath)}`);
+console.log(`\n📄 备份文件已创建: ${path.basename(backupPath)}`);
 
-console.log('\n💡 修復說明：');
-console.log('問題原因：號碼投注在判斷中獎後，會額外從數據庫驗證，但可能因為：');
-console.log('1. 數據保存的時序問題（結算時數據還未保存）');
-console.log('2. 數據格式不一致');
-console.log('3. 查詢邏輯錯誤');
-console.log('\n解決方案：移除額外的數據庫驗證，因為我們已經有準確的開獎結果在記憶體中。');
+console.log('\n💡 修复说明：');
+console.log('问题原因：号码投注在判断中奖后，会额外从数据库验证，但可能因为：');
+console.log('1. 数据保存的时序问题（结算时数据还未保存）');
+console.log('2. 数据格式不一致');
+console.log('3. 查询逻辑错误');
+console.log('\n解决方案：移除额外的数据库验证，因为我们已经有准确的开奖结果在记忆体中。');

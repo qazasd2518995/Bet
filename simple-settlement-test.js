@@ -1,11 +1,11 @@
-// simple-settlement-test.js - 簡單測試結算系統
+// simple-settlement-test.js - 简单测试结算系统
 import db from './db/config.js';
 
 async function simpleSettlementTest() {
     try {
-        console.log('🧪 檢查結算系統狀況...\n');
+        console.log('🧪 检查结算系统状况...\n');
         
-        // 檢查最近的號碼投注是否正確結算
+        // 检查最近的号码投注是否正确结算
         const recentNumberBets = await db.any(`
             SELECT b.id, b.period, b.bet_type, b.bet_value, b.position, 
                    b.win, b.win_amount, b.amount, b.odds,
@@ -20,7 +20,7 @@ async function simpleSettlementTest() {
             LIMIT 20
         `);
         
-        console.log('最近的號碼投注檢查:');
+        console.log('最近的号码投注检查:');
         let correctCount = 0;
         let incorrectCount = 0;
         
@@ -39,26 +39,26 @@ async function simpleSettlementTest() {
                 }
                 
                 const status = isCorrect ? '✅' : '❌';
-                console.log(`${status} 期號${bet.period}, 位置${bet.position}, 投注${betNumber}, 開出${actualNumber}, 標記${bet.win ? '中' : '未中'}, 派彩${bet.win_amount}`);
+                console.log(`${status} 期号${bet.period}, 位置${bet.position}, 投注${betNumber}, 开出${actualNumber}, 标记${bet.win ? '中' : '未中'}, 派彩${bet.win_amount}`);
                 
                 if (!isCorrect) {
                     const expectedWinAmount = shouldWin ? bet.amount * bet.odds : 0;
-                    console.log(`   應該: ${shouldWin ? '中獎' : '未中獎'}, 派彩應為: ${expectedWinAmount}`);
+                    console.log(`   应该: ${shouldWin ? '中奖' : '未中奖'}, 派彩应为: ${expectedWinAmount}`);
                 }
             }
         });
         
-        console.log(`\n統計: 正確 ${correctCount} 筆, 錯誤 ${incorrectCount} 筆`);
+        console.log(`\n统计: 正确 ${correctCount} 笔, 错误 ${incorrectCount} 笔`);
         
         if (incorrectCount > 0) {
-            console.log('\n❌ 發現結算錯誤，需要修正結算邏輯');
+            console.log('\n❌ 发现结算错误，需要修正结算逻辑');
         } else {
-            console.log('\n✅ 結算系統工作正常');
+            console.log('\n✅ 结算系统工作正常');
         }
         
         await db.$pool.end();
     } catch (error) {
-        console.error('測試過程中發生錯誤:', error);
+        console.error('测试过程中发生错误:', error);
         await db.$pool.end();
     }
 }

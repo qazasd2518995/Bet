@@ -1,18 +1,18 @@
-// db/models/user.js - 用戶模型
+// db/models/user.js - 用户模型
 import db from '../config.js';
 
-// 用戶模型
+// 用户模型
 const UserModel = {
-  // 創建或更新用戶
+  // 创建或更新用户
   async createOrUpdate(userData) {
     const { username, balance = 0, status = 1 } = userData;
     
     try {
-      // 檢查用戶是否存在
+      // 检查用户是否存在
       const existingUser = await this.findByUsername(username);
       
       if (existingUser) {
-        // 更新現有用戶
+        // 更新现有用户
         return await db.one(`
           UPDATE users 
           SET balance = $1, status = $2, last_login_at = CURRENT_TIMESTAMP 
@@ -20,7 +20,7 @@ const UserModel = {
           RETURNING *
         `, [balance, status, username]);
       } else {
-        // 創建新用戶
+        // 创建新用户
         return await db.one(`
           INSERT INTO users (username, balance, status, last_login_at) 
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP) 
@@ -28,22 +28,22 @@ const UserModel = {
         `, [username, balance, status]);
       }
     } catch (error) {
-      console.error('創建或更新用戶出錯:', error);
+      console.error('创建或更新用户出错:', error);
       throw error;
     }
   },
   
-  // 查詢用戶
+  // 查询用户
   async findByUsername(username) {
     try {
       return await db.oneOrNone('SELECT * FROM users WHERE username = $1', [username]);
     } catch (error) {
-      console.error('查詢用戶出錯:', error);
+      console.error('查询用户出错:', error);
       throw error;
     }
   },
   
-  // 更新用戶餘額
+  // 更新用户余额
   async updateBalance(username, amount) {
     try {
       return await db.one(`
@@ -53,12 +53,12 @@ const UserModel = {
         RETURNING *
       `, [amount, username]);
     } catch (error) {
-      console.error('更新用戶餘額出錯:', error);
+      console.error('更新用户余额出错:', error);
       throw error;
     }
   },
   
-  // 設置用戶餘額（絕對值）
+  // 设置用户余额（绝对值）
   async setBalance(username, balance) {
     try {
       return await db.one(`
@@ -68,12 +68,12 @@ const UserModel = {
         RETURNING *
       `, [balance, username]);
     } catch (error) {
-      console.error('設置用戶餘額出錯:', error);
+      console.error('设置用户余额出错:', error);
       throw error;
     }
   },
   
-  // 原子性扣除餘額（解決並發安全問題）
+  // 原子性扣除余额（解决并发安全问题）
   async deductBalance(username, amount) {
     try {
       const result = await db.oneOrNone(`
@@ -89,12 +89,12 @@ const UserModel = {
       
       return result.balance;
     } catch (error) {
-      console.error('扣除用戶餘額出錯:', error);
+      console.error('扣除用户余额出错:', error);
       throw error;
     }
   },
   
-  // 原子性增加餘額（解決並發安全問題）
+  // 原子性增加余额（解决并发安全问题）
   async addBalance(username, amount) {
     try {
       const result = await db.one(`
@@ -106,17 +106,17 @@ const UserModel = {
       
       return result.balance;
     } catch (error) {
-      console.error('增加用戶餘額出錯:', error);
+      console.error('增加用户余额出错:', error);
       throw error;
     }
   },
   
-  // 獲取所有用戶
+  // 获取所有用户
   async findAll() {
     try {
       return await db.any('SELECT * FROM users');
     } catch (error) {
-      console.error('獲取所有用戶出錯:', error);
+      console.error('获取所有用户出错:', error);
       throw error;
     }
   }

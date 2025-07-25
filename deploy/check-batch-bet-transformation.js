@@ -1,6 +1,6 @@
-// check-batch-bet-transformation.js - 檢查批量投注的參數轉換
+// check-batch-bet-transformation.js - 检查批量投注的参数转换
 
-// 模擬前端發送的數據
+// 模拟前端发送的数据
 const frontendBets = [
   {
     betType: 'number',
@@ -16,32 +16,32 @@ const frontendBets = [
   }
 ];
 
-console.log('前端發送的數據格式:');
+console.log('前端发送的数据格式:');
 console.log(JSON.stringify(frontendBets, null, 2));
 
-// 檢查 optimized-betting-system.js 中的處理
+// 检查 optimized-betting-system.js 中的处理
 console.log('\n在 optimized-betting-system.js 中:');
 frontendBets.forEach((bet, index) => {
   console.log(`\n投注 ${index + 1}:`);
-  console.log(`  bet.betType = "${bet.betType}" (應該映射到 bet_type)`);
-  console.log(`  bet.value = "${bet.value}" (應該映射到 bet_value)`);
+  console.log(`  bet.betType = "${bet.betType}" (应该映射到 bet_type)`);
+  console.log(`  bet.value = "${bet.value}" (应该映射到 bet_value)`);
   console.log(`  bet.position = ${bet.position}`);
   
-  // 模擬 SQL 字符串插值
+  // 模拟 SQL 字符串插值
   const sqlValue = `('username', 20250718999, '${bet.betType}', '${bet.value}', ${bet.position || 'NULL'}, ${bet.amount}, 9.89, false, 0, false, NOW())`;
-  console.log(`  SQL 插值結果: ${sqlValue}`);
+  console.log(`  SQL 插值结果: ${sqlValue}`);
   
-  // 如果使用正確的欄位名稱
+  // 如果使用正确的栏位名称
   const correctSqlValue = `('username', 20250718999, '${bet.bet_type || bet.betType}', '${bet.bet_value || bet.value}', ${bet.position || 'NULL'}, ${bet.amount}, 9.89, false, 0, false, NOW())`;
-  console.log(`  正確的 SQL: ${correctSqlValue}`);
+  console.log(`  正确的 SQL: ${correctSqlValue}`);
 });
 
-console.log('\n問題診斷:');
-console.log('1. 前端發送: betType, value, position');
-console.log('2. 資料庫欄位: bet_type, bet_value, position');
+console.log('\n问题诊断:');
+console.log('1. 前端发送: betType, value, position');
+console.log('2. 资料库栏位: bet_type, bet_value, position');
 console.log('3. optimized-betting-system.js 直接使用 bet.betType 和 bet.value');
-console.log('4. 這應該會導致 SQL 插入 "undefined" 值，但實際上沒有發生');
+console.log('4. 这应该会导致 SQL 插入 "undefined" 值，但实际上没有发生');
 console.log('\n可能的原因:');
-console.log('- 可能有其他地方在調用 optimizedBatchBet 之前進行了參數轉換');
-console.log('- 或者系統沒有使用 optimized-betting-system.js，而是使用其他的批量投注邏輯');
-console.log('- 或者 SQL 字符串插值時，undefined 被轉換成了正確的值');
+console.log('- 可能有其他地方在调用 optimizedBatchBet 之前进行了参数转换');
+console.log('- 或者系统没有使用 optimized-betting-system.js，而是使用其他的批量投注逻辑');
+console.log('- 或者 SQL 字符串插值时，undefined 被转换成了正确的值');

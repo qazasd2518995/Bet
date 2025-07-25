@@ -2,21 +2,21 @@ import db from './db/config.js';
 
 async function checkBalanceHistory() {
   try {
-    console.log('=== 檢查餘額歷史記錄 ===\n');
+    console.log('=== 检查余额历史记录 ===\n');
     
-    // 檢查用戶報告的餘額變化
-    console.log('1. 用戶報告的餘額變化:');
-    console.log('  justin2025A: 769.05 → 779.05 (增加10，應該增加5)');
-    console.log('  ti2025A: 9,001,276.64 → 9,001,288.64 (增加12，應該增加6)');
-    console.log('  用戶期望是基於單筆1000元下注的退水，但系統是基於2000元總下注計算');
+    // 检查用户报告的余额变化
+    console.log('1. 用户报告的余额变化:');
+    console.log('  justin2025A: 769.05 → 779.05 (增加10，应该增加5)');
+    console.log('  ti2025A: 9,001,276.64 → 9,001,288.64 (增加12，应该增加6)');
+    console.log('  用户期望是基於单笔1000元下注的退水，但系统是基于2000元总下注计算');
     
-    // 查詢餘額變動歷史
-    console.log('\n2. 查詢 2025-07-16 前後的所有餘額變動:');
+    // 查询余额变动历史
+    console.log('\n2. 查询 2025-07-16 前后的所有余额变动:');
     
     const agents = ['justin2025A', 'ti2025A'];
     
     for (const agentName of agents) {
-      console.log(`\n=== ${agentName} 的餘額變動歷史 ===`);
+      console.log(`\n=== ${agentName} 的余额变动历史 ===`);
       
       const transactions = await db.any(`
         SELECT 
@@ -30,37 +30,37 @@ async function checkBalanceHistory() {
         ORDER BY tr.created_at
       `, [agentName]);
       
-      console.log(`找到 ${transactions.length} 筆交易記錄:`);
+      console.log(`找到 ${transactions.length} 笔交易记录:`);
       
       let runningBalance = null;
       transactions.forEach((tr, idx) => {
         console.log(`\n  ${idx + 1}. ${tr.created_at}`);
-        console.log(`     類型: ${tr.transaction_type}`);
-        console.log(`     金額: $${tr.amount}`);
-        console.log(`     餘額: $${parseFloat(tr.balance_before).toFixed(2)} → $${parseFloat(tr.balance_after).toFixed(2)}`);
+        console.log(`     类型: ${tr.transaction_type}`);
+        console.log(`     金额: $${tr.amount}`);
+        console.log(`     余额: $${parseFloat(tr.balance_before).toFixed(2)} → $${parseFloat(tr.balance_after).toFixed(2)}`);
         console.log(`     描述: ${tr.description}`);
-        console.log(`     期號: ${tr.period || 'N/A'}`);
+        console.log(`     期号: ${tr.period || 'N/A'}`);
         
-        // 檢查餘額連續性
+        // 检查余额连续性
         if (runningBalance !== null && Math.abs(runningBalance - parseFloat(tr.balance_before)) > 0.01) {
-          console.log(`     ⚠️ 餘額不連續！預期: $${runningBalance.toFixed(2)}, 實際: $${parseFloat(tr.balance_before).toFixed(2)}`);
+          console.log(`     ⚠️ 余额不连续！预期: $${runningBalance.toFixed(2)}, 实际: $${parseFloat(tr.balance_before).toFixed(2)}`);
         }
         runningBalance = parseFloat(tr.balance_after);
       });
       
-      // 查詢當前餘額
+      // 查询当前余额
       const currentBalance = await db.oneOrNone(`
         SELECT balance FROM agents WHERE username = $1
       `, [agentName]);
       
-      console.log(`\n  當前餘額: $${currentBalance ? currentBalance.balance : 'N/A'}`);
+      console.log(`\n  当前余额: $${currentBalance ? currentBalance.balance : 'N/A'}`);
       if (runningBalance !== null && currentBalance && Math.abs(runningBalance - parseFloat(currentBalance.balance)) > 0.01) {
-        console.log(`  ⚠️ 最後交易餘額與當前餘額不符！`);
+        console.log(`  ⚠️ 最后交易余额与当前余额不符！`);
       }
     }
     
-    // 3. 查詢是否有隱藏或被刪除的交易記錄
-    console.log('\n\n3. 檢查是否有異常的退水記錄:');
+    // 3. 查询是否有隐藏或被删除的交易记录
+    console.log('\n\n3. 检查是否有异常的退水记录:');
     const suspiciousRebates = await db.any(`
       SELECT 
         tr.id,
@@ -78,26 +78,26 @@ async function checkBalanceHistory() {
       ORDER BY tr.created_at
     `);
     
-    console.log(`找到 ${suspiciousRebates.length} 筆退水記錄:`);
+    console.log(`找到 ${suspiciousRebates.length} 笔退水记录:`);
     suspiciousRebates.forEach(r => {
       const balanceChange = parseFloat(r.balance_after) - parseFloat(r.balance_before);
-      console.log(`  ID=${r.id} 期號=${r.period} ${r.username}: $${r.amount} (餘額變化: ${balanceChange > 0 ? '+' : ''}${balanceChange.toFixed(2)}) at ${r.created_at}`);
+      console.log(`  ID=${r.id} 期号=${r.period} ${r.username}: $${r.amount} (余额变化: ${balanceChange > 0 ? '+' : ''}${balanceChange.toFixed(2)}) at ${r.created_at}`);
       
       if (Math.abs(balanceChange - parseFloat(r.amount)) > 0.01) {
-        console.log(`    ⚠️ 餘額變化與退水金額不符！`);
+        console.log(`    ⚠️ 余额变化与退水金额不符！`);
       }
     });
     
-    // 4. 檢查是否有重複的退水但被合併顯示
-    console.log('\n4. 檢查可能的問題原因:');
-    console.log('  - 用戶可能看到的是之前某次未記錄的退水累積效果');
-    console.log('  - 或者系統在某個時間點有手動調整餘額的操作');
-    console.log('  - 需要檢查更早期的交易記錄來確認');
+    // 4. 检查是否有重复的退水但被合并显示
+    console.log('\n4. 检查可能的问题原因:');
+    console.log('  - 用户可能看到的是之前某次未记录的退水累积效果');
+    console.log('  - 或者系统在某个时间点有手动调整余额的操作');
+    console.log('  - 需要检查更早期的交易记录来确认');
     
     process.exit(0);
     
   } catch (error) {
-    console.error('檢查過程中發生錯誤:', error);
+    console.error('检查过程中发生错误:', error);
     process.exit(1);
   }
 }

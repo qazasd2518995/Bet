@@ -3,9 +3,9 @@ import { generateBlockchainData } from './utils/blockchain.js';
 
 async function updateLatestBlocks() {
   try {
-    console.log('更新最新開獎記錄的區塊資料...');
+    console.log('更新最新开奖记录的区块资料...');
     
-    // 查詢沒有區塊高度的最新記錄
+    // 查询没有区块高度的最新记录
     const records = await db.any(`
       SELECT period, result 
       FROM draw_records 
@@ -13,7 +13,7 @@ async function updateLatestBlocks() {
       ORDER BY period DESC
     `);
     
-    console.log(`找到 ${records.length} 筆需要更新的記錄`);
+    console.log(`找到 ${records.length} 笔需要更新的记录`);
     
     for (const record of records) {
       const blockData = generateBlockchainData(record.period, record.result);
@@ -25,20 +25,20 @@ async function updateLatestBlocks() {
         WHERE period = $3
       `, [blockData.blockHeight, blockData.blockHash, record.period]);
       
-      // 同時更新 result_history（如果存在）
+      // 同时更新 result_history（如果存在）
       await db.none(`
         UPDATE result_history 
         SET block_height = $1, block_hash = $2
         WHERE period = $3
       `, [blockData.blockHeight, blockData.blockHash, record.period]);
       
-      console.log(`✅ 更新期號 ${record.period} -> 區塊高度: ${blockData.blockHeight}`);
+      console.log(`✅ 更新期号 ${record.period} -> 区块高度: ${blockData.blockHeight}`);
     }
     
     console.log('\n✅ 更新完成！');
     
   } catch (error) {
-    console.error('❌ 更新失敗:', error);
+    console.error('❌ 更新失败:', error);
   } finally {
     process.exit(0);
   }

@@ -5,15 +5,15 @@ async function processSinglePeriodRebate() {
   const period = process.argv[2];
   
   if (!period) {
-    console.error('請提供期號作為參數');
-    console.error('用法: node process-single-period-rebate.js <期號>');
+    console.error('请提供期号作为参数');
+    console.error('用法: node process-single-period-rebate.js <期号>');
     process.exit(1);
   }
   
   try {
-    console.log(`=== 手動處理期號 ${period} 的退水 ===\n`);
+    console.log(`=== 手动处理期号 ${period} 的退水 ===\n`);
     
-    // 1. 檢查該期是否已有退水
+    // 1. 检查该期是否已有退水
     const existingRebates = await db.oneOrNone(`
       SELECT COUNT(*) as count
       FROM transaction_records
@@ -21,12 +21,12 @@ async function processSinglePeriodRebate() {
     `, [period]);
     
     if (existingRebates && parseInt(existingRebates.count) > 0) {
-      console.log(`⚠️ 期號 ${period} 已經有 ${existingRebates.count} 筆退水記錄`);
-      console.log('為避免重複退水，程序終止');
+      console.log(`⚠️ 期号 ${period} 已经有 ${existingRebates.count} 笔退水记录`);
+      console.log('为避免重复退水，程序终止');
       process.exit(0);
     }
     
-    // 2. 檢查該期的下注情況
+    // 2. 检查该期的下注情况
     const betSummary = await db.oneOrNone(`
       SELECT 
         COUNT(*) as bet_count,
@@ -37,24 +37,24 @@ async function processSinglePeriodRebate() {
     `, [period]);
     
     if (!betSummary || parseInt(betSummary.bet_count) === 0) {
-      console.log(`❌ 期號 ${period} 沒有已結算的下注記錄`);
+      console.log(`❌ 期号 ${period} 没有已结算的下注记录`);
       process.exit(0);
     }
     
-    console.log(`期號 ${period} 下注統計:`);
-    console.log(`  下注筆數: ${betSummary.bet_count}`);
-    console.log(`  下注總額: $${betSummary.total_amount}`);
-    console.log(`  下注人數: ${betSummary.user_count}`);
-    console.log(`  預期退水: $${(parseFloat(betSummary.total_amount) * 0.011).toFixed(2)} (A盤 1.1%)`);
+    console.log(`期号 ${period} 下注统计:`);
+    console.log(`  下注笔数: ${betSummary.bet_count}`);
+    console.log(`  下注总额: $${betSummary.total_amount}`);
+    console.log(`  下注人数: ${betSummary.user_count}`);
+    console.log(`  预期退水: $${(parseFloat(betSummary.total_amount) * 0.011).toFixed(2)} (A盘 1.1%)`);
     
-    // 3. 執行退水處理
-    console.log('\n開始處理退水...');
+    // 3. 执行退水处理
+    console.log('\n开始处理退水...');
     
     try {
       await processRebates(period);
-      console.log('✅ 退水處理完成');
+      console.log('✅ 退水处理完成');
       
-      // 4. 驗證退水結果
+      // 4. 验证退水结果
       const rebateResults = await db.any(`
         SELECT 
           tr.amount,
@@ -67,26 +67,26 @@ async function processSinglePeriodRebate() {
       `, [period]);
       
       if (rebateResults.length > 0) {
-        console.log('\n退水分配結果:');
+        console.log('\n退水分配结果:');
         let totalRebate = 0;
         rebateResults.forEach(r => {
           console.log(`  ${r.username}: $${r.amount} - ${r.description}`);
           totalRebate += parseFloat(r.amount);
         });
-        console.log(`  總計: $${totalRebate.toFixed(2)}`);
+        console.log(`  总计: $${totalRebate.toFixed(2)}`);
       }
       
     } catch (error) {
-      console.error('❌ 退水處理失敗:', error.message);
+      console.error('❌ 退水处理失败:', error.message);
       if (error.stack) {
-        console.error('錯誤堆疊:', error.stack);
+        console.error('错误堆叠:', error.stack);
       }
     }
     
     process.exit(0);
     
   } catch (error) {
-    console.error('處理過程中發生錯誤:', error);
+    console.error('处理过程中发生错误:', error);
     process.exit(1);
   }
 }

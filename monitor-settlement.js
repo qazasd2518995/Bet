@@ -1,11 +1,11 @@
-// monitor-settlement.js - 監控結算系統
+// monitor-settlement.js - 监控结算系统
 import db from './db/config.js';
 
 async function monitorSettlement() {
-    console.log('🔍 監控結算系統狀態...\n');
+    console.log('🔍 监控结算系统状态...\n');
     
     try {
-        // 檢查最近5期的結算狀況
+        // 检查最近5期的结算状况
         const recentPeriods = await db.any(`
             SELECT bh.period, 
                    COUNT(*) as total_bets,
@@ -21,8 +21,8 @@ async function monitorSettlement() {
             ORDER BY bh.period DESC
         `);
         
-        console.log('📊 最近5期結算狀況：');
-        console.log('期號 | 投注數 | 已結算 | 開獎時間 | 結算時間 | 狀態');
+        console.log('📊 最近5期结算状况：');
+        console.log('期号 | 投注数 | 已结算 | 开奖时间 | 结算时间 | 状态');
         console.log('-'.repeat(80));
         
         recentPeriods.forEach(period => {
@@ -30,20 +30,20 @@ async function monitorSettlement() {
             let status = '✅ 正常';
             
             if (period.draw_time && unsettled > 0) {
-                status = `❌ ${unsettled}筆未結算`;
+                status = `❌ ${unsettled}笔未结算`;
             } else if (!period.draw_time) {
-                status = '⏳ 未開獎';
+                status = '⏳ 未开奖';
             } else if (!period.settlement_time) {
-                status = '⚠️ 無結算日誌';
+                status = '⚠️ 无结算日志';
             }
             
-            const drawTime = period.draw_time ? period.draw_time.toLocaleString('zh-TW') : '未開獎';
-            const settlementTime = period.settlement_time ? period.settlement_time.toLocaleString('zh-TW') : '無';
+            const drawTime = period.draw_time ? period.draw_time.toLocaleString('zh-TW') : '未开奖';
+            const settlementTime = period.settlement_time ? period.settlement_time.toLocaleString('zh-TW') : '无';
             
             console.log(`${period.period} | ${period.total_bets} | ${period.settled_count} | ${drawTime} | ${settlementTime} | ${status}`);
         });
         
-        // 檢查當前期號
+        // 检查当前期号
         const currentState = await db.oneOrNone(`
             SELECT current_period, status, countdown_seconds
             FROM game_state
@@ -52,12 +52,12 @@ async function monitorSettlement() {
         `);
         
         if (currentState) {
-            console.log(`\n🎮 當前遊戲狀態：`);
-            console.log(`期號: ${currentState.current_period}`);
-            console.log(`狀態: ${currentState.status}`);
-            console.log(`倒計時: ${currentState.countdown_seconds}秒`);
+            console.log(`\n🎮 当前游戏状态：`);
+            console.log(`期号: ${currentState.current_period}`);
+            console.log(`状态: ${currentState.status}`);
+            console.log(`倒计时: ${currentState.countdown_seconds}秒`);
             
-            // 檢查當前期號是否有投注
+            // 检查当前期号是否有投注
             const currentBets = await db.oneOrNone(`
                 SELECT COUNT(*) as bet_count
                 FROM bet_history
@@ -65,16 +65,16 @@ async function monitorSettlement() {
             `, [currentState.current_period]);
             
             if (currentBets && parseInt(currentBets.bet_count) > 0) {
-                console.log(`當前期號投注數: ${currentBets.bet_count}`);
+                console.log(`当前期号投注数: ${currentBets.bet_count}`);
             } else {
-                console.log('當前期號暫無投注');
+                console.log('当前期号暂无投注');
             }
         }
         
-        // 檢查結算系統健康狀況
-        console.log('\n🏥 結算系統健康檢查：');
+        // 检查结算系统健康状况
+        console.log('\n🏥 结算系统健康检查：');
         
-        // 檢查是否有活躍的結算鎖
+        // 检查是否有活跃的结算锁
         const activeLocks = await db.any(`
             SELECT COUNT(*) as lock_count
             FROM settlement_locks
@@ -82,9 +82,9 @@ async function monitorSettlement() {
         `);
         
         const lockCount = activeLocks[0]?.lock_count || 0;
-        console.log(`活躍結算鎖: ${lockCount} ${lockCount === 0 ? '✅' : '⚠️'}`);
+        console.log(`活跃结算锁: ${lockCount} ${lockCount === 0 ? '✅' : '⚠️'}`);
         
-        // 檢查最近結算活動
+        // 检查最近结算活动
         const recentSettlements = await db.any(`
             SELECT period, created_at
             FROM settlement_logs
@@ -92,38 +92,38 @@ async function monitorSettlement() {
             ORDER BY created_at DESC
         `);
         
-        console.log(`最近1小時結算活動: ${recentSettlements.length}次 ${recentSettlements.length > 0 ? '✅' : '⚠️'}`);
+        console.log(`最近1小时结算活动: ${recentSettlements.length}次 ${recentSettlements.length > 0 ? '✅' : '⚠️'}`);
         
         if (recentSettlements.length > 0) {
-            console.log('最近結算記錄：');
+            console.log('最近结算记录：');
             recentSettlements.slice(0, 3).forEach(log => {
-                console.log(`  期號 ${log.period}: ${log.created_at.toLocaleString('zh-TW')}`);
+                console.log(`  期号 ${log.period}: ${log.created_at.toLocaleString('zh-TW')}`);
             });
         }
         
-        // 總結
+        // 总结
         const problemPeriods = recentPeriods.filter(p => 
             p.draw_time && (p.total_bets - p.settled_count) > 0
         );
         
-        console.log('\n📋 系統狀態總結：');
+        console.log('\n📋 系统状态总结：');
         if (problemPeriods.length === 0) {
-            console.log('✅ 結算系統運行正常');
-            console.log('✅ 所有已開獎期號都已正確結算');
-            console.log('✅ 新投注會在開獎後自動結算');
+            console.log('✅ 结算系统运行正常');
+            console.log('✅ 所有已开奖期号都已正确结算');
+            console.log('✅ 新投注会在开奖后自动结算');
         } else {
-            console.log(`❌ 發現 ${problemPeriods.length} 個期號有未結算問題`);
+            console.log(`❌ 发现 ${problemPeriods.length} 个期号有未结算问题`);
             problemPeriods.forEach(p => {
-                console.log(`  期號 ${p.period}: ${p.total_bets - p.settled_count} 筆未結算`);
+                console.log(`  期号 ${p.period}: ${p.total_bets - p.settled_count} 笔未结算`);
             });
         }
         
     } catch (error) {
-        console.error('監控過程中發生錯誤:', error);
+        console.error('监控过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行監控
+// 执行监控
 monitorSettlement();

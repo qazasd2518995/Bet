@@ -1,4 +1,4 @@
-// manual-trigger-rebate.js - 手動觸發退水處理
+// manual-trigger-rebate.js - 手动触发退水处理
 import db from './db/config.js';
 import fetch from 'node-fetch';
 
@@ -8,15 +8,15 @@ const settlementLog = {
     error: (msg, data) => console.error(`[REBATE ERROR] ${msg}`, data || '')
 };
 
-// 代理系統API URL - 使用本地端口
+// 代理系统API URL - 使用本地端口
 const AGENT_API_URL = 'http://localhost:3003';
 
-// 手動觸發特定期號的退水處理
+// 手动触发特定期号的退水处理
 async function manualTriggerRebate(period) {
-    settlementLog.info(`開始手動觸發期號 ${period} 的退水處理`);
+    settlementLog.info(`开始手动触发期号 ${period} 的退水处理`);
     
     try {
-        // 1. 檢查該期是否有已結算的注單
+        // 1. 检查该期是否有已结算的注单
         const settledBets = await db.manyOrNone(`
             SELECT DISTINCT username, SUM(amount) as total_amount
             FROM bet_history
@@ -25,13 +25,13 @@ async function manualTriggerRebate(period) {
         `, [period]);
         
         if (!settledBets || settledBets.length === 0) {
-            settlementLog.warn(`期號 ${period} 沒有已結算的注單`);
+            settlementLog.warn(`期号 ${period} 没有已结算的注单`);
             return;
         }
         
-        settlementLog.info(`找到 ${settledBets.length} 位會員需要處理退水`);
+        settlementLog.info(`找到 ${settledBets.length} 位会员需要处理退水`);
         
-        // 2. 檢查是否已經處理過退水
+        // 2. 检查是否已经处理过退水
         const existingRebates = await db.oneOrNone(`
             SELECT COUNT(*) as count 
             FROM transaction_records
@@ -40,42 +40,42 @@ async function manualTriggerRebate(period) {
         `, [period]);
         
         if (existingRebates && parseInt(existingRebates.count) > 0) {
-            settlementLog.warn(`期號 ${period} 已經處理過退水 (${existingRebates.count} 筆記錄)`);
+            settlementLog.warn(`期号 ${period} 已经处理过退水 (${existingRebates.count} 笔记录)`);
             return;
         }
         
-        // 3. 處理每個會員的退水
+        // 3. 处理每个会员的退水
         for (const record of settledBets) {
             try {
-                settlementLog.info(`處理會員 ${record.username} 的退水，下注金額: ${record.total_amount}`);
+                settlementLog.info(`处理会员 ${record.username} 的退水，下注金额: ${record.total_amount}`);
                 
-                // 獲取會員的代理鏈
+                // 获取会员的代理链
                 const agentChain = await getAgentChain(record.username);
                 if (!agentChain || agentChain.length === 0) {
-                    settlementLog.info(`會員 ${record.username} 沒有代理鏈，跳過`);
+                    settlementLog.info(`会员 ${record.username} 没有代理链，跳过`);
                     continue;
                 }
                 
-                // 簡化的退水計算 - 固定給 1% 退水測試
+                // 简化的退水计算 - 固定给 1% 退水测试
                 const rebateAmount = parseFloat(record.total_amount) * 0.01;
                 
-                settlementLog.info(`計算退水金額: ${rebateAmount} (1%)`);
+                settlementLog.info(`计算退水金额: ${rebateAmount} (1%)`);
                 
-                // 直接插入退水記錄到資料庫（繞過代理系統API）
+                // 直接插入退水记录到资料库（绕过代理系统API）
                 await db.tx(async t => {
-                    // 獲取會員當前餘額
+                    // 获取会员当前余额
                     const member = await t.one(`
                         SELECT id, balance FROM members WHERE username = $1
                     `, [record.username]);
                     
                     const newBalance = parseFloat(member.balance) + rebateAmount;
                     
-                    // 更新會員餘額
+                    // 更新会员余额
                     await t.none(`
                         UPDATE members SET balance = $1 WHERE username = $2
                     `, [newBalance, record.username]);
                     
-                    // 插入交易記錄
+                    // 插入交易记录
                     await t.none(`
                         INSERT INTO transaction_records (
                             user_type, user_id, transaction_type, amount,
@@ -91,34 +91,34 @@ async function manualTriggerRebate(period) {
                         rebateAmount,
                         member.balance,
                         newBalance,
-                        `期號 ${period} 退水 (手動觸發)`,
+                        `期号 ${period} 退水 (手动触发)`,
                         record.username,
                         record.total_amount,
                         1.0, // 1%
-                        `期號 ${period} 退水分配`
+                        `期号 ${period} 退水分配`
                     ]);
                 });
                 
-                settlementLog.info(`✅ 成功為會員 ${record.username} 處理退水 ${rebateAmount}`);
+                settlementLog.info(`✅ 成功为会员 ${record.username} 处理退水 ${rebateAmount}`);
                 
             } catch (memberError) {
-                settlementLog.error(`處理會員 ${record.username} 退水失敗:`, memberError);
+                settlementLog.error(`处理会员 ${record.username} 退水失败:`, memberError);
             }
         }
         
-        settlementLog.info(`✅ 期號 ${period} 退水處理完成`);
+        settlementLog.info(`✅ 期号 ${period} 退水处理完成`);
         
     } catch (error) {
-        settlementLog.error(`手動觸發退水失敗:`, error);
+        settlementLog.error(`手动触发退水失败:`, error);
     }
 }
 
-// 獲取會員的代理鏈（簡化版）
+// 获取会员的代理链（简化版）
 async function getAgentChain(username) {
     try {
         const result = await db.manyOrNone(`
             WITH RECURSIVE agent_hierarchy AS (
-                -- 基礎情況：從會員開始
+                -- 基础情况：从会员开始
                 SELECT 
                     m.id,
                     m.username,
@@ -129,7 +129,7 @@ async function getAgentChain(username) {
                 
                 UNION ALL
                 
-                -- 遞歸：向上查找代理鏈
+                -- 递归：向上查找代理链
                 SELECT 
                     p.id,
                     p.username,
@@ -146,14 +146,14 @@ async function getAgentChain(username) {
         
         return result || [];
     } catch (error) {
-        settlementLog.error('獲取代理鏈失敗:', error);
+        settlementLog.error('获取代理链失败:', error);
         return [];
     }
 }
 
-// 執行手動觸發
+// 执行手动触发
 if (process.argv.length < 3) {
-    console.log('使用方式: node manual-trigger-rebate.js [期號]');
+    console.log('使用方式: node manual-trigger-rebate.js [期号]');
     console.log('例如: node manual-trigger-rebate.js 20250715039');
     process.exit(1);
 }
@@ -162,6 +162,6 @@ const period = process.argv[2];
 manualTriggerRebate(period).then(() => {
     process.exit(0);
 }).catch(error => {
-    console.error('執行失敗:', error);
+    console.error('执行失败:', error);
     process.exit(1);
 });

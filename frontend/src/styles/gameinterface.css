@@ -1,6 +1,6 @@
-/* 極速賽車遊戲界面樣式 */
+/* 极速赛车游戏界面样式 */
 
-/* 基本遊戲容器樣式 */
+/* 基本游戏容器样式 */
 .game-interface {
   font-family: PingFang TC, PingFang SC, Microsoft YaHei;
   color: #344b50;
@@ -10,7 +10,7 @@
   color: hsla(0,0%,100%,.75);
 }
 
-/* 賽車結果區域 */
+/* 赛车结果区域 */
 .race-result {
   margin-bottom: 20px;
   text-align: center;
@@ -35,7 +35,7 @@
   font-size: 1.1rem;
 }
 
-/* 賽車軌道 */
+/* 赛车轨道 */
 .race-track {
   width: 100%;
   border: 1px solid #e0e0e0;
@@ -56,7 +56,7 @@
   min-height: 250px;
 }
 
-/* 當前結果顯示 */
+/* 当前结果显示 */
 .current-result {
   display: flex;
   justify-content: center;
@@ -70,7 +70,7 @@
   background-color: rgba(0, 0, 0, 0.5);
 }
 
-/* 號碼球樣式 */
+/* 号码球样式 */
 .number-ball {
   display: flex;
   align-items: center;
@@ -81,18 +81,18 @@
   color: white;
 }
 
-.color-0 { background-color: #f44336; } /* 紅色 */
-.color-1 { background-color: #1976d2; } /* 藍色 */
-.color-2 { background-color: #388e3c; } /* 綠色 */
+.color-0 { background-color: #f44336; } /* 红色 */
+.color-1 { background-color: #1976d2; } /* 蓝色 */
+.color-2 { background-color: #388e3c; } /* 绿色 */
 .color-3 { background-color: #ffa000; } /* 橙色 */
 .color-4 { background-color: #7b1fa2; } /* 紫色 */
-.color-5 { background-color: #c2185b; } /* 桃紅色 */
-.color-6 { background-color: #0097a7; } /* 藍綠色 */
-.color-7 { background-color: #689f38; } /* 淺綠色 */
+.color-5 { background-color: #c2185b; } /* 桃红色 */
+.color-6 { background-color: #0097a7; } /* 蓝绿色 */
+.color-7 { background-color: #689f38; } /* 浅绿色 */
 .color-8 { background-color: #5d4037; } /* 棕色 */
-.color-9 { background-color: #455a64; } /* 深灰藍色 */
+.color-9 { background-color: #455a64; } /* 深灰蓝色 */
 
-/* 下注區域 */
+/* 下注区域 */
 .betting-area {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -106,7 +106,7 @@
   background-color: #242424;
 }
 
-/* 下注標籤 */
+/* 下注标签 */
 .bet-type-tabs {
   display: flex;
   margin-bottom: 15px;
@@ -133,7 +133,7 @@
   font-weight: 600;
 }
 
-/* 下注選項格線 */
+/* 下注选项格线 */
 .ball-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -163,7 +163,7 @@
   opacity: 0.8;
 }
 
-/* 大小/單雙選項 */
+/* 大小/单双选项 */
 .option-row {
   display: flex;
   gap: 15px;
@@ -203,7 +203,7 @@
   background-color: rgba(121, 176, 123, 0.1);
 }
 
-/* 冠亞和/龍虎選項 */
+/* 冠亚和/龙虎选项 */
 .option-section {
   margin-bottom: 20px;
 }
@@ -220,7 +220,7 @@
   margin-bottom: 15px;
 }
 
-/* 投注單 */
+/* 投注单 */
 .bet-slip {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -330,12 +330,12 @@
   cursor: not-allowed;
 }
 
-/* 歷史區域 */
+/* 历史区域 */
 .history-container {
   margin-top: 20px;
 }
 
-/* 移動設備歷史控制 */
+/* 移动设备历史控制 */
 .history-controls {
   display: flex;
   gap: 10px;
@@ -357,7 +357,7 @@
   color: hsla(0,0%,100%,.75);
 }
 
-/* 歷史記錄按鈕樣式 */
+/* 历史记录按钮样式 */
 .history-buttons {
   display: flex;
   justify-content: flex-end;
@@ -384,7 +384,7 @@
   background-color: #0a5a30;
 }
 
-/* 模態覆蓋層 */
+/* 模态覆盖层 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -395,7 +395,7 @@
   z-index: 100;
 }
 
-/* 歷史模態窗口 */
+/* 历史模态窗口 */
 .history-modal {
   position: fixed;
   top: 50%;
@@ -418,14 +418,14 @@
   background-color: white;
 }
 
-/* 確保歷史記錄標題始終可見 */
+/* 确保历史记录标题始终可见 */
 .history-header {
   position: sticky;
   top: 0;
   z-index: 5;
 }
 
-/* 在較小屏幕上調整樣式 */
+/* 在较小屏幕上调整样式 */
 @media (max-width: 768px) {
   .history-modal {
     width: 95%;

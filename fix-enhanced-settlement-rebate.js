@@ -1,19 +1,19 @@
 import fs from 'fs';
 
-// 讀取原始檔案
+// 读取原始档案
 const filePath = './enhanced-settlement-system.js';
 let content = fs.readFileSync(filePath, 'utf8');
 
-// 找到 enhancedSettlement 函數中檢查未結算投注的部分
+// 找到 enhancedSettlement 函数中检查未结算投注的部分
 const searchPattern = `if (!unsettledBets || unsettledBets.length === 0) {
-                settlementLog.info('沒有未結算的投注');
+                settlementLog.info('没有未结算的投注');
                 return { success: true, settledCount: 0, winCount: 0, totalWinAmount: 0 };
             }`;
 
 const replacement = `if (!unsettledBets || unsettledBets.length === 0) {
-                settlementLog.info('沒有未結算的投注');
+                settlementLog.info('没有未结算的投注');
                 
-                // 即使沒有未結算投注，也要檢查是否需要處理退水
+                // 即使没有未结算投注，也要检查是否需要处理退水
                 try {
                     const hasSettledBets = await t.oneOrNone(\`
                         SELECT COUNT(*) as count 
@@ -29,39 +29,39 @@ const replacement = `if (!unsettledBets || unsettledBets.length === 0) {
                         \`, [period]);
                         
                         if (!hasRebates || parseInt(hasRebates.count) === 0) {
-                            settlementLog.info(\`發現已結算但未處理退水的注單，開始處理退水\`);
+                            settlementLog.info(\`发现已结算但未处理退水的注单，开始处理退水\`);
                             await processRebates(period);
-                            settlementLog.info(\`退水處理完成: 期號 \${period}\`);
+                            settlementLog.info(\`退水处理完成: 期号 \${period}\`);
                         } else {
-                            settlementLog.info(\`期號 \${period} 的退水已經處理過 (\${hasRebates.count} 筆記錄)\`);
+                            settlementLog.info(\`期号 \${period} 的退水已经处理过 (\${hasRebates.count} 笔记录)\`);
                         }
                     }
                 } catch (rebateError) {
-                    settlementLog.error(\`退水處理失敗: 期號 \${period}\`, rebateError);
+                    settlementLog.error(\`退水处理失败: 期号 \${period}\`, rebateError);
                     // Don't fail the entire settlement if rebate processing fails
                 }
                 
                 return { success: true, settledCount: 0, winCount: 0, totalWinAmount: 0 };
             }`;
 
-// 執行替換
+// 执行替换
 if (content.includes(searchPattern)) {
     content = content.replace(searchPattern, replacement);
     
-    // 寫回檔案
+    // 写回档案
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log('✅ 成功修復 enhanced-settlement-system.js');
-    console.log('   - 現在即使沒有未結算投注，也會檢查並處理退水');
+    console.log('✅ 成功修复 enhanced-settlement-system.js');
+    console.log('   - 现在即使没有未结算投注，也会检查并处理退水');
 } else {
-    console.log('❌ 找不到要替換的程式碼，可能檔案已經被修改過');
+    console.log('❌ 找不到要替换的程式码，可能档案已经被修改过');
     
-    // 嘗試找到相似的模式
-    if (content.includes('沒有未結算的投注')) {
-        console.log('   但找到了相似的程式碼，請手動檢查並修改');
+    // 尝试找到相似的模式
+    if (content.includes('没有未结算的投注')) {
+        console.log('   但找到了相似的程式码，请手动检查并修改');
     }
 }
 
-// 另外，確保 processRebates 被正確導入
+// 另外，确保 processRebates 被正确导入
 if (!content.includes("import { processRebates }") && !content.includes("processRebates from")) {
-    console.log('\n⚠️ 注意：processRebates 函數需要在同一檔案中定義或正確導入');
+    console.log('\n⚠️ 注意：processRebates 函数需要在同一档案中定义或正确导入');
 }

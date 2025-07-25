@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API 連接診斷</title>
+    <title>API 连接诊断</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,19 +76,19 @@
 </head>
 <body>
     <div class="container">
-        <h1>FS金彩賽車 API 連接診斷</h1>
+        <h1>FS金彩赛车 API 连接诊断</h1>
         <div id="tests"></div>
-        <button onclick="runTests()">重新測試</button>
+        <button onclick="runTests()">重新测试</button>
     </div>
 
     <script>
         const apiEndpoints = [
-            { name: '遊戲數據 API', url: '/api/game-data', method: 'GET' },
-            { name: '近期開獎結果 API', url: '/api/recent-results', method: 'GET' },
-            { name: '熱門投注 API', url: '/api/hot-bets', method: 'GET' },
-            { name: '歷史記錄 API', url: '/api/history?limit=1', method: 'GET' },
-            { name: '最新結果 API', url: '/api/results/latest', method: 'GET' },
-            { name: '長龍排行 API', url: '/api/dragon-ranking', method: 'GET' }
+            { name: '游戏数据 API', url: '/api/game-data', method: 'GET' },
+            { name: '近期开奖结果 API', url: '/api/recent-results', method: 'GET' },
+            { name: '热门投注 API', url: '/api/hot-bets', method: 'GET' },
+            { name: '历史记录 API', url: '/api/history?limit=1', method: 'GET' },
+            { name: '最新结果 API', url: '/api/results/latest', method: 'GET' },
+            { name: '长龙排行 API', url: '/api/dragon-ranking', method: 'GET' }
         ];
 
         async function testEndpoint(endpoint) {
@@ -97,7 +97,7 @@
             testDiv.innerHTML = `
                 <h3>${endpoint.name}</h3>
                 <div class="url">${endpoint.url}</div>
-                <div class="result">測試中...</div>
+                <div class="result">测试中...</div>
             `;
             document.getElementById('tests').appendChild(testDiv);
 
@@ -119,27 +119,27 @@
                     testDiv.className = 'test-item success';
                     testDiv.querySelector('.result').innerHTML = `
                         ✅ 成功 (${response.status})
-                        <br>響應時間: ${responseTime}ms
-                        <br>數據: ${JSON.stringify(data).substring(0, 100)}...
+                        <br>响应时间: ${responseTime}ms
+                        <br>数据: ${JSON.stringify(data).substring(0, 100)}...
                     `;
                 } else {
                     testDiv.className = 'test-item error';
                     testDiv.querySelector('.result').innerHTML = `
-                        ❌ 失敗 (${response.status})
-                        <br>錯誤: ${data.message || '未知錯誤'}
+                        ❌ 失败 (${response.status})
+                        <br>错误: ${data.message || '未知错误'}
                     `;
                 }
             } catch (error) {
                 testDiv.className = 'test-item error';
                 testDiv.querySelector('.result').innerHTML = `
-                    ❌ 連接失敗
+                    ❌ 连接失败
                     <div class="error-detail">
-                        錯誤類型: ${error.name}<br>
-                        錯誤訊息: ${error.message}<br>
+                        错误类型: ${error.name}<br>
+                        错误讯息: ${error.message}<br>
                         可能原因：<br>
-                        - 後端服務未啟動<br>
-                        - CORS 設置問題<br>
-                        - 網絡連接問題
+                        - 后端服务未启动<br>
+                        - CORS 设置问题<br>
+                        - 网络连接问题
                     </div>
                 `;
             }
@@ -148,13 +148,13 @@
         async function runTests() {
             document.getElementById('tests').innerHTML = '';
             
-            // 先測試基本連接
+            // 先测试基本连接
             const baseTest = document.createElement('div');
             baseTest.className = 'test-item pending';
             baseTest.innerHTML = `
-                <h3>基本連接測試</h3>
+                <h3>基本连接测试</h3>
                 <div class="url">${window.location.origin}</div>
-                <div class="result">測試中...</div>
+                <div class="result">测试中...</div>
             `;
             document.getElementById('tests').appendChild(baseTest);
             
@@ -162,25 +162,25 @@
                 const response = await fetch('/');
                 if (response.ok) {
                     baseTest.className = 'test-item success';
-                    baseTest.querySelector('.result').innerHTML = '✅ 網站可以訪問';
+                    baseTest.querySelector('.result').innerHTML = '✅ 网站可以访问';
                 } else {
                     baseTest.className = 'test-item error';
-                    baseTest.querySelector('.result').innerHTML = `❌ 網站訪問失敗 (${response.status})`;
+                    baseTest.querySelector('.result').innerHTML = `❌ 网站访问失败 (${response.status})`;
                 }
             } catch (error) {
                 baseTest.className = 'test-item error';
-                baseTest.querySelector('.result').innerHTML = `❌ 無法連接到網站: ${error.message}`;
+                baseTest.querySelector('.result').innerHTML = `❌ 无法连接到网站: ${error.message}`;
             }
             
-            // 測試各個 API 端點
+            // 测试各个 API 端点
             for (const endpoint of apiEndpoints) {
                 await testEndpoint(endpoint);
-                // 避免太快發送請求
+                // 避免太快发送请求
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
 
-        // 頁面加載時自動運行測試
+        // 页面加载时自动运行测试
         window.onload = runTests;
     </script>
 </body>

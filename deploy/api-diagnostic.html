@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API 診斷工具</title>
+    <title>API 诊断工具</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -94,34 +94,34 @@
 </head>
 <body>
     <div class="header">
-        <h1>FS金彩賽車 API 診斷工具</h1>
-        <p>當前網址: <span id="currentUrl"></span></p>
-        <p>診斷時間: <span id="diagnosticTime"></span></p>
+        <h1>FS金彩赛车 API 诊断工具</h1>
+        <p>当前网址: <span id="currentUrl"></span></p>
+        <p>诊断时间: <span id="diagnosticTime"></span></p>
     </div>
 
     <div class="diagnostic-section">
-        <h2>環境資訊</h2>
+        <h2>环境资讯</h2>
         <div id="environmentInfo"></div>
     </div>
 
     <div class="diagnostic-section">
-        <h2>API 端點測試</h2>
-        <button onclick="runAllTests()">執行所有測試</button>
-        <button onclick="clearResults()">清除結果</button>
+        <h2>API 端点测试</h2>
+        <button onclick="runAllTests()">执行所有测试</button>
+        <button onclick="clearResults()">清除结果</button>
         <div id="apiTests"></div>
     </div>
 
     <div class="diagnostic-section">
-        <h2>網路診斷</h2>
+        <h2>网路诊断</h2>
         <div id="networkDiagnostic"></div>
     </div>
 
     <script>
-        // 顯示當前環境資訊
+        // 显示当前环境资讯
         document.getElementById('currentUrl').textContent = window.location.href;
         document.getElementById('diagnosticTime').textContent = new Date().toLocaleString('zh-CN');
 
-        // 環境資訊
+        // 环境资讯
         const envInfo = document.getElementById('environmentInfo');
         envInfo.innerHTML = `
             <div class="info-box">
@@ -133,15 +133,15 @@
             </div>
         `;
 
-        // API 端點列表
+        // API 端点列表
         const apiEndpoints = [
             { name: 'Health Check', url: '/api/health', method: 'GET' },
-            { name: '遊戲數據', url: '/api/game-data', method: 'GET' },
-            { name: '近期結果', url: '/api/recent-results', method: 'GET' },
-            { name: '熱門投注', url: '/api/hot-bets', method: 'GET' },
-            { name: '歷史記錄', url: '/api/history?limit=1', method: 'GET' },
-            { name: '最新結果', url: '/api/results/latest', method: 'GET' },
-            { name: '長龍排行', url: '/api/dragon-ranking', method: 'GET' }
+            { name: '游戏数据', url: '/api/game-data', method: 'GET' },
+            { name: '近期结果', url: '/api/recent-results', method: 'GET' },
+            { name: '热门投注', url: '/api/hot-bets', method: 'GET' },
+            { name: '历史记录', url: '/api/history?limit=1', method: 'GET' },
+            { name: '最新结果', url: '/api/results/latest', method: 'GET' },
+            { name: '长龙排行', url: '/api/dragon-ranking', method: 'GET' }
         ];
 
         async function testEndpoint(endpoint) {
@@ -151,7 +151,7 @@
             testDiv.innerHTML = `
                 <h3>${endpoint.name}</h3>
                 <div class="url-display">${endpoint.method} ${endpoint.url}</div>
-                <div class="result">測試中...</div>
+                <div class="result">测试中...</div>
             `;
             testContainer.appendChild(testDiv);
 
@@ -180,7 +180,7 @@
                         responseData = await response.text();
                     }
                 } catch (e) {
-                    responseData = '無法解析響應內容';
+                    responseData = '无法解析响应内容';
                 }
 
                 if (response.ok) {
@@ -188,9 +188,9 @@
                     testDiv.querySelector('.result').innerHTML = `
                         <div class="success-detail">
                             ✅ 成功 (${response.status} ${response.statusText})
-                            <br>響應時間: ${responseTime}ms
+                            <br>响应时间: ${responseTime}ms
                             <br>Content-Type: ${response.headers.get('content-type')}
-                            <br>響應預覽:
+                            <br>响应预览:
                             <pre>${JSON.stringify(responseData, null, 2).substring(0, 500)}...</pre>
                         </div>
                     `;
@@ -198,9 +198,9 @@
                     testDiv.className = 'test-item error';
                     testDiv.querySelector('.result').innerHTML = `
                         <div class="error-detail">
-                            ❌ 失敗 (${response.status} ${response.statusText})
-                            <br>響應時間: ${responseTime}ms
-                            <br>錯誤詳情:
+                            ❌ 失败 (${response.status} ${response.statusText})
+                            <br>响应时间: ${responseTime}ms
+                            <br>错误详情:
                             <pre>${JSON.stringify(responseData, null, 2)}</pre>
                         </div>
                     `;
@@ -209,18 +209,18 @@
                 testDiv.className = 'test-item error';
                 testDiv.querySelector('.result').innerHTML = `
                     <div class="error-detail">
-                        ❌ 網路錯誤
-                        <br>錯誤類型: ${error.name}
-                        <br>錯誤訊息: ${error.message}
-                        <br>完整錯誤:
+                        ❌ 网路错误
+                        <br>错误类型: ${error.name}
+                        <br>错误讯息: ${error.message}
+                        <br>完整错误:
                         <pre>${error.stack}</pre>
                         <br><br>可能的原因:
                         <ul>
-                            <li>後端服務未啟動或崩潰</li>
-                            <li>CORS 配置問題</li>
-                            <li>SSL/TLS 證書問題</li>
-                            <li>防火牆或安全策略阻擋</li>
-                            <li>DNS 解析問題</li>
+                            <li>后端服务未启动或崩溃</li>
+                            <li>CORS 配置问题</li>
+                            <li>SSL/TLS 证书问题</li>
+                            <li>防火墙或安全策略阻挡</li>
+                            <li>DNS 解析问题</li>
                         </ul>
                     </div>
                 `;
@@ -230,57 +230,57 @@
         async function runAllTests() {
             document.getElementById('apiTests').innerHTML = '';
             
-            // 測試網路連接
+            // 测试网路连接
             await testNetworkConnectivity();
             
-            // 測試每個 API 端點
+            // 测试每个 API 端点
             for (const endpoint of apiEndpoints) {
                 await testEndpoint(endpoint);
-                // 延遲以避免過度請求
+                // 延迟以避免过度请求
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
 
         async function testNetworkConnectivity() {
             const networkDiv = document.getElementById('networkDiagnostic');
-            networkDiv.innerHTML = '<h3>測試基本網路連接...</h3>';
+            networkDiv.innerHTML = '<h3>测试基本网路连接...</h3>';
 
-            // 測試根路徑
+            // 测试根路径
             try {
                 const response = await fetch('/', { method: 'HEAD' });
                 networkDiv.innerHTML += `
                     <div class="test-item success">
-                        <p>✅ 網站根路徑可訪問 (${response.status})</p>
+                        <p>✅ 网站根路径可访问 (${response.status})</p>
                     </div>
                 `;
             } catch (e) {
                 networkDiv.innerHTML += `
                     <div class="test-item error">
-                        <p>❌ 無法訪問網站根路徑: ${e.message}</p>
+                        <p>❌ 无法访问网站根路径: ${e.message}</p>
                     </div>
                 `;
             }
 
-            // 檢查 HTTPS
+            // 检查 HTTPS
             if (window.location.protocol === 'https:') {
                 networkDiv.innerHTML += `
                     <div class="test-item success">
-                        <p>✅ 使用安全的 HTTPS 連接</p>
+                        <p>✅ 使用安全的 HTTPS 连接</p>
                     </div>
                 `;
             } else {
                 networkDiv.innerHTML += `
                     <div class="test-item error">
-                        <p>⚠️ 未使用 HTTPS 連接</p>
+                        <p>⚠️ 未使用 HTTPS 连接</p>
                     </div>
                 `;
             }
 
-            // 檢查是否在 Render 上
+            // 检查是否在 Render 上
             if (window.location.hostname.includes('render.com') || window.location.hostname.includes('onrender.com')) {
                 networkDiv.innerHTML += `
                     <div class="test-item success">
-                        <p>✅ 偵測到 Render 部署環境</p>
+                        <p>✅ 侦测到 Render 部署环境</p>
                     </div>
                 `;
             }
@@ -291,9 +291,9 @@
             document.getElementById('networkDiagnostic').innerHTML = '';
         }
 
-        // 頁面載入時自動執行
+        // 页面载入时自动执行
         window.onload = function() {
-            console.log('API 診斷工具已載入');
+            console.log('API 诊断工具已载入');
         };
     </script>
 </body>

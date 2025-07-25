@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkTodayRebates() {
     try {
-        console.log('=== 檢查今日所有退水狀況 ===\n');
+        console.log('=== 检查今日所有退水状况 ===\n');
         
-        // 找出今天所有已結算的下注和對應的退水狀況
+        // 找出今天所有已结算的下注和对应的退水状况
         const todayBets = await db.any(`
             SELECT 
                 bh.period,
@@ -31,9 +31,9 @@ async function checkTodayRebates() {
             ORDER BY bh.period DESC
         `);
         
-        console.log(`今日共有 ${todayBets.length} 筆結算記錄\n`);
+        console.log(`今日共有 ${todayBets.length} 笔结算记录\n`);
         
-        // 分析退水狀況
+        // 分析退水状况
         let totalBets = 0;
         let totalWithRebates = 0;
         let totalMissingRebates = 0;
@@ -44,29 +44,29 @@ async function checkTodayRebates() {
             totalBets++;
             if (bet.rebate_count > 0) {
                 totalWithRebates++;
-                console.log(`✅ 期號 ${bet.period} - ${bet.username}: ${bet.bet_count} 筆下注 (${bet.total_amount}元), ${bet.rebate_count} 筆退水 (${bet.rebate_total}元)`);
+                console.log(`✅ 期号 ${bet.period} - ${bet.username}: ${bet.bet_count} 笔下注 (${bet.total_amount}元), ${bet.rebate_count} 笔退水 (${bet.rebate_total}元)`);
             } else {
                 totalMissingRebates++;
                 missingPeriods.add(bet.period);
-                console.log(`❌ 期號 ${bet.period} - ${bet.username}: ${bet.bet_count} 筆下注 (${bet.total_amount}元), 無退水記錄`);
+                console.log(`❌ 期号 ${bet.period} - ${bet.username}: ${bet.bet_count} 笔下注 (${bet.total_amount}元), 无退水记录`);
             }
         });
         
-        console.log(`\n=== 統計摘要 ===`);
-        console.log(`總結算記錄: ${totalBets}`);
+        console.log(`\n=== 统计摘要 ===`);
+        console.log(`总结算记录: ${totalBets}`);
         console.log(`有退水: ${totalWithRebates}`);
-        console.log(`無退水: ${totalMissingRebates}`);
-        console.log(`缺少退水的期號數: ${missingPeriods.size}`);
+        console.log(`无退水: ${totalMissingRebates}`);
+        console.log(`缺少退水的期号数: ${missingPeriods.size}`);
         
         if (missingPeriods.size > 0) {
-            console.log(`\n缺少退水的期號列表:`);
+            console.log(`\n缺少退水的期号列表:`);
             Array.from(missingPeriods).sort().forEach(period => {
                 console.log(`  - ${period}`);
             });
         }
         
-        // 檢查退水記錄的 period 欄位格式
-        console.log(`\n=== 檢查退水記錄格式 ===`);
+        // 检查退水记录的 period 栏位格式
+        console.log(`\n=== 检查退水记录格式 ===`);
         const sampleRebates = await db.any(`
             SELECT DISTINCT 
                 period,
@@ -79,13 +79,13 @@ async function checkTodayRebates() {
             LIMIT 10
         `);
         
-        console.log(`今日退水記錄的 period 格式範例:`);
+        console.log(`今日退水记录的 period 格式范例:`);
         sampleRebates.forEach(r => {
-            console.log(`  "${r.period}" - ${r.count} 筆`);
+            console.log(`  "${r.period}" - ${r.count} 笔`);
         });
         
-        // 檢查 justin111 的下注和退水狀況
-        console.log(`\n=== justin111 今日下注和退水詳情 ===`);
+        // 检查 justin111 的下注和退水状况
+        console.log(`\n=== justin111 今日下注和退水详情 ===`);
         const justin111Details = await db.any(`
             SELECT 
                 bh.period,
@@ -111,14 +111,14 @@ async function checkTodayRebates() {
         
         justin111Details.forEach(d => {
             const status = (d.justin2025a_rebate || d.ti2025a_rebate) ? '✅' : '❌';
-            console.log(`${status} 期號 ${d.period}: 下注 ${d.bet_amount}元`);
+            console.log(`${status} 期号 ${d.period}: 下注 ${d.bet_amount}元`);
             if (d.justin2025a_rebate || d.ti2025a_rebate) {
                 console.log(`   退水: justin2025A=${d.justin2025a_rebate || 0}元, ti2025A=${d.ti2025a_rebate || 0}元`);
             }
         });
         
     } catch (error) {
-        console.error('檢查時發生錯誤:', error);
+        console.error('检查时发生错误:', error);
     } finally {
         process.exit(0);
     }

@@ -1,6 +1,6 @@
-/* 極速賽車遊戲響應式設計 */
+/* 极速赛车游戏响应式设计 */
 
-/* 基礎媒體查詢設定 */
+/* 基础媒体查询设定 */
 .mobile-only {
   display: block;
 }
@@ -9,7 +9,7 @@
   display: none;
 }
 
-/* 手機版設計 (預設) */
+/* 手机版设计 (预设) */
 body {
   --game-container-width: 100%;
   --game-container-max-width: 500px;
@@ -23,7 +23,7 @@ body {
   padding: var(--game-content-padding);
 }
 
-/* 號碼球樣式 - 手機版 */
+/* 号码球样式 - 手机版 */
 .number-ball {
   width: 30px;
   height: 30px;
@@ -31,18 +31,18 @@ body {
   line-height: 30px;
 }
 
-/* 下注區域 - 手機版 */
+/* 下注区域 - 手机版 */
 .betting-area {
   display: flex;
   flex-direction: column;
 }
 
-/* 歷史記錄區域 - 手機版 */
+/* 历史记录区域 - 手机版 */
 .history-container {
   margin-top: 20px;
 }
 
-/* 平板/小型桌面設備 (768px 以上) */
+/* 平板/小型桌面设备 (768px 以上) */
 @media screen and (min-width: 768px) {
   body {
     --game-container-max-width: 720px;
@@ -57,7 +57,7 @@ body {
   }
 }
 
-/* 桌面設備 (1024px 以上) */
+/* 桌面设备 (1024px 以上) */
 @media screen and (min-width: 1024px) {
   .mobile-only {
     display: none;
@@ -73,7 +73,7 @@ body {
     --game-content-padding: 20px;
   }
   
-  /* 號碼球樣式 - 桌面版 */
+  /* 号码球样式 - 桌面版 */
   .number-ball {
     width: 40px;
     height: 40px;
@@ -81,7 +81,7 @@ body {
     line-height: 40px;
   }
   
-  /* 下注區域 - 桌面版 */
+  /* 下注区域 - 桌面版 */
   .betting-area {
     flex-direction: row;
     justify-content: space-between;
@@ -95,14 +95,14 @@ body {
     width: 33%;
   }
   
-  /* 賽車軌道 - 桌面版寬畫面比例 */
+  /* 赛车轨道 - 桌面版宽画面比例 */
   .race-track {
-    height: 300px;  /* 桌面版更高的賽車軌道 */
-    aspect-ratio: 16/9;  /* 寬螢幕比例 */
+    height: 300px;  /* 桌面版更高的赛车轨道 */
+    aspect-ratio: 16/9;  /* 宽萤幕比例 */
     margin: 0 auto;
   }
   
-  /* 歷史記錄區域 - 桌面版 */
+  /* 历史记录区域 - 桌面版 */
   .history-container {
     display: flex;
     margin-top: 30px;
@@ -118,7 +118,7 @@ body {
   }
 }
 
-/* 大型桌面設備 (1440px 以上) */
+/* 大型桌面设备 (1440px 以上) */
 @media screen and (min-width: 1440px) {
   body {
     --game-container-max-width: 1400px;
@@ -137,7 +137,7 @@ body {
   }
 }
 
-/* 設備檢測腳本將動態添加以下類別之一到 body 元素上 */
+/* 设备检测脚本将动态添加以下类别之一到 body 元素上 */
 body.device-mobile .desktop-only {
   display: none !important;
 }

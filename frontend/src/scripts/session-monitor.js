@@ -1,4 +1,4 @@
-// frontend/src/scripts/session-monitor.js - 会话监控腳本
+// frontend/src/scripts/session-monitor.js - 会话监控脚本
 class SessionMonitor {
     constructor() {
         this.checkInterval = 15 * 1000; // 15秒检查一次，更频繁
@@ -9,10 +9,10 @@ class SessionMonitor {
     }
     
     /**
-     * 啟動会话监控
+     * 启动会话监控
      */
     start() {
-        console.log('🔍 会话监控已啟動');
+        console.log('🔍 会话监控已启动');
         
         // 立即检查一次
         this.checkSession();
@@ -22,7 +22,7 @@ class SessionMonitor {
             this.checkSession();
         }, this.checkInterval);
         
-        // 監聽页面可见性變化，當页面重新可见时检查会话
+        // 监听页面可见性变化，当页面重新可见时检查会话
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 console.log('📖 页面重新可见，检查会话状态');
@@ -55,14 +55,14 @@ class SessionMonitor {
         try {
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
             if (!isLoggedIn || isLoggedIn !== 'true') {
-                // 用戶未登入，停止监控
+                // 用户未登入，停止监控
                 this.stop();
                 return;
             }
             
             const sessionToken = sessionStorage.getItem('sessionToken');
             if (!sessionToken) {
-                // 沒有会话token，使用舊版验证
+                // 没有会话token，使用旧版验证
                 return;
             }
             
@@ -82,7 +82,7 @@ class SessionMonitor {
                 // 会话有效，重置警告状态
                 this.warningDisplayed = false;
                 
-                // 检查是否有新的登入（会话ID變化）
+                // 检查是否有新的登入（会话ID变化）
                 if (result.sessionId && this.lastSessionId && result.sessionId !== this.lastSessionId) {
                     console.log('⚠️ 检测到新的登入，强制登出...');
                     await this.handleSessionInvalid('other_device_login');
@@ -112,28 +112,28 @@ class SessionMonitor {
         
         switch (reason) {
             case 'session_invalid':
-                message = '检测到您的帳號已在其他装置登入，当前会话已失效。';
+                message = '检测到您的帐号已在其他装置登入，当前会话已失效。';
                 break;
             case 'other_device_login':
-                message = '您的帳號在其他装置登入，为了安全起见，当前会话已自動登出。';
+                message = '您的帐号在其他装置登入，为了安全起见，当前会话已自动登出。';
                 break;
             case 'no_token':
                 message = '登入凭证遗失，请重新登入。';
                 break;
             case 'system_error':
-                message = '系统验证出現问题，请重新登入。';
+                message = '系统验证出现问题，请重新登入。';
                 break;
         }
         
         console.warn('⚠️ 会话失效:', reason);
         
-        // 显示警告並跳转
-        const shouldRelogin = confirm(`${message}\n\n点擊确定立即重新登入，点擊取消繼續使用（可能会有功能限制）。`);
+        // 显示警告并跳转
+        const shouldRelogin = confirm(`${message}\n\n点击确定立即重新登入，点击取消继续使用（可能会有功能限制）。`);
         
         if (shouldRelogin) {
             await this.logout();
         } else {
-            // 用戶选择繼續使用，暂停监控30秒後再次检查
+            // 用户选择继续使用，暂停监控30秒后再次检查
             setTimeout(() => {
                 this.warningDisplayed = false;
             }, 30000);
@@ -141,7 +141,7 @@ class SessionMonitor {
     }
     
     /**
-     * 登出並清理
+     * 登出并清理
      */
     async logout() {
         const sessionToken = sessionStorage.getItem('sessionToken');
@@ -163,7 +163,7 @@ class SessionMonitor {
             }
         }
         
-        // 清理本地存儲
+        // 清理本地存储
         sessionStorage.clear();
         
         // 停止监控
@@ -182,8 +182,8 @@ class SessionMonitor {
             return null;
         }
         
-        // 由于会话token是随机生成的，無法直接获取过期时间
-        // 可以根据登入时间估算，预設会话时长为8小时
+        // 由于会话token是随机生成的，无法直接获取过期时间
+        // 可以根据登入时间估算，预设会话时长为8小时
         const loginTime = sessionStorage.getItem('loginTime');
         if (loginTime) {
             const sessionDuration = 8 * 60 * 60 * 1000; // 8小时
@@ -202,15 +202,15 @@ class SessionMonitor {
         if (remainingTime !== null) {
             const hours = Math.floor(remainingTime / (60 * 60 * 1000));
             const minutes = Math.floor((remainingTime % (60 * 60 * 1000)) / (60 * 1000));
-            console.log(`⏰ 估計剩余会话时间: ${hours}小时${minutes}分钟`);
+            console.log(`⏰ 估计剩余会话时间: ${hours}小时${minutes}分钟`);
         }
     }
 }
 
-// 创建全局会话监控實例
+// 创建全局会话监控实例
 window.sessionMonitor = new SessionMonitor();
 
-// 當页面加载完成後自動啟動会话监控
+// 当页面加载完成后自动启动会话监控
 document.addEventListener('DOMContentLoaded', function() {
     // 检查是否已登入
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
@@ -220,18 +220,18 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.setItem('loginTime', Date.now().toString());
         }
         
-        // 啟動会话监控
+        // 启动会话监控
         window.sessionMonitor.start();
     }
 });
 
-// 當登入成功时調用此函數
+// 当登入成功时调用此函数
 window.startSessionMonitoring = function() {
     sessionStorage.setItem('loginTime', Date.now().toString());
     window.sessionMonitor.start();
 };
 
-// 當登出时調用此函數
+// 当登出时调用此函数
 window.stopSessionMonitoring = function() {
     window.sessionMonitor.stop();
 };

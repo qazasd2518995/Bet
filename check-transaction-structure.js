@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkTransactionStructure() {
     try {
-        console.log('=== 檢查 transaction_records 表結構 ===\n');
+        console.log('=== 检查 transaction_records 表结构 ===\n');
 
-        // 檢查表結構
+        // 检查表结构
         const columns = await db.any(`
             SELECT column_name, data_type, is_nullable
             FROM information_schema.columns
@@ -12,13 +12,13 @@ async function checkTransactionStructure() {
             ORDER BY ordinal_position
         `);
 
-        console.log('transaction_records 表的欄位：');
+        console.log('transaction_records 表的栏位：');
         for (const col of columns) {
             console.log(`- ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`);
         }
 
-        // 檢查最近的幾筆交易記錄
-        console.log('\n\n=== 最近的交易記錄 ===');
+        // 检查最近的几笔交易记录
+        console.log('\n\n=== 最近的交易记录 ===');
         const recentTransactions = await db.any(`
             SELECT * FROM transaction_records 
             ORDER BY created_at DESC 
@@ -26,11 +26,11 @@ async function checkTransactionStructure() {
         `);
 
         if (recentTransactions.length > 0) {
-            console.log(`\n找到 ${recentTransactions.length} 筆記錄`);
-            console.log('第一筆記錄的所有欄位：');
+            console.log(`\n找到 ${recentTransactions.length} 笔记录`);
+            console.log('第一笔记录的所有栏位：');
             console.log(Object.keys(recentTransactions[0]));
             
-            console.log('\n最近的退水相關交易：');
+            console.log('\n最近的退水相关交易：');
             const rebateTransactions = await db.any(`
                 SELECT * FROM transaction_records 
                 WHERE type IN ('rebate', 'parent_rebate')
@@ -40,17 +40,17 @@ async function checkTransactionStructure() {
             
             for (const tx of rebateTransactions) {
                 console.log(`\nID: ${tx.id}`);
-                console.log(`類型: ${tx.type}`);
-                console.log(`用戶: ${tx.username}`);
-                console.log(`金額: ${tx.amount}`);
-                console.log(`期號: ${tx.period}`);
+                console.log(`类型: ${tx.type}`);
+                console.log(`用户: ${tx.username}`);
+                console.log(`金额: ${tx.amount}`);
+                console.log(`期号: ${tx.period}`);
                 console.log(`描述: ${tx.description}`);
-                console.log(`時間: ${tx.created_at}`);
+                console.log(`时间: ${tx.created_at}`);
             }
         }
 
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

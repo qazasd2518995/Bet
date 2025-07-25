@@ -1,22 +1,22 @@
-// manual-settle-229.js - 手動結算期號229
+// manual-settle-229.js - 手动结算期号229
 import db from './db/config.js';
 import { improvedSettleBets } from './improved-settlement-system.js';
 
 async function manualSettle229() {
-    console.log('🔧 手動結算期號 20250714229...\n');
+    console.log('🔧 手动结算期号 20250714229...\n');
     
     try {
-        // 1. 獲取開獎結果
+        // 1. 获取开奖结果
         const result = await db.one(`
             SELECT period, result
             FROM result_history
             WHERE period = 20250714229
         `);
         
-        console.log(`📊 期號: ${result.period}`);
-        console.log(`開獎結果: ${result.result}`);
+        console.log(`📊 期号: ${result.period}`);
+        console.log(`开奖结果: ${result.result}`);
         
-        // 解析開獎結果
+        // 解析开奖结果
         let positions = [];
         if (Array.isArray(result.result)) {
             positions = result.result;
@@ -24,10 +24,10 @@ async function manualSettle229() {
             positions = result.result.split(',').map(n => parseInt(n.trim()));
         }
         
-        console.log(`解析後結果: [${positions.join(',')}]`);
-        console.log(`第6名開出: ${positions[5]}號\n`);
+        console.log(`解析后结果: [${positions.join(',')}]`);
+        console.log(`第6名开出: ${positions[5]}号\n`);
         
-        // 2. 檢查未結算的注單
+        // 2. 检查未结算的注单
         const unsettledBets = await db.any(`
             SELECT id, username, bet_type, bet_value, position, amount, odds
             FROM bet_history
@@ -35,36 +35,36 @@ async function manualSettle229() {
             AND settled = false
         `);
         
-        console.log(`找到 ${unsettledBets.length} 筆未結算注單`);
+        console.log(`找到 ${unsettledBets.length} 笔未结算注单`);
         
-        // 3. 準備結算數據
+        // 3. 准备结算数据
         const winResult = { positions: positions };
-        console.log(`準備結算數據: ${JSON.stringify(winResult)}\n`);
+        console.log(`准备结算数据: ${JSON.stringify(winResult)}\n`);
         
-        // 4. 執行結算
-        console.log('🎯 開始執行結算...');
+        // 4. 执行结算
+        console.log('🎯 开始执行结算...');
         
         const settlementResult = await improvedSettleBets(20250714229, winResult);
         
         if (settlementResult.success) {
-            console.log('\n✅ 結算成功！');
-            console.log(`結算注單數: ${settlementResult.settledCount}`);
-            console.log(`總中獎金額: $${settlementResult.totalWinAmount || 0}`);
+            console.log('\n✅ 结算成功！');
+            console.log(`结算注单数: ${settlementResult.settledCount}`);
+            console.log(`总中奖金额: $${settlementResult.totalWinAmount || 0}`);
             
             if (settlementResult.userWinnings && Object.keys(settlementResult.userWinnings).length > 0) {
-                console.log('\n💰 中獎詳情:');
+                console.log('\n💰 中奖详情:');
                 Object.entries(settlementResult.userWinnings).forEach(([username, amount]) => {
                     console.log(`  ${username}: $${amount}`);
                 });
             } else {
-                console.log('\n📋 本期無中獎注單');
+                console.log('\n📋 本期无中奖注单');
             }
         } else {
-            console.log(`\n❌ 結算失敗: ${settlementResult.reason}`);
+            console.log(`\n❌ 结算失败: ${settlementResult.reason}`);
         }
         
-        // 5. 驗證結算結果
-        console.log('\n🔍 驗證結算結果...');
+        // 5. 验证结算结果
+        console.log('\n🔍 验证结算结果...');
         
         const verifyBets = await db.any(`
             SELECT id, bet_value, win, win_amount, settled, settled_at
@@ -74,17 +74,17 @@ async function manualSettle229() {
             ORDER BY id ASC
         `);
         
-        console.log('\n第6名投注結算結果:');
+        console.log('\n第6名投注结算结果:');
         verifyBets.forEach(bet => {
             const shouldWin = parseInt(bet.bet_value) === positions[5]; // 第6名是positions[5]
-            const status = bet.settled ? '✅ 已結算' : '❌ 未結算';
-            const winStatus = bet.win ? `中獎 $${bet.win_amount}` : '未中獎';
+            const status = bet.settled ? '✅ 已结算' : '❌ 未结算';
+            const winStatus = bet.win ? `中奖 $${bet.win_amount}` : '未中奖';
             const correct = shouldWin === bet.win ? '✅' : '❌';
             
-            console.log(`${status} ID ${bet.id}: 投注${bet.bet_value}號, ${winStatus} ${correct}`);
+            console.log(`${status} ID ${bet.id}: 投注${bet.bet_value}号, ${winStatus} ${correct}`);
         });
         
-        // 6. 檢查是否所有注單都已結算
+        // 6. 检查是否所有注单都已结算
         const stillUnsettled = await db.any(`
             SELECT COUNT(*) as count
             FROM bet_history
@@ -93,17 +93,17 @@ async function manualSettle229() {
         `);
         
         if (parseInt(stillUnsettled[0].count) === 0) {
-            console.log('\n✅ 期號229所有注單已完成結算！');
+            console.log('\n✅ 期号229所有注单已完成结算！');
         } else {
-            console.log(`\n⚠️ 仍有 ${stillUnsettled[0].count} 筆注單未結算`);
+            console.log(`\n⚠️ 仍有 ${stillUnsettled[0].count} 笔注单未结算`);
         }
         
     } catch (error) {
-        console.error('手動結算過程中發生錯誤:', error);
+        console.error('手动结算过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行手動結算
+// 执行手动结算
 manualSettle229();

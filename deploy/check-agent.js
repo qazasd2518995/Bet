@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkAgent() {
     try {
-        console.log('檢查 A 盤總代理...');
+        console.log('检查 A 盘总代理...');
         
-        // 查詢 A 盤總代理
+        // 查询 A 盘总代理
         const agent = await db.oneOrNone(`
             SELECT id, username, password, level, status, market_type, balance 
             FROM agents 
@@ -27,7 +27,7 @@ async function checkAgent() {
         
         process.exit(0);
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
         process.exit(1);
     }
 }

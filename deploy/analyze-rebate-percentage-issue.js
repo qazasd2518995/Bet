@@ -73,8 +73,8 @@ async function analyzeRebatePercentageIssue() {
         if (profiles.length > 0) {
             profiles.forEach(p => {
                 console.log(`\n${p.username} (Level ${p.level}):`);
-                console.log(`- A盤退水設定: ${p.a_rebate_rate}%`);
-                console.log(`- D盤退水設定: ${p.d_rebate_rate}%`);
+                console.log(`- A盘退水设定: ${p.a_rebate_rate}%`);
+                console.log(`- D盘退水设定: ${p.d_rebate_rate}%`);
                 
                 // Find corresponding rebate transaction
                 const rebateTx = rebates.find(r => r.user_id === p.agent_id);

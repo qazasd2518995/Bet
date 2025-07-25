@@ -1,32 +1,32 @@
 # Render PostgreSQL 部署指南
 
-## 資料庫連接資訊
+## 资料库连接资讯
 
-您提供的Render PostgreSQL連接資訊：
+您提供的Render PostgreSQL连接资讯：
 ```
 postgresql://bet_game_user:Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy@dpg-d0e2imc9c44c73che3kg-a/bet_game
 ```
 
-### 連接參數分解
-- **主機**: `dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com`
+### 连接参数分解
+- **主机**: `dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com`
 - **端口**: `5432`
-- **資料庫**: `bet_game`
-- **用戶**: `bet_game_user`
-- **密碼**: `Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy`
-- **SSL**: 必須啟用
+- **资料库**: `bet_game`
+- **用户**: `bet_game_user`
+- **密码**: `Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy`
+- **SSL**: 必须启用
 
-## 🔧 Render 環境變數設置
+## 🔧 Render 环境变数设置
 
-在Render控制台中設置以下環境變數：
+在Render控制台中设置以下环境变数：
 
-### 基本應用設置
+### 基本应用设置
 ```bash
 NODE_ENV=production
 PORT=3002
 AGENT_PORT=3003
 ```
 
-### 資料庫設置
+### 资料库设置
 ```bash
 DATABASE_URL=postgresql://bet_game_user:Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy@dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com/bet_game
 DB_HOST=dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com
@@ -36,154 +36,154 @@ DB_PASSWORD=Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy
 DB_NAME=bet_game
 ```
 
-### 安全設置
+### 安全设置
 ```bash
-JWT_SECRET=生成一個強密鑰
-ENCRYPTION_KEY=生成32字符加密密鑰
-SESSION_SECRET=生成會話密鑰
+JWT_SECRET=生成一个强密钥
+ENCRYPTION_KEY=生成32字符加密密钥
+SESSION_SECRET=生成会话密钥
 BCRYPT_ROUNDS=12
 ```
 
-### CORS 設置
+### CORS 设置
 ```bash
 CORS_ORIGIN=https://your-app-name.onrender.com
 ALLOWED_ORIGINS=https://your-game-app.onrender.com,https://your-agent-app.onrender.com
 ```
 
-## 🗄️ 資料庫表結構檢查
+## 🗄️ 资料库表结构检查
 
-執行以下腳本檢查資料庫：
+执行以下脚本检查资料库：
 ```bash
 node database-security-check.js
 ```
 
-### 核心業務表
-- ✅ `users` - 用戶基本資料
-- ✅ `agents` - 代理商資料
-- ✅ `members` - 會員資料
-- ✅ `bet_history` - 投注歷史
-- ✅ `result_history` - 開獎結果
-- ✅ `game_state` - 遊戲狀態
-- ✅ `transfer_records` - 轉帳記錄
-- ✅ `transaction_records` - 交易記錄
-- ✅ `draw_records` - 開獎記錄
-- ✅ `announcements` - 公告資料
+### 核心业务表
+- ✅ `users` - 用户基本资料
+- ✅ `agents` - 代理商资料
+- ✅ `members` - 会员资料
+- ✅ `bet_history` - 投注历史
+- ✅ `result_history` - 开奖结果
+- ✅ `game_state` - 游戏状态
+- ✅ `transfer_records` - 转帐记录
+- ✅ `transaction_records` - 交易记录
+- ✅ `draw_records` - 开奖记录
+- ✅ `announcements` - 公告资料
 
-### 安全相關表
-- 🔒 `security_logs` - 安全日誌
-- 🔒 `login_attempts` - 登入嘗試記錄
-- 🔒 `user_sessions` - 會話管理
-- 🔒 `audit_logs` - 審計日誌
-- 🔒 `ip_blacklist` - IP黑名單
-- 🔒 `permissions` - 權限管理
+### 安全相关表
+- 🔒 `security_logs` - 安全日志
+- 🔒 `login_attempts` - 登入尝试记录
+- 🔒 `user_sessions` - 会话管理
+- 🔒 `audit_logs` - 审计日志
+- 🔒 `ip_blacklist` - IP黑名单
+- 🔒 `permissions` - 权限管理
 
-## 📊 資料安全性保證
+## 📊 资料安全性保证
 
-### 1. 連接安全
-- ✅ SSL/TLS 加密連接
-- ✅ 連接池管理 (最大30連接)
-- ✅ 連接超時保護 (15秒)
-- ✅ 查詢超時保護 (15秒)
+### 1. 连接安全
+- ✅ SSL/TLS 加密连接
+- ✅ 连接池管理 (最大30连接)
+- ✅ 连接超时保护 (15秒)
+- ✅ 查询超时保护 (15秒)
 
-### 2. 資料加密
-- ✅ 密碼使用 bcrypt 加密
-- ✅ 敏感資料欄位加密
-- ✅ JWT Token 安全簽名
-- ✅ 會話資料加密
+### 2. 资料加密
+- ✅ 密码使用 bcrypt 加密
+- ✅ 敏感资料栏位加密
+- ✅ JWT Token 安全签名
+- ✅ 会话资料加密
 
 ### 3. 存取控制
-- ✅ 用戶角色權限管理
-- ✅ API 端點存取控制
-- ✅ 資料庫層級權限控制
-- ✅ IP 白名單/黑名單
+- ✅ 用户角色权限管理
+- ✅ API 端点存取控制
+- ✅ 资料库层级权限控制
+- ✅ IP 白名单/黑名单
 
-### 4. 審計追蹤
-- ✅ 所有操作日誌記錄
-- ✅ 登入嘗試追蹤
-- ✅ 資料變更審計
-- ✅ 安全事件警報
+### 4. 审计追踪
+- ✅ 所有操作日志记录
+- ✅ 登入尝试追踪
+- ✅ 资料变更审计
+- ✅ 安全事件警报
 
-## 🚀 部署步驟
+## 🚀 部署步骤
 
-### 1. 準備工作
+### 1. 准备工作
 ```bash
-# 1. 確保所有必要文件存在
+# 1. 确保所有必要文件存在
 ls -la package.json backend.js agentBackend.js
 
-# 2. 檢查資料庫連接
+# 2. 检查资料库连接
 node database-security-check.js
 
-# 3. 測試本地環境
+# 3. 测试本地环境
 npm start
 ```
 
-### 2. Render 部署設置
-1. 連接GitHub repository
-2. 設置環境變數（見上方清單）
-3. 設置建置命令：`npm install`
-4. 設置啟動命令：`npm start`
+### 2. Render 部署设置
+1. 连接GitHub repository
+2. 设置环境变数（见上方清单）
+3. 设置建置命令：`npm install`
+4. 设置启动命令：`npm start`
 
-### 3. 資料庫初始化
-部署後第一次執行：
+### 3. 资料库初始化
+部署后第一次执行：
 ```bash
-# 自動執行資料庫初始化
+# 自动执行资料库初始化
 # 已在 backend.js 和 agentBackend.js 中包含
 ```
 
-## 🔍 監控和維護
+## 🔍 监控和维护
 
-### 日常檢查
-- 監控資料庫連接數
-- 檢查錯誤日誌
-- 驗證備份狀態
-- 檢查安全警報
+### 日常检查
+- 监控资料库连接数
+- 检查错误日志
+- 验证备份状态
+- 检查安全警报
 
-### 定期任務
-- 每日：檢查安全日誌
-- 每週：資料庫效能檢查
-- 每月：密鑰輪換
-- 每季：安全審計
+### 定期任务
+- 每日：检查安全日志
+- 每周：资料库效能检查
+- 每月：密钥轮换
+- 每季：安全审计
 
-## 🛡️ 安全最佳實踐
+## 🛡️ 安全最佳实践
 
-### 1. 密鑰管理
-- 使用強隨機密鑰
-- 定期輪換密鑰
-- 不在代碼中硬編碼敏感資訊
-- 使用環境變數存儲秘密
+### 1. 密钥管理
+- 使用强随机密钥
+- 定期轮换密钥
+- 不在代码中硬编码敏感资讯
+- 使用环境变数存储秘密
 
-### 2. 資料庫安全
-- 啟用SSL連接
-- 限制連接來源IP
-- 定期備份資料
-- 監控異常查詢
+### 2. 资料库安全
+- 启用SSL连接
+- 限制连接来源IP
+- 定期备份资料
+- 监控异常查询
 
-### 3. 應用安全
-- 啟用HTTPS
-- 設置CORS政策
-- 實施速率限制
-- 使用安全標頭
+### 3. 应用安全
+- 启用HTTPS
+- 设置CORS政策
+- 实施速率限制
+- 使用安全标头
 
-### 4. 監控告警
-- 設置資料庫連接告警
-- 監控磁盤使用率
-- 追蹤異常登入
-- 檢測可疑活動
+### 4. 监控告警
+- 设置资料库连接告警
+- 监控磁盘使用率
+- 追踪异常登入
+- 检测可疑活动
 
-## 📞 緊急聯絡
+## 📞 紧急联络
 
-如果遇到資料庫問題：
-1. 檢查Render控制台狀態
-2. 驗證環境變數設置
-3. 查看應用日誌
-4. 聯絡Render支援
+如果遇到资料库问题：
+1. 检查Render控制台状态
+2. 验证环境变数设置
+3. 查看应用日志
+4. 联络Render支援
 
-## ✅ 檢查清單
+## ✅ 检查清单
 
-部署前確認：
-- [ ] 所有環境變數已設置
-- [ ] 資料庫連接測試通過
-- [ ] SSL證書已配置
-- [ ] 安全功能已啟用
-- [ ] 監控告警已設置
-- [ ] 備份策略已實施 
+部署前确认：
+- [ ] 所有环境变数已设置
+- [ ] 资料库连接测试通过
+- [ ] SSL证书已配置
+- [ ] 安全功能已启用
+- [ ] 监控告警已设置
+- [ ] 备份策略已实施 

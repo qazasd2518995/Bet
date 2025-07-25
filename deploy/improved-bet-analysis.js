@@ -1,23 +1,23 @@
-// improved-bet-analysis.js - 改進的下注分析
+// improved-bet-analysis.js - 改进的下注分析
 
 import db from './db/config.js';
 
 /**
- * 改進的下注分析函數
- * @param {string} period - 期號
- * @param {boolean} includeSettled - 是否包含已結算的下注（默認 true）
+ * 改进的下注分析函数
+ * @param {string} period - 期号
+ * @param {boolean} includeSettled - 是否包含已结算的下注（默认 true）
  */
 export async function analyzePeriodBetsImproved(period, includeSettled = true) {
     try {
-        console.log(`📊 [改進分析] 開始分析期號 ${period} 的下注情況 (包含已結算: ${includeSettled})`);
+        console.log(`📊 [改进分析] 开始分析期号 ${period} 的下注情况 (包含已结算: ${includeSettled})`);
         
-        // 構建查詢條件
+        // 构建查询条件
         let whereClause = 'WHERE period = $1';
         if (!includeSettled) {
             whereClause += ' AND settled = false';
         }
         
-        // 查詢所有下注
+        // 查询所有下注
         const allBets = await db.manyOrNone(`
             SELECT 
                 bet_type, 
@@ -34,15 +34,15 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
         `, [period]);
         
         if (!allBets || allBets.length === 0) {
-            console.log(`📊 [改進分析] 期號 ${period} 沒有找到任何下注記錄`);
+            console.log(`📊 [改进分析] 期号 ${period} 没有找到任何下注记录`);
             
-            // 進一步檢查是否真的沒有記錄
+            // 进一步检查是否真的没有记录
             const checkExists = await db.oneOrNone(`
                 SELECT COUNT(*) as total FROM bet_history WHERE period = $1
             `, [period]);
             
             if (checkExists && checkExists.total > 0) {
-                console.log(`⚠️ [改進分析] 期號 ${period} 有 ${checkExists.total} 筆記錄，但查詢條件過濾了所有記錄`);
+                console.log(`⚠️ [改进分析] 期号 ${period} 有 ${checkExists.total} 笔记录，但查询条件过滤了所有记录`);
             }
             
             return {
@@ -56,16 +56,16 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
             };
         }
         
-        console.log(`📊 [改進分析] 找到 ${allBets.length} 筆下注記錄`);
+        console.log(`📊 [改进分析] 找到 ${allBets.length} 笔下注记录`);
         
-        // 統計已結算和未結算的數量
+        // 统计已结算和未结算的数量
         const settledCount = allBets.filter(b => b.settled).length;
         const unsettledCount = allBets.filter(b => !b.settled).length;
         
-        console.log(`   已結算: ${settledCount} 筆`);
-        console.log(`   未結算: ${unsettledCount} 筆`);
+        console.log(`   已结算: ${settledCount} 笔`);
+        console.log(`   未结算: ${unsettledCount} 笔`);
         
-        // 分析下注數據
+        // 分析下注数据
         let totalAmount = 0;
         const positionBets = {};
         const userBets = {};
@@ -73,7 +73,7 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
         for (const bet of allBets) {
             totalAmount += parseFloat(bet.amount);
             
-            // 記錄用戶下注
+            // 记录用户下注
             if (!userBets[bet.username]) {
                 userBets[bet.username] = [];
             }
@@ -86,7 +86,7 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
                 win: bet.win
             });
             
-            // 記錄位置下注
+            // 记录位置下注
             if (bet.bet_type === 'number' && bet.position) {
                 const pos = parseInt(bet.position);
                 if (!positionBets[pos]) {
@@ -100,7 +100,7 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
             }
         }
         
-        // 計算平台風險
+        // 计算平台风险
         const platformRisk = calculatePlatformRisk(positionBets, totalAmount);
         
         return {
@@ -114,7 +114,7 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
         };
         
     } catch (error) {
-        console.error(`❌ [改進分析] 分析失敗:`, error);
+        console.error(`❌ [改进分析] 分析失败:`, error);
         return {
             totalAmount: 0,
             betCount: 0,
@@ -129,7 +129,7 @@ export async function analyzePeriodBetsImproved(period, includeSettled = true) {
 }
 
 /**
- * 計算平台風險
+ * 计算平台风险
  */
 function calculatePlatformRisk(positionBets, totalBetAmount) {
     if (totalBetAmount === 0) return 0;

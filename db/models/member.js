@@ -9,7 +9,7 @@ class MemberModel {
             );
             return member;
         } catch (error) {
-            console.error('查詢會員失敗:', error);
+            console.error('查询会员失败:', error);
             throw error;
         }
     }
@@ -22,7 +22,7 @@ class MemberModel {
             );
             return member;
         } catch (error) {
-            console.error('根據ID查詢會員失敗:', error);
+            console.error('根据ID查询会员失败:', error);
             throw error;
         }
     }
@@ -38,7 +38,7 @@ class MemberModel {
             
             return member;
         } catch (error) {
-            console.error('創建會員失敗:', error);
+            console.error('创建会员失败:', error);
             throw error;
         }
     }
@@ -51,7 +51,7 @@ class MemberModel {
             );
             return result.rowCount > 0;
         } catch (error) {
-            console.error('更新會員餘額失敗:', error);
+            console.error('更新会员余额失败:', error);
             throw error;
         }
     }
@@ -64,7 +64,7 @@ class MemberModel {
             );
             return result.rowCount > 0;
         } catch (error) {
-            console.error('更新會員狀態失敗:', error);
+            console.error('更新会员状态失败:', error);
             throw error;
         }
     }
@@ -77,7 +77,7 @@ class MemberModel {
             );
             return members;
         } catch (error) {
-            console.error('根據代理ID查詢會員失敗:', error);
+            console.error('根据代理ID查询会员失败:', error);
             throw error;
         }
     }
@@ -95,7 +95,7 @@ class MemberModel {
             const result = await db.one(query, params);
             return parseInt(result.count);
         } catch (error) {
-            console.error('統計會員數量失敗:', error);
+            console.error('统计会员数量失败:', error);
             throw error;
         }
     }
@@ -108,7 +108,7 @@ class MemberModel {
             );
             return result.rowCount > 0;
         } catch (error) {
-            console.error('刪除會員失敗:', error);
+            console.error('删除会员失败:', error);
             throw error;
         }
     }

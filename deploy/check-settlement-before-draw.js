@@ -1,11 +1,11 @@
-// check-settlement-before-draw.js - 檢查結算早於開獎的情況
+// check-settlement-before-draw.js - 检查结算早于开奖的情况
 import db from './db/config.js';
 
 async function checkSettlementBeforeDraw() {
-    console.log('=== 檢查結算早於開獎的情況 ===\n');
+    console.log('=== 检查结算早于开奖的情况 ===\n');
     
     try {
-        // 檢查所有結算時間早於開獎時間的投注
+        // 检查所有结算时间早于开奖时间的投注
         const problematicBets = await db.manyOrNone(`
             SELECT 
                 bh.id,
@@ -31,9 +31,9 @@ async function checkSettlementBeforeDraw() {
         `);
         
         if (problematicBets.length > 0) {
-            console.log(`發現 ${problematicBets.length} 筆結算早於開獎的投注:\n`);
+            console.log(`发现 ${problematicBets.length} 笔结算早于开奖的投注:\n`);
             
-            // 按期號分組
+            // 按期号分组
             const byPeriod = {};
             for (const bet of problematicBets) {
                 if (!byPeriod[bet.period]) {
@@ -43,26 +43,26 @@ async function checkSettlementBeforeDraw() {
             }
             
             for (const [period, bets] of Object.entries(byPeriod)) {
-                console.log(`\n期號 ${period}:`);
-                console.log(`  開獎時間: ${bets[0].draw_time}`);
-                console.log(`  冠軍號碼: ${bets[0].position_1}號`);
-                console.log(`  問題投注:`);
+                console.log(`\n期号 ${period}:`);
+                console.log(`  开奖时间: ${bets[0].draw_time}`);
+                console.log(`  冠军号码: ${bets[0].position_1}号`);
+                console.log(`  问题投注:`);
                 
                 for (const bet of bets) {
                     const timeDiff = Math.abs(parseFloat(bet.time_diff_seconds));
                     console.log(`    ID ${bet.id}: ${bet.username} - ${bet.bet_type} ${bet.bet_value}`);
-                    console.log(`      結算時間: ${bet.settled_at} (早了 ${timeDiff.toFixed(1)} 秒)`);
-                    console.log(`      結果: ${bet.win ? '贏' : '輸'}, 派彩: ${bet.win_amount}`);
+                    console.log(`      结算时间: ${bet.settled_at} (早了 ${timeDiff.toFixed(1)} 秒)`);
+                    console.log(`      结果: ${bet.win ? '赢' : '输'}, 派彩: ${bet.win_amount}`);
                 }
             }
         } else {
-            console.log('沒有發現結算早於開獎的情況');
+            console.log('没有发现结算早于开奖的情况');
         }
         
-        // 檢查特定期號的詳細情況
-        console.log('\n\n=== 檢查期號 20250717449 的詳細情況 ===');
+        // 检查特定期号的详细情况
+        console.log('\n\n=== 检查期号 20250717449 的详细情况 ===');
         
-        // 獲取該期所有投注的結算時間分佈
+        // 获取该期所有投注的结算时间分布
         const settlementTimes = await db.manyOrNone(`
             SELECT 
                 MIN(settled_at) as first_settlement,
@@ -76,14 +76,14 @@ async function checkSettlementBeforeDraw() {
         
         if (settlementTimes[0]) {
             const st = settlementTimes[0];
-            console.log(`首次結算時間: ${st.first_settlement}`);
-            console.log(`最後結算時間: ${st.last_settlement}`);
-            console.log(`不同結算時間數: ${st.unique_times}`);
-            console.log(`總結算投注數: ${st.total_bets}`);
+            console.log(`首次结算时间: ${st.first_settlement}`);
+            console.log(`最后结算时间: ${st.last_settlement}`);
+            console.log(`不同结算时间数: ${st.unique_times}`);
+            console.log(`总结算投注数: ${st.total_bets}`);
         }
         
-        // 檢查是否有多個開獎結果版本
-        console.log('\n=== 檢查開獎結果歷史 ===');
+        // 检查是否有多个开奖结果版本
+        console.log('\n=== 检查开奖结果历史 ===');
         const resultHistory = await db.manyOrNone(`
             SELECT 
                 id,
@@ -92,7 +92,7 @@ async function checkSettlementBeforeDraw() {
                 draw_time,
                 created_at,
                 CASE 
-                    WHEN created_at > draw_time THEN '異常：創建時間晚於開獎時間'
+                    WHEN created_at > draw_time THEN '异常：创建时间晚于开奖时间'
                     ELSE '正常'
                 END as status
             FROM result_history
@@ -101,18 +101,18 @@ async function checkSettlementBeforeDraw() {
         `);
         
         if (resultHistory.length > 0) {
-            console.log(`找到 ${resultHistory.length} 條開獎記錄:`);
+            console.log(`找到 ${resultHistory.length} 条开奖记录:`);
             for (const rec of resultHistory) {
                 console.log(`\nID: ${rec.id}`);
-                console.log(`  冠軍: ${rec.position_1}號`);
-                console.log(`  開獎時間: ${rec.draw_time}`);
-                console.log(`  創建時間: ${rec.created_at}`);
-                console.log(`  狀態: ${rec.status}`);
+                console.log(`  冠军: ${rec.position_1}号`);
+                console.log(`  开奖时间: ${rec.draw_time}`);
+                console.log(`  创建时间: ${rec.created_at}`);
+                console.log(`  状态: ${rec.status}`);
             }
         }
         
     } catch (error) {
-        console.error('檢查失敗:', error);
+        console.error('检查失败:', error);
     } finally {
         await db.$pool.end();
     }

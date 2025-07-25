@@ -1,5 +1,5 @@
-// 測試 JavaScript 浮點數精度問題
-console.log('=== JavaScript 浮點數精度測試 ===\n');
+// 测试 JavaScript 浮点数精度问题
+console.log('=== JavaScript 浮点数精度测试 ===\n');
 
 const testValues = [
     0.011,   // 1.1%
@@ -9,7 +9,7 @@ const testValues = [
     0.041    // 4.1%
 ];
 
-console.log('原始計算結果：');
+console.log('原始计算结果：');
 testValues.forEach(val => {
     console.log(`${val} * 100 = ${val * 100}`);
 });
@@ -21,13 +21,13 @@ testValues.forEach(val => {
     console.log(`${val} * 100 = ${percent} -> toPrecision(12) = ${precision}`);
 });
 
-console.log('\n使用 Math.round 處理：');
+console.log('\n使用 Math.round 处理：');
 testValues.forEach(val => {
     const percent = Math.round(val * 100 * 1000000) / 1000000;
     console.log(`${val} * 100 = ${percent}`);
 });
 
-console.log('\n最佳解決方案 - 使用 parseFloat(toFixed)：');
+console.log('\n最佳解决方案 - 使用 parseFloat(toFixed)：');
 testValues.forEach(val => {
     const percent = val * 100;
     const fixed = parseFloat(percent.toFixed(10));

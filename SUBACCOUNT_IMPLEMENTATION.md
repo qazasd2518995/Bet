@@ -1,90 +1,90 @@
-# 子帳號功能實現說明
+# 子帐号功能实现说明
 
 ## 功能概述
 
-為代理管理系統新增了子帳號功能，每個代理可以創建最多 2 個子帳號。子帳號只能查看報表，無法進行其他操作。
+为代理管理系统新增了子帐号功能，每个代理可以创建最多 2 个子帐号。子帐号只能查看报表，无法进行其他操作。
 
-## 實現內容
+## 实现内容
 
 ### 1. 前端修改
 
-#### 導航欄更新
-- 將「帳號管理」改為下拉選單，包含：
-  - 代理＆會員
-  - 子帳號
+#### 导航栏更新
+- 将「帐号管理」改为下拉选单，包含：
+  - 代理＆会员
+  - 子帐号
 
-#### 新增子帳號管理頁面
-- 顯示子帳號列表
-- 新增子帳號按鈕（最多 2 個）
-- 子帳號操作：啟用/停用、刪除
+#### 新增子帐号管理页面
+- 显示子帐号列表
+- 新增子帐号按钮（最多 2 个）
+- 子帐号操作：启用/停用、删除
 
-#### 子帳號權限限制
-- 子帳號登入後只顯示「報表查詢」選項
-- 隱藏所有其他功能選單
-- 自動切換到報表查詢頁面
+#### 子帐号权限限制
+- 子帐号登入后只显示「报表查询」选项
+- 隐藏所有其他功能选单
+- 自动切换到报表查询页面
 
-### 2. 後端實現
+### 2. 后端实现
 
-#### 數據庫表結構
+#### 数据库表结构
 ```sql
 CREATE TABLE sub_accounts (
     id SERIAL PRIMARY KEY,
     parent_agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    status INTEGER DEFAULT 1, -- 1: 啟用, 0: 停用
+    status INTEGER DEFAULT 1, -- 1: 启用, 0: 停用
     last_login TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-#### API 端點
-- `GET /api/agent/subaccounts` - 獲取子帳號列表
-- `POST /api/agent/subaccounts` - 創建子帳號
-- `PUT /api/agent/subaccounts/:id/status` - 更新子帳號狀態
-- `DELETE /api/agent/subaccounts/:id` - 刪除子帳號
+#### API 端点
+- `GET /api/agent/subaccounts` - 获取子帐号列表
+- `POST /api/agent/subaccounts` - 创建子帐号
+- `PUT /api/agent/subaccounts/:id/status` - 更新子帐号状态
+- `DELETE /api/agent/subaccounts/:id` - 删除子帐号
 
 #### 登入修改
-- 支持子帳號登入
-- 返回 `is_sub_account: true` 標記
-- 記錄子帳號登入日誌
+- 支持子帐号登入
+- 返回 `is_sub_account: true` 标记
+- 记录子帐号登入日志
 
-### 3. 使用說明
+### 3. 使用说明
 
-1. **創建子帳號**
-   - 登入代理帳號
-   - 進入「帳號管理」→「子帳號」
-   - 點擊「新增子帳號」
-   - 輸入子帳號名稱和密碼
+1. **创建子帐号**
+   - 登入代理帐号
+   - 进入「帐号管理」→「子帐号」
+   - 点击「新增子帐号」
+   - 输入子帐号名称和密码
 
-2. **子帳號登入**
-   - 使用子帳號名稱和密碼登入
-   - 登入後只能看到「報表查詢」功能
-   - 無法進行其他操作
+2. **子帐号登入**
+   - 使用子帐号名称和密码登入
+   - 登入后只能看到「报表查询」功能
+   - 无法进行其他操作
 
-3. **管理子帳號**
-   - 可以啟用/停用子帳號
-   - 可以刪除子帳號
-   - 每個代理最多 2 個子帳號
+3. **管理子帐号**
+   - 可以启用/停用子帐号
+   - 可以删除子帐号
+   - 每个代理最多 2 个子帐号
 
-## 文件修改清單
+## 文件修改清单
 
 ### 前端
-- `/agent/frontend/index.html` - 添加子帳號頁面和模態框
-- `/agent/frontend/js/main.js` - 添加子帳號相關邏輯
+- `/agent/frontend/index.html` - 添加子帐号页面和模态框
+- `/agent/frontend/js/main.js` - 添加子帐号相关逻辑
 
-### 後端
-- `/agentBackend.js` - 添加子帳號 API 和修改登入邏輯
+### 后端
+- `/agentBackend.js` - 添加子帐号 API 和修改登入逻辑
 
-### 數據庫
-- `/create-subaccounts-table.sql` - 創建表的 SQL
-- `/init-subaccounts.js` - 初始化腳本
-- `/check-subaccounts-table.js` - 檢查和重建表腳本
+### 数据库
+- `/create-subaccounts-table.sql` - 创建表的 SQL
+- `/init-subaccounts.js` - 初始化脚本
+- `/check-subaccounts-table.js` - 检查和重建表脚本
 
-## 注意事項
+## 注意事项
 
-1. 子帳號使用父代理的 ID 進行報表查詢
-2. 子帳號無法修改任何數據
-3. 子帳號的密碼使用 bcrypt 加密
-4. 刪除代理時會自動刪除其所有子帳號（CASCADE）
+1. 子帐号使用父代理的 ID 进行报表查询
+2. 子帐号无法修改任何数据
+3. 子帐号的密码使用 bcrypt 加密
+4. 删除代理时会自动删除其所有子帐号（CASCADE）

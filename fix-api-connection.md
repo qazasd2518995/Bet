@@ -1,76 +1,76 @@
-# API 連接錯誤修復指南
+# API 连接错误修复指南
 
-## 問題診斷
+## 问题诊断
 
-您遇到的錯誤 `[Error] 获取游戏数据失败: – TypeError: Load failed` 表示前端無法連接到後端 API。
+您遇到的错误 `[Error] 获取游戏数据失败: – TypeError: Load failed` 表示前端无法连接到后端 API。
 
 ## 可能的原因
 
-1. **CORS 配置問題** - 您的生產環境 URL 可能不在允許的來源列表中
-2. **後端服務未啟動** - 後端服務可能崩潰或未正確啟動
-3. **API 路徑錯誤** - API 端點可能配置錯誤
+1. **CORS 配置问题** - 您的生产环境 URL 可能不在允许的来源列表中
+2. **后端服务未启动** - 后端服务可能崩溃或未正确启动
+3. **API 路径错误** - API 端点可能配置错误
 
-## 立即解決方案
+## 立即解决方案
 
-### 1. 使用診斷工具
+### 1. 使用诊断工具
 
-請在您的生產網站上打開 `api-diagnostic.html` 文件：
+请在您的生产网站上打开 `api-diagnostic.html` 文件：
 ```
-https://你的網址/api-diagnostic.html
+https://你的网址/api-diagnostic.html
 ```
 
-這個工具會測試所有 API 端點並顯示詳細的錯誤信息。
+这个工具会测试所有 API 端点并显示详细的错误信息。
 
-### 2. 檢查 Render 部署狀態
+### 2. 检查 Render 部署状态
 
-登入 Render Dashboard 確認：
-- bet-game 服務是否正在運行
-- 查看 Logs 是否有錯誤信息
-- 確認 Deploy 狀態是否為 "Live"
+登入 Render Dashboard 确认：
+- bet-game 服务是否正在运行
+- 查看 Logs 是否有错误信息
+- 确认 Deploy 状态是否为 "Live"
 
 ### 3. 更新 CORS 配置
 
-如果您的生產 URL 不是 `https://bet-game.onrender.com` 或 `https://bet-game-vcje.onrender.com`，需要更新 backend.js 中的 CORS 配置：
+如果您的生产 URL 不是 `https://bet-game.onrender.com` 或 `https://bet-game-vcje.onrender.com`，需要更新 backend.js 中的 CORS 配置：
 
 ```javascript
 const allowedOrigins = [
   'https://bet-game.onrender.com', 
   'https://bet-game-vcje.onrender.com',
-  'https://你的實際網址.onrender.com',  // 添加您的實際 URL
-  // ... 其他來源
+  'https://你的实际网址.onrender.com',  // 添加您的实际 URL
+  // ... 其他来源
 ];
 ```
 
-### 4. 臨時解決方案
+### 4. 临时解决方案
 
-如果需要快速修復，可以暫時允許所有來源（僅用於測試）：
+如果需要快速修复，可以暂时允许所有来源（仅用于测试）：
 
 ```javascript
 app.use(cors({
-  origin: true,  // 允許所有來源
+  origin: true,  // 允许所有来源
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 ```
 
-**注意：這只應該用於測試，生產環境應該限制允許的來源。**
+**注意：这只应该用于测试，生产环境应该限制允许的来源。**
 
-### 5. 檢查 API 路徑
+### 5. 检查 API 路径
 
-確認前端使用的 API 路徑是否正確。在 `frontend/index.html` 中：
+确认前端使用的 API 路径是否正确。在 `frontend/index.html` 中：
 
 ```javascript
-API_BASE_URL: window.location.origin  // 這應該自動使用當前網址
+API_BASE_URL: window.location.origin  // 这应该自动使用当前网址
 ```
 
-## 下一步行動
+## 下一步行动
 
-1. 先使用診斷工具確定具體問題
-2. 查看 Render 的日誌找出錯誤詳情
-3. 如果是 CORS 問題，更新配置並重新部署
-4. 如果服務崩潰，檢查錯誤日誌並修復
+1. 先使用诊断工具确定具体问题
+2. 查看 Render 的日志找出错误详情
+3. 如果是 CORS 问题，更新配置并重新部署
+4. 如果服务崩溃，检查错误日志并修复
 
-## 需要更多幫助？
+## 需要更多帮助？
 
-如果診斷工具顯示特定的錯誤信息，請將錯誤詳情分享給我，我可以提供更具體的解決方案。
+如果诊断工具显示特定的错误信息，请将错误详情分享给我，我可以提供更具体的解决方案。

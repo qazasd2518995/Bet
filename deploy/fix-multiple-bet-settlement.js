@@ -1,12 +1,12 @@
-// fix-multiple-bet-settlement.js - 修復多筆下注結算問題
+// fix-multiple-bet-settlement.js - 修复多笔下注结算问题
 import db from './db/config.js';
 
-// 修復重複的交易記錄
+// 修复重复的交易记录
 async function fixDuplicateTransactions() {
-    console.log('🔧 開始修復重複的交易記錄...\n');
+    console.log('🔧 开始修复重复的交易记录...\n');
     
     try {
-        // 1. 查找可能的重複交易
+        // 1. 查找可能的重复交易
         const duplicates = await db.manyOrNone(`
             WITH duplicate_groups AS (
                 SELECT 
@@ -31,21 +31,21 @@ async function fixDuplicateTransactions() {
         `);
         
         if (duplicates && duplicates.length > 0) {
-            console.log(`找到 ${duplicates.length} 組重複交易`);
+            console.log(`找到 ${duplicates.length} 组重复交易`);
             
             for (const group of duplicates) {
-                console.log(`\n用戶ID: ${group.user_id}, 類型: ${group.transaction_type}`);
+                console.log(`\n用户ID: ${group.user_id}, 类型: ${group.transaction_type}`);
                 console.log(`描述: ${group.description}`);
-                console.log(`時間: ${group.created_at}`);
+                console.log(`时间: ${group.created_at}`);
                 console.log(`交易ID: ${group.ids.join(', ')}`);
-                console.log(`金額: ${group.amounts.join(', ')}`);
+                console.log(`金额: ${group.amounts.join(', ')}`);
                 
-                // 只保留第一筆，刪除其他
+                // 只保留第一笔，删除其他
                 const idsToDelete = group.ids.slice(1);
                 if (idsToDelete.length > 0) {
-                    console.log(`將刪除交易ID: ${idsToDelete.join(', ')}`);
+                    console.log(`将删除交易ID: ${idsToDelete.join(', ')}`);
                     
-                    // 取消註釋以執行刪除
+                    // 取消注释以执行删除
                     /*
                     await db.none(`
                         DELETE FROM transaction_records 
@@ -55,11 +55,11 @@ async function fixDuplicateTransactions() {
                 }
             }
         } else {
-            console.log('沒有找到重複的交易記錄');
+            console.log('没有找到重复的交易记录');
         }
         
-        // 2. 修正用戶餘額
-        console.log('\n🔧 檢查並修正用戶餘額...');
+        // 2. 修正用户余额
+        console.log('\n🔧 检查并修正用户余额...');
         
         const balanceCheck = await db.manyOrNone(`
             WITH balance_calc AS (
@@ -83,76 +83,76 @@ async function fixDuplicateTransactions() {
         `);
         
         if (balanceCheck && balanceCheck.length > 0) {
-            console.log('發現餘額不一致的用戶：');
+            console.log('发现余额不一致的用户：');
             for (const user of balanceCheck) {
-                console.log(`\n用戶: ${user.username}`);
-                console.log(`當前餘額: ${user.current_balance}`);
-                console.log(`最後交易餘額: ${user.last_transaction_balance}`);
+                console.log(`\n用户: ${user.username}`);
+                console.log(`当前余额: ${user.current_balance}`);
+                console.log(`最后交易余额: ${user.last_transaction_balance}`);
                 
-                // 取消註釋以修正餘額
+                // 取消注释以修正余额
                 /*
                 await db.none(`
                     UPDATE members 
                     SET balance = $1 
                     WHERE id = $2
                 `, [user.last_transaction_balance, user.id]);
-                console.log('✅ 餘額已修正');
+                console.log('✅ 余额已修正');
                 */
             }
         } else {
-            console.log('所有用戶餘額正常');
+            console.log('所有用户余额正常');
         }
         
     } catch (error) {
-        console.error('❌ 修復過程中發生錯誤:', error);
+        console.error('❌ 修复过程中发生错误:', error);
     }
 }
 
-// 防止未來的重複結算
+// 防止未来的重复结算
 async function preventFutureDoubleSettlement() {
-    console.log('\n🛡️ 加強防重複結算機制...');
+    console.log('\n🛡️ 加强防重复结算机制...');
     
     try {
-        // 創建唯一索引防止重複
+        // 创建唯一索引防止重复
         await db.none(`
             CREATE UNIQUE INDEX IF NOT EXISTS idx_transaction_unique_win
             ON transaction_records(user_id, user_type, transaction_type, description, DATE_TRUNC('second', created_at))
             WHERE transaction_type = 'win'
         `);
         
-        console.log('✅ 已創建防重複交易的唯一索引');
+        console.log('✅ 已创建防重复交易的唯一索引');
         
     } catch (error) {
         if (error.code === '23505') {
             console.log('⚠️ 唯一索引已存在');
         } else {
-            console.error('❌ 創建索引時發生錯誤:', error);
+            console.error('❌ 创建索引时发生错误:', error);
         }
     }
 }
 
-// 主函數
+// 主函数
 async function main() {
-    console.log('🚀 開始修復多筆下注結算問題...\n');
+    console.log('🚀 开始修复多笔下注结算问题...\n');
     
     await fixDuplicateTransactions();
     await preventFutureDoubleSettlement();
     
-    console.log('\n✅ 修復完成！');
-    console.log('\n建議：');
-    console.log('1. 檢查改進的結算系統是否正確處理多筆下注');
-    console.log('2. 確保同步到代理系統時不會重複更新餘額');
-    console.log('3. 監控 transaction_records 表確保沒有重複記錄');
+    console.log('\n✅ 修复完成！');
+    console.log('\n建议：');
+    console.log('1. 检查改进的结算系统是否正确处理多笔下注');
+    console.log('2. 确保同步到代理系统时不会重复更新余额');
+    console.log('3. 监控 transaction_records 表确保没有重复记录');
 }
 
-// 如果直接執行此文件
+// 如果直接执行此文件
 if (process.argv[1] === new URL(import.meta.url).pathname) {
     main()
         .then(() => {
             process.exit(0);
         })
         .catch(error => {
-            console.error('執行失敗:', error);
+            console.error('执行失败:', error);
             process.exit(1);
         });
 }

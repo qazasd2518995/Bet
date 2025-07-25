@@ -6,16 +6,16 @@ async function processTwoPeriods() {
         const periods = ['20250715058', '20250715059'];
         
         for (const period of periods) {
-            console.log(`\n=== 處理期號 ${period} ===`);
+            console.log(`\n=== 处理期号 ${period} ===`);
             
-            // 獲取開獎結果
+            // 获取开奖结果
             const drawResult = await db.oneOrNone(`
                 SELECT * FROM result_history 
                 WHERE period = $1
             `, [period]);
             
             if (!drawResult) {
-                console.log('找不到開獎結果');
+                console.log('找不到开奖结果');
                 continue;
             }
             
@@ -34,27 +34,27 @@ async function processTwoPeriods() {
                 ]
             };
             
-            console.log('開獎結果:', winResult.positions);
-            console.log('調用結算系統...');
+            console.log('开奖结果:', winResult.positions);
+            console.log('调用结算系统...');
             
             const result = await enhancedSettlement(period, winResult);
-            console.log('結算結果:', result);
+            console.log('结算结果:', result);
             
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        // 檢查餘額
+        // 检查余额
         const agents = await db.any(`
             SELECT username, balance FROM agents
             WHERE username IN ('justin2025A', 'ti2025A')
         `);
         
-        console.log('\n=== 代理餘額 ===');
+        console.log('\n=== 代理余额 ===');
         agents.forEach(a => {
             console.log(`${a.username}: ${a.balance}`);
         });
         
-        // 檢查退水記錄
+        // 检查退水记录
         const rebates = await db.any(`
             SELECT COUNT(*) as count, SUM(amount) as total
             FROM transaction_records
@@ -62,10 +62,10 @@ async function processTwoPeriods() {
             AND created_at > NOW() - INTERVAL '2 minutes'
         `);
         
-        console.log(`\n新增退水記錄: ${rebates[0].count} 筆, 總金額: ${rebates[0].total || 0}`);
+        console.log(`\n新增退水记录: ${rebates[0].count} 笔, 总金额: ${rebates[0].total || 0}`);
         
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

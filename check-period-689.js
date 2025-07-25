@@ -19,25 +19,25 @@ async function checkPeriod689() {
                 result.position_10
             ];
             
-            console.log('開獎結果:', positions.join(','));
-            console.log('\n各位置詳細:');
+            console.log('开奖结果:', positions.join(','));
+            console.log('\n各位置详细:');
             for (let i = 0; i < 10; i++) {
                 console.log(`第${i+1}名: ${positions[i]}`);
             }
             
-            console.log(`\n🎯 第10名開出: ${result.position_10}`);
+            console.log(`\n🎯 第10名开出: ${result.position_10}`);
             
             if (result.position_10 === 4) {
-                console.log('✅ 第10名確實是4號');
+                console.log('✅ 第10名确实是4号');
             } else {
-                console.log(`❌ 第10名是${result.position_10}號，不是4號`);
+                console.log(`❌ 第10名是${result.position_10}号，不是4号`);
             }
         } else {
-            console.log('❌ 找不到期號 20250718689 的開獎結果');
+            console.log('❌ 找不到期号 20250718689 的开奖结果');
         }
         
         // Check bets for this period
-        console.log('\n查詢相關投注記錄...');
+        console.log('\n查询相关投注记录...');
         const bets = await db.manyOrNone(
             `SELECT id, username, bet_type, bet_value, position, amount, win_amount, settled 
              FROM bet_history 
@@ -47,39 +47,39 @@ async function checkPeriod689() {
         );
         
         if (bets.length > 0) {
-            console.log(`\n找到 ${bets.length} 筆第10名的投注:`);
+            console.log(`\n找到 ${bets.length} 笔第10名的投注:`);
             bets.forEach(bet => {
                 console.log(`\nBet ID: ${bet.id}`);
-                console.log(`用戶: ${bet.username}`);
-                console.log(`投注: 第${bet.position}名 號碼${bet.bet_value}`);
-                console.log(`金額: $${bet.amount}`);
+                console.log(`用户: ${bet.username}`);
+                console.log(`投注: 第${bet.position}名 号码${bet.bet_value}`);
+                console.log(`金额: $${bet.amount}`);
                 console.log(`派彩: $${bet.win_amount}`);
-                console.log(`已結算: ${bet.settled}`);
+                console.log(`已结算: ${bet.settled}`);
                 
-                // 驗證結算是否正確
+                // 验证结算是否正确
                 const isWin = bet.win_amount > 0;
                 if (result && result.position_10 == bet.bet_value) {
                     if (isWin) {
-                        console.log('✅ 結算正確 - 應該贏且派彩 > 0');
+                        console.log('✅ 结算正确 - 应该赢且派彩 > 0');
                     } else {
-                        console.log('❌ 結算錯誤 - 應該贏但沒有派彩');
+                        console.log('❌ 结算错误 - 应该赢但没有派彩');
                     }
                 } else if (result) {
                     if (!isWin) {
-                        console.log('✅ 結算正確 - 應該輸且沒有派彩');
+                        console.log('✅ 结算正确 - 应该输且没有派彩');
                     } else {
-                        console.log('❌ 結算錯誤 - 應該輸但有派彩');
+                        console.log('❌ 结算错误 - 应该输但有派彩');
                     }
                 }
             });
         } else {
-            console.log('沒有找到第10名的投注記錄');
+            console.log('没有找到第10名的投注记录');
         }
         
         await db.$pool.end();
         process.exit(0);
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
         await db.$pool.end();
         process.exit(1);
     }

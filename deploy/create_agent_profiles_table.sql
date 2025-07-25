@@ -1,4 +1,4 @@
--- 創建代理個人資料表
+-- 创建代理个人资料表
 CREATE TABLE IF NOT EXISTS agent_profiles (
     id SERIAL PRIMARY KEY,
     agent_id INTEGER NOT NULL UNIQUE REFERENCES agents(id) ON DELETE CASCADE,
@@ -13,15 +13,15 @@ CREATE TABLE IF NOT EXISTS agent_profiles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 創建索引以提高查詢性能
+-- 创建索引以提高查询性能
 CREATE INDEX IF NOT EXISTS idx_agent_profiles_agent_id ON agent_profiles(agent_id);
 
--- 檢查表是否創建成功
+-- 检查表是否创建成功
 SELECT table_name 
 FROM information_schema.tables 
 WHERE table_schema = 'public' AND table_name = 'agent_profiles';
 
--- 查看表結構
+-- 查看表结构
 SELECT column_name, data_type, is_nullable 
 FROM information_schema.columns 
 WHERE table_name = 'agent_profiles' 

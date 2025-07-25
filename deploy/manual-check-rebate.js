@@ -6,9 +6,9 @@ const AGENT_API_URL = 'https://bet-agent.onrender.com';
 async function manuallyProcessRebate() {
     try {
         const period = '20250715004';
-        console.log(`手動處理期號 ${period} 的退水...`);
+        console.log(`手动处理期号 ${period} 的退水...`);
         
-        // 獲取該期已結算的注單
+        // 获取该期已结算的注单
         const settledBets = await db.manyOrNone(`
             SELECT DISTINCT username, SUM(amount) as total_amount
             FROM bet_history
@@ -16,12 +16,12 @@ async function manuallyProcessRebate() {
             GROUP BY username
         `, [period]);
         
-        console.log(`找到 ${settledBets.length} 位會員需要處理退水`);
+        console.log(`找到 ${settledBets.length} 位会员需要处理退水`);
         
         for (const record of settledBets) {
-            console.log(`\n處理會員 ${record.username} 的退水，下注金額: ${record.total_amount}`);
+            console.log(`\n处理会员 ${record.username} 的退水，下注金额: ${record.total_amount}`);
             
-            // 獲取代理鏈
+            // 获取代理链
             const response = await fetch(`${AGENT_API_URL}/api/agent/member-agent-chain?username=${record.username}`, {
                 method: 'GET',
                 headers: {
@@ -29,27 +29,27 @@ async function manuallyProcessRebate() {
                 }
             });
             
-            console.log(`API響應狀態: ${response.status}`);
+            console.log(`API响应状态: ${response.status}`);
             
             if (!response.ok) {
-                console.error(`獲取代理鏈失敗: ${response.status}`);
+                console.error(`获取代理链失败: ${response.status}`);
                 const errorText = await response.text();
-                console.error(`錯誤詳情: ${errorText}`);
+                console.error(`错误详情: ${errorText}`);
                 continue;
             }
             
             const data = await response.json();
             if (data.success && data.agentChain) {
-                console.log(`代理鏈: ${data.agentChain.map(a => a.username).join(' -> ')}`);
+                console.log(`代理链: ${data.agentChain.map(a => a.username).join(' -> ')}`);
                 
-                // 手動分配退水
+                // 手动分配退水
                 const directAgent = data.agentChain[0];
                 const maxRebatePercentage = directAgent.market_type === 'A' ? 0.011 : 0.041;
                 const totalRebatePool = parseFloat(record.total_amount) * maxRebatePercentage;
                 
                 console.log(`退水池: ${totalRebatePool.toFixed(2)}元 (${(maxRebatePercentage*100).toFixed(1)}%)`);
                 
-                // 顯示計算結果
+                // 显示计算结果
                 let remainingRebate = totalRebatePool;
                 let distributedPercentage = 0;
                 
@@ -73,12 +73,12 @@ async function manuallyProcessRebate() {
                     console.log(`  - 平台保留: ${remainingRebate.toFixed(2)}元`);
                 }
             } else {
-                console.error('獲取代理鏈失敗:', data.message);
+                console.error('获取代理链失败:', data.message);
             }
         }
         
     } catch (error) {
-        console.error('處理時發生錯誤:', error);
+        console.error('处理时发生错误:', error);
     } finally {
         process.exit(0);
     }

@@ -1,22 +1,22 @@
-// manual-settle-234.js - 手動結算期號234
+// manual-settle-234.js - 手动结算期号234
 import db from './db/config.js';
 import { improvedSettleBets } from './improved-settlement-system.js';
 
 async function manualSettle234() {
-    console.log('🔧 手動結算期號 20250714234...\n');
+    console.log('🔧 手动结算期号 20250714234...\n');
     
     try {
-        // 1. 獲取開獎結果
+        // 1. 获取开奖结果
         const result = await db.one(`
             SELECT period, result
             FROM result_history
             WHERE period = 20250714234
         `);
         
-        console.log(`📊 期號: ${result.period}`);
-        console.log(`開獎結果: ${result.result}`);
+        console.log(`📊 期号: ${result.period}`);
+        console.log(`开奖结果: ${result.result}`);
         
-        // 解析開獎結果
+        // 解析开奖结果
         let positions = [];
         if (Array.isArray(result.result)) {
             positions = result.result;
@@ -24,37 +24,37 @@ async function manualSettle234() {
             positions = result.result.split(',').map(n => parseInt(n.trim()));
         }
         
-        console.log(`解析後結果: [${positions.join(',')}]`);
-        console.log(`第4名開出: ${positions[3]}號\n`);
+        console.log(`解析后结果: [${positions.join(',')}]`);
+        console.log(`第4名开出: ${positions[3]}号\n`);
         
-        // 2. 準備結算數據
+        // 2. 准备结算数据
         const winResult = { positions: positions };
-        console.log(`準備結算數據: ${JSON.stringify(winResult)}\n`);
+        console.log(`准备结算数据: ${JSON.stringify(winResult)}\n`);
         
-        // 3. 執行結算
-        console.log('🎯 開始執行結算...');
+        // 3. 执行结算
+        console.log('🎯 开始执行结算...');
         
         const settlementResult = await improvedSettleBets(20250714234, winResult);
         
         if (settlementResult.success) {
-            console.log('\n✅ 結算成功！');
-            console.log(`結算注單數: ${settlementResult.settledCount}`);
-            console.log(`總中獎金額: $${settlementResult.totalWinAmount || 0}`);
+            console.log('\n✅ 结算成功！');
+            console.log(`结算注单数: ${settlementResult.settledCount}`);
+            console.log(`总中奖金额: $${settlementResult.totalWinAmount || 0}`);
             
             if (settlementResult.userWinnings && Object.keys(settlementResult.userWinnings).length > 0) {
-                console.log('\n💰 中獎詳情:');
+                console.log('\n💰 中奖详情:');
                 Object.entries(settlementResult.userWinnings).forEach(([username, amount]) => {
                     console.log(`  ${username}: $${amount}`);
                 });
             } else {
-                console.log('\n📋 本期無中獎注單');
+                console.log('\n📋 本期无中奖注单');
             }
         } else {
-            console.log(`\n❌ 結算失敗: ${settlementResult.reason}`);
+            console.log(`\n❌ 结算失败: ${settlementResult.reason}`);
         }
         
-        // 4. 驗證結算結果
-        console.log('\n🔍 驗證結算結果...');
+        // 4. 验证结算结果
+        console.log('\n🔍 验证结算结果...');
         
         const verifyBets = await db.any(`
             SELECT id, bet_value, win, win_amount, settled, settled_at
@@ -64,24 +64,24 @@ async function manualSettle234() {
             ORDER BY id ASC
         `);
         
-        console.log('\n第4名投注結算結果:');
+        console.log('\n第4名投注结算结果:');
         verifyBets.forEach(bet => {
             const shouldWin = parseInt(bet.bet_value) === positions[3]; // 第4名是positions[3]
-            const status = bet.settled ? '✅ 已結算' : '❌ 未結算';
-            const winStatus = bet.win ? `中獎 $${bet.win_amount}` : '未中獎';
+            const status = bet.settled ? '✅ 已结算' : '❌ 未结算';
+            const winStatus = bet.win ? `中奖 $${bet.win_amount}` : '未中奖';
             const correct = shouldWin === bet.win ? '✅' : '❌';
             
-            console.log(`${status} ID ${bet.id}: 投注${bet.bet_value}號, ${winStatus} ${correct}`);
+            console.log(`${status} ID ${bet.id}: 投注${bet.bet_value}号, ${winStatus} ${correct}`);
         });
         
-        console.log('\n✅ 期號234手動結算完成！');
+        console.log('\n✅ 期号234手动结算完成！');
         
     } catch (error) {
-        console.error('手動結算過程中發生錯誤:', error);
+        console.error('手动结算过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行手動結算
+// 执行手动结算
 manualSettle234();

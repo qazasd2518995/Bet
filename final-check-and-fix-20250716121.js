@@ -129,7 +129,7 @@ async function finalCheckAndFix() {
                     rebateAmount,
                     balanceBefore,
                     balanceAfter,
-                    `退水 - 會員 ${betInfo.username} 期號 ${PERIOD}`,
+                    `退水 - 会员 ${betInfo.username} 期号 ${PERIOD}`,
                     betInfo.username,
                     betAmount,
                     agent.rebate_percentage,

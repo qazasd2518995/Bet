@@ -1,8 +1,8 @@
 import fs from 'fs';
 
-console.log('=== 修復 transaction_records 期號類型問題 ===\n');
+console.log('=== 修复 transaction_records 期号类型问题 ===\n');
 
-// 需要修復的檔案
+// 需要修复的档案
 const files = [
   './enhanced-settlement-system.js',
   './backend.js',
@@ -16,46 +16,46 @@ const files = [
 let totalFixed = 0;
 
 files.forEach(filePath => {
-  console.log(`\n檢查檔案: ${filePath}`);
+  console.log(`\n检查档案: ${filePath}`);
   
   if (!fs.existsSync(filePath)) {
-    console.log('  ❌ 檔案不存在');
+    console.log('  ❌ 档案不存在');
     return;
   }
   
   let content = fs.readFileSync(filePath, 'utf8');
   let fixCount = 0;
   
-  // 修復模式 1: 在插入 transaction_records 時確保 period 是字符串
+  // 修复模式 1: 在插入 transaction_records 时确保 period 是字符串
   // INSERT INTO transaction_records ... VALUES (..., $X, ...) 
-  // 需要改為 VALUES (..., $X::text, ...)
+  // 需要改为 VALUES (..., $X::text, ...)
   const insertPattern = /INSERT INTO transaction_records[\s\S]*?VALUES[\s\S]*?\(/g;
   let matches = content.match(insertPattern);
   if (matches) {
     matches.forEach(match => {
-      // 計算 VALUES 中有多少個參數來找到 period 的位置
-      // period 通常是倒數第二個或第三個參數
+      // 计算 VALUES 中有多少个参数来找到 period 的位置
+      // period 通常是倒数第二个或第三个参数
       if (match.includes('period') && !match.includes('::text')) {
         fixCount++;
-        console.log('  找到需要修復的 INSERT 語句');
+        console.log('  找到需要修复的 INSERT 语句');
       }
     });
   }
   
-  // 修復模式 2: 在查詢時確保類型轉換正確
-  // WHERE period = $X 需要根據表來決定轉換方向
-  // 對於 transaction_records，period 是 varchar
-  // 對於 bet_history，period 是 bigint
+  // 修复模式 2: 在查询时确保类型转换正确
+  // WHERE period = $X 需要根据表来决定转换方向
+  // 对于 transaction_records，period 是 varchar
+  // 对于 bet_history，period 是 bigint
   
-  // 當 JOIN 兩個表時，需要進行類型轉換
+  // 当 JOIN 两个表时，需要进行类型转换
   const joinPattern = /FROM transaction_records[\s\S]*?JOIN[\s\S]*?bet_history|FROM bet_history[\s\S]*?JOIN[\s\S]*?transaction_records/g;
   matches = content.match(joinPattern);
   if (matches) {
-    console.log(`  找到 ${matches.length} 處表連接，可能需要類型轉換`);
+    console.log(`  找到 ${matches.length} 处表连接，可能需要类型转换`);
   }
   
-  // 修復模式 3: 特定的查詢修復
-  // 為 transaction_records 的 period 參數添加類型轉換
+  // 修复模式 3: 特定的查询修复
+  // 为 transaction_records 的 period 参数添加类型转换
   const patterns = [
     {
       // allocate-rebate API 中的插入
@@ -79,28 +79,28 @@ files.forEach(filePath => {
   
   if (fixCount > 0) {
     fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`  ✅ 修復了 ${fixCount} 處期號類型問題`);
+    console.log(`  ✅ 修复了 ${fixCount} 处期号类型问题`);
     totalFixed += fixCount;
   } else {
-    console.log('  ℹ️ 沒有找到需要修復的地方');
+    console.log('  ℹ️ 没有找到需要修复的地方');
   }
 });
 
-console.log(`\n總共修復了 ${totalFixed} 處期號類型問題`);
+console.log(`\n总共修复了 ${totalFixed} 处期号类型问题`);
 
 if (totalFixed > 0) {
   console.log('\n⚠️ 重要提醒:');
-  console.log('程式碼已修復，但需要重啟後端服務才能生效！');
-  console.log('\n執行以下命令重啟:');
+  console.log('程式码已修复，但需要重启后端服务才能生效！');
+  console.log('\n执行以下命令重启:');
   console.log('ps aux | grep "node backend" | grep -v grep | awk \'{print $2}\' | xargs kill');
   console.log('ps aux | grep "node agentBackend" | grep -v grep | awk \'{print $2}\' | xargs kill');
   console.log('nohup node backend.js > backend.log 2>&1 &');
   console.log('nohup node agentBackend.js > agentBackend.log 2>&1 &');
 }
 
-console.log('\n建議：統一資料庫中 period 欄位的類型');
-console.log('目前狀況：');
+console.log('\n建议：统一资料库中 period 栏位的类型');
+console.log('目前状况：');
 console.log('- bet_history.period: bigint');
 console.log('- result_history.period: bigint');
 console.log('- transaction_records.period: varchar');
-console.log('建議將 transaction_records.period 也改為 bigint 以保持一致性');
+console.log('建议将 transaction_records.period 也改为 bigint 以保持一致性');

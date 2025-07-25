@@ -2,20 +2,20 @@ import db from './db/config.js';
 
 async function fixPeriod546() {
   try {
-    console.log('🔧 修復期號 20250717546 的錯誤結算...\n');
+    console.log('🔧 修复期号 20250717546 的错误结算...\n');
     
-    // 1. 確認開獎結果
+    // 1. 确认开奖结果
     const result = await db.oneOrNone(`
       SELECT * FROM result_history 
       WHERE period = '20250717546'
     `);
     
-    console.log('正確的開獎結果：');
-    console.log(`第2名: ${result.position_2} 號`);
+    console.log('正确的开奖结果：');
+    console.log(`第2名: ${result.position_2} 号`);
     
-    // 2. 修正錯誤的中獎記錄
-    // ID 3372: 投注7號，錯誤中獎
-    console.log('\n修正錯誤中獎記錄 (ID 3372: 投注7號)...');
+    // 2. 修正错误的中奖记录
+    // ID 3372: 投注7号，错误中奖
+    console.log('\n修正错误中奖记录 (ID 3372: 投注7号)...');
     await db.none(`
       UPDATE bet_history 
       SET win = false, win_amount = 0.00
@@ -23,9 +23,9 @@ async function fixPeriod546() {
     `);
     console.log('✅ 已修正');
     
-    // 3. 修正錯誤的未中記錄
-    // ID 3373: 投注8號，應該中獎
-    console.log('\n修正錯誤未中記錄 (ID 3373: 投注8號)...');
+    // 3. 修正错误的未中记录
+    // ID 3373: 投注8号，应该中奖
+    console.log('\n修正错误未中记录 (ID 3373: 投注8号)...');
     await db.none(`
       UPDATE bet_history 
       SET win = true, win_amount = 9.89
@@ -33,19 +33,19 @@ async function fixPeriod546() {
     `);
     console.log('✅ 已修正');
     
-    // 4. 調整用戶餘額
+    // 4. 调整用户余额
     const member = await db.oneOrNone(`
       SELECT balance FROM members WHERE username = 'justin111'
     `);
     
     if (member) {
       const currentBalance = parseFloat(member.balance);
-      // 扣回錯誤派彩 9.89，加上正確派彩 9.89 = 餘額不變
-      console.log(`\n當前餘額: $${currentBalance} (不需調整)`);
+      // 扣回错误派彩 9.89，加上正确派彩 9.89 = 余额不变
+      console.log(`\n当前余额: $${currentBalance} (不需调整)`);
     }
     
-    // 5. 驗證修復結果
-    console.log('\n驗證修復結果：');
+    // 5. 验证修复结果
+    console.log('\n验证修复结果：');
     const bets = await db.manyOrNone(`
       SELECT id, bet_value, win, win_amount
       FROM bet_history
@@ -58,13 +58,13 @@ async function fixPeriod546() {
     
     bets.forEach(bet => {
       const correct = (bet.bet_value === '8' && bet.win) || (bet.bet_value === '7' && !bet.win);
-      console.log(`ID ${bet.id}: 投注${bet.bet_value}號 → ${bet.win ? '中獎' : '未中'} ${correct ? '✅' : '❌'}`);
+      console.log(`ID ${bet.id}: 投注${bet.bet_value}号 → ${bet.win ? '中奖' : '未中'} ${correct ? '✅' : '❌'}`);
     });
     
-    console.log('\n修復完成！');
+    console.log('\n修复完成！');
     
   } catch (error) {
-    console.error('修復失敗:', error);
+    console.error('修复失败:', error);
   } finally {
     process.exit(0);
   }

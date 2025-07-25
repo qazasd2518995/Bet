@@ -1,11 +1,11 @@
-// fix-result-json-consistency.js - 修復 result JSON 欄位與 position 欄位的一致性
+// fix-result-json-consistency.js - 修复 result JSON 栏位与 position 栏位的一致性
 import db from './db/config.js';
 
 async function fixResultJsonConsistency() {
-    console.log('========== 修復 result JSON 欄位一致性 ==========\n');
+    console.log('========== 修复 result JSON 栏位一致性 ==========\n');
     
     try {
-        // 1. 找出所有不一致的記錄
+        // 1. 找出所有不一致的记录
         const inconsistentResults = await db.manyOrNone(`
             SELECT 
                 period,
@@ -34,8 +34,8 @@ async function fixResultJsonConsistency() {
                     positionArray: positionArray
                 });
                 
-                if (inconsistentCount <= 5) { // 只顯示前5筆
-                    console.log(`發現不一致: 期號 ${record.period}`);
+                if (inconsistentCount <= 5) { // 只显示前5笔
+                    console.log(`发现不一致: 期号 ${record.period}`);
                     console.log(`  JSON: ${JSON.stringify(jsonResult)}`);
                     console.log(`  Position: ${JSON.stringify(positionArray)}`);
                 }
@@ -43,15 +43,15 @@ async function fixResultJsonConsistency() {
         }
         
         if (inconsistentCount > 5) {
-            console.log(`... 還有 ${inconsistentCount - 5} 筆不一致的記錄`);
+            console.log(`... 还有 ${inconsistentCount - 5} 笔不一致的记录`);
         }
         
-        console.log(`\n總共發現 ${inconsistentCount} 筆不一致的記錄`);
+        console.log(`\n总共发现 ${inconsistentCount} 笔不一致的记录`);
         
         if (inconsistentCount > 0) {
-            console.log('\n開始修復...');
+            console.log('\n开始修复...');
             
-            // 2. 修復不一致的記錄（以 position_* 欄位為準）
+            // 2. 修复不一致的记录（以 position_* 栏位为准）
             await db.tx(async t => {
                 for (const fix of toFix) {
                     await t.none(`
@@ -62,10 +62,10 @@ async function fixResultJsonConsistency() {
                 }
             });
             
-            console.log(`✅ 已修復 ${inconsistentCount} 筆記錄`);
+            console.log(`✅ 已修复 ${inconsistentCount} 笔记录`);
             
-            // 3. 驗證修復結果
-            console.log('\n驗證修復結果（檢查前5筆）：');
+            // 3. 验证修复结果
+            console.log('\n验证修复结果（检查前5笔）：');
             for (let i = 0; i < Math.min(5, toFix.length); i++) {
                 const verified = await db.oneOrNone(`
                     SELECT 
@@ -76,14 +76,14 @@ async function fixResultJsonConsistency() {
                 `, [toFix[i].period]);
                 
                 const newJson = JSON.parse(verified.result_json);
-                console.log(`  期號 ${toFix[i].period}: ${newJson[0] === verified.position_1 ? '✅ 已修復' : '❌ 修復失敗'}`);
+                console.log(`  期号 ${toFix[i].period}: ${newJson[0] === verified.position_1 ? '✅ 已修复' : '❌ 修复失败'}`);
             }
         } else {
-            console.log('\n✅ 所有記錄都已經一致，無需修復');
+            console.log('\n✅ 所有记录都已经一致，无需修复');
         }
         
-        // 4. 特別檢查期號 20250718493
-        console.log('\n特別驗證期號 20250718493：');
+        // 4. 特别检查期号 20250718493
+        console.log('\n特别验证期号 20250718493：');
         const check493 = await db.oneOrNone(`
             SELECT 
                 result::text as result_json,
@@ -100,11 +100,11 @@ async function fixResultJsonConsistency() {
         }
         
     } catch (error) {
-        console.error('修復過程中發生錯誤:', error);
+        console.error('修复过程中发生错误:', error);
     }
     
     process.exit();
 }
 
-// 執行修復
+// 执行修复
 fixResultJsonConsistency();

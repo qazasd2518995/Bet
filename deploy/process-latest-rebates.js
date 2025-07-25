@@ -3,7 +3,7 @@ import db from './db/config.js';
 
 async function processLatestRebates() {
     try {
-        // 檢查最新需要處理退水的期號
+        // 检查最新需要处理退水的期号
         const needRebates = await db.any(`
             SELECT DISTINCT bh.period, SUM(bh.amount) as total_amount
             FROM bet_history bh
@@ -21,23 +21,23 @@ async function processLatestRebates() {
             ORDER BY bh.period DESC
         `);
         
-        console.log(`=== 找到 ${needRebates.length} 個期號需要處理退水 ===`);
+        console.log(`=== 找到 ${needRebates.length} 个期号需要处理退水 ===`);
         
         for (const item of needRebates) {
-            console.log(`\n處理期號 ${item.period}, 下注金額: ${item.total_amount}`);
+            console.log(`\n处理期号 ${item.period}, 下注金额: ${item.total_amount}`);
             
-            // 獲取開獎結果
+            // 获取开奖结果
             const drawResult = await db.oneOrNone(`
                 SELECT * FROM result_history 
                 WHERE period = $1
             `, [item.period]);
             
             if (!drawResult) {
-                console.log(`❌ 期號 ${item.period} 找不到開獎結果`);
+                console.log(`❌ 期号 ${item.period} 找不到开奖结果`);
                 continue;
             }
             
-            // 構建結果物件
+            // 构建结果物件
             const winResult = {
                 positions: [
                     drawResult.position_1,
@@ -53,18 +53,18 @@ async function processLatestRebates() {
                 ]
             };
             
-            console.log('開獎結果:', winResult.positions);
+            console.log('开奖结果:', winResult.positions);
             
-            // 調用結算系統處理退水
+            // 调用结算系统处理退水
             const result = await enhancedSettlement(item.period, winResult);
-            console.log(`結算結果:`, result);
+            console.log(`结算结果:`, result);
             
             // 等待一下
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        // 檢查退水記錄
-        console.log('\n=== 檢查退水結果 ===');
+        // 检查退水记录
+        console.log('\n=== 检查退水结果 ===');
         const newRebates = await db.any(`
             SELECT 
                 tr.*,
@@ -77,24 +77,24 @@ async function processLatestRebates() {
             ORDER BY tr.created_at DESC
         `);
         
-        console.log(`找到 ${newRebates.length} 筆新的退水記錄`);
+        console.log(`找到 ${newRebates.length} 笔新的退水记录`);
         newRebates.forEach(r => {
-            console.log(`${r.agent_name}: ${r.amount} 元, 期號: ${r.period}`);
+            console.log(`${r.agent_name}: ${r.amount} 元, 期号: ${r.period}`);
         });
         
-        // 顯示最終餘額
+        // 显示最终余额
         const agents = await db.any(`
             SELECT username, balance FROM agents
             WHERE username IN ('justin2025A', 'ti2025A')
         `);
         
-        console.log('\n=== 代理最終餘額 ===');
+        console.log('\n=== 代理最终余额 ===');
         agents.forEach(a => {
             console.log(`${a.username}: ${a.balance}`);
         });
         
     } catch (error) {
-        console.error('處理時發生錯誤:', error);
+        console.error('处理时发生错误:', error);
     } finally {
         process.exit(0);
     }

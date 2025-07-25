@@ -1,5 +1,5 @@
--- 分析平台盈虧計算邏輯
--- 1. 查看近期所有已結算注單統計
+-- 分析平台盈亏计算逻辑
+-- 1. 查看近期所有已结算注单统计
 SELECT 
   COUNT(*) as total_bets,
   SUM(amount) as total_bet_amount,
@@ -8,14 +8,14 @@ SELECT
   SUM(CASE WHEN win = true THEN win_amount ELSE 0 END) as total_win_amount,
   SUM(CASE WHEN win = true THEN (win_amount - amount) ELSE 0 END) as total_player_profit,
   SUM(CASE WHEN win = false THEN amount ELSE 0 END) as total_player_loss,
-  -- 平台盈虧計算：玩家輸錢 - 玩家淨贏利
+  -- 平台盈亏计算：玩家输钱 - 玩家净赢利
   SUM(CASE WHEN win = false THEN amount ELSE 0 END) - 
   SUM(CASE WHEN win = true THEN (win_amount - amount) ELSE 0 END) as platform_profit
 FROM bet_history 
 WHERE settled = true
 ORDER BY period DESC;
 
--- 2. 查看最近500筆結算注單的詳細計算
+-- 2. 查看最近500笔结算注单的详细计算
 SELECT 
   period,
   username,
@@ -23,8 +23,8 @@ SELECT
   win,
   win_amount,
   CASE 
-    WHEN win = true THEN -(win_amount - amount)  -- 玩家贏錢，平台虧損
-    ELSE amount  -- 玩家輸錢，平台獲利
+    WHEN win = true THEN -(win_amount - amount)  -- 玩家赢钱，平台亏损
+    ELSE amount  -- 玩家输钱，平台获利
   END as platform_profit_per_bet,
   created_at
 FROM bet_history 
@@ -32,7 +32,7 @@ WHERE settled = true
 ORDER BY period DESC, id DESC
 LIMIT 500;
 
--- 3. 按期數統計平台盈虧
+-- 3. 按期数统计平台盈亏
 SELECT 
   period,
   COUNT(*) as bet_count,
@@ -49,7 +49,7 @@ GROUP BY period
 ORDER BY period DESC
 LIMIT 50;
 
--- 4. 查看今日統計
+-- 4. 查看今日统计
 SELECT 
   DATE(created_at) as bet_date,
   COUNT(*) as bet_count,

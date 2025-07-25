@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>盈虧記錄表格修正測試</title>
+    <title>盈亏记录表格修正测试</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -27,7 +27,7 @@
             text-align: center;
         }
         
-        /* 複製修正後的CSS */
+        /* 复制修正后的CSS */
         .weekly-profit-content {
             background: white;
             border-radius: 8px;
@@ -146,7 +146,7 @@
             color: #6c757d;
         }
 
-        /* 響應式設計 - 修正版本 */
+        /* 响应式设计 - 修正版本 */
         @media (max-width: 768px) {
             .weekly-table-header, .table-row {
                 grid-template-columns: 1.2fr 0.8fr 1fr 1fr;
@@ -236,23 +236,23 @@
 </head>
 <body>
     <div class="debug-info">
-        <strong>🐛 除錯資訊：</strong><br>
-        檢查表格是否有4欄：日期 | 注數 | 有效金額 | 輸贏<br>
-        原問題：輸贏數字跑到日期欄位下面<br>
-        修正：增加專用CSS類別和white-space: nowrap
+        <strong>🐛 除错资讯：</strong><br>
+        检查表格是否有4栏：日期 | 注数 | 有效金额 | 输赢<br>
+        原问题：输赢数字跑到日期栏位下面<br>
+        修正：增加专用CSS类别和white-space: nowrap
     </div>
 
     <div class="test-container">
         <div class="header">
-            <h3>盈虧記錄 - 修正測試</h3>
+            <h3>盈亏记录 - 修正测试</h3>
         </div>
         
         <div class="weekly-profit-content">
             <div class="weekly-table-header">
                 <div class="header-cell">日期</div>
-                <div class="header-cell">注數</div>
-                <div class="header-cell">有效金額</div>
-                <div class="header-cell">輸贏</div>
+                <div class="header-cell">注数</div>
+                <div class="header-cell">有效金额</div>
+                <div class="header-cell">输赢</div>
             </div>
             
             <div class="weekly-table-body">
@@ -300,13 +300,13 @@
     </div>
     
     <div class="test-info">
-        <strong>✅ 修正要點：</strong><br>
-        1. 給每個欄位添加專用CSS類別 (bet-count-cell, amount-cell, profit-cell)<br>
-        2. 使用 white-space: nowrap 防止文字換行<br>
-        3. 設定適當的 min-width 確保欄位寬度<br>
-        4. Grid布局維持 1.5fr 1fr 1fr 1fr 比例<br><br>
+        <strong>✅ 修正要点：</strong><br>
+        1. 给每个栏位添加专用CSS类别 (bet-count-cell, amount-cell, profit-cell)<br>
+        2. 使用 white-space: nowrap 防止文字换行<br>
+        3. 设定适当的 min-width 确保栏位宽度<br>
+        4. Grid布局维持 1.5fr 1fr 1fr 1fr 比例<br><br>
         
-        <strong>📱 請縮小瀏覽器視窗測試響應式效果</strong>
+        <strong>📱 请缩小浏览器视窗测试响应式效果</strong>
     </div>
 </body>
 </html> 

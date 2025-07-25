@@ -1,9 +1,9 @@
-// db/models/game.js - 遊戲模型
+// db/models/game.js - 游戏模型
 import db from '../config.js';
 
-// 遊戲模型
+// 游戏模型
 const GameModel = {
-  // 獲取當前遊戲狀態
+  // 获取当前游戏状态
   async getCurrentState() {
     try {
       const state = await db.oneOrNone(`
@@ -13,12 +13,12 @@ const GameModel = {
       
       return state;
     } catch (error) {
-      console.error('獲取遊戲狀態出錯:', error);
+      console.error('获取游戏状态出错:', error);
       throw error;
     }
   },
   
-  // 更新遊戲狀態
+  // 更新游戏状态
   async updateState(stateData) {
     const { 
       current_period, 
@@ -28,11 +28,11 @@ const GameModel = {
     } = stateData;
     
     try {
-      // 檢查是否已存在遊戲狀態記錄
+      // 检查是否已存在游戏状态记录
       const existingState = await this.getCurrentState();
       
       if (existingState) {
-        // 更新現有狀態
+        // 更新现有状态
         return await db.one(`
           UPDATE game_state 
           SET current_period = $1, 
@@ -44,7 +44,7 @@ const GameModel = {
           RETURNING *
         `, [current_period, countdown_seconds, JSON.stringify(last_result), status, existingState.id]);
       } else {
-        // 創建新狀態記錄
+        // 创建新状态记录
         return await db.one(`
           INSERT INTO game_state (
             current_period, countdown_seconds, last_result, status
@@ -54,31 +54,31 @@ const GameModel = {
         `, [current_period, countdown_seconds, JSON.stringify(last_result), status]);
       }
     } catch (error) {
-      console.error('更新遊戲狀態出錯:', error);
+      console.error('更新游戏状态出错:', error);
       throw error;
     }
   },
   
-  // 添加新的開獎結果 - 修正重複期號導致卡住的問題
+  // 添加新的开奖结果 - 修正重复期号导致卡住的问题
   async addResult(period, result) {
     try {
-      console.log(`🎲 嘗試添加開獎結果: 期號=${period}, 結果=${JSON.stringify(result)}`);
+      console.log(`🎲 尝试添加开奖结果: 期号=${period}, 结果=${JSON.stringify(result)}`);
       
-      // 先檢查該期號是否已存在
+      // 先检查该期号是否已存在
       const existing = await db.oneOrNone(`
         SELECT period, result FROM result_history WHERE period = $1
       `, [period]);
       
       if (existing) {
-        console.log(`⚠️ 期號 ${period} 的開獎結果已存在: ${JSON.stringify(existing.result)}`);
-        console.log(`🔄 準備用新結果覆蓋: ${JSON.stringify(result)}`);
+        console.log(`⚠️ 期号 ${period} 的开奖结果已存在: ${JSON.stringify(existing.result)}`);
+        console.log(`🔄 准备用新结果覆盖: ${JSON.stringify(result)}`);
         
-        // 🎯 關鍵修復：如果結果不同，更新為新結果
+        // 🎯 关键修复：如果结果不同，更新为新结果
         const existingResultStr = Array.isArray(existing.result) ? JSON.stringify(existing.result) : existing.result;
         const newResultStr = JSON.stringify(result);
         
         if (existingResultStr !== newResultStr) {
-          console.log(`🔧 結果不同，執行更新操作`);
+          console.log(`🔧 结果不同，执行更新操作`);
           
           const updatedResult = await db.one(`
             UPDATE result_history 
@@ -90,21 +90,21 @@ const GameModel = {
             RETURNING *
           `, [JSON.stringify(result), period, ...result]);
           
-          console.log(`✅ 成功更新期號 ${period} 的開獎結果`);
+          console.log(`✅ 成功更新期号 ${period} 的开奖结果`);
           return {
             ...updatedResult,
-            wasUpdated: true // 標記為已更新
+            wasUpdated: true // 标记为已更新
           };
         } else {
-          console.log(`✅ 期號 ${period} 結果相同，無需更新`);
+          console.log(`✅ 期号 ${period} 结果相同，无需更新`);
           return {
             ...existing,
-            isDuplicate: true // 標記為重複期號
+            isDuplicate: true // 标记为重复期号
           };
         }
       }
       
-      // 嘗試使用INSERT ... ON CONFLICT來處理併發情況
+      // 尝试使用INSERT ... ON CONFLICT来处理并发情况
       try {
         const insertedResult = await db.one(`
           INSERT INTO result_history (
@@ -124,12 +124,12 @@ const GameModel = {
           RETURNING *
         `, [period, JSON.stringify(result), ...result]);
         
-        console.log(`✅ 成功添加期號 ${period} 的開獎結果`);
+        console.log(`✅ 成功添加期号 ${period} 的开奖结果`);
         return insertedResult;
       } catch (onConflictError) {
-        // 如果ON CONFLICT失敗（約束不存在），使用普通INSERT
+        // 如果ON CONFLICT失败（约束不存在），使用普通INSERT
         if (onConflictError.code === '42P10') {
-          console.log(`⚠️ 約束不存在，使用普通INSERT插入期號 ${period}`);
+          console.log(`⚠️ 约束不存在，使用普通INSERT插入期号 ${period}`);
           const insertedResult = await db.one(`
             INSERT INTO result_history (
               period, result,
@@ -140,26 +140,26 @@ const GameModel = {
             RETURNING *
           `, [period, JSON.stringify(result), ...result]);
           
-          console.log(`✅ 成功添加期號 ${period} 的開獎結果（普通INSERT）`);
+          console.log(`✅ 成功添加期号 ${period} 的开奖结果（普通INSERT）`);
           return insertedResult;
         }
         throw onConflictError;
       }
     } catch (error) {
-      // 如果是唯一約束違反，不要返回null，而是重新檢查
+      // 如果是唯一约束违反，不要返回null，而是重新检查
       if (error.code === '23505') {
-        console.log(`⚠️ 唯一約束違反，期號 ${period} 可能已被其他進程插入`);
+        console.log(`⚠️ 唯一约束违反，期号 ${period} 可能已被其他进程插入`);
         const existing = await db.oneOrNone(`
           SELECT period, result FROM result_history WHERE period = $1
         `, [period]);
         
         if (existing) {
-          // 🎯 關鍵修復：併發衝突時也要檢查結果是否需要更新
+          // 🎯 关键修复：并发冲突时也要检查结果是否需要更新
           const existingResultStr = Array.isArray(existing.result) ? JSON.stringify(existing.result) : existing.result;
           const newResultStr = JSON.stringify(result);
           
           if (existingResultStr !== newResultStr) {
-            console.log(`🔧 併發衝突後發現結果不同，執行更新操作`);
+            console.log(`🔧 并发冲突后发现结果不同，执行更新操作`);
             
             const updatedResult = await db.one(`
               UPDATE result_history 
@@ -171,7 +171,7 @@ const GameModel = {
               RETURNING *
             `, [JSON.stringify(result), period, ...result]);
             
-            console.log(`✅ 成功更新期號 ${period} 的開獎結果（併發情況）`);
+            console.log(`✅ 成功更新期号 ${period} 的开奖结果（并发情况）`);
             return {
               ...updatedResult,
               wasUpdated: true
@@ -185,12 +185,12 @@ const GameModel = {
         }
       }
       
-      console.error('添加開獎結果出錯:', error);
+      console.error('添加开奖结果出错:', error);
       throw error;
     }
   },
   
-  // 獲取開獎結果歷史
+  // 获取开奖结果历史
   async getResultHistory(limit = 50) {
     try {
       return await db.any(`
@@ -200,7 +200,7 @@ const GameModel = {
         LIMIT $1
       `, [limit]);
     } catch (error) {
-      console.error('獲取開獎結果歷史出錯:', error);
+      console.error('获取开奖结果历史出错:', error);
       throw error;
     }
   }

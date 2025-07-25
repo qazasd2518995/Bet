@@ -18,7 +18,7 @@ FROM bet_history
 WHERE period = '20250714396'
 AND username = 'justin111'
 AND (
-    (bet_type IN ('季軍', '第三名') AND bet_value = '1')
+    (bet_type IN ('季军', '第三名') AND bet_value = '1')
     OR (bet_type = 'number' AND position = 3 AND bet_value = '1')
 );
 
@@ -32,7 +32,7 @@ SET
     status = 'win'
 WHERE period = '20250714396'
 AND (
-    (bet_type IN ('季軍', '第三名') AND bet_value = '1')
+    (bet_type IN ('季军', '第三名') AND bet_value = '1')
     OR (bet_type = 'number' AND position = 3 AND bet_value = '1')
 )
 AND is_win = false;
@@ -45,7 +45,7 @@ WITH winning_bets AS (
     FROM bet_history 
     WHERE period = '20250714396'
     AND (
-        (bet_type IN ('季軍', '第三名') AND bet_value = '1')
+        (bet_type IN ('季军', '第三名') AND bet_value = '1')
         OR (bet_type = 'number' AND position = 3 AND bet_value = '1')
     )
     AND is_win = false
@@ -61,7 +61,7 @@ WITH winning_bets AS (
     FROM bet_history 
     WHERE period = '20250714396'
     AND (
-        (bet_type IN ('季軍', '第三名') AND bet_value = '1')
+        (bet_type IN ('季军', '第三名') AND bet_value = '1')
         OR (bet_type = 'number' AND position = 3 AND bet_value = '1')
     )
     AND is_win = false
@@ -80,13 +80,13 @@ SELECT
     bh.amount * bh.odds,
     m.balance - (bh.amount * bh.odds),
     m.balance,
-    CONCAT('修正期號 20250714396 結算 - ', bh.bet_type, ' ', bh.bet_value),
+    CONCAT('修正期号 20250714396 结算 - ', bh.bet_type, ' ', bh.bet_value),
     NOW()
 FROM bet_history bh
 JOIN members m ON bh.username = m.username
 WHERE bh.period = '20250714396'
 AND (
-    (bh.bet_type IN ('季軍', '第三名') AND bh.bet_value = '1')
+    (bh.bet_type IN ('季军', '第三名') AND bh.bet_value = '1')
     OR (bh.bet_type = 'number' AND bh.position = 3 AND bh.bet_value = '1')
 )
 AND bh.is_win = false;

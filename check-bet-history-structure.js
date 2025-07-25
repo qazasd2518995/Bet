@@ -2,9 +2,9 @@ import db from './db/config.js';
 
 async function checkBetHistoryStructure() {
   try {
-    console.log('=== 檢查 bet_history 表結構 ===\n');
+    console.log('=== 检查 bet_history 表结构 ===\n');
 
-    // 1. 檢查 bet_history 表結構
+    // 1. 检查 bet_history 表结构
     const columns = await db.query(`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns
@@ -12,13 +12,13 @@ async function checkBetHistoryStructure() {
       ORDER BY ordinal_position;
     `);
     
-    console.log('bet_history 表欄位：');
+    console.log('bet_history 表栏位：');
     columns.forEach(col => {
       console.log(`  - ${col.column_name} (${col.data_type})`);
     });
 
-    // 2. 檢查 justin2025A 的投注記錄
-    console.log('\n檢查 justin2025A 的投注記錄：');
+    // 2. 检查 justin2025A 的投注记录
+    console.log('\n检查 justin2025A 的投注记录：');
     const bets = await db.query(`
       SELECT *
       FROM bet_history
@@ -28,7 +28,7 @@ async function checkBetHistoryStructure() {
     `);
     
     if (bets.length > 0) {
-      console.log(`\n找到 ${bets.length} 筆投注記錄`);
+      console.log(`\n找到 ${bets.length} 笔投注记录`);
       bets.forEach((bet, idx) => {
         console.log(`\n投注 ${idx + 1}:`);
         Object.keys(bet).forEach(key => {
@@ -41,11 +41,11 @@ async function checkBetHistoryStructure() {
         }
       });
     } else {
-      console.log('未找到 justin2025A 的投注記錄');
+      console.log('未找到 justin2025A 的投注记录');
     }
 
   } catch (error) {
-    console.error('檢查失敗:', error.message);
+    console.error('检查失败:', error.message);
   } finally {
     process.exit();
   }

@@ -2,21 +2,21 @@ import axios from 'axios';
 
 const AGENT_API = 'https://bet-agent.onrender.com/api/agent';
 
-console.log('🔧 修復會員market_type數據庫字段');
+console.log('🔧 修复会员market_type数据库字段');
 console.log('='.repeat(60));
 
 async function fixMemberMarketType() {
   try {
-    console.log('\n📋 步驟1: 檢查現有會員的market_type狀態');
+    console.log('\n📋 步骤1: 检查现有会员的market_type状态');
     
-    // 登入A盤代理檢查會員
+    // 登入A盘代理检查会员
     const aAgentLogin = await axios.post(`${AGENT_API}/login`, {
       username: 'A01agent',
       password: 'A01pass'
     });
     
     if (aAgentLogin.data.success) {
-      console.log(`✅ A01agent 登入成功 (市場類型: ${aAgentLogin.data.agent.market_type})`);
+      console.log(`✅ A01agent 登入成功 (市场类型: ${aAgentLogin.data.agent.market_type})`);
       
       const membersResponse = await axios.get(`${AGENT_API}/members`, {
         headers: { 'Cookie': `sessionToken=${aAgentLogin.data.sessionToken}` }
@@ -24,24 +24,24 @@ async function fixMemberMarketType() {
       
       if (membersResponse.data.success) {
         const members = membersResponse.data.members || [];
-        console.log(`A01agent 管理的會員:`);
+        console.log(`A01agent 管理的会员:`);
         
         members.forEach(member => {
           console.log(`  ${member.username}: market_type=${member.market_type || 'undefined'}, agent_id=${member.agent_id}`);
         });
         
-        // 檢查是否需要修復
+        // 检查是否需要修复
         const needsFixing = members.filter(m => !m.market_type || m.market_type !== 'A');
         
         if (needsFixing.length > 0) {
-          console.log(`\n⚠️  發現 ${needsFixing.length} 個會員需要修復市場類型`);
+          console.log(`\n⚠️  发现 ${needsFixing.length} 个会员需要修复市场类型`);
           
-          // 嘗試通過代理API更新會員市場類型
+          // 尝试通过代理API更新会员市场类型
           for (const member of needsFixing) {
             try {
-              console.log(`🔄 修復 ${member.username} 的市場類型...`);
+              console.log(`🔄 修复 ${member.username} 的市场类型...`);
               
-              // 檢查是否有更新會員API
+              // 检查是否有更新会员API
               const updateEndpoints = [
                 '/update-member',
                 '/member/update',
@@ -66,34 +66,34 @@ async function fixMemberMarketType() {
                     break;
                   }
                 } catch (error) {
-                  // 繼續嘗試下一個端點
+                  // 继续尝试下一个端点
                 }
               }
               
               if (!updateSuccess) {
-                console.log(`❌ 無法找到更新 ${member.username} 的API端點`);
+                console.log(`❌ 无法找到更新 ${member.username} 的API端点`);
               }
               
             } catch (error) {
-              console.log(`❌ 修復 ${member.username} 失敗: ${error.message}`);
+              console.log(`❌ 修复 ${member.username} 失败: ${error.message}`);
             }
           }
         } else {
-          console.log(`✅ 所有A盤會員的市場類型都正確`);
+          console.log(`✅ 所有A盘会员的市场类型都正确`);
         }
       }
     }
     
-    console.log('\n📋 步驟2: 檢查D盤代理的會員');
+    console.log('\n📋 步骤2: 检查D盘代理的会员');
     
-    // 登入D盤代理檢查會員
+    // 登入D盘代理检查会员
     const dAgentLogin = await axios.post(`${AGENT_API}/login`, {
       username: 'D01agent',
       password: 'D01pass'
     });
     
     if (dAgentLogin.data.success) {
-      console.log(`✅ D01agent 登入成功 (市場類型: ${dAgentLogin.data.agent.market_type})`);
+      console.log(`✅ D01agent 登入成功 (市场类型: ${dAgentLogin.data.agent.market_type})`);
       
       const membersResponse = await axios.get(`${AGENT_API}/members`, {
         headers: { 'Cookie': `sessionToken=${dAgentLogin.data.sessionToken}` }
@@ -101,105 +101,105 @@ async function fixMemberMarketType() {
       
       if (membersResponse.data.success) {
         const members = membersResponse.data.members || [];
-        console.log(`D01agent 管理的會員:`);
+        console.log(`D01agent 管理的会员:`);
         
         members.forEach(member => {
           console.log(`  ${member.username}: market_type=${member.market_type || 'undefined'}, agent_id=${member.agent_id}`);
         });
         
-        // 檢查是否需要修復
+        // 检查是否需要修复
         const needsFixing = members.filter(m => !m.market_type || m.market_type !== 'D');
         
         if (needsFixing.length > 0) {
-          console.log(`\n⚠️  發現 ${needsFixing.length} 個D盤會員需要修復市場類型`);
+          console.log(`\n⚠️  发现 ${needsFixing.length} 个D盘会员需要修复市场类型`);
         } else {
-          console.log(`✅ 所有D盤會員的市場類型都正確`);
+          console.log(`✅ 所有D盘会员的市场类型都正确`);
         }
       }
     }
     
-    console.log('\n📋 步驟3: 創建新的測試會員驗證修復');
+    console.log('\n📋 步骤3: 创建新的测试会员验证修复');
     
-    // 創建新的A盤測試會員
+    // 创建新的A盘测试会员
     try {
       const newMemberResponse = await axios.post(`${AGENT_API}/create-member`, {
         username: 'TestAMember',
         password: 'test123456',
         agentId: aAgentLogin.data.agent.id,
-        notes: 'A盤修復測試會員'
+        notes: 'A盘修复测试会员'
       }, {
         headers: { 'Cookie': `sessionToken=${aAgentLogin.data.sessionToken}` }
       });
       
       if (newMemberResponse.data.success) {
-        console.log(`✅ 成功創建新A盤測試會員: TestAMember`);
+        console.log(`✅ 成功创建新A盘测试会员: TestAMember`);
         
-        // 立即檢查新會員的市場類型
+        // 立即检查新会员的市场类型
         const newMemberInfo = await axios.get(`${AGENT_API}/member/info/TestAMember`);
         
         if (newMemberInfo.data.success) {
-          console.log(`  新會員市場類型: ${newMemberInfo.data.member.market_type}`);
+          console.log(`  新会员市场类型: ${newMemberInfo.data.member.market_type}`);
           
           if (newMemberInfo.data.member.market_type === 'A') {
-            console.log(`  ✅ 新會員正確繼承A盤類型`);
+            console.log(`  ✅ 新会员正确继承A盘类型`);
           } else {
-            console.log(`  ❌ 新會員市場類型不正確: ${newMemberInfo.data.member.market_type}`);
+            console.log(`  ❌ 新会员市场类型不正确: ${newMemberInfo.data.member.market_type}`);
           }
         }
       } else {
-        console.log(`⚠️  創建新會員回應: ${newMemberResponse.data.message}`);
+        console.log(`⚠️  创建新会员回应: ${newMemberResponse.data.message}`);
       }
     } catch (error) {
-      console.log(`❌ 創建新測試會員失敗: ${error.response?.data?.message || error.message}`);
+      console.log(`❌ 创建新测试会员失败: ${error.response?.data?.message || error.message}`);
     }
     
-    console.log('\n📋 步驟4: 測試修復後的登入API');
+    console.log('\n📋 步骤4: 测试修复后的登入API');
     
-    // 測試修復後的會員登入
+    // 测试修复后的会员登入
     try {
       const loginTestResponse = await axios.post(`${AGENT_API}/member/verify-login`, {
         username: 'A01member',
         password: 'A01mem'
       });
       
-      console.log('修復後的登入驗證回應:');
+      console.log('修复后的登入验证回应:');
       console.log(JSON.stringify(loginTestResponse.data, null, 2));
       
       if (loginTestResponse.data.success && loginTestResponse.data.member?.market_type) {
-        console.log(`✅ 登入API現在正確返回市場類型: ${loginTestResponse.data.member.market_type}`);
+        console.log(`✅ 登入API现在正确返回市场类型: ${loginTestResponse.data.member.market_type}`);
       } else {
-        console.log(`❌ 登入API仍然缺少市場類型字段`);
+        console.log(`❌ 登入API仍然缺少市场类型字段`);
       }
     } catch (error) {
-      console.log(`❌ 測試登入API失敗: ${error.response?.data?.message || error.message}`);
+      console.log(`❌ 测试登入API失败: ${error.response?.data?.message || error.message}`);
     }
     
-    console.log('\n🎯 修復總結');
+    console.log('\n🎯 修复总结');
     console.log('='.repeat(60));
     
     console.log(`
-📊 修復狀態:
+📊 修复状态:
 
-✅ 代理系統修復項目:
-1. 會員創建API已修復 - 新會員將正確繼承代理的市場類型
-2. 會員驗證API已修復 - 返回market_type字段
-3. 會員信息API已修復 - 包含market_type字段
-4. 遊戲平台登入API已修復 - 返回market_type字段
+✅ 代理系统修复项目:
+1. 会员创建API已修复 - 新会员将正确继承代理的市场类型
+2. 会员验证API已修复 - 返回market_type字段
+3. 会员信息API已修复 - 包含market_type字段
+4. 游戏平台登入API已修复 - 返回market_type字段
 
-⚠️  注意事項:
-1. 舊有會員可能需要手動更新market_type字段
-2. 新創建的會員應該自動繼承正確的市場類型
-3. 前端需要重新登入才能獲取新的市場類型信息
+⚠️  注意事项:
+1. 旧有会员可能需要手动更新market_type字段
+2. 新创建的会员应该自动继承正确的市场类型
+3. 前端需要重新登入才能获取新的市场类型信息
 
-🚀 建議操作:
-1. 請手動更新數據庫中現有會員的market_type字段
-2. 測試前端重新登入功能
-3. 驗證A盤會員看到高賠率(1.9/9.89)
-4. 驗證D盤會員看到標準賠率(1.88/9.59)
+🚀 建议操作:
+1. 请手动更新数据库中现有会员的market_type字段
+2. 测试前端重新登入功能
+3. 验证A盘会员看到高赔率(1.9/9.89)
+4. 验证D盘会员看到标准赔率(1.88/9.59)
     `);
     
   } catch (error) {
-    console.error('修復過程發生錯誤:', error.message);
+    console.error('修复过程发生错误:', error.message);
   }
 }
 

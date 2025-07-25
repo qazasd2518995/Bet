@@ -1,125 +1,125 @@
-// optimized-draw-flow.js - 優化後的開獎流程
-// 解決開獎歸零時卡頓的問題
+// optimized-draw-flow.js - 优化后的开奖流程
+// 解决开奖归零时卡顿的问题
 
 /*
-問題分析：
-1. 原本的開獎流程在倒計時歸零時執行了太多同步操作
-2. 這些操作包括：生成結果、保存數據庫、同步代理系統、執行結算
-3. 所有操作都是同步執行，導致明顯的卡頓
+问题分析：
+1. 原本的开奖流程在倒计时归零时执行了太多同步操作
+2. 这些操作包括：生成结果、保存数据库、同步代理系统、执行结算
+3. 所有操作都是同步执行，导致明显的卡顿
 
-解決方案：
-1. 將期數遞增和狀態更新提前執行，讓前端立即看到新期數
-2. 將非關鍵操作（如同步代理系統、結算）改為異步執行
-3. 使用事件驅動架構，開獎完成後觸發後續操作
+解决方案：
+1. 将期数递增和状态更新提前执行，让前端立即看到新期数
+2. 将非关键操作（如同步代理系统、结算）改为异步执行
+3. 使用事件驱动架构，开奖完成后触发后续操作
 */
 
-// 修改 backend.js 的開獎邏輯部分：
+// 修改 backend.js 的开奖逻辑部分：
 
-// 在 drawing 倒計時結束時的處理邏輯（約第 1200 行）
+// 在 drawing 倒计时结束时的处理逻辑（约第 1200 行）
 /*
 } else if (memoryGameState.status === 'drawing') {
-    // drawing狀態倒計時結束 -> 執行開獎
+    // drawing状态倒计时结束 -> 执行开奖
     if (isDrawingInProgress) {
-        return; // 如果已經在開獎中，直接返回
+        return; // 如果已经在开奖中，直接返回
     }
     
-    console.log('🎯 [統一開獎] 15秒開獎時間到，開始執行開獎...');
+    console.log('🎯 [统一开奖] 15秒开奖时间到，开始执行开奖...');
     isDrawingInProgress = true;
     
     try {
         const currentDrawPeriod = memoryGameState.current_period;
         
-        // 1. 立即更新期數和狀態，減少前端卡頓感
+        // 1. 立即更新期数和状态，减少前端卡顿感
         const nextPeriod = getNextPeriod(currentDrawPeriod);
         memoryGameState.current_period = nextPeriod;
         memoryGameState.countdown_seconds = 60;
         memoryGameState.status = 'betting';
         
-        // 2. 立即寫入數據庫，讓前端能夠獲取新狀態
+        // 2. 立即写入数据库，让前端能够获取新状态
         await GameModel.updateState({
             current_period: memoryGameState.current_period,
             countdown_seconds: 60,
             status: 'betting'
         });
         
-        console.log(`🎉 [統一開獎] 狀態已更新，開始執行開獎流程...`);
+        console.log(`🎉 [统一开奖] 状态已更新，开始执行开奖流程...`);
         
-        // 3. 異步執行開獎流程，不阻塞遊戲循環
+        // 3. 异步执行开奖流程，不阻塞游戏循环
         setImmediate(async () => {
             try {
-                // 執行開獎
+                // 执行开奖
                 const drawResult = await drawSystemManager.executeDrawing(currentDrawPeriod);
                 
                 if (drawResult.success) {
-                    // 更新最後開獎結果
+                    // 更新最后开奖结果
                     memoryGameState.last_result = drawResult.result;
                     
-                    // 更新到數據庫
+                    // 更新到数据库
                     await GameModel.updateState({
                         last_result: drawResult.result
                     });
                     
-                    console.log(`✅ [統一開獎] 第${currentDrawPeriod}期開獎完成`);
+                    console.log(`✅ [统一开奖] 第${currentDrawPeriod}期开奖完成`);
                 } else {
-                    console.error(`🚨 [統一開獎] 第${currentDrawPeriod}期開獎失敗: ${drawResult.error}`);
+                    console.error(`🚨 [统一开奖] 第${currentDrawPeriod}期开奖失败: ${drawResult.error}`);
                 }
             } catch (error) {
-                console.error('❌ [統一開獎] 開獎過程出錯:', error);
+                console.error('❌ [统一开奖] 开奖过程出错:', error);
             }
         });
         
     } catch (error) {
-        console.error('❌ [統一開獎] 狀態更新出錯:', error);
-        // 如果狀態更新出錯，重置狀態
+        console.error('❌ [统一开奖] 状态更新出错:', error);
+        // 如果状态更新出错，重置状态
         memoryGameState.status = 'betting';
         memoryGameState.countdown_seconds = 60;
     } finally {
-        // 無論成功或失敗，都要重置開獎標誌
+        // 无论成功或失败，都要重置开奖标志
         isDrawingInProgress = false;
     }
 }
 */
 
-// 優化 fixed-draw-system.js 的執行流程：
+// 优化 fixed-draw-system.js 的执行流程：
 /*
 async executeDrawing(period) {
-    console.log(`🎯 [統一開獎] 期號 ${period} 開始執行開獎...`);
+    console.log(`🎯 [统一开奖] 期号 ${period} 开始执行开奖...`);
     
     try {
-        // 1. 並行執行控制檢查和下注分析
+        // 1. 并行执行控制检查和下注分析
         const [controlConfig, betAnalysis] = await Promise.all([
             this.checkActiveControl(period),
             this.analyzePeriodBets(period)
         ]);
         
-        console.log(`🎯 [控制檢查] 期號 ${period} 控制設定:`, controlConfig);
-        console.log(`📊 [下注分析] 期號 ${period} 分析結果:`, betAnalysis);
+        console.log(`🎯 [控制检查] 期号 ${period} 控制设定:`, controlConfig);
+        console.log(`📊 [下注分析] 期号 ${period} 分析结果:`, betAnalysis);
         
-        // 2. 生成開獎結果
+        // 2. 生成开奖结果
         const drawResult = await this.generateFinalResult(period, controlConfig, betAnalysis);
-        console.log(`🎯 [結果生成] 期號 ${period} 最終結果:`, drawResult);
+        console.log(`🎯 [结果生成] 期号 ${period} 最终结果:`, drawResult);
         
-        // 3. 保存結果（關鍵操作，需要同步執行）
+        // 3. 保存结果（关键操作，需要同步执行）
         await this.saveDrawResult(period, drawResult);
-        console.log(`✅ [結果保存] 期號 ${period} 開獎結果已保存`);
+        console.log(`✅ [结果保存] 期号 ${period} 开奖结果已保存`);
         
-        // 4. 異步執行後續操作（同步代理系統和結算）
+        // 4. 异步执行后续操作（同步代理系统和结算）
         setImmediate(async () => {
             try {
-                // 並行執行同步和結算
+                // 并行执行同步和结算
                 const [syncResult, settlementResult] = await Promise.all([
                     this.syncToAgentSystem(period, drawResult),
                     this.executeSettlement(period, drawResult)
                 ]);
                 
-                console.log(`✅ [代理同步] 期號 ${period} 已同步到代理系統`);
-                console.log(`✅ [結算完成] 期號 ${period} 結算結果:`, {
+                console.log(`✅ [代理同步] 期号 ${period} 已同步到代理系统`);
+                console.log(`✅ [结算完成] 期号 ${period} 结算结果:`, {
                     settledCount: settlementResult.settledCount,
                     winCount: settlementResult.winCount,
                     totalWinAmount: settlementResult.totalWinAmount
                 });
             } catch (error) {
-                console.error(`❌ [後續處理] 期號 ${period} 後續處理失敗:`, error);
+                console.error(`❌ [后续处理] 期号 ${period} 后续处理失败:`, error);
             }
         });
         
@@ -127,11 +127,11 @@ async executeDrawing(period) {
             success: true,
             period: period,
             result: drawResult,
-            settlement: { pending: true } // 結算異步執行中
+            settlement: { pending: true } // 结算异步执行中
         };
         
     } catch (error) {
-        console.error(`❌ [統一開獎] 期號 ${period} 執行開獎失敗:`, error);
+        console.error(`❌ [统一开奖] 期号 ${period} 执行开奖失败:`, error);
         return {
             success: false,
             period: period,
@@ -141,23 +141,23 @@ async executeDrawing(period) {
 }
 */
 
-// 實施步驟：
-// 1. 修改 backend.js 中的開獎邏輯，提前更新狀態
-// 2. 修改 fixed-draw-system.js，優化執行流程
-// 3. 使用 Promise.all 並行執行獨立操作
-// 4. 使用 setImmediate 異步執行非關鍵操作
+// 实施步骤：
+// 1. 修改 backend.js 中的开奖逻辑，提前更新状态
+// 2. 修改 fixed-draw-system.js，优化执行流程
+// 3. 使用 Promise.all 并行执行独立操作
+// 4. 使用 setImmediate 异步执行非关键操作
 
 export default {
     optimizationNotes: `
-    優化重點：
-    1. 將狀態更新提前到開獎邏輯之前，減少前端等待時間
-    2. 使用 setImmediate 將開獎邏輯改為異步執行
-    3. 並行執行獨立的操作（控制檢查和下注分析）
-    4. 將非關鍵操作（同步代理、結算）延後異步執行
+    优化重点：
+    1. 将状态更新提前到开奖逻辑之前，减少前端等待时间
+    2. 使用 setImmediate 将开奖逻辑改为异步执行
+    3. 并行执行独立的操作（控制检查和下注分析）
+    4. 将非关键操作（同步代理、结算）延后异步执行
     
-    預期效果：
-    - 開獎倒計時歸零後立即進入新期，無明顯卡頓
-    - 開獎相關操作在後台執行，不影響前端體驗
-    - 整體開獎流程時間縮短 30-50%
+    预期效果：
+    - 开奖倒计时归零后立即进入新期，无明显卡顿
+    - 开奖相关操作在后台执行，不影响前端体验
+    - 整体开奖流程时间缩短 30-50%
     `
 };

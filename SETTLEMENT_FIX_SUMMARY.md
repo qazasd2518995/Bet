@@ -15,9 +15,9 @@ The settlement system had a bug in the `checkWin` function logic:
 Added proper handling for 'number' bet type at the beginning of the `checkWin` function:
 
 ```javascript
-// 處理 'number' 類型的投注（包含所有位置的號碼投注）
+// 处理 'number' 类型的投注（包含所有位置的号码投注）
 if (bet.bet_type === 'number' && bet.position) {
-    // position 從 1 開始，陣列索引從 0 開始
+    // position 从 1 开始，阵列索引从 0 开始
     const winningNumber = winResult.positions[bet.position - 1];
     const betNumber = parseInt(bet.bet_value);
     return winningNumber === betNumber;
@@ -28,9 +28,9 @@ if (bet.bet_type === 'number' && bet.position) {
 Similarly updated the `quickCheckWin` function to handle 'number' bet type:
 
 ```javascript
-// 處理 'number' 類型的投注（包含所有位置的號碼投注）
+// 处理 'number' 类型的投注（包含所有位置的号码投注）
 if (betType === 'number' && bet.position) {
-    // position 從 1 開始，陣列索引從 0 開始
+    // position 从 1 开始，阵列索引从 0 开始
     const winningNumber = positions[bet.position - 1];
     const betNumber = parseInt(betValue);
     return winningNumber === betNumber;

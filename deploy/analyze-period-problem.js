@@ -1,6 +1,6 @@
-// 分析期號顯示問題
+// 分析期号显示问题
 
-// 測試 formatPeriodDisplay 函數邏輯
+// 测试 formatPeriodDisplay 函数逻辑
 function formatPeriodDisplay(period, showFullPeriod = false) {
     if (!period) return '';
     const periodStr = period.toString();
@@ -20,33 +20,33 @@ function formatPeriodDisplay(period, showFullPeriod = false) {
     return periodStr;
 }
 
-// 測試案例
-console.log('=== 期號格式化測試 ===\n');
+// 测试案例
+console.log('=== 期号格式化测试 ===\n');
 
 const testPeriods = [
-    '202507241372',  // 當前主畫面顯示的期號
-    '202507250214',  // 可能的實際期號 (07/25 214期)
+    '202507241372',  // 当前主画面显示的期号
+    '202507250214',  // 可能的实际期号 (07/25 214期)
     '202507250213',
     '202507250212',
     '20250725214',   // 可能的短格式
-    '214'            // 只有序號
+    '214'            // 只有序号
 ];
 
 testPeriods.forEach(period => {
-    console.log(`原始期號: ${period}`);
-    console.log(`格式化後: ${formatPeriodDisplay(period)}`);
-    console.log(`完整顯示: ${formatPeriodDisplay(period, true)}`);
+    console.log(`原始期号: ${period}`);
+    console.log(`格式化后: ${formatPeriodDisplay(period)}`);
+    console.log(`完整显示: ${formatPeriodDisplay(period, true)}`);
     console.log('---');
 });
 
-// 分析問題
-console.log('\n=== 問題分析 ===');
-console.log('1. 如果主畫面顯示 202507241372，表示是 2025年07月24日 第1372期');
-console.log('2. 如果近期開獎顯示 07/25 214期，表示是 2025年07月25日 第214期');
-console.log('3. 這兩個日期不同，說明：');
-console.log('   - 可能是跨日了，但期號沒有正確重置');
-console.log('   - 或者近期開獎的數據源有問題');
-console.log('\n建議檢查：');
-console.log('1. 後端生成期號的邏輯是否正確處理跨日重置');
-console.log('2. recent_draws 表中的數據是否正確');
-console.log('3. 前端獲取數據的 API 是否返回正確的期號');
+// 分析问题
+console.log('\n=== 问题分析 ===');
+console.log('1. 如果主画面显示 202507241372，表示是 2025年07月24日 第1372期');
+console.log('2. 如果近期开奖显示 07/25 214期，表示是 2025年07月25日 第214期');
+console.log('3. 这两个日期不同，说明：');
+console.log('   - 可能是跨日了，但期号没有正确重置');
+console.log('   - 或者近期开奖的数据源有问题');
+console.log('\n建议检查：');
+console.log('1. 后端生成期号的逻辑是否正确处理跨日重置');
+console.log('2. recent_draws 表中的数据是否正确');
+console.log('3. 前端获取数据的 API 是否返回正确的期号');

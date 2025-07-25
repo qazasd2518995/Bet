@@ -1,45 +1,45 @@
-# FS金彩賽車遊戲與代理管理系統
+# FS金彩赛车游戏与代理管理系统
 
-這是一個包含遊戲前後端和管理前後端的FS金彩賽車遊戲系統。
+这是一个包含游戏前后端和管理前后端的FS金彩赛车游戏系统。
 
-## 專案結構
+## 专案结构
 
-- `backend.js`: 遊戲主後端
-- `agentBackend.js`: 代理管理系統後端
-- `deploy/frontend/`: 遊戲前端文件
-- `agent/frontend/`: 代理管理系統前端文件
-- `db/`: 數據庫模型和配置
+- `backend.js`: 游戏主后端
+- `agentBackend.js`: 代理管理系统后端
+- `deploy/frontend/`: 游戏前端文件
+- `agent/frontend/`: 代理管理系统前端文件
+- `db/`: 数据库模型和配置
 
-## 數據庫
+## 数据库
 
-系統使用PostgreSQL數據庫來保存數據，確保即使服務重啟也能保持數據持久化：
+系统使用PostgreSQL数据库来保存数据，确保即使服务重启也能保持数据持久化：
 
-- 用戶數據（會員資料、餘額）
-- 下注記錄
-- 遊戲結果歷史
+- 用户数据（会员资料、余额）
+- 下注记录
+- 游戏结果历史
 - 代理信息
 
-## 在本地運行
+## 在本地运行
 
-安裝依賴：
+安装依赖：
 
 ```bash
 npm install
 ```
 
-運行遊戲後端：
+运行游戏后端：
 
 ```bash
 npm run dev
 ```
 
-運行代理後端：
+运行代理后端：
 
 ```bash
 npm run dev:agent
 ```
 
-同時運行兩個後端：
+同时运行两个后端：
 
 ```bash
 npm run dev:all
@@ -47,152 +47,152 @@ npm run dev:all
 
 ## 在Render部署
 
-### 前置準備
+### 前置准备
 
-1. 註冊 [Render](https://render.com/) 帳號
-2. 將本專案推送到您的GitHub倉庫
-3. 在Render中連接GitHub帳號
+1. 注册 [Render](https://render.com/) 帐号
+2. 将本专案推送到您的GitHub仓库
+3. 在Render中连接GitHub帐号
 
-### 使用Blueprint自動部署
+### 使用Blueprint自动部署
 
-Render Blueprint是一種通過`render.yaml`文件一次部署多個服務的方式。
+Render Blueprint是一种通过`render.yaml`文件一次部署多个服务的方式。
 
 1. 登入 [Render](https://render.com/)
-2. 點擊頂部導航的 "New"，選擇 "Blueprint"
-3. 選擇包含本專案的GitHub倉庫
-4. Render將自動掃描`render.yaml`文件並顯示將要創建的服務
-5. 點擊 "Apply" 完成部署，Render會自動：
-   - 創建PostgreSQL數據庫
-   - 部署遊戲後端服務
-   - 部署代理後端服務
+2. 点击顶部导航的 "New"，选择 "Blueprint"
+3. 选择包含本专案的GitHub仓库
+4. Render将自动扫描`render.yaml`文件并显示将要创建的服务
+5. 点击 "Apply" 完成部署，Render会自动：
+   - 创建PostgreSQL数据库
+   - 部署游戏后端服务
+   - 部署代理后端服务
 
-### 手動部署各個服務
+### 手动部署各个服务
 
-如果Blueprint選項不可用，可以分別部署各個服務：
+如果Blueprint选项不可用，可以分别部署各个服务：
 
-#### 1. 創建PostgreSQL數據庫
+#### 1. 创建PostgreSQL数据库
 
-1. 在Render控制台點擊 "New" > "PostgreSQL"
-2. 填寫以下信息：
+1. 在Render控制台点击 "New" > "PostgreSQL"
+2. 填写以下信息：
    - **Name**: `bet-db`
    - **Database**: `bet_game`
-   - **User**: 自動生成
-   - **Region**: 選擇最近的地區
+   - **User**: 自动生成
+   - **Region**: 选择最近的地区
    - **Plan**: Free
-3. 點擊 "Create Database"
-4. 保存顯示的數據庫連接信息
+3. 点击 "Create Database"
+4. 保存显示的数据库连接信息
 
-#### 2. 部署遊戲後端
+#### 2. 部署游戏后端
 
-1. 在Render控制台點擊 "New" > "Web Service"
-2. 連接此GitHub倉庫
-3. 填寫以下信息：
+1. 在Render控制台点击 "New" > "Web Service"
+2. 连接此GitHub仓库
+3. 填写以下信息：
    - **Name**: `bet-game`
    - **Environment**: Node
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
    - **Plan**: Free
-4. 添加環境變量：
+4. 添加环境变量：
    - `NODE_ENV`: `production`
-   - `DATABASE_URL`: 之前創建的PostgreSQL數據庫URL
-5. 點擊 "Create Web Service"
+   - `DATABASE_URL`: 之前创建的PostgreSQL数据库URL
+5. 点击 "Create Web Service"
 
-#### 3. 部署代理後端
+#### 3. 部署代理后端
 
-1. 在Render控制台點擊 "New" > "Web Service"
-2. 連接此GitHub倉庫
-3. 填寫以下信息：
+1. 在Render控制台点击 "New" > "Web Service"
+2. 连接此GitHub仓库
+3. 填写以下信息：
    - **Name**: `bet-agent`
    - **Environment**: Node
    - **Build Command**: `npm install`
    - **Start Command**: `npm run start:agent`
    - **Plan**: Free
-4. 添加環境變量：
+4. 添加环境变量：
    - `NODE_ENV`: `production`
-   - `DATABASE_URL`: 之前創建的PostgreSQL數據庫URL
-5. 點擊 "Create Web Service"
+   - `DATABASE_URL`: 之前创建的PostgreSQL数据库URL
+5. 点击 "Create Web Service"
 
-## 數據持久化
+## 数据持久化
 
-- 系統使用PostgreSQL保存所有重要數據
-- 即使Render服務休眠或重啟，數據也會保持完整
-- Render的免費PostgreSQL提供1GB存儲空間，足夠一般使用場景
+- 系统使用PostgreSQL保存所有重要数据
+- 即使Render服务休眠或重启，数据也会保持完整
+- Render的免费PostgreSQL提供1GB存储空间，足够一般使用场景
 
-## 默認帳號
+## 默认帐号
 
-### 代理系統
-- 帳號: `admin`
-- 密碼: `adminpwd`
+### 代理系统
+- 帐号: `admin`
+- 密码: `adminpwd`
 
-### 玩家帳號
-- 帳號: `aaa`
-- 密碼: `aaapwd`
+### 玩家帐号
+- 帐号: `aaa`
+- 密码: `aaapwd`
 
-## 代理後端部署
+## 代理后端部署
 
-如需單獨部署代理後端，可以創建另一個Web Service，使用`npm run start:agent`作為啟動命令。
+如需单独部署代理后端，可以创建另一个Web Service，使用`npm run start:agent`作为启动命令。
 
-## 環境變量
+## 环境变量
 
-可以在Render的環境變量設置中添加以下變量：
+可以在Render的环境变量设置中添加以下变量：
 
-- `PORT`: 應用端口（Render會自動指定）
-- `NODE_ENV`: production（部署環境）
+- `PORT`: 应用端口（Render会自动指定）
+- `NODE_ENV`: production（部署环境）
 
-## 注意事項
+## 注意事项
 
-- Render免費方案有使用限制，較長時間不活動會休眠服務
-- 資料僅保存在內存中，服務重啟後會重置
+- Render免费方案有使用限制，较长时间不活动会休眠服务
+- 资料仅保存在内存中，服务重启后会重置
 
-# FS金彩賽車遊戲系統修復總結
+# FS金彩赛车游戏系统修复总结
 
-## 已修復的問題
-1. **startUpdateTimers函數已添加** - 解決了`TypeError: this.startUpdateTimers is not a function`錯誤，現在系統可以正常更新遊戲數據、倒計時和餘額。
+## 已修复的问题
+1. **startUpdateTimers函数已添加** - 解决了`TypeError: this.startUpdateTimers is not a function`错误，现在系统可以正常更新游戏数据、倒计时和余额。
 
-2. **音效播放問題已修復** - 解決了音效資源404錯誤和NotAllowedError問題：
-   - 修正了音效文件路徑
-   - 添加了更好的錯誤處理與提示
-   - 使用Promise處理自動播放策略限制
+2. **音效播放问题已修复** - 解决了音效资源404错误和NotAllowedError问题：
+   - 修正了音效文件路径
+   - 添加了更好的错误处理与提示
+   - 使用Promise处理自动播放策略限制
 
-3. **getOdds函數已實現** - 修復了下注API 500內部伺服器錯誤，現在可以正確取得賠率。
+3. **getOdds函数已实现** - 修复了下注API 500内部伺服器错误，现在可以正确取得赔率。
 
-4. **餘額顯示問題已修復** - 確保了數字類型轉換正確：
-   - 使用`parseFloat`處理API返回的餘額值 
-   - 防止字符串與數字混合計算導致的不一致
+4. **余额显示问题已修复** - 确保了数字类型转换正确：
+   - 使用`parseFloat`处理API返回的余额值 
+   - 防止字符串与数字混合计算导致的不一致
 
-5. **今日盈虧計算邏輯已修正** - 優化了計算方式，確保金額數據類型正確。
+5. **今日盈亏计算逻辑已修正** - 优化了计算方式，确保金额数据类型正确。
 
-6. **下注API 500錯誤已修復** - 解決了下注操作後伺服器返回500內部錯誤的問題：
-   - 添加了缺失的`updateMemberBalance`函數
-   - 修正了`createBet`函數的錯誤處理，使用`BetModel.create`代替直接查詢
-   - 優化了下注API的錯誤處理和日誌記錄
+6. **下注API 500错误已修复** - 解决了下注操作后伺服器返回500内部错误的问题：
+   - 添加了缺失的`updateMemberBalance`函数
+   - 修正了`createBet`函数的错误处理，使用`BetModel.create`代替直接查询
+   - 优化了下注API的错误处理和日志记录
 
-## 仍需關注的部分
-1. **開獎動畫相關代碼** - 雖然修復了部分問題，但在遊戲界面中仍未看到完整的開獎動畫實現。
+## 仍需关注的部分
+1. **开奖动画相关代码** - 虽然修复了部分问题，但在游戏界面中仍未看到完整的开奖动画实现。
 
-2. **資源加載優化** - 應考慮以下改進：
-   - 使用preload預加載關鍵音效資源
-   - 實現資源加載失敗後的重試機制
+2. **资源加载优化** - 应考虑以下改进：
+   - 使用preload预加载关键音效资源
+   - 实现资源加载失败后的重试机制
 
-3. **錯誤處理優化** - 應添加更全面的錯誤處理機制：
-   - API請求失敗的友好提示
-   - 網絡中斷時的自動重連
-   - 系統狀態異常時的恢復策略
+3. **错误处理优化** - 应添加更全面的错误处理机制：
+   - API请求失败的友好提示
+   - 网络中断时的自动重连
+   - 系统状态异常时的恢复策略
 
-4. **性能優化建議**:
-   - 考慮使用WebSocket替代輪詢，減少服務器負擔
-   - 實現更高效的狀態管理
-   - 添加數據緩存機制，減少API請求次數
+4. **性能优化建议**:
+   - 考虑使用WebSocket替代轮询，减少服务器负担
+   - 实现更高效的状态管理
+   - 添加数据缓存机制，减少API请求次数
 
-5. **測試覆蓋** - 建議添加自動化測試以確保系統穩定性：
-   - 主要功能的單元測試
-   - 關鍵流程的集成測試
-   - 負載測試，特別是高並發下注場景
+5. **测试覆盖** - 建议添加自动化测试以确保系统稳定性：
+   - 主要功能的单元测试
+   - 关键流程的集成测试
+   - 负载测试，特别是高并发下注场景
 
-## 未來優化方向
-1. 重構前端代碼為更現代的組件結構，提高可維護性
-2. 添加更詳細的系統監控和日誌記錄
-3. 優化數據庫結構和查詢性能
-4. 增強安全性，包括輸入驗證和防止SQL注入
-5. 優化移動端體驗
-6. 實現更豐富的投注統計和分析功能 
+## 未来优化方向
+1. 重构前端代码为更现代的组件结构，提高可维护性
+2. 添加更详细的系统监控和日志记录
+3. 优化数据库结构和查询性能
+4. 增强安全性，包括输入验证和防止SQL注入
+5. 优化移动端体验
+6. 实现更丰富的投注统计和分析功能 

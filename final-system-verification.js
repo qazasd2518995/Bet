@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * 🔍 最終系統驗證測試
- * 驗證所有核心功能是否正常運作：
- * 1. 遊戲開獎中階段的前後端倒數顯示與邏輯
- * 2. 移除遊戲端手動刷新限紅設定功能
- * 3. 控制輸贏系統對各名次龍虎大小單雙的控制
- * 4. 限紅設定即時自動同步更新
+ * 🔍 最终系统验证测试
+ * 验证所有核心功能是否正常运作：
+ * 1. 游戏开奖中阶段的前后端倒数显示与逻辑
+ * 2. 移除游戏端手动刷新限红设定功能
+ * 3. 控制输赢系统对各名次龙虎大小单双的控制
+ * 4. 限红设定即时自动同步更新
  */
 
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔍 開始最終系統驗證...\n');
+console.log('🔍 开始最终系统验证...\n');
 
-// 1. 檢查後端開獎倒數邏輯
+// 1. 检查后端开奖倒数逻辑
 function checkBackendDrawingLogic() {
-    console.log('1️⃣ 檢查後端開獎倒數邏輯...');
+    console.log('1️⃣ 检查后端开奖倒数逻辑...');
     
     const backendPath = './backend.js';
     const deployBackendPath = './deploy/backend.js';
@@ -29,12 +29,12 @@ function checkBackendDrawingLogic() {
         
         const content = fs.readFileSync(filePath, 'utf8');
         
-        // 檢查關鍵邏輯
+        // 检查关键逻辑
         const checks = [
-            { pattern: /status.*===.*'drawing'/, desc: 'drawing 狀態檢查' },
-            { pattern: /countdown_seconds.*=.*12/, desc: '開獎倒數設為12秒' },
-            { pattern: /drawing狀態倒計時結束.*執行開獎/, desc: 'drawing 階段結算邏輯' },
-            { pattern: /memoryGameState\.status.*=.*'betting'/, desc: '開獎後切換到 betting' }
+            { pattern: /status.*===.*'drawing'/, desc: 'drawing 状态检查' },
+            { pattern: /countdown_seconds.*=.*12/, desc: '开奖倒数设为12秒' },
+            { pattern: /drawing状态倒计时结束.*执行开奖/, desc: 'drawing 阶段结算逻辑' },
+            { pattern: /memoryGameState\.status.*=.*'betting'/, desc: '开奖后切换到 betting' }
         ];
         
         let passed = 0;
@@ -53,15 +53,15 @@ function checkBackendDrawingLogic() {
     const backendOk = checkFile(backendPath);
     const deployBackendOk = checkFile(deployBackendPath);
     
-    console.log(`   後端主檔: ${backendOk ? '✅' : '❌'}`);
-    console.log(`   部署檔案: ${deployBackendOk ? '✅' : '❌'}`);
+    console.log(`   后端主档: ${backendOk ? '✅' : '❌'}`);
+    console.log(`   部署档案: ${deployBackendOk ? '✅' : '❌'}`);
     
     return backendOk && deployBackendOk;
 }
 
-// 2. 檢查前端倒數顯示邏輯
+// 2. 检查前端倒数显示逻辑
 function checkFrontendDrawingDisplay() {
-    console.log('\n2️⃣ 檢查前端倒數顯示邏輯...');
+    console.log('\n2️⃣ 检查前端倒数显示逻辑...');
     
     const frontendPath = './frontend/index.html';
     const deployFrontendPath = './deploy/frontend/index.html';
@@ -74,13 +74,13 @@ function checkFrontendDrawingDisplay() {
         
         const content = fs.readFileSync(filePath, 'utf8');
         
-        // 檢查關鍵邏輯
+        // 检查关键逻辑
         const checks = [
-            { pattern: /isDrawingInProgress.*false/, desc: '開獎進行中狀態初始化' },
-            { pattern: /countdown-section\.drawing/, desc: 'drawing 狀態倒數樣式' },
-            { pattern: /startDrawingProcess/, desc: '開獎流程啟動方法' },
-            { pattern: /playWashingAnimation/, desc: '洗球動畫方法' },
-            { pattern: /12秒.*開獎.*時間/, desc: '12秒開獎時間設定' }
+            { pattern: /isDrawingInProgress.*false/, desc: '开奖进行中状态初始化' },
+            { pattern: /countdown-section\.drawing/, desc: 'drawing 状态倒数样式' },
+            { pattern: /startDrawingProcess/, desc: '开奖流程启动方法' },
+            { pattern: /playWashingAnimation/, desc: '洗球动画方法' },
+            { pattern: /12秒.*开奖.*时间/, desc: '12秒开奖时间设定' }
         ];
         
         let passed = 0;
@@ -99,15 +99,15 @@ function checkFrontendDrawingDisplay() {
     const frontendOk = checkFile(frontendPath);
     const deployFrontendOk = checkFile(deployFrontendPath);
     
-    console.log(`   前端主檔: ${frontendOk ? '✅' : '❌'}`);
-    console.log(`   部署檔案: ${deployFrontendOk ? '✅' : '❌'}`);
+    console.log(`   前端主档: ${frontendOk ? '✅' : '❌'}`);
+    console.log(`   部署档案: ${deployFrontendOk ? '✅' : '❌'}`);
     
     return frontendOk && deployFrontendOk;
 }
 
-// 3. 檢查手動刷新限紅功能已移除
+// 3. 检查手动刷新限红功能已移除
 function checkManualBetLimitsRemoval() {
-    console.log('\n3️⃣ 檢查手動刷新限紅功能已移除...');
+    console.log('\n3️⃣ 检查手动刷新限红功能已移除...');
     
     const frontendPath = './frontend/index.html';
     const deployFrontendPath = './deploy/frontend/index.html';
@@ -120,12 +120,12 @@ function checkManualBetLimitsRemoval() {
         
         const content = fs.readFileSync(filePath, 'utf8');
         
-        // 檢查是否還有手動刷新相關代碼
+        // 检查是否还有手动刷新相关代码
         const forbiddenPatterns = [
-            { pattern: /refreshBetLimits.*按鈕|按鈕.*refreshBetLimits/, desc: '手動刷新限紅按鈕' },
-            { pattern: /手動.*刷新.*限紅|刷新.*限紅.*手動/, desc: '手動刷新限紅文字' },
-            { pattern: /startBettingLimitsMonitor.*\(/, desc: 'startBettingLimitsMonitor 調用' },
-            { pattern: /stopBettingLimitsMonitor.*\(/, desc: 'stopBettingLimitsMonitor 調用' }
+            { pattern: /refreshBetLimits.*按钮|按钮.*refreshBetLimits/, desc: '手动刷新限红按钮' },
+            { pattern: /手动.*刷新.*限红|刷新.*限红.*手动/, desc: '手动刷新限红文字' },
+            { pattern: /startBettingLimitsMonitor.*\(/, desc: 'startBettingLimitsMonitor 调用' },
+            { pattern: /stopBettingLimitsMonitor.*\(/, desc: 'stopBettingLimitsMonitor 调用' }
         ];
         
         let cleanCount = 0;
@@ -138,17 +138,17 @@ function checkManualBetLimitsRemoval() {
             }
         });
         
-        // 檢查是否有自動同步邏輯
+        // 检查是否有自动同步逻辑
         const requiredPatterns = [
-            { pattern: /checkBetLimitsUpdate/, desc: '自動檢查限紅更新' },
-            { pattern: /每30秒.*檢查.*限紅/, desc: '30秒定期檢查邏輯' },
-            { pattern: /即時.*更新.*betLimits/, desc: '即時更新限紅' }
+            { pattern: /checkBetLimitsUpdate/, desc: '自动检查限红更新' },
+            { pattern: /每30秒.*检查.*限红/, desc: '30秒定期检查逻辑' },
+            { pattern: /即时.*更新.*betLimits/, desc: '即时更新限红' }
         ];
         
         let autoSyncCount = 0;
         requiredPatterns.forEach(check => {
             if (check.pattern.test(content)) {
-                console.log(`  ✅ 已實現: ${check.desc}`);
+                console.log(`  ✅ 已实现: ${check.desc}`);
                 autoSyncCount++;
             } else {
                 console.log(`  ❌ 缺少: ${check.desc}`);
@@ -161,15 +161,15 @@ function checkManualBetLimitsRemoval() {
     const frontendOk = checkFile(frontendPath);
     const deployFrontendOk = checkFile(deployFrontendPath);
     
-    console.log(`   前端主檔: ${frontendOk ? '✅' : '❌'}`);
-    console.log(`   部署檔案: ${deployFrontendOk ? '✅' : '❌'}`);
+    console.log(`   前端主档: ${frontendOk ? '✅' : '❌'}`);
+    console.log(`   部署档案: ${deployFrontendOk ? '✅' : '❌'}`);
     
     return frontendOk && deployFrontendOk;
 }
 
-// 4. 檢查控制輸贏系統
+// 4. 检查控制输赢系统
 function checkWinControlSystem() {
-    console.log('\n4️⃣ 檢查控制輸贏系統...');
+    console.log('\n4️⃣ 检查控制输赢系统...');
     
     const backendPath = './backend.js';
     const deployBackendPath = './deploy/backend.js';
@@ -182,14 +182,14 @@ function checkWinControlSystem() {
         
         const content = fs.readFileSync(filePath, 'utf8');
         
-        // 檢查控制系統關鍵功能
+        // 检查控制系统关键功能
         const checks = [
-            { pattern: /finalControlFactor/, desc: '統一控制因子變數' },
-            { pattern: /adjustAnalysisByBetPattern/, desc: '根據下注模式調整分析' },
-            { pattern: /大小.*單雙.*龍虎/, desc: '大小單雙龍虎投注類型支援' },
-            { pattern: /多人.*下注.*衝突/, desc: '多人下注衝突處理' },
-            { pattern: /冠亞和值/, desc: '冠亞和值投注類型' },
-            { pattern: /自動偵測.*單會員.*代理線/, desc: '多種控制模式' }
+            { pattern: /finalControlFactor/, desc: '统一控制因子变数' },
+            { pattern: /adjustAnalysisByBetPattern/, desc: '根据下注模式调整分析' },
+            { pattern: /大小.*单双.*龙虎/, desc: '大小单双龙虎投注类型支援' },
+            { pattern: /多人.*下注.*冲突/, desc: '多人下注冲突处理' },
+            { pattern: /冠亚和值/, desc: '冠亚和值投注类型' },
+            { pattern: /自动侦测.*单会员.*代理线/, desc: '多种控制模式' }
         ];
         
         let passed = 0;
@@ -202,10 +202,10 @@ function checkWinControlSystem() {
             }
         });
         
-        // 檢查是否沒有問題變數
+        // 检查是否没有问题变数
         const problematicPatterns = [
-            { pattern: /adjustedControlFactor/, desc: '舊的 adjustedControlFactor 變數' },
-            { pattern: /conflictFactor/, desc: '舊的 conflictFactor 變數' }
+            { pattern: /adjustedControlFactor/, desc: '旧的 adjustedControlFactor 变数' },
+            { pattern: /conflictFactor/, desc: '旧的 conflictFactor 变数' }
         ];
         
         let cleanCount = 0;
@@ -224,15 +224,15 @@ function checkWinControlSystem() {
     const backendOk = checkFile(backendPath);
     const deployBackendOk = checkFile(deployBackendPath);
     
-    console.log(`   後端主檔: ${backendOk ? '✅' : '❌'}`);
-    console.log(`   部署檔案: ${deployBackendOk ? '✅' : '❌'}`);
+    console.log(`   后端主档: ${backendOk ? '✅' : '❌'}`);
+    console.log(`   部署档案: ${deployBackendOk ? '✅' : '❌'}`);
     
     return backendOk && deployBackendOk;
 }
 
-// 5. 檢查限紅即時同步功能
+// 5. 检查限红即时同步功能
 function checkBetLimitsAutoSync() {
-    console.log('\n5️⃣ 檢查限紅即時同步功能...');
+    console.log('\n5️⃣ 检查限红即时同步功能...');
     
     const frontendPath = './frontend/index.html';
     const deployFrontendPath = './deploy/frontend/index.html';
@@ -245,14 +245,14 @@ function checkBetLimitsAutoSync() {
         
         const content = fs.readFileSync(filePath, 'utf8');
         
-        // 檢查即時同步功能
+        // 检查即时同步功能
         const checks = [
-            { pattern: /lastBetLimitsCheck/, desc: '上次檢查時間記錄' },
-            { pattern: /30000/, desc: '30秒檢查間隔' },
-            { pattern: /限紅設定.*已更新/, desc: '限紅更新通知' },
-            { pattern: /watch.*betAmount/, desc: '下注金額監聽' },
-            { pattern: /watch.*selectedBets/, desc: '選擇投注監聽' },
-            { pattern: /即時.*反映.*最新設定/, desc: '即時反映設定' }
+            { pattern: /lastBetLimitsCheck/, desc: '上次检查时间记录' },
+            { pattern: /30000/, desc: '30秒检查间隔' },
+            { pattern: /限红设定.*已更新/, desc: '限红更新通知' },
+            { pattern: /watch.*betAmount/, desc: '下注金额监听' },
+            { pattern: /watch.*selectedBets/, desc: '选择投注监听' },
+            { pattern: /即时.*反映.*最新设定/, desc: '即时反映设定' }
         ];
         
         let passed = 0;
@@ -271,13 +271,13 @@ function checkBetLimitsAutoSync() {
     const frontendOk = checkFile(frontendPath);
     const deployFrontendOk = checkFile(deployFrontendPath);
     
-    console.log(`   前端主檔: ${frontendOk ? '✅' : '❌'}`);
-    console.log(`   部署檔案: ${deployFrontendOk ? '✅' : '❌'}`);
+    console.log(`   前端主档: ${frontendOk ? '✅' : '❌'}`);
+    console.log(`   部署档案: ${deployFrontendOk ? '✅' : '❌'}`);
     
     return frontendOk && deployFrontendOk;
 }
 
-// 執行所有檢查
+// 执行所有检查
 async function runAllChecks() {
     const results = [];
     
@@ -287,15 +287,15 @@ async function runAllChecks() {
     results.push(checkWinControlSystem());
     results.push(checkBetLimitsAutoSync());
     
-    console.log('\n🏁 最終驗證結果:');
+    console.log('\n🏁 最终验证结果:');
     console.log('================');
     
     const categories = [
-        '後端開獎倒數邏輯',
-        '前端倒數顯示邏輯', 
-        '手動刷新限紅功能移除',
-        '控制輸贏系統',
-        '限紅即時同步功能'
+        '后端开奖倒数逻辑',
+        '前端倒数显示逻辑', 
+        '手动刷新限红功能移除',
+        '控制输赢系统',
+        '限红即时同步功能'
     ];
     
     let allPassed = true;
@@ -306,25 +306,25 @@ async function runAllChecks() {
     
     console.log('\n' + '='.repeat(50));
     if (allPassed) {
-        console.log('🎉 所有功能驗證通過！系統已完全修正並優化。');
-        console.log('📋 完成項目:');
-        console.log('  • 遊戲開獎中階段的前後端倒數顯示與邏輯修正');
-        console.log('  • 移除遊戲端所有手動刷新限紅設定的 UI 與方法');
-        console.log('  • 控制輸贏系統支援各名次龍虎大小單雙控制');
-        console.log('  • 修正控制系統 ReferenceError 錯誤');
-        console.log('  • 限紅設定在代理平台調整後即時自動同步更新');
+        console.log('🎉 所有功能验证通过！系统已完全修正并优化。');
+        console.log('📋 完成项目:');
+        console.log('  • 游戏开奖中阶段的前后端倒数显示与逻辑修正');
+        console.log('  • 移除游戏端所有手动刷新限红设定的 UI 与方法');
+        console.log('  • 控制输赢系统支援各名次龙虎大小单双控制');
+        console.log('  • 修正控制系统 ReferenceError 错误');
+        console.log('  • 限红设定在代理平台调整后即时自动同步更新');
         console.log('  • 所有修正已推送到 GitHub');
     } else {
-        console.log('⚠️ 部分功能驗證未通過，請檢查上述詳細報告。');
+        console.log('⚠️ 部分功能验证未通过，请检查上述详细报告。');
     }
     
     return allPassed;
 }
 
-// 執行驗證
+// 执行验证
 runAllChecks().then(result => {
     process.exit(result ? 0 : 1);
 }).catch(error => {
-    console.error('驗證過程出錯:', error);
+    console.error('验证过程出错:', error);
     process.exit(1);
 });

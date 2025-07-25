@@ -3,9 +3,9 @@ import { enhancedSettlement } from './enhanced-settlement-system.js';
 
 async function process073Rebate() {
     try {
-        console.log('=== 處理期號 20250715073 的退水 ===\n');
+        console.log('=== 处理期号 20250715073 的退水 ===\n');
         
-        // 1. 確認下注資訊
+        // 1. 确认下注资讯
         const bet = await db.oneOrNone(`
             SELECT * FROM bet_history
             WHERE period = '20250715073'
@@ -13,16 +13,16 @@ async function process073Rebate() {
         `);
         
         if (bet) {
-            console.log('找到下注記錄：');
-            console.log(`- 用戶: ${bet.username}`);
-            console.log(`- 金額: ${bet.amount}`);
-            console.log(`- 類型: ${bet.bet_type}/${bet.bet_value}`);
-            console.log(`- 已結算: ${bet.settled}`);
-            console.log(`- 贏: ${bet.win}`);
+            console.log('找到下注记录：');
+            console.log(`- 用户: ${bet.username}`);
+            console.log(`- 金额: ${bet.amount}`);
+            console.log(`- 类型: ${bet.bet_type}/${bet.bet_value}`);
+            console.log(`- 已结算: ${bet.settled}`);
+            console.log(`- 赢: ${bet.win}`);
             console.log(`- 派彩: ${bet.win_amount}`);
         }
         
-        // 2. 檢查是否已有退水
+        // 2. 检查是否已有退水
         const existingRebates = await db.any(`
             SELECT * FROM transaction_records
             WHERE transaction_type = 'rebate'
@@ -30,23 +30,23 @@ async function process073Rebate() {
         `);
         
         if (existingRebates.length > 0) {
-            console.log('\n已有退水記錄，不需要重複處理');
+            console.log('\n已有退水记录，不需要重复处理');
             return;
         }
         
-        // 3. 獲取開獎結果
+        // 3. 获取开奖结果
         const drawResult = await db.oneOrNone(`
             SELECT * FROM result_history
             WHERE period = '20250715073'
         `);
         
         if (!drawResult) {
-            console.log('\n❌ 找不到開獎結果');
+            console.log('\n❌ 找不到开奖结果');
             return;
         }
         
-        // 4. 調用結算系統處理退水
-        console.log('\n調用結算系統處理退水...');
+        // 4. 调用结算系统处理退水
+        console.log('\n调用结算系统处理退水...');
         const winResult = {
             positions: [
                 drawResult.position_1,
@@ -62,13 +62,13 @@ async function process073Rebate() {
             ]
         };
         
-        console.log('開獎號碼:', winResult.positions.join(', '));
-        console.log(`亞軍(第2名): ${drawResult.position_2}`);
+        console.log('开奖号码:', winResult.positions.join(', '));
+        console.log(`亚军(第2名): ${drawResult.position_2}`);
         
         const result = await enhancedSettlement('20250715073', winResult);
-        console.log('\n結算結果:', result);
+        console.log('\n结算结果:', result);
         
-        // 5. 檢查退水結果
+        // 5. 检查退水结果
         const newRebates = await db.any(`
             SELECT 
                 tr.*,
@@ -82,28 +82,28 @@ async function process073Rebate() {
         `);
         
         if (newRebates.length > 0) {
-            console.log('\n✅ 成功產生退水記錄：');
+            console.log('\n✅ 成功产生退水记录：');
             let totalRebate = 0;
             newRebates.forEach(r => {
                 console.log(`- ${r.agent_name}: ${r.amount}元 (退水比例: ${(r.agent_rebate * 100).toFixed(1)}%)`);
                 totalRebate += parseFloat(r.amount);
             });
-            console.log(`總退水金額: ${totalRebate}元`);
+            console.log(`总退水金额: ${totalRebate}元`);
             
-            // 驗證計算
-            const expectedTotal = parseFloat(bet.amount) * 0.011; // A盤總退水 1.1%
-            console.log(`\n驗證: 下注${bet.amount}元 × 1.1% = ${expectedTotal}元`);
+            // 验证计算
+            const expectedTotal = parseFloat(bet.amount) * 0.011; // A盘总退水 1.1%
+            console.log(`\n验证: 下注${bet.amount}元 × 1.1% = ${expectedTotal}元`);
             if (Math.abs(totalRebate - expectedTotal) < 0.01) {
-                console.log('✅ 退水計算正確');
+                console.log('✅ 退水计算正确');
             } else {
-                console.log('❌ 退水計算可能有誤差');
+                console.log('❌ 退水计算可能有误差');
             }
         } else {
-            console.log('\n❌ 沒有產生新的退水記錄');
+            console.log('\n❌ 没有产生新的退水记录');
         }
         
-        // 6. 顯示代理最新餘額
-        console.log('\n=== 代理最新餘額 ===');
+        // 6. 显示代理最新余额
+        console.log('\n=== 代理最新余额 ===');
         const agents = await db.any(`
             SELECT username, balance FROM agents
             WHERE username IN ('justin2025A', 'ti2025A')
@@ -115,7 +115,7 @@ async function process073Rebate() {
         });
         
     } catch (error) {
-        console.error('處理錯誤:', error);
+        console.error('处理错误:', error);
     } finally {
         process.exit(0);
     }

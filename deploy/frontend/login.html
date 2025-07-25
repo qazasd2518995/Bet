@@ -26,7 +26,7 @@
             position: relative;
         }
 
-        /* 背景圖片容器 */
+        /* 背景图片容器 */
         .background-wrapper {
             position: fixed;
             top: 0;
@@ -43,7 +43,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* 賽車背景圖片 - 賽博朋克風格 - 高清版本 */
+            /* 赛车背景图片 - 赛博朋克风格 - 高清版本 */
             background: 
                 linear-gradient(
                     rgba(138, 43, 226, 0.15) 0%, 
@@ -53,7 +53,7 @@
                 url('cyberpunk-rainy-car.png') center/cover no-repeat;
             filter: brightness(0.85) contrast(1.15) saturate(1.2);
             animation: zoomEffect 30s ease-in-out infinite;
-            /* 確保高品質渲染 */
+            /* 确保高品质渲染 */
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             -webkit-backface-visibility: hidden;
@@ -73,7 +73,7 @@
             50% { transform: scale(1.1) translateY(-20px); }
         }
 
-        /* 暗色覆蓋層 */
+        /* 暗色覆盖层 */
         .background-overlay {
             position: absolute;
             top: 0;
@@ -87,7 +87,7 @@
             mix-blend-mode: multiply;
         }
 
-        /* 動態雨滴效果 */
+        /* 动态雨滴效果 */
         .rain-overlay {
             position: absolute;
             top: 0;
@@ -110,7 +110,7 @@
             100% { background-position: 0 10px; }
         }
 
-        /* 霓虹光暈效果 */
+        /* 霓虹光晕效果 */
         .neon-glow {
             position: absolute;
             top: 50%;
@@ -171,7 +171,7 @@
             z-index: -1;
         }
 
-        /* Logo樣式 */
+        /* Logo样式 */
         .logo {
             margin-bottom: 40px;
             position: relative;
@@ -214,7 +214,7 @@
             font-weight: 300;
         }
 
-        /* 表單樣式 */
+        /* 表单样式 */
         .login-form {
             display: flex;
             flex-direction: column;
@@ -261,7 +261,7 @@
                 0 0 20px rgba(131, 56, 236, 0.3);
         }
 
-        /* 驗證碼組 */
+        /* 验证码组 */
         .captcha-group {
             display: flex;
             gap: 12px;
@@ -320,7 +320,7 @@
             box-shadow: 0 5px 15px rgba(131, 56, 236, 0.4);
         }
 
-        /* 記住我 */
+        /* 记住我 */
         .remember-me {
             display: flex;
             align-items: center;
@@ -336,7 +336,7 @@
             accent-color: #8338ec;
         }
 
-        /* 登入按鈕 */
+        /* 登入按钮 */
         .login-btn {
             width: 100%;
             padding: 18px;
@@ -391,7 +391,7 @@
             box-shadow: none;
         }
 
-        /* 錯誤訊息 */
+        /* 错误讯息 */
         .error-message {
             color: #ff006e;
             font-size: 14px;
@@ -403,7 +403,7 @@
             text-align: left;
         }
 
-        /* 載入動畫 */
+        /* 载入动画 */
         .loading {
             display: none;
             margin-top: 15px;
@@ -427,7 +427,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* 底部連結 */
+        /* 底部连结 */
         .footer-links {
             margin-top: 30px;
             display: flex;
@@ -462,7 +462,7 @@
             width: 100%;
         }
 
-        /* 響應式設計 */
+        /* 响应式设计 */
         @media (max-width: 480px) {
             body {
                 padding: 10px;
@@ -564,7 +564,7 @@
             }
         }
         
-        /* 更小的手機屏幕 */
+        /* 更小的手机屏幕 */
         @media (max-width: 360px) {
             .logo h1 {
                 font-size: 22px;
@@ -638,7 +638,7 @@
             }
         }
         
-        /* 速度線效果 */
+        /* 速度线效果 */
         .speed-lines {
             position: absolute;
             top: 0;
@@ -715,7 +715,7 @@
         <div class="rain-overlay"></div>
         <div class="neon-glow"></div>
         
-        <!-- 動態粒子效果 -->
+        <!-- 动态粒子效果 -->
         <div class="particles">
             <div class="particle" style="--delay: 0s; --duration: 15s; --x: 10%;"></div>
             <div class="particle" style="--delay: 2s; --duration: 20s; --x: 30%;"></div>
@@ -724,7 +724,7 @@
             <div class="particle" style="--delay: 8s; --duration: 16s; --x: 90%;"></div>
         </div>
         
-        <!-- 賽車光軌效果 -->
+        <!-- 赛车光轨效果 -->
         <div class="speed-lines">
             <div class="speed-line" style="--delay: 0s;"></div>
             <div class="speed-line" style="--delay: 0.5s;"></div>
@@ -780,7 +780,7 @@
                         maxlength="4"
                     >
                     <div class="captcha-display" id="captchaDisplay" onclick="refreshCaptcha()">
-                        <!-- 验证码將通过JavaScript生成 -->
+                        <!-- 验证码将通过JavaScript生成 -->
                     </div>
                     <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理验证码">
                         🔄
@@ -872,12 +872,12 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // 登录成功 - 同時保存到 localStorage 和 sessionStorage
+                    // 登录成功 - 同时保存到 localStorage 和 sessionStorage
                     const token = data.sessionToken || data.token;
                     localStorage.setItem('token', token);
                     localStorage.setItem('username', data.member.username);
                     
-                    // 保存到 sessionStorage 以供主頁面使用
+                    // 保存到 sessionStorage 以供主页面使用
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('username', data.member.username);
                     sessionStorage.setItem('memberId', data.member.id);
@@ -937,7 +937,7 @@
             alert('客服QQ: 888888888\n客服微信: fs_service\n客服电话: 400-888-8888');
         }
 
-        // 使用說明
+        // 使用说明
         function showHelp() {
             alert('1. 输入您的会员账号和密码\n2. 输入显示的验证码\n3. 点击登录按钮即可进入游戏\n\n如遇到问题请联系客服');
         }
@@ -949,10 +949,10 @@
             }
         });
         
-        // 預載入高清背景圖片
+        // 预载入高清背景图片
         const preloadImage = new Image();
         preloadImage.onload = function() {
-            // 圖片載入完成後，添加載入完成的類別
+            // 图片载入完成后，添加载入完成的类别
             document.querySelector('.background-image').classList.add('loaded');
         };
         preloadImage.src = 'cyberpunk-rainy-car.png';

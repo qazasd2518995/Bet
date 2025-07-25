@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FS金彩賽車 - A comprehensive online betting platform with three main components:
+FS金彩赛车 - A comprehensive online betting platform with three main components:
 1. **Main Betting Platform** - Real-time racing lottery game
 2. **Agent Management System** - Hierarchical agent/member management with rebates
 3. **Lottery Website** - Public-facing Next.js app for displaying results

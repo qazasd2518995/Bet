@@ -1,12 +1,12 @@
-// analyze-balance-issue.js - 分析餘額異常問題
+// analyze-balance-issue.js - 分析余额异常问题
 import db from './db/config.js';
 
 async function analyzeBalanceIssue() {
-    console.log('🔍 分析餘額異常增加問題...\n');
+    console.log('🔍 分析余额异常增加问题...\n');
     
     try {
-        // 1. 檢查最近的交易記錄
-        console.log('1️⃣ 檢查 justin111 的最近交易記錄...');
+        // 1. 检查最近的交易记录
+        console.log('1️⃣ 检查 justin111 的最近交易记录...');
         const transactions = await db.any(`
             SELECT 
                 tr.id,
@@ -23,41 +23,41 @@ async function analyzeBalanceIssue() {
             ORDER BY tr.created_at DESC
         `);
         
-        console.log(`找到 ${transactions.length} 筆交易記錄：\n`);
+        console.log(`找到 ${transactions.length} 笔交易记录：\n`);
         
         let suspiciousTransactions = [];
         
         transactions.forEach(tx => {
             const balanceChange = tx.balance_after - tx.balance_before;
-            console.log(`時間: ${new Date(tx.created_at).toLocaleString()}`);
-            console.log(`類型: ${tx.transaction_type}`);
-            console.log(`金額: ${tx.amount}`);
-            console.log(`餘額: ${tx.balance_before} → ${tx.balance_after}`);
-            console.log(`變化: ${balanceChange > 0 ? '+' : ''}${balanceChange.toFixed(2)}`);
+            console.log(`时间: ${new Date(tx.created_at).toLocaleString()}`);
+            console.log(`类型: ${tx.transaction_type}`);
+            console.log(`金额: ${tx.amount}`);
+            console.log(`余额: ${tx.balance_before} → ${tx.balance_after}`);
+            console.log(`变化: ${balanceChange > 0 ? '+' : ''}${balanceChange.toFixed(2)}`);
             console.log(`描述: ${tx.description}`);
             
-            // 檢查中獎交易
+            // 检查中奖交易
             if (tx.transaction_type === 'win') {
                 const expectedChange = parseFloat(tx.amount);
                 if (Math.abs(balanceChange - expectedChange) > 0.01) {
-                    console.log(`⚠️ 異常：預期增加 ${expectedChange}，實際增加 ${balanceChange}`);
+                    console.log(`⚠️ 异常：预期增加 ${expectedChange}，实际增加 ${balanceChange}`);
                     suspiciousTransactions.push(tx);
                 }
                 
-                // 檢查是否有重複的中獎交易
-                const periodMatch = tx.description.match(/期號 (\d+)/);
+                // 检查是否有重复的中奖交易
+                const periodMatch = tx.description.match(/期号 (\d+)/);
                 if (periodMatch) {
-                    console.log(`期號: ${periodMatch[1]}`);
+                    console.log(`期号: ${periodMatch[1]}`);
                 }
             }
             
             console.log('---\n');
         });
         
-        // 2. 檢查特定期號的中獎情況
-        console.log('2️⃣ 檢查最近期號的詳細中獎記錄...');
+        // 2. 检查特定期号的中奖情况
+        console.log('2️⃣ 检查最近期号的详细中奖记录...');
         
-        // 獲取最近有中獎的期號
+        // 获取最近有中奖的期号
         const recentWinPeriods = await db.any(`
             SELECT DISTINCT period
             FROM bet_history
@@ -70,9 +70,9 @@ async function analyzeBalanceIssue() {
         
         for (const record of recentWinPeriods) {
             const period = record.period;
-            console.log(`\n📋 期號 ${period}:`);
+            console.log(`\n📋 期号 ${period}:`);
             
-            // 獲取該期所有中獎記錄
+            // 获取该期所有中奖记录
             const allWins = await db.any(`
                 SELECT 
                     id,
@@ -90,7 +90,7 @@ async function analyzeBalanceIssue() {
                 ORDER BY username, id
             `, [period]);
             
-            // 統計每個用戶的中獎情況
+            // 统计每个用户的中奖情况
             const userStats = {};
             allWins.forEach(win => {
                 if (!userStats[win.username]) {
@@ -111,52 +111,52 @@ async function analyzeBalanceIssue() {
                 });
             });
             
-            // 顯示統計
+            // 显示统计
             Object.entries(userStats).forEach(([username, stats]) => {
-                console.log(`  用戶: ${username}`);
-                console.log(`  中獎次數: ${stats.count}`);
-                console.log(`  總中獎金額: ${stats.totalWin}`);
+                console.log(`  用户: ${username}`);
+                console.log(`  中奖次数: ${stats.count}`);
+                console.log(`  总中奖金额: ${stats.totalWin}`);
                 
                 if (username === 'justin111') {
-                    console.log(`  詳細中獎：`);
+                    console.log(`  详细中奖：`);
                     stats.details.forEach(d => {
-                        console.log(`    - ID: ${d.id}, ${d.type}=${d.value}, 下注${d.amount}, 中獎${d.winAmount}`);
+                        console.log(`    - ID: ${d.id}, ${d.type}=${d.value}, 下注${d.amount}, 中奖${d.winAmount}`);
                     });
                     
                     if (stats.count > 1) {
-                        console.log(`  ⚠️ 警告：同一期有多筆中獎記錄！`);
+                        console.log(`  ⚠️ 警告：同一期有多笔中奖记录！`);
                     }
                     if (stats.totalWin > 989) {
-                        console.log(`  ⚠️ 警告：總中獎金額異常！`);
+                        console.log(`  ⚠️ 警告：总中奖金额异常！`);
                     }
                 }
             });
             
-            // 檢查該期的交易記錄
+            // 检查该期的交易记录
             const periodTransactions = await db.any(`
                 SELECT COUNT(*) as count, SUM(amount) as total
                 FROM transaction_records tr
                 JOIN members m ON tr.user_id = m.id AND tr.user_type = 'member'
                 WHERE m.username = 'justin111'
                 AND tr.transaction_type = 'win'
-                AND tr.description LIKE '%期號 ' || $1 || '%'
+                AND tr.description LIKE '%期号 ' || $1 || '%'
             `, [period]);
             
             if (periodTransactions[0].count > 0) {
-                console.log(`  交易記錄: ${periodTransactions[0].count} 筆，總額 ${periodTransactions[0].total}`);
+                console.log(`  交易记录: ${periodTransactions[0].count} 笔，总额 ${periodTransactions[0].total}`);
                 if (periodTransactions[0].count > 1) {
-                    console.log(`  ⚠️ 警告：同一期有多筆中獎交易！可能重複結算！`);
+                    console.log(`  ⚠️ 警告：同一期有多笔中奖交易！可能重复结算！`);
                 }
             }
         }
         
         // 3. 分析可能的原因
-        console.log('\n\n📊 分析結果：');
+        console.log('\n\n📊 分析结果：');
         if (suspiciousTransactions.length > 0) {
-            console.log(`發現 ${suspiciousTransactions.length} 筆異常交易`);
+            console.log(`发现 ${suspiciousTransactions.length} 笔异常交易`);
         }
         
-        // 檢查是否有並發結算
+        // 检查是否有并发结算
         const concurrentSettlements = await db.any(`
             SELECT 
                 period,
@@ -172,31 +172,31 @@ async function analyzeBalanceIssue() {
         `);
         
         if (concurrentSettlements.length > 0) {
-            console.log('\n⚠️ 發現並發結算問題：');
+            console.log('\n⚠️ 发现并发结算问题：');
             concurrentSettlements.forEach(cs => {
-                console.log(`  期號 ${cs.period}: ${cs.different_times} 個不同的結算時間`);
+                console.log(`  期号 ${cs.period}: ${cs.different_times} 个不同的结算时间`);
             });
         }
         
-        // 提供解決方案
-        console.log('\n💡 可能的問題和解決方案：');
-        console.log('1. 如果餘額從 147,618 → 146,718（下注900）→ 148,696（增加1,978而非89）');
-        console.log('   表示中獎金額被加了兩次：989（含本金）+ 989 = 1,978');
+        // 提供解决方案
+        console.log('\n💡 可能的问题和解决方案：');
+        console.log('1. 如果余额从 147,618 → 146,718（下注900）→ 148,696（增加1,978而非89）');
+        console.log('   表示中奖金额被加了两次：989（含本金）+ 989 = 1,978');
         console.log('\n2. 可能的原因：');
-        console.log('   - 改進的結算系統和舊的結算系統同時執行');
-        console.log('   - 結算時餘額增加了總獎金（989）而不是淨利潤（89）');
-        console.log('   - 代理系統也在同步更新餘額');
-        console.log('\n3. 建議修復：');
-        console.log('   - 確認 backend.js 只調用 improvedSettleBets');
-        console.log('   - 檢查是否有其他地方也在更新用戶餘額');
-        console.log('   - 確保結算鎖機制正常工作');
+        console.log('   - 改进的结算系统和旧的结算系统同时执行');
+        console.log('   - 结算时余额增加了总奖金（989）而不是净利润（89）');
+        console.log('   - 代理系统也在同步更新余额');
+        console.log('\n3. 建议修复：');
+        console.log('   - 确认 backend.js 只调用 improvedSettleBets');
+        console.log('   - 检查是否有其他地方也在更新用户余额');
+        console.log('   - 确保结算锁机制正常工作');
         
     } catch (error) {
-        console.error('分析過程中發生錯誤:', error);
+        console.error('分析过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }
 }
 
-// 執行分析
+// 执行分析
 analyzeBalanceIssue();

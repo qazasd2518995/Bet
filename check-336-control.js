@@ -1,20 +1,20 @@
 import db from './db/config.js';
 
 async function checkControl336() {
-    console.log('🔍 檢查336期控制設定和權重計算...\n');
+    console.log('🔍 检查336期控制设定和权重计算...\n');
     
     try {
         // 1. 查看下注摘要
         console.log('📊 下注摘要:');
-        console.log('用戶 justin111 在第8名位置下注了:');
-        console.log('2, 3, 4, 5, 6, 7, 8, 9, 10 (共9個號碼，每個100元)');
-        console.log('開獎結果: 第8名開出3號');
-        console.log('中獎金額: 989元 (100 * 9.89賠率)');
-        console.log('下注總額: 900元');
-        console.log('實際獲利: 989 - 900 = 89元\n');
+        console.log('用户 justin111 在第8名位置下注了:');
+        console.log('2, 3, 4, 5, 6, 7, 8, 9, 10 (共9个号码，每个100元)');
+        console.log('开奖结果: 第8名开出3号');
+        console.log('中奖金额: 989元 (100 * 9.89赔率)');
+        console.log('下注总额: 900元');
+        console.log('实际获利: 989 - 900 = 89元\n');
         
-        // 2. 查詢控制設定（修正欄位名稱）
-        console.log('🎮 查詢輸贏控制設定:');
+        // 2. 查询控制设定（修正栏位名称）
+        console.log('🎮 查询输赢控制设定:');
         const controls = await db.manyOrNone(`
             SELECT id, target_username, control_percentage, control_mode, 
                    start_period, is_active, created_at
@@ -25,39 +25,39 @@ async function checkControl336() {
         `);
         
         if (controls.length > 0) {
-            console.log(`找到 ${controls.length} 個活動控制設定:`);
+            console.log(`找到 ${controls.length} 个活动控制设定:`);
             controls.forEach((control, index) => {
-                console.log(`\n  控制設定 ${index + 1}:`);
+                console.log(`\n  控制设定 ${index + 1}:`);
                 console.log(`    ID: ${control.id}`);
-                console.log(`    目標用戶: ${control.target_username || '全部'}`);
+                console.log(`    目标用户: ${control.target_username || '全部'}`);
                 console.log(`    控制百分比: ${control.control_percentage}%`);
                 console.log(`    控制模式: ${control.control_mode}`);
-                console.log(`    起始期號: ${control.start_period || '不限'}`);
-                console.log(`    創建時間: ${control.created_at}`);
+                console.log(`    起始期号: ${control.start_period || '不限'}`);
+                console.log(`    创建时间: ${control.created_at}`);
             });
         } else {
-            console.log('沒有找到活動的控制設定');
+            console.log('没有找到活动的控制设定');
         }
         
-        // 3. 分析控制邏輯
-        console.log('\n\n🔍 控制邏輯分析:');
-        console.log('如果設定90%輸的控制，理論上有90%機率會讓用戶輸');
-        console.log('但您下注了9個號碼中的9個（只漏了1號）');
-        console.log('這代表您有90%的中獎機率（9/10）');
-        console.log('\n即使系統想讓您輸，也很難做到，因為:');
-        console.log('- 要讓您輸，系統必須開出1號（您唯一沒下注的號碼）');
-        console.log('- 但這樣做會太明顯，違反隨機性原則');
-        console.log('- 系統可能在權重計算時發現無法有效控制，因此回歸正常開獎');
+        // 3. 分析控制逻辑
+        console.log('\n\n🔍 控制逻辑分析:');
+        console.log('如果设定90%输的控制，理论上有90%机率会让用户输');
+        console.log('但您下注了9个号码中的9个（只漏了1号）');
+        console.log('这代表您有90%的中奖机率（9/10）');
+        console.log('\n即使系统想让您输，也很难做到，因为:');
+        console.log('- 要让您输，系统必须开出1号（您唯一没下注的号码）');
+        console.log('- 但这样做会太明显，违反随机性原则');
+        console.log('- 系统可能在权重计算时发现无法有效控制，因此回归正常开奖');
         
-        // 4. 查看簡化開獎系統的邏輯
-        console.log('\n\n📝 查看simplified-draw-system.js的控制邏輯:');
-        console.log('根據程式碼，當control_percentage = 90%時:');
-        console.log('- 如果設定讓用戶輸，系統會嘗試生成讓用戶輸的結果');
-        console.log('- 但generateLosingResult函數會避開用戶下注的號碼');
-        console.log('- 當用戶幾乎下注所有號碼時，系統很難執行有效控制');
+        // 4. 查看简化开奖系统的逻辑
+        console.log('\n\n📝 查看simplified-draw-system.js的控制逻辑:');
+        console.log('根据程式码，当control_percentage = 90%时:');
+        console.log('- 如果设定让用户输，系统会尝试生成让用户输的结果');
+        console.log('- 但generateLosingResult函数会避开用户下注的号码');
+        console.log('- 当用户几乎下注所有号码时，系统很难执行有效控制');
         
-        // 5. 檢查該用戶其他期的下注模式
-        console.log('\n\n📈 檢查該用戶近期下注模式:');
+        // 5. 检查该用户其他期的下注模式
+        console.log('\n\n📈 检查该用户近期下注模式:');
         const recentBets = await db.manyOrNone(`
             SELECT period, COUNT(*) as bet_count, SUM(amount) as total_amount,
                    SUM(CASE WHEN win_amount > 0 THEN 1 ELSE 0 END) as win_count,
@@ -71,21 +71,21 @@ async function checkControl336() {
         `);
         
         if (recentBets.length > 0) {
-            console.log('期號\t下注數\t總金額\t中獎數\t總獲利');
+            console.log('期号\t下注数\t总金额\t中奖数\t总获利');
             recentBets.forEach(record => {
                 const profit = (record.total_win || 0) - record.total_amount;
                 console.log(`${record.period}\t${record.bet_count}\t${record.total_amount}\t${record.win_count}\t${profit}`);
             });
         }
         
-        console.log('\n\n💡 結論:');
-        console.log('1. 您在336期下注了9個號碼（除了1號），覆蓋率90%');
-        console.log('2. 即使設定90%輸控制，系統也很難讓您輸');
-        console.log('3. 控制系統可能因為無法有效執行而回歸隨機開獎');
-        console.log('4. 建議：如果要測試控制效果，應該下注較少的號碼（如1-3個）');
+        console.log('\n\n💡 结论:');
+        console.log('1. 您在336期下注了9个号码（除了1号），覆盖率90%');
+        console.log('2. 即使设定90%输控制，系统也很难让您输');
+        console.log('3. 控制系统可能因为无法有效执行而回归随机开奖');
+        console.log('4. 建议：如果要测试控制效果，应该下注较少的号码（如1-3个）');
         
     } catch (error) {
-        console.error('查詢過程中出錯:', error);
+        console.error('查询过程中出错:', error);
     } finally {
         await db.$pool.end();
     }

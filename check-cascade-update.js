@@ -6,13 +6,13 @@ const db = pgp({
 });
 
 async function checkCascadeUpdate() {
-    console.log('=== 檢查級聯更新結果 ===\n');
+    console.log('=== 检查级联更新结果 ===\n');
     
     try {
-        // 查找退水為 0.0012 (0.12%) 的代理及其下級
+        // 查找退水为 0.0012 (0.12%) 的代理及其下级
         const agents = await db.any(`
             WITH RECURSIVE agent_tree AS (
-                -- 找到退水為 0.12% 的代理
+                -- 找到退水为 0.12% 的代理
                 SELECT 
                     id, username, level, parent_id, 
                     rebate_percentage, max_rebate_percentage,
@@ -22,7 +22,7 @@ async function checkCascadeUpdate() {
                 
                 UNION ALL
                 
-                -- 找到其所有下級
+                -- 找到其所有下级
                 SELECT 
                     a.id, a.username, a.level, a.parent_id,
                     a.rebate_percentage, a.max_rebate_percentage,
@@ -36,11 +36,11 @@ async function checkCascadeUpdate() {
         `);
         
         if (agents.length === 0) {
-            console.log('未找到退水為 0.12% 的代理');
+            console.log('未找到退水为 0.12% 的代理');
             return;
         }
         
-        console.log(`找到 ${agents.length} 個相關代理：\n`);
+        console.log(`找到 ${agents.length} 个相关代理：\n`);
         
         let parentAgent = null;
         agents.forEach(agent => {
@@ -55,18 +55,18 @@ async function checkCascadeUpdate() {
             if (agent.depth === 0) {
                 parentAgent = agent;
             } else {
-                // 檢查下級的 max_rebate_percentage 是否等於上級的 rebate_percentage
+                // 检查下级的 max_rebate_percentage 是否等于上级的 rebate_percentage
                 if (parentAgent && agent.max_rebate_percentage !== parentAgent.rebate_percentage) {
-                    console.log(`${prefix}  ❌ 錯誤：最大退水應該是 ${parentAgent.rebate_percentage * 100}%`);
+                    console.log(`${prefix}  ❌ 错误：最大退水应该是 ${parentAgent.rebate_percentage * 100}%`);
                 } else {
-                    console.log(`${prefix}  ✅ 正確`);
+                    console.log(`${prefix}  ✅ 正确`);
                 }
             }
             console.log('');
         });
         
     } catch (error) {
-        console.error('檢查過程中發生錯誤:', error);
+        console.error('检查过程中发生错误:', error);
     } finally {
         await db.$pool.end();
     }

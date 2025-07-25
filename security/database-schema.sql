@@ -1,7 +1,7 @@
--- security/database-schema.sql - 安全相關資料庫表結構
+-- security/database-schema.sql - 安全相关资料库表结构
 
 -- ========================================
--- 1. 安全日誌表
+-- 1. 安全日志表
 -- ========================================
 CREATE TABLE IF NOT EXISTS security_logs (
     id SERIAL PRIMARY KEY,
@@ -19,14 +19,14 @@ CREATE TABLE IF NOT EXISTS security_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 創建索引以提升查詢效能
+-- 创建索引以提升查询效能
 CREATE INDEX idx_security_logs_event_type ON security_logs(event_type);
 CREATE INDEX idx_security_logs_user_id ON security_logs(user_id);
 CREATE INDEX idx_security_logs_ip_address ON security_logs(ip_address);
 CREATE INDEX idx_security_logs_created_at ON security_logs(created_at);
 
 -- ========================================
--- 2. 登入嘗試記錄表
+-- 2. 登入尝试记录表
 -- ========================================
 CREATE TABLE IF NOT EXISTS login_attempts (
     id SERIAL PRIMARY KEY,
@@ -43,7 +43,7 @@ CREATE INDEX idx_login_attempts_ip_address ON login_attempts(ip_address);
 CREATE INDEX idx_login_attempts_created_at ON login_attempts(created_at);
 
 -- ========================================
--- 3. IP 黑名單表
+-- 3. IP 黑名单表
 -- ========================================
 CREATE TABLE IF NOT EXISTS ip_blacklist (
     id SERIAL PRIMARY KEY,
@@ -59,7 +59,7 @@ CREATE INDEX idx_ip_blacklist_ip_address ON ip_blacklist(ip_address);
 CREATE INDEX idx_ip_blacklist_expires_at ON ip_blacklist(expires_at);
 
 -- ========================================
--- 4. API 密鑰管理表
+-- 4. API 密钥管理表
 -- ========================================
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,
@@ -79,7 +79,7 @@ CREATE INDEX idx_api_keys_key_hash ON api_keys(key_hash);
 CREATE INDEX idx_api_keys_is_active ON api_keys(is_active);
 
 -- ========================================
--- 5. 兩步驗證設置表
+-- 5. 两步验证设置表
 -- ========================================
 CREATE TABLE IF NOT EXISTS two_factor_auth (
     id SERIAL PRIMARY KEY,
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS two_factor_auth (
 CREATE INDEX idx_two_factor_auth_user ON two_factor_auth(user_type, user_id);
 
 -- ========================================
--- 6. 會話管理表
+-- 6. 会话管理表
 -- ========================================
 CREATE TABLE IF NOT EXISTS user_sessions (
     id SERIAL PRIMARY KEY,
@@ -117,7 +117,7 @@ CREATE INDEX idx_user_sessions_user ON user_sessions(user_type, user_id);
 CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expires_at);
 
 -- ========================================
--- 7. 審計日誌表（記錄所有敏感操作）
+-- 7. 审计日志表（记录所有敏感操作）
 -- ========================================
 CREATE TABLE IF NOT EXISTS audit_logs (
     id SERIAL PRIMARY KEY,
@@ -140,7 +140,7 @@ CREATE INDEX idx_audit_logs_changed_by ON audit_logs(changed_by_type, changed_by
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
 
 -- ========================================
--- 8. 權限管理表
+-- 8. 权限管理表
 -- ========================================
 CREATE TABLE IF NOT EXISTS permissions (
     id SERIAL PRIMARY KEY,
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS user_permissions (
 );
 
 -- ========================================
--- 9. 資料加密密鑰表
+-- 9. 资料加密密钥表
 -- ========================================
 CREATE TABLE IF NOT EXISTS encryption_keys (
     id SERIAL PRIMARY KEY,
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS encryption_keys (
 );
 
 -- ========================================
--- 10. 安全警報表
+-- 10. 安全警报表
 -- ========================================
 CREATE TABLE IF NOT EXISTS security_alerts (
     id SERIAL PRIMARY KEY,
@@ -211,7 +211,7 @@ CREATE INDEX idx_security_alerts_is_resolved ON security_alerts(is_resolved);
 CREATE INDEX idx_security_alerts_created_at ON security_alerts(created_at);
 
 -- ========================================
--- 觸發器：自動記錄審計日誌
+-- 触发器：自动记录审计日志
 -- ========================================
 CREATE OR REPLACE FUNCTION audit_trigger_function()
 RETURNS TRIGGER AS $$
@@ -232,7 +232,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 為敏感表添加審計觸發器
+-- 为敏感表添加审计触发器
 CREATE TRIGGER audit_agents_trigger
 AFTER INSERT OR UPDATE OR DELETE ON agents
 FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
@@ -250,26 +250,26 @@ AFTER INSERT OR UPDATE OR DELETE ON point_transfers
 FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
 
 -- ========================================
--- 預設權限設置
+-- 预设权限设置
 -- ========================================
 INSERT INTO permissions (name, description, category) VALUES
 ('view_all_agents', '查看所有代理', 'agent_management'),
-('create_agent', '創建代理', 'agent_management'),
-('edit_agent', '編輯代理', 'agent_management'),
-('delete_agent', '刪除代理', 'agent_management'),
-('view_all_members', '查看所有會員', 'member_management'),
-('create_member', '創建會員', 'member_management'),
-('edit_member', '編輯會員', 'member_management'),
-('delete_member', '刪除會員', 'member_management'),
-('manage_balance', '管理餘額', 'financial'),
-('view_reports', '查看報表', 'reporting'),
-('manage_system', '系統管理', 'system'),
-('view_security_logs', '查看安全日誌', 'security'),
+('create_agent', '创建代理', 'agent_management'),
+('edit_agent', '编辑代理', 'agent_management'),
+('delete_agent', '删除代理', 'agent_management'),
+('view_all_members', '查看所有会员', 'member_management'),
+('create_member', '创建会员', 'member_management'),
+('edit_member', '编辑会员', 'member_management'),
+('delete_member', '删除会员', 'member_management'),
+('manage_balance', '管理余额', 'financial'),
+('view_reports', '查看报表', 'reporting'),
+('manage_system', '系统管理', 'system'),
+('view_security_logs', '查看安全日志', 'security'),
 ('manage_security', '安全管理', 'security')
 ON CONFLICT (name) DO NOTHING;
 
 -- ========================================
--- 創建視圖：活躍會話
+-- 创建视图：活跃会话
 -- ========================================
 CREATE OR REPLACE VIEW active_sessions AS
 SELECT 
@@ -284,7 +284,7 @@ LEFT JOIN members m ON s.user_type = 'member' AND s.user_id = m.id
 WHERE s.is_active = TRUE AND s.expires_at > CURRENT_TIMESTAMP;
 
 -- ========================================
--- 創建視圖：最近的安全事件
+-- 创建视图：最近的安全事件
 -- ========================================
 CREATE OR REPLACE VIEW recent_security_events AS
 SELECT 

@@ -1,12 +1,12 @@
-// diagnose-settlement-issues.js - 診斷結算問題
+// diagnose-settlement-issues.js - 诊断结算问题
 import db from './db/config.js';
 
 async function diagnoseSettlementIssues() {
-    console.log('🔍 開始診斷結算系統問題...\n');
+    console.log('🔍 开始诊断结算系统问题...\n');
     
     try {
-        // 1. 檢查最近的結算記錄
-        console.log('📊 最近24小時的結算統計：');
+        // 1. 检查最近的结算记录
+        console.log('📊 最近24小时的结算统计：');
         const recentStats = await db.oneOrNone(`
             SELECT 
                 COUNT(DISTINCT period) as total_periods,
@@ -20,16 +20,16 @@ async function diagnoseSettlementIssues() {
         `);
         
         if (recentStats) {
-            console.log(`  - 總期數: ${recentStats.total_periods}`);
-            console.log(`  - 總注單數: ${recentStats.total_bets}`);
-            console.log(`  - 已結算: ${recentStats.settled_bets}`);
-            console.log(`  - 未結算: ${recentStats.unsettled_bets}`);
-            console.log(`  - 總下注額: ${recentStats.total_bet_amount || 0}`);
-            console.log(`  - 總中獎額: ${recentStats.total_win_amount || 0}`);
+            console.log(`  - 总期数: ${recentStats.total_periods}`);
+            console.log(`  - 总注单数: ${recentStats.total_bets}`);
+            console.log(`  - 已结算: ${recentStats.settled_bets}`);
+            console.log(`  - 未结算: ${recentStats.unsettled_bets}`);
+            console.log(`  - 总下注额: ${recentStats.total_bet_amount || 0}`);
+            console.log(`  - 总中奖额: ${recentStats.total_win_amount || 0}`);
         }
         
-        // 2. 檢查可能的重複結算
-        console.log('\n🔄 檢查重複結算情況：');
+        // 2. 检查可能的重复结算
+        console.log('\n🔄 检查重复结算情况：');
         const duplicateSettlements = await db.manyOrNone(`
             WITH bet_groups AS (
                 SELECT 
@@ -55,20 +55,20 @@ async function diagnoseSettlementIssues() {
         `);
         
         if (duplicateSettlements && duplicateSettlements.length > 0) {
-            console.log(`  ⚠️ 發現 ${duplicateSettlements.length} 組可能的重複注單：`);
+            console.log(`  ⚠️ 发现 ${duplicateSettlements.length} 组可能的重复注单：`);
             duplicateSettlements.forEach((dup, index) => {
-                console.log(`\n  ${index + 1}. 期號: ${dup.period}, 用戶: ${dup.username}`);
-                console.log(`     類型: ${dup.bet_type}, 值: ${dup.bet_value}, 金額: ${dup.amount}`);
-                console.log(`     重複次數: ${dup.duplicate_count}, 總中獎: ${dup.total_win_amount || 0}`);
-                console.log(`     注單ID: ${dup.bet_ids.join(', ')}`);
-                console.log(`     結算狀態: ${dup.settled_status.join(', ')}`);
+                console.log(`\n  ${index + 1}. 期号: ${dup.period}, 用户: ${dup.username}`);
+                console.log(`     类型: ${dup.bet_type}, 值: ${dup.bet_value}, 金额: ${dup.amount}`);
+                console.log(`     重复次数: ${dup.duplicate_count}, 总中奖: ${dup.total_win_amount || 0}`);
+                console.log(`     注单ID: ${dup.bet_ids.join(', ')}`);
+                console.log(`     结算状态: ${dup.settled_status.join(', ')}`);
             });
         } else {
-            console.log('  ✅ 沒有發現重複注單');
+            console.log('  ✅ 没有发现重复注单');
         }
         
-        // 3. 檢查異常的中獎金額
-        console.log('\n💰 檢查異常中獎金額：');
+        // 3. 检查异常的中奖金额
+        console.log('\n💰 检查异常中奖金额：');
         const abnormalWins = await db.manyOrNone(`
             SELECT 
                 id,
@@ -83,24 +83,24 @@ async function diagnoseSettlementIssues() {
             FROM bet_history
             WHERE settled = true 
             AND win = true
-            AND win_amount > amount * 50  -- 賠率超過50倍的
+            AND win_amount > amount * 50  -- 赔率超过50倍的
             AND created_at > NOW() - INTERVAL '24 hours'
             ORDER BY win_ratio DESC
             LIMIT 10
         `);
         
         if (abnormalWins && abnormalWins.length > 0) {
-            console.log(`  ⚠️ 發現 ${abnormalWins.length} 筆異常高賠率的中獎：`);
+            console.log(`  ⚠️ 发现 ${abnormalWins.length} 笔异常高赔率的中奖：`);
             abnormalWins.forEach(win => {
-                console.log(`    - ID: ${win.id}, 期號: ${win.period}, 用戶: ${win.username}`);
-                console.log(`      下注: ${win.amount}, 中獎: ${win.win_amount}, 倍率: ${win.win_ratio.toFixed(2)}x`);
+                console.log(`    - ID: ${win.id}, 期号: ${win.period}, 用户: ${win.username}`);
+                console.log(`      下注: ${win.amount}, 中奖: ${win.win_amount}, 倍率: ${win.win_ratio.toFixed(2)}x`);
             });
         } else {
-            console.log('  ✅ 沒有發現異常的中獎金額');
+            console.log('  ✅ 没有发现异常的中奖金额');
         }
         
-        // 4. 檢查用戶餘額異常
-        console.log('\n👤 檢查用戶餘額異常：');
+        // 4. 检查用户余额异常
+        console.log('\n👤 检查用户余额异常：');
         const balanceIssues = await db.manyOrNone(`
             WITH user_stats AS (
                 SELECT 
@@ -133,20 +133,20 @@ async function diagnoseSettlementIssues() {
         `);
         
         if (balanceIssues && balanceIssues.length > 0) {
-            console.log(`  ⚠️ 發現 ${balanceIssues.length} 個用戶餘額可能有異常：`);
+            console.log(`  ⚠️ 发现 ${balanceIssues.length} 个用户余额可能有异常：`);
             balanceIssues.forEach(user => {
-                console.log(`\n    用戶: ${user.username}`);
-                console.log(`    當前餘額: ${user.current_balance}`);
-                console.log(`    計算餘額: ${user.calculated_balance}`);
-                console.log(`    差異: ${user.difference}`);
-                console.log(`    明細: 存款(${user.total_deposits}) - 提款(${user.total_withdraws}) + 下注(${user.total_bets}) + 中獎(${user.total_wins}) + 退水(${user.total_rebates})`);
+                console.log(`\n    用户: ${user.username}`);
+                console.log(`    当前余额: ${user.current_balance}`);
+                console.log(`    计算余额: ${user.calculated_balance}`);
+                console.log(`    差异: ${user.difference}`);
+                console.log(`    明细: 存款(${user.total_deposits}) - 提款(${user.total_withdraws}) + 下注(${user.total_bets}) + 中奖(${user.total_wins}) + 退水(${user.total_rebates})`);
             });
         } else {
-            console.log('  ✅ 用戶餘額計算正常');
+            console.log('  ✅ 用户余额计算正常');
         }
         
-        // 5. 檢查未結算的過期注單
-        console.log('\n⏰ 檢查未結算的過期注單：');
+        // 5. 检查未结算的过期注单
+        console.log('\n⏰ 检查未结算的过期注单：');
         const expiredUnsettled = await db.manyOrNone(`
             SELECT 
                 period,
@@ -163,36 +163,36 @@ async function diagnoseSettlementIssues() {
         `);
         
         if (expiredUnsettled && expiredUnsettled.length > 0) {
-            console.log(`  ⚠️ 發現 ${expiredUnsettled.length} 個期號有超過1小時未結算的注單：`);
+            console.log(`  ⚠️ 发现 ${expiredUnsettled.length} 个期号有超过1小时未结算的注单：`);
             expiredUnsettled.forEach(period => {
-                console.log(`    期號: ${period.period}, 注單數: ${period.bet_count}, 總金額: ${period.total_amount}`);
+                console.log(`    期号: ${period.period}, 注单数: ${period.bet_count}, 总金额: ${period.total_amount}`);
                 console.log(`    最早: ${period.earliest_bet}, 最晚: ${period.latest_bet}`);
             });
         } else {
-            console.log('  ✅ 沒有發現過期未結算的注單');
+            console.log('  ✅ 没有发现过期未结算的注单');
         }
         
-        // 6. 提供修復建議
-        console.log('\n🔧 修復建議：');
-        console.log('1. 執行 node init-settlement-system.js 初始化結算系統');
-        console.log('2. 執行 node fix-duplicate-settlements-v2.cjs 修復重複結算');
-        console.log('3. 重啟服務以使用新的結算系統');
-        console.log('4. 監控 settlement_logs 表以追蹤結算情況');
+        // 6. 提供修复建议
+        console.log('\n🔧 修复建议：');
+        console.log('1. 执行 node init-settlement-system.js 初始化结算系统');
+        console.log('2. 执行 node fix-duplicate-settlements-v2.cjs 修复重复结算');
+        console.log('3. 重启服务以使用新的结算系统');
+        console.log('4. 监控 settlement_logs 表以追踪结算情况');
         
     } catch (error) {
-        console.error('❌ 診斷過程中發生錯誤:', error);
+        console.error('❌ 诊断过程中发生错误:', error);
     }
 }
 
-// 如果直接執行此文件
+// 如果直接执行此文件
 if (process.argv[1] === new URL(import.meta.url).pathname) {
     diagnoseSettlementIssues()
         .then(() => {
-            console.log('\n診斷完成');
+            console.log('\n诊断完成');
             process.exit(0);
         })
         .catch(error => {
-            console.error('診斷失敗:', error);
+            console.error('诊断失败:', error);
             process.exit(1);
         });
 }

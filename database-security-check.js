@@ -1,32 +1,32 @@
 #!/usr/bin/env node
 
 /**
- * 資料庫安全檢查腳本
- * 用於驗證Render PostgreSQL配置和確保所有資料都能安全存放
+ * 资料库安全检查脚本
+ * 用于验证Render PostgreSQL配置和确保所有资料都能安全存放
  */
 
 import pgp from 'pg-promise';
 import dotenv from 'dotenv';
 
-// 載入環境變數
+// 载入环境变数
 dotenv.config();
 
-// Render PostgreSQL 連接資訊
+// Render PostgreSQL 连接资讯
 const RENDER_DATABASE_URL = 'postgresql://bet_game_user:Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy@dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com/bet_game';
 
 const pgInstance = pgp({
   error: (err, e) => {
     if (e.cn) {
-      console.error('❌ 連接錯誤:', err.message);
+      console.error('❌ 连接错误:', err.message);
     } else if (e.query) {
-      console.error('❌ 查詢錯誤:', err.message);
+      console.error('❌ 查询错误:', err.message);
     } else {
-      console.error('❌ 未知錯誤:', err.message);
+      console.error('❌ 未知错误:', err.message);
     }
   }
 });
 
-// 創建資料庫連接
+// 创建资料库连接
 const db = pgInstance({
   connectionString: RENDER_DATABASE_URL,
   ssl: {
@@ -38,27 +38,27 @@ const db = pgInstance({
 });
 
 /**
- * 檢查資料庫連接
+ * 检查资料库连接
  */
 async function checkDatabaseConnection() {
   try {
-    console.log('🔍 檢查資料庫連接...');
+    console.log('🔍 检查资料库连接...');
     const result = await db.one('SELECT NOW() as current_time, version() as version');
-    console.log('✅ 資料庫連接成功');
-    console.log('📅 伺服器時間:', result.current_time);
+    console.log('✅ 资料库连接成功');
+    console.log('📅 伺服器时间:', result.current_time);
     console.log('🗃️  PostgreSQL版本:', result.version.split(' ').slice(0, 2).join(' '));
     return true;
   } catch (error) {
-    console.error('❌ 資料庫連接失敗:', error.message);
+    console.error('❌ 资料库连接失败:', error.message);
     return false;
   }
 }
 
 /**
- * 檢查必要的資料表是否存在
+ * 检查必要的资料表是否存在
  */
 async function checkRequiredTables() {
-  console.log('\n🔍 檢查必要資料表...');
+  console.log('\n🔍 检查必要资料表...');
   
   const requiredTables = [
     'users',
@@ -98,10 +98,10 @@ async function checkRequiredTables() {
 
     const tableNames = existingTables.map(t => t.table_name);
     
-    console.log('📋 現有資料表:', tableNames.length, '個');
+    console.log('📋 现有资料表:', tableNames.length, '个');
     
-    // 檢查基本表
-    console.log('\n📊 基本業務表檢查:');
+    // 检查基本表
+    console.log('\n📊 基本业务表检查:');
     for (const table of requiredTables) {
       if (tableNames.includes(table)) {
         console.log(`✅ ${table}`);
@@ -110,31 +110,31 @@ async function checkRequiredTables() {
       }
     }
 
-    // 檢查安全表
-    console.log('\n🔒 安全相關表檢查:');
+    // 检查安全表
+    console.log('\n🔒 安全相关表检查:');
     for (const table of securityTables) {
       if (tableNames.includes(table)) {
         console.log(`✅ ${table}`);
       } else {
-        console.log(`⚠️  ${table} - 缺失（將創建）`);
+        console.log(`⚠️  ${table} - 缺失（将创建）`);
       }
     }
 
     return { existing: tableNames, required: requiredTables, security: securityTables };
   } catch (error) {
-    console.error('❌ 檢查資料表時出錯:', error.message);
+    console.error('❌ 检查资料表时出错:', error.message);
     return null;
   }
 }
 
 /**
- * 檢查資料表結構和索引
+ * 检查资料表结构和索引
  */
 async function checkTableStructure() {
-  console.log('\n🔍 檢查重要資料表結構...');
+  console.log('\n🔍 检查重要资料表结构...');
   
   try {
-    // 檢查 users 表結構
+    // 检查 users 表结构
     const usersColumns = await db.any(`
       SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns
@@ -143,13 +143,13 @@ async function checkTableStructure() {
     `);
     
     if (usersColumns.length > 0) {
-      console.log('✅ users 表結構:');
+      console.log('✅ users 表结构:');
       usersColumns.forEach(col => {
         console.log(`   - ${col.column_name}: ${col.data_type}${col.is_nullable === 'NO' ? ' NOT NULL' : ''}`);
       });
     }
 
-    // 檢查索引
+    // 检查索引
     const indexes = await db.any(`
       SELECT indexname, tablename, indexdef
       FROM pg_indexes
@@ -158,23 +158,23 @@ async function checkTableStructure() {
       ORDER BY tablename, indexname
     `);
 
-    console.log(`\n📊 自定義索引: ${indexes.length} 個`);
+    console.log(`\n📊 自定义索引: ${indexes.length} 个`);
     
     return true;
   } catch (error) {
-    console.error('❌ 檢查表結構時出錯:', error.message);
+    console.error('❌ 检查表结构时出错:', error.message);
     return false;
   }
 }
 
 /**
- * 檢查資料完整性
+ * 检查资料完整性
  */
 async function checkDataIntegrity() {
-  console.log('\n🔍 檢查資料完整性...');
+  console.log('\n🔍 检查资料完整性...');
   
   try {
-    // 檢查是否有管理員帳戶
+    // 检查是否有管理员帐户
     const adminCount = await db.oneOrNone(`
       SELECT COUNT(*) as count 
       FROM agents 
@@ -182,81 +182,81 @@ async function checkDataIntegrity() {
     `);
 
     if (adminCount && parseInt(adminCount.count) > 0) {
-      console.log('✅ 管理員帳戶存在');
+      console.log('✅ 管理员帐户存在');
     } else {
-      console.log('⚠️  未找到管理員帳戶');
+      console.log('⚠️  未找到管理员帐户');
     }
 
-    // 檢查遊戲狀態
+    // 检查游戏状态
     const gameState = await db.oneOrNone('SELECT * FROM game_state ORDER BY id DESC LIMIT 1');
     if (gameState) {
-      console.log('✅ 遊戲狀態記錄存在');
-      console.log(`   當前期數: ${gameState.current_period}`);
+      console.log('✅ 游戏状态记录存在');
+      console.log(`   当前期数: ${gameState.current_period}`);
     } else {
-      console.log('⚠️  未找到遊戲狀態記錄');
+      console.log('⚠️  未找到游戏状态记录');
     }
 
-    // 統計各表記錄數量
+    // 统计各表记录数量
     const tables = ['users', 'agents', 'members', 'bet_history', 'result_history'];
-    console.log('\n📈 資料統計:');
+    console.log('\n📈 资料统计:');
     
     for (const table of tables) {
       try {
         const count = await db.one(`SELECT COUNT(*) as count FROM ${table}`);
-        console.log(`   ${table}: ${count.count} 筆記錄`);
+        console.log(`   ${table}: ${count.count} 笔记录`);
       } catch (error) {
-        console.log(`   ${table}: 表不存在或查詢失敗`);
+        console.log(`   ${table}: 表不存在或查询失败`);
       }
     }
 
     return true;
   } catch (error) {
-    console.error('❌ 檢查資料完整性時出錯:', error.message);
+    console.error('❌ 检查资料完整性时出错:', error.message);
     return false;
   }
 }
 
 /**
- * 檢查資料庫權限和安全設置
+ * 检查资料库权限和安全设置
  */
 async function checkDatabaseSecurity() {
-  console.log('\n🔒 檢查資料庫安全設置...');
+  console.log('\n🔒 检查资料库安全设置...');
   
   try {
-    // 檢查當前用戶權限
+    // 检查当前用户权限
     const currentUser = await db.one('SELECT current_user, current_database()');
-    console.log(`✅ 當前用戶: ${currentUser.current_user}`);
-    console.log(`✅ 當前資料庫: ${currentUser.current_database}`);
+    console.log(`✅ 当前用户: ${currentUser.current_user}`);
+    console.log(`✅ 当前资料库: ${currentUser.current_database}`);
 
-    // 檢查 SSL 連接
+    // 检查 SSL 连接
     const sslStatus = await db.oneOrNone("SHOW ssl");
     if (sslStatus && sslStatus.ssl === 'on') {
-      console.log('✅ SSL 連接已啟用');
+      console.log('✅ SSL 连接已启用');
     } else {
-      console.log('⚠️  SSL 連接狀態未知');
+      console.log('⚠️  SSL 连接状态未知');
     }
 
-    // 檢查資料庫大小
+    // 检查资料库大小
     const dbSize = await db.one(`
       SELECT pg_size_pretty(pg_database_size(current_database())) as size
     `);
-    console.log(`📊 資料庫大小: ${dbSize.size}`);
+    console.log(`📊 资料库大小: ${dbSize.size}`);
 
     return true;
   } catch (error) {
-    console.error('❌ 檢查資料庫安全時出錯:', error.message);
+    console.error('❌ 检查资料库安全时出错:', error.message);
     return false;
   }
 }
 
 /**
- * 創建缺失的安全表
+ * 创建缺失的安全表
  */
 async function createSecurityTables() {
-  console.log('\n🛠️  創建安全相關資料表...');
+  console.log('\n🛠️  创建安全相关资料表...');
   
   try {
-    // 創建安全日誌表
+    // 创建安全日志表
     await db.none(`
       CREATE TABLE IF NOT EXISTS security_logs (
         id SERIAL PRIMARY KEY,
@@ -278,7 +278,7 @@ async function createSecurityTables() {
       CREATE INDEX IF NOT EXISTS idx_security_logs_event_type ON security_logs(event_type)
     `);
 
-    // 創建登入嘗試記錄表
+    // 创建登入尝试记录表
     await db.none(`
       CREATE TABLE IF NOT EXISTS login_attempts (
         id SERIAL PRIMARY KEY,
@@ -295,7 +295,7 @@ async function createSecurityTables() {
       CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username)
     `);
 
-    // 創建會話管理表
+    // 创建会话管理表
     await db.none(`
       CREATE TABLE IF NOT EXISTS user_sessions (
         id SERIAL PRIMARY KEY,
@@ -315,93 +315,93 @@ async function createSecurityTables() {
       CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token)
     `);
 
-    console.log('✅ 安全表創建完成');
+    console.log('✅ 安全表创建完成');
     return true;
   } catch (error) {
-    console.error('❌ 創建安全表時出錯:', error.message);
+    console.error('❌ 创建安全表时出错:', error.message);
     return false;
   }
 }
 
 /**
- * 執行完整的資料庫檢查
+ * 执行完整的资料库检查
  */
 async function runCompleteCheck() {
-  console.log('🚀 開始 Render PostgreSQL 資料庫安全檢查\n');
-  console.log('📋 連接資訊:');
-  console.log('   主機: dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com');
-  console.log('   資料庫: bet_game');
-  console.log('   用戶: bet_game_user');
-  console.log('   SSL: 已啟用\n');
+  console.log('🚀 开始 Render PostgreSQL 资料库安全检查\n');
+  console.log('📋 连接资讯:');
+  console.log('   主机: dpg-d0e2imc9c44c73che3kg-a.oregon-postgres.render.com');
+  console.log('   资料库: bet_game');
+  console.log('   用户: bet_game_user');
+  console.log('   SSL: 已启用\n');
 
   let allChecksPass = true;
 
-  // 1. 檢查連接
+  // 1. 检查连接
   const connectionOk = await checkDatabaseConnection();
   if (!connectionOk) {
-    console.log('\n❌ 資料庫連接失敗，請檢查連接字串和網路狀態');
+    console.log('\n❌ 资料库连接失败，请检查连接字串和网路状态');
     process.exit(1);
   }
 
-  // 2. 檢查表結構
+  // 2. 检查表结构
   const tablesInfo = await checkRequiredTables();
   if (!tablesInfo) {
     allChecksPass = false;
   }
 
-  // 3. 檢查表結構詳細資訊
+  // 3. 检查表结构详细资讯
   const structureOk = await checkTableStructure();
   if (!structureOk) {
     allChecksPass = false;
   }
 
-  // 4. 創建缺失的安全表
+  // 4. 创建缺失的安全表
   const securityTablesOk = await createSecurityTables();
   if (!securityTablesOk) {
     allChecksPass = false;
   }
 
-  // 5. 檢查資料完整性
+  // 5. 检查资料完整性
   const integrityOk = await checkDataIntegrity();
   if (!integrityOk) {
     allChecksPass = false;
   }
 
-  // 6. 檢查安全設置
+  // 6. 检查安全设置
   const securityOk = await checkDatabaseSecurity();
   if (!securityOk) {
     allChecksPass = false;
   }
 
-  // 總結
+  // 总结
   console.log('\n' + '='.repeat(60));
   if (allChecksPass) {
-    console.log('🎉 資料庫安全檢查完成！所有檢查均通過');
-    console.log('✅ Render PostgreSQL 已正確配置，可以安全存放所有資料');
+    console.log('🎉 资料库安全检查完成！所有检查均通过');
+    console.log('✅ Render PostgreSQL 已正确配置，可以安全存放所有资料');
   } else {
-    console.log('⚠️  資料庫檢查完成，但發現一些問題需要處理');
+    console.log('⚠️  资料库检查完成，但发现一些问题需要处理');
   }
 
-  console.log('\n📋 建議事項:');
-  console.log('1. 定期備份資料庫');
-  console.log('2. 監控資料庫效能和連接數');
-  console.log('3. 啟用安全日誌記錄');
-  console.log('4. 定期檢查和清理過期資料');
-  console.log('5. 建立適當的存取權限管理');
+  console.log('\n📋 建议事项:');
+  console.log('1. 定期备份资料库');
+  console.log('2. 监控资料库效能和连接数');
+  console.log('3. 启用安全日志记录');
+  console.log('4. 定期检查和清理过期资料');
+  console.log('5. 建立适当的存取权限管理');
 
   return allChecksPass;
 }
 
-// 執行檢查
+// 执行检查
 runCompleteCheck()
   .then((success) => {
     process.exit(success ? 0 : 1);
   })
   .catch((error) => {
-    console.error('💥 檢查過程中發生嚴重錯誤:', error);
+    console.error('💥 检查过程中发生严重错误:', error);
     process.exit(1);
   })
   .finally(() => {
-    // 確保資料庫連接關閉
+    // 确保资料库连接关闭
     pgInstance.end();
   }); 

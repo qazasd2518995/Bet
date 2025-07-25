@@ -2,7 +2,7 @@ import db from './db/config.js';
 
 async function checkJustin111Rebates() {
     try {
-        console.log('=== 檢查 justin111 最近的 1000 投注和退水分配 ===\n');
+        console.log('=== 检查 justin111 最近的 1000 投注和退水分配 ===\n');
 
         // 1. 查找 justin111 最近的 1000 投注
         console.log('1. 查找 justin111 最近的 1000 投注...');
@@ -32,45 +32,45 @@ async function checkJustin111Rebates() {
         `);
 
         if (recentBets.length === 0) {
-            console.log('找不到 justin111 的 1000 投注記錄');
+            console.log('找不到 justin111 的 1000 投注记录');
             return;
         }
 
-        console.log(`\n找到 ${recentBets.length} 筆 1000 投注記錄：`);
+        console.log(`\n找到 ${recentBets.length} 笔 1000 投注记录：`);
         for (const bet of recentBets) {
             console.log(`\n投注ID: ${bet.id}`);
-            console.log(`期號: ${bet.period}`);
-            console.log(`金額: ${bet.amount}`);
-            console.log(`投注內容: ${bet.bet_numbers} (${bet.bet_type})`);
-            console.log(`投注時間: ${bet.created_at}`);
-            console.log(`是否已結算: ${bet.is_settled ? '是' : '否'}`);
-            console.log(`是否中獎: ${bet.win ? '是' : '否'}`);
-            console.log(`中獎金額: ${bet.win_amount || 0}`);
-            console.log(`結算時間: ${bet.settlement_time || 'N/A'}`);
+            console.log(`期号: ${bet.period}`);
+            console.log(`金额: ${bet.amount}`);
+            console.log(`投注内容: ${bet.bet_numbers} (${bet.bet_type})`);
+            console.log(`投注时间: ${bet.created_at}`);
+            console.log(`是否已结算: ${bet.is_settled ? '是' : '否'}`);
+            console.log(`是否中奖: ${bet.win ? '是' : '否'}`);
+            console.log(`中奖金额: ${bet.win_amount || 0}`);
+            console.log(`结算时间: ${bet.settlement_time || 'N/A'}`);
             console.log(`代理: ${bet.agent_username}`);
-            console.log(`會員餘額: ${bet.member_balance}`);
+            console.log(`会员余额: ${bet.member_balance}`);
         }
 
-        // 取最近的一筆
+        // 取最近的一笔
         const latestBet = recentBets[0];
-        console.log(`\n\n=== 詳細檢查最近的投注 (ID: ${latestBet.id}, 期號: ${latestBet.period}) ===`);
+        console.log(`\n\n=== 详细检查最近的投注 (ID: ${latestBet.id}, 期号: ${latestBet.period}) ===`);
 
-        // 2. 檢查該期的開獎結果
-        console.log('\n2. 檢查該期的開獎結果...');
+        // 2. 检查该期的开奖结果
+        console.log('\n2. 检查该期的开奖结果...');
         const result = await db.oneOrNone(`
             SELECT * FROM result_history 
             WHERE period = $1
         `, [latestBet.period]);
 
         if (result) {
-            console.log(`開獎結果: ${result.result}`);
-            console.log(`開獎時間: ${result.created_at}`);
+            console.log(`开奖结果: ${result.result}`);
+            console.log(`开奖时间: ${result.created_at}`);
         } else {
-            console.log('該期尚未開獎');
+            console.log('该期尚未开奖');
         }
 
-        // 3. 檢查該期所有的交易記錄（包括退水）
-        console.log('\n3. 檢查該期的所有交易記錄...');
+        // 3. 检查该期所有的交易记录（包括退水）
+        console.log('\n3. 检查该期的所有交易记录...');
         const allTransactions = await db.any(`
             SELECT 
                 tr.*,
@@ -86,38 +86,38 @@ async function checkJustin111Rebates() {
         `, [latestBet.period.toString()]);
 
         if (allTransactions.length > 0) {
-            console.log(`\n找到 ${allTransactions.length} 筆交易記錄：`);
+            console.log(`\n找到 ${allTransactions.length} 笔交易记录：`);
             for (const tx of allTransactions) {
                 console.log(`\n交易ID: ${tx.id}`);
-                console.log(`用戶類型: ${tx.user_type}`);
-                console.log(`用戶: ${tx.username || tx.member_username || 'N/A'}`);
-                console.log(`交易類型: ${tx.transaction_type}`);
-                console.log(`金額: ${tx.amount}`);
-                console.log(`前餘額: ${tx.balance_before}`);
-                console.log(`後餘額: ${tx.balance_after}`);
+                console.log(`用户类型: ${tx.user_type}`);
+                console.log(`用户: ${tx.username || tx.member_username || 'N/A'}`);
+                console.log(`交易类型: ${tx.transaction_type}`);
+                console.log(`金额: ${tx.amount}`);
+                console.log(`前余额: ${tx.balance_before}`);
+                console.log(`后余额: ${tx.balance_after}`);
                 console.log(`描述: ${tx.description}`);
-                console.log(`創建時間: ${tx.created_at}`);
+                console.log(`创建时间: ${tx.created_at}`);
             }
             
-            // 特別顯示退水相關的交易
+            // 特别显示退水相关的交易
             const rebateTransactions = allTransactions.filter(tx => 
                 tx.transaction_type === 'rebate' || tx.transaction_type === 'parent_rebate'
             );
             
             if (rebateTransactions.length > 0) {
-                console.log(`\n\n⭐ 其中退水相關交易 ${rebateTransactions.length} 筆`);
+                console.log(`\n\n⭐ 其中退水相关交易 ${rebateTransactions.length} 笔`);
                 for (const tx of rebateTransactions) {
                     console.log(`\n退水交易 - ${tx.username}: ${tx.transaction_type} = ${tx.amount}`);
                 }
             } else {
-                console.log('\n\n⚠️ 沒有找到退水相關的交易記錄！');
+                console.log('\n\n⚠️ 没有找到退水相关的交易记录！');
             }
         } else {
-            console.log('該期沒有任何交易記錄');
+            console.log('该期没有任何交易记录');
         }
 
-        // 4. 檢查代理的當前餘額和退水設定
-        console.log('\n\n4. 檢查相關代理的餘額和退水設定...');
+        // 4. 检查代理的当前余额和退水设定
+        console.log('\n\n4. 检查相关代理的余额和退水设定...');
         const agents = await db.any(`
             SELECT 
                 a.id,
@@ -134,16 +134,16 @@ async function checkJustin111Rebates() {
             ORDER BY a.created_at
         `);
 
-        console.log('\n代理資訊：');
+        console.log('\n代理资讯：');
         for (const agent of agents) {
             console.log(`\n代理: ${agent.username}`);
-            console.log(`餘額: ${agent.balance}`);
+            console.log(`余额: ${agent.balance}`);
             console.log(`退水率: ${agent.rebate_percentage}%`);
-            console.log(`上級: ${agent.parent_username || '無'} (退水率: ${agent.parent_rebate || 0}%)`);
+            console.log(`上级: ${agent.parent_username || '无'} (退水率: ${agent.parent_rebate || 0}%)`);
         }
 
-        // 5. 檢查最近幾期的退水情況
-        console.log('\n\n5. 檢查最近幾期的退水情況...');
+        // 5. 检查最近几期的退水情况
+        console.log('\n\n5. 检查最近几期的退水情况...');
         const recentPeriodRebates = await db.any(`
             SELECT 
                 period,
@@ -159,22 +159,22 @@ async function checkJustin111Rebates() {
         `);
 
         if (recentPeriodRebates.length > 0) {
-            console.log('\n最近幾期的退水情況：');
+            console.log('\n最近几期的退水情况：');
             for (const pr of recentPeriodRebates) {
-                console.log(`期號 ${pr.period}: ${pr.transaction_type} - ${pr.count} 筆, 總額 ${pr.total_amount}`);
+                console.log(`期号 ${pr.period}: ${pr.transaction_type} - ${pr.count} 笔, 总额 ${pr.total_amount}`);
             }
         } else {
-            console.log('\n最近7天沒有任何退水記錄');
+            console.log('\n最近7天没有任何退水记录');
         }
 
-        // 6. 計算預期的退水金額
-        console.log('\n\n6. 計算預期的退水金額...');
+        // 6. 计算预期的退水金额
+        console.log('\n\n6. 计算预期的退水金额...');
         if (latestBet.is_settled) {
-            // 找出所有相關代理的階層
+            // 找出所有相关代理的阶层
             const memberAgent = agents.find(a => a.id === latestBet.agent_id);
-            console.log(`\n投注會員的直屬代理: ${memberAgent?.username || 'Unknown'}`);
+            console.log(`\n投注会员的直属代理: ${memberAgent?.username || 'Unknown'}`);
             
-            // 計算各級應得退水
+            // 计算各级应得退水
             let currentAgent = memberAgent;
             let previousRebate = 0;
             const expectedRebates = [];
@@ -194,24 +194,24 @@ async function checkJustin111Rebates() {
                 currentAgent = agents.find(a => a.id === currentAgent.parent_id);
             }
             
-            console.log('\n預期的退水分配：');
+            console.log('\n预期的退水分配：');
             for (const expected of expectedRebates) {
                 console.log(`${expected.agent}: ${expected.rebateDiff}% = ${expected.amount}`);
             }
             
-            // 計算總退水金額
+            // 计算总退水金额
             const totalExpectedRebate = expectedRebates.reduce((sum, r) => sum + r.amount, 0);
-            console.log(`\n總預期退水金額: ${totalExpectedRebate}`);
+            console.log(`\n总预期退水金额: ${totalExpectedRebate}`);
         } else {
-            console.log('\n該投注尚未結算，無法計算退水');
+            console.log('\n该投注尚未结算，无法计算退水');
         }
 
-        // 7. 檢查後端日誌中的錯誤
-        console.log('\n\n7. 檢查是否有退水處理相關的錯誤...');
-        // 這部分需要手動檢查日誌文件
+        // 7. 检查后端日志中的错误
+        console.log('\n\n7. 检查是否有退水处理相关的错误...');
+        // 这部分需要手动检查日志文件
 
     } catch (error) {
-        console.error('錯誤:', error);
+        console.error('错误:', error);
     } finally {
         process.exit(0);
     }

@@ -10,17 +10,17 @@ async function adminLogin() {
 async function main() {
   const auth = await adminLogin();
   
-  // 檢查所有控制
+  // 检查所有控制
   const list = await axios.get('http://localhost:3003/api/agent/win-loss-control', { headers: auth });
   console.log('所有控制:', JSON.stringify(list.data, null, 2));
   
-  // 檢查活躍控制
+  // 检查活跃控制
   const active = await axios.get('http://localhost:3003/api/agent/win-loss-control/active', { headers: auth });
-  console.log('活躍控制:', JSON.stringify(active.data, null, 2));
+  console.log('活跃控制:', JSON.stringify(active.data, null, 2));
   
-  // 檢查內部API
+  // 检查内部API
   const internal = await axios.get('http://localhost:3003/api/agent/internal/win-loss-control/active');
-  console.log('內部API:', JSON.stringify(internal.data, null, 2));
+  console.log('内部API:', JSON.stringify(internal.data, null, 2));
 }
 
 main().catch(console.error);

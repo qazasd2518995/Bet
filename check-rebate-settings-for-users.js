@@ -43,8 +43,8 @@ async function checkRebateSettings() {
         
         profiles.forEach(profile => {
             console.log(`\nAgent: ${profile.username} (ID: ${profile.agent_id}, Level: ${profile.level})`);
-            console.log(`- A盤退水: ${profile.a_rebate_rate}%`);
-            console.log(`- D盤退水: ${profile.d_rebate_rate}%`);
+            console.log(`- A盘退水: ${profile.a_rebate_rate}%`);
+            console.log(`- D盘退水: ${profile.d_rebate_rate}%`);
         });
         
         // 3. Check the bet that triggered these rebates
@@ -89,7 +89,7 @@ async function checkRebateSettings() {
             const betAmount = parseFloat(bet.amount);
             const marketType = bet.market_type || 'A';
             
-            console.log(`\nFor bet amount: ${betAmount} on ${marketType}盤`);
+            console.log(`\nFor bet amount: ${betAmount} on ${marketType}盘`);
             
             for (const profile of profiles) {
                 const rebateRate = marketType === 'A' ? profile.a_rebate_rate : profile.d_rebate_rate;

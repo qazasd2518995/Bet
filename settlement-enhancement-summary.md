@@ -1,7 +1,7 @@
 # Settlement System Enhancement Summary
 
 ## Issue Analysis
-Period 20250714416 had all two-sided bets (大小單雙) incorrectly showing as losses, when many should have been wins based on the actual results.
+Period 20250714416 had all two-sided bets (大小单双) incorrectly showing as losses, when many should have been wins based on the actual results.
 
 ## Root Cause
 The comprehensive settlement system was correctly identifying winning bets, but database schema issues prevented proper completion of the settlement process:
@@ -20,32 +20,32 @@ The comprehensive settlement system was correctly identifying winning bets, but 
 ### 2. Enhanced Settlement System ✅
 Created `/Users/justin/Desktop/Bet/enhanced-settlement-system.js` with comprehensive support for:
 
-#### A. Position-Based Two-Sides Betting (兩面投注)
-- Champion (冠軍): big/small/odd/even
-- Runner-up (亞軍): big/small/odd/even  
-- Third (季軍): big/small/odd/even
+#### A. Position-Based Two-Sides Betting (两面投注)
+- Champion (冠军): big/small/odd/even
+- Runner-up (亚军): big/small/odd/even  
+- Third (季军): big/small/odd/even
 - Fourth-Tenth (第四名-第十名): big/small/odd/even
 - **Test Results**: 10/10 passed ✅
 
-#### B. Number Betting (號碼投注)
+#### B. Number Betting (号码投注)
 - Direct number betting on any position (1-10)
 - Supports all positions with proper validation
 - **Test Results**: 5/5 passed ✅
 
-#### C. Champion + Runner-up Sum Betting (冠亞和投注)
+#### C. Champion + Runner-up Sum Betting (冠亚和投注)
 - Specific sum values (3-19) with variable odds
 - Sum big/small (>=12 big, <=11 small)
 - Sum odd/even
 - **Test Results**: 6/6 passed ✅
 
-#### D. Dragon vs Tiger Betting (龍虎投注)
+#### D. Dragon vs Tiger Betting (龙虎投注)
 - Multiple format support:
   - `dragon_1_2` / `tiger_1_2` format
   - `1_vs_2` format
   - Position comparison logic
 - **Test Results**: 6/6 passed ✅
 
-#### E. General Two-Sides Betting (一般兩面投注)
+#### E. General Two-Sides Betting (一般两面投注)
 - Format: `position_type` (e.g., `1_big`, `6_even`)
 - Supports all 10 positions
 - **Test Results**: 5/5 passed ✅
@@ -75,11 +75,11 @@ Overall Success Rate: 100% (32/32 tests passed)
 ## Key Features of Enhanced System
 
 ### 1. Comprehensive Bet Type Support
-- **兩面投注**: All position-based big/small/odd/even betting
-- **龍虎對戰**: Dragon vs Tiger comparisons between any two positions
-- **冠亞和**: Champion + Runner-up sum betting with specific values 3-19
-- **號碼投注**: Direct number betting on specific positions
-- **一般兩面**: Flexible two-sides betting with position_type format
+- **两面投注**: All position-based big/small/odd/even betting
+- **龙虎对战**: Dragon vs Tiger comparisons between any two positions
+- **冠亚和**: Champion + Runner-up sum betting with specific values 3-19
+- **号码投注**: Direct number betting on specific positions
+- **一般两面**: Flexible two-sides betting with position_type format
 
 ### 2. Robust Error Handling
 - Validates all bet parameters

@@ -1,20 +1,20 @@
--- 為代理表添加限紅等級欄位
+-- 为代理表添加限红等级栏位
 BEGIN;
 
--- 1. 為 agents 表添加限紅等級欄位
+-- 1. 为 agents 表添加限红等级栏位
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS betting_limit_level VARCHAR(20) DEFAULT 'level3';
 
--- 2. 為 agents 表的限紅等級欄位創建索引
+-- 2. 为 agents 表的限红等级栏位创建索引
 CREATE INDEX IF NOT EXISTS idx_agents_betting_limit_level ON agents(betting_limit_level);
 
--- 3. 更新現有代理的限紅等級
--- 將所有現有代理設定為 level6 (VVIP)，讓他們有最大權限
+-- 3. 更新现有代理的限红等级
+-- 将所有现有代理设定为 level6 (VVIP)，让他们有最大权限
 UPDATE agents SET betting_limit_level = 'level6' WHERE betting_limit_level IS NULL OR betting_limit_level = '';
 
--- 4. 添加註釋
-COMMENT ON COLUMN agents.betting_limit_level IS '代理限紅等級，決定該代理可創建的會員和下級代理的最高限紅等級';
+-- 4. 添加注释
+COMMENT ON COLUMN agents.betting_limit_level IS '代理限红等级，决定该代理可创建的会员和下级代理的最高限红等级';
 
--- 5. 驗證欄位是否成功添加
+-- 5. 验证栏位是否成功添加
 SELECT 
     column_name,
     data_type,

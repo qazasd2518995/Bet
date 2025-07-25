@@ -1,13 +1,13 @@
 # Render 部署指南
 
-## 前置準備
+## 前置准备
 
-1. 確保您已經有一個 Render 帳號
-2. 確保您的 PostgreSQL 資料庫已經在 Render 上設置完成
+1. 确保您已经有一个 Render 帐号
+2. 确保您的 PostgreSQL 资料库已经在 Render 上设置完成
 
-## 資料庫資訊
+## 资料库资讯
 
-本專案使用以下 PostgreSQL 資料庫：
+本专案使用以下 PostgreSQL 资料库：
 - **Host**: `dpg-d0e2imc9c44c73che3kg-a`
 - **Port**: `5432`
 - **Database**: `bet_game`
@@ -15,48 +15,48 @@
 - **Password**: `Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy`
 - **Internal URL**: `postgresql://bet_game_user:Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy@dpg-d0e2imc9c44c73che3kg-a/bet_game`
 
-## 部署步驟
+## 部署步骤
 
-### 1. 推送代碼到 GitHub
+### 1. 推送代码到 GitHub
 
-確保您的代碼已經推送到 GitHub 儲存庫。
+确保您的代码已经推送到 GitHub 储存库。
 
 ### 2. 在 Render 中部署
 
-#### 方法一：使用 render.yaml（推薦）
+#### 方法一：使用 render.yaml（推荐）
 
-1. 在 Render Dashboard 中點擊 "New +"
-2. 選擇 "Blueprint"
-3. 連接您的 GitHub 儲存庫
-4. Render 會自動讀取 `render.yaml` 檔案並創建兩個服務：
-   - `bet-game` (主遊戲服務)
-   - `bet-agent` (代理管理服務)
+1. 在 Render Dashboard 中点击 "New +"
+2. 选择 "Blueprint"
+3. 连接您的 GitHub 储存库
+4. Render 会自动读取 `render.yaml` 档案并创建两个服务：
+   - `bet-game` (主游戏服务)
+   - `bet-agent` (代理管理服务)
 
-#### 方法二：手動創建服務
+#### 方法二：手动创建服务
 
-**創建主遊戲服務 (bet-game)：**
-1. 選擇 "Web Service"
-2. 連接您的 GitHub 儲存庫
-3. 設置以下參數：
+**创建主游戏服务 (bet-game)：**
+1. 选择 "Web Service"
+2. 连接您的 GitHub 储存库
+3. 设置以下参数：
    - **Name**: `bet-game`
    - **Environment**: `Node`
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
    - **Plan**: `Free`
 
-**創建代理服務 (bet-agent)：**
-1. 選擇 "Web Service"
-2. 連接您的 GitHub 儲存庫
-3. 設置以下參數：
+**创建代理服务 (bet-agent)：**
+1. 选择 "Web Service"
+2. 连接您的 GitHub 储存库
+3. 设置以下参数：
    - **Name**: `bet-agent`
    - **Environment**: `Node`
    - **Build Command**: `npm install`
    - **Start Command**: `npm run start:agent`
    - **Plan**: `Free`
 
-### 3. 環境變數設置
+### 3. 环境变数设置
 
-對於每個服務，請設置以下環境變數：
+对于每个服务，请设置以下环境变数：
 
 ```
 NODE_ENV=production
@@ -68,84 +68,84 @@ DB_USER=bet_game_user
 DB_PASSWORD=Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy
 ```
 
-**bet-game 服務額外設置：**
+**bet-game 服务额外设置：**
 ```
 PORT=3002
 ```
 
-**bet-agent 服務額外設置：**
+**bet-agent 服务额外设置：**
 ```
 PORT=3003
 ```
 
-### 4. 初始化資料庫
+### 4. 初始化资料库
 
-部署完成後，訪問以下 URL 來初始化資料庫：
-- **主遊戲服務**: `https://bet-game.onrender.com/api/init-db`
-- **代理服務**: `https://bet-agent.onrender.com/api/init-db`
+部署完成后，访问以下 URL 来初始化资料库：
+- **主游戏服务**: `https://bet-game.onrender.com/api/init-db`
+- **代理服务**: `https://bet-agent.onrender.com/api/init-db`
 
-### 5. 健康檢查
+### 5. 健康检查
 
-您可以通過以下 URL 檢查服務狀態：
-- **主遊戲服務**: `https://bet-game.onrender.com/api/health`
-- **代理服務**: `https://bet-agent.onrender.com/api/health`
+您可以通过以下 URL 检查服务状态：
+- **主游戏服务**: `https://bet-game.onrender.com/api/health`
+- **代理服务**: `https://bet-agent.onrender.com/api/health`
 
-## 服務 URL
+## 服务 URL
 
-部署完成後，您的應用將可通過以下 URL 訪問：
-- **主遊戲**: `https://bet-game.onrender.com`
+部署完成后，您的应用将可通过以下 URL 访问：
+- **主游戏**: `https://bet-game.onrender.com`
 - **代理管理**: `https://bet-agent.onrender.com`
 
-## 重要注意事項
+## 重要注意事项
 
-1. **免費方案限制**: Render 的免費方案有一些限制，包括：
-   - 服務在無活動 15 分鐘後會休眠
-   - 每月有 750 小時的使用時間限制
-   - 冷啟動時間較長
+1. **免费方案限制**: Render 的免费方案有一些限制，包括：
+   - 服务在无活动 15 分钟后会休眠
+   - 每月有 750 小时的使用时间限制
+   - 冷启动时间较长
 
-2. **資料庫連接**: 所有資料庫配置已經在代碼中設置完成，會自動使用提供的 PostgreSQL 資料庫
+2. **资料库连接**: 所有资料库配置已经在代码中设置完成，会自动使用提供的 PostgreSQL 资料库
 
-3. **SSL 設置**: 代碼已經配置為接受 Render PostgreSQL 的 SSL 連接
+3. **SSL 设置**: 代码已经配置为接受 Render PostgreSQL 的 SSL 连接
 
-4. **跨域設置**: 已經配置為允許 Render 上的服務互相通信
+4. **跨域设置**: 已经配置为允许 Render 上的服务互相通信
 
 ## 故障排除
 
-如果遇到問題，請檢查：
+如果遇到问题，请检查：
 
-1. **環境變數**: 確保所有必要的環境變數都已設置
-2. **資料庫連接**: 檢查 Render logs 中的資料庫連接狀態
-3. **依賴項**: 確保 `package.json` 中的所有依賴項都能正常安裝
-4. **端口設置**: 確保每個服務使用正確的端口
+1. **环境变数**: 确保所有必要的环境变数都已设置
+2. **资料库连接**: 检查 Render logs 中的资料库连接状态
+3. **依赖项**: 确保 `package.json` 中的所有依赖项都能正常安装
+4. **端口设置**: 确保每个服务使用正确的端口
 
-### 常見錯誤解決方案
+### 常见错误解决方案
 
-#### 客服操作錯誤 (Multiple rows were not expected)
-如果遇到客服操作出現 "Multiple rows were not expected" 錯誤：
+#### 客服操作错误 (Multiple rows were not expected)
+如果遇到客服操作出现 "Multiple rows were not expected" 错误：
 
 ```bash
-# 1. 運行修復腳本
+# 1. 运行修复脚本
 npm run fix-db
 
-# 2. 測試資料庫查詢
+# 2. 测试资料库查询
 npm run test-db
 
-# 3. 重新部署應用
+# 3. 重新部署应用
 ```
 
-#### 資料庫連接問題
-- 確認 PostgreSQL 服務正在運行
-- 檢查 DATABASE_URL 環境變數是否正確
-- 驗證資料庫表格是否已創建
+#### 资料库连接问题
+- 确认 PostgreSQL 服务正在运行
+- 检查 DATABASE_URL 环境变数是否正确
+- 验证资料库表格是否已创建
 
-#### API 500 錯誤
-- 檢查 Render logs 中的詳細錯誤信息
-- 確認所有必要的表格都存在
-- 運行資料庫初始化: `/api/init-db`
+#### API 500 错误
+- 检查 Render logs 中的详细错误信息
+- 确认所有必要的表格都存在
+- 运行资料库初始化: `/api/init-db`
 
 ## 重新部署
 
 如果需要重新部署：
-1. 推送新代碼到 GitHub
-2. Render 會自動觸發重新部署（如果啟用了 auto-deploy）
-3. 或者在 Render Dashboard 中手動觸發部署 
+1. 推送新代码到 GitHub
+2. Render 会自动触发重新部署（如果启用了 auto-deploy）
+3. 或者在 Render Dashboard 中手动触发部署 
