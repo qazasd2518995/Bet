@@ -6300,6 +6300,39 @@ const app = createApp({
                  }, 1000);
              }
          },
+         
+         // 格式化退水比例显示
+         formatRebateDisplay() {
+             if (!this.user) return '未知';
+             
+             // 检查退水模式
+             if (this.user.rebate_mode === 'all') {
+                 return '全退';
+             } else if (this.user.rebate_mode === 'none') {
+                 return '不退';
+             } else if (this.user.rebate_mode === 'percentage' && this.user.rebate_percentage !== undefined) {
+                 // 将小数转换为百分比显示
+                 const percentage = (parseFloat(this.user.rebate_percentage) * 100).toFixed(2);
+                 return percentage + '%';
+             }
+             return '未设定';
+         },
+         
+         // 格式化限红等级显示
+         formatBettingLimitLevel() {
+             if (!this.user || !this.user.betting_limit_level) return '未设定';
+             
+             const levelMap = {
+                 'level1': '新手 (Level 1)',
+                 'level2': '普通 (Level 2)',
+                 'level3': '高级 (Level 3)',
+                 'level4': '专家 (Level 4)',
+                 'level5': 'VIP (Level 5)',
+                 'level6': '无限制 (Level 6)'
+             };
+             
+             return levelMap[this.user.betting_limit_level] || this.user.betting_limit_level;
+         },
 
          // 报表查询相关方法
          getCurrentDateText() {
