@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>倒數測試</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .info { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .countdown { 
+            font-size: 48px; 
+            font-weight: bold; 
+            color: #333;
+            text-align: center;
+        }
+        .status { 
+            text-align: center;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2>倒數測試</h2>
+        <p>API 數據：</p>
+        <pre id="api-data"></pre>
+    </div>
+    
+    <div class="info">
+        <div class="countdown" id="countdown">--:--</div>
+        <div class="status" id="status">載入中...</div>
+    </div>
+
+    <script>
+        let interval;
+        
+        async function fetchData() {
+            try {
+                const response = await fetch('http://localhost:3001/api/game-state');
+                const data = await response.json();
+                
+                document.getElementById('api-data').textContent = JSON.stringify(data.data, null, 2);
+                
+                if (data.success && data.data) {
+                    startCountdown(data.data);
+                }
+            } catch (error) {
+                console.error('錯誤:', error);
+                document.getElementById('status').textContent = '載入失敗';
+            }
+        }
+        
+        function startCountdown(gameData) {
+            if (interval) clearInterval(interval);
+            
+            const updateDisplay = () => {
+                const now = Date.now();
+                const nextDraw = new Date(gameData.next_draw_time).getTime();
+                const remainingMs = nextDraw - now;
+                const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+                
+                const mins = Math.floor(remainingSeconds / 60);
+                const secs = remainingSeconds % 60;
+                
+                document.getElementById('countdown').textContent = 
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                
+                document.getElementById('status').textContent = 
+                    `期號: ${gameData.current_period} | 狀態: ${gameData.status} | 剩餘: ${remainingSeconds}秒`;
+                
+                if (remainingSeconds === 0) {
+                    setTimeout(fetchData, 1000);
+                }
+            };
+            
+            updateDisplay();
+            interval = setInterval(updateDisplay, 100);
+        }
+        
+        // 初始載入
+        fetchData();
+        
+        // 每5秒刷新數據
+        setInterval(fetchData, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測試級別顯示修復</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h2>測試級別顯示修復</h2>
+        
+        <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+            <h3>測試情境1：總代理（level: 0）新增代理</h3>
+            <p>當前管理代理級別：{{ currentLevel1 }} - {{ getLevelName(currentLevel1) }}</p>
+            <p>新增代理應顯示：{{ getNextLevelName(currentLevel1) }}</p>
+        </div>
+
+        <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+            <h3>測試情境2：一級代理（level: 1）新增代理</h3>
+            <p>當前管理代理級別：{{ currentLevel2 }} - {{ getLevelName(currentLevel2) }}</p>
+            <p>新增代理應顯示：{{ getNextLevelName(currentLevel2) }}</p>
+        </div>
+
+        <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+            <h3>測試情境3：字符串級別"一級代理"新增代理</h3>
+            <p>當前管理代理級別：{{ currentLevel3 }} - {{ getLevelName(getLevelFromName(currentLevel3)) }}</p>
+            <p>新增代理應顯示：{{ getNextLevelName(getLevelFromName(currentLevel3)) }}</p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    currentLevel1: 0,  // 總代理
+                    currentLevel2: 1,  // 一級代理
+                    currentLevel3: "一級代理"  // 字符串級別
+                }
+            },
+            methods: {
+                // 獲取級別名稱
+                getLevelName(level) {
+                    const levels = {
+                        0: '總代理',
+                        1: '一級代理', 
+                        2: '二級代理',
+                        3: '三級代理',
+                        4: '四級代理',
+                        5: '五級代理'
+                    };
+                    return levels[level] || `${level}級代理`;
+                },
+
+                // 將級別名稱轉換回級別數字
+                getLevelFromName(levelName) {
+                    const levelMap = {
+                        '總代理': 0,
+                        '一級代理': 1,
+                        '二級代理': 2,
+                        '三級代理': 3,
+                        '四級代理': 4,
+                        '五級代理': 5
+                    };
+                    return levelMap[levelName] || 0;
+                },
+
+                // 獲取下一級級別名稱
+                getNextLevelName(currentLevel) {
+                    // 如果 currentLevel 是字符串，轉換為數字
+                    if (typeof currentLevel === 'string') {
+                        currentLevel = this.getLevelFromName(currentLevel);
+                    }
+                    
+                    // 返回下一級的級別名稱
+                    const nextLevel = parseInt(currentLevel) + 1;
+                    return this.getLevelName(nextLevel);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

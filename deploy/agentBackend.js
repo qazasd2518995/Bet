@@ -3020,6 +3020,61 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
       max_rebate_percentage: updatedAgent.max_rebate_percentage
     });
     
+    // 執行級聯更新 - 調整所有下級代理的退水設定
+    console.log('🔗 開始級聯更新下級代理退水設定...');
+    
+    // 遞迴函數：調整下級代理的退水設定
+    async function adjustDownlineRebateSettings(parentAgentId, maxRebatePercentage) {
+      // 獲取該代理的所有直接下級代理
+      const childAgents = await db.any(`
+        SELECT id, username, rebate_percentage, max_rebate_percentage 
+        FROM agents 
+        WHERE parent_id = $1 AND status = 1
+      `, [parentAgentId]);
+      
+      for (const childAgent of childAgents) {
+        const currentRebate = parseFloat(childAgent.rebate_percentage);
+        const currentMaxRebate = parseFloat(childAgent.max_rebate_percentage);
+        
+        // 如果下級代理的退水超過上級的新限制，則調整為上級的限制
+        if (currentRebate > maxRebatePercentage || currentMaxRebate > maxRebatePercentage) {
+          const newRebate = Math.min(currentRebate, maxRebatePercentage);
+          const newMaxRebate = maxRebatePercentage;
+          
+          await db.none(`
+            UPDATE agents 
+            SET rebate_percentage = $1, max_rebate_percentage = $2, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $3
+          `, [newRebate, newMaxRebate, childAgent.id]);
+          
+          console.log(`  - 調整下級代理 ${childAgent.username} 的退水: ${(currentRebate * 100).toFixed(1)}% -> ${(newRebate * 100).toFixed(1)}%`);
+          
+          // 記錄調整日誌
+          await db.none(`
+            INSERT INTO transaction_records 
+            (user_type, user_id, transaction_type, amount, balance_before, balance_after, description) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `, [
+            'agent', 
+            childAgent.id, 
+            'other', 
+            0, 
+            0, 
+            0, 
+            `退水設定連鎖調整: ${(currentRebate * 100).toFixed(1)}% -> ${(newRebate * 100).toFixed(1)}% (因上級代理 ${agent.username} 退水調整)`
+          ]);
+        }
+        
+        // 遞迴處理此代理的下級
+        await adjustDownlineRebateSettings(childAgent.id, maxRebatePercentage);
+      }
+    }
+    
+    // 開始連鎖調整
+    await adjustDownlineRebateSettings(agentId, finalRebatePercentage);
+    
+    console.log(`連鎖調整完成`);
+    
     res.json({
       success: true,
       message: '退水設定更新成功',

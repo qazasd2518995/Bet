@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路珠走勢球號顏色測試</title>
+    <style>
+        body {
+            font-family: PingFang TC, PingFang SC, Microsoft YaHei, sans-serif;
+            background-color: #f5f5f7;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        /* 開獎結果球號顏色 */
+        .result-balls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .result-ball {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-ball.color-1 { background-color: #ffcc00; color: #000; }
+        .result-ball.color-2 { background-color: #3399ff; }
+        .result-ball.color-3 { background-color: #777777; }
+        .result-ball.color-4 { background-color: #ff9933; }
+        .result-ball.color-5 { background-color: #00ccff; }
+        .result-ball.color-6 { background-color: #9966cc; }
+        .result-ball.color-7 { background-color: #aaaaaa; }
+        .result-ball.color-8 { background-color: #ff3333; }
+        .result-ball.color-9 { background-color: #990000; }
+        .result-ball.color-10 { background-color: #33cc33; }
+        
+        /* 路珠棋盤顯示 */
+        .bead-table {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .bead-row {
+            display: flex;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .bead-row:last-child {
+            border-bottom: none;
+        }
+        
+        .bead-cell {
+            flex: 1;
+            height: 80px;
+            border-right: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .bead-cell:last-child {
+            border-right: none;
+        }
+        
+        .bead-item {
+            width: 90%;
+            height: 90%;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .bead-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .period-info {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        
+        .main-value {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        
+        .extra-info {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+        
+        /* 路珠號碼樣式 - 與開獎結果球號一致的10種顏色 */
+        .bead-item.number-1 {
+            background: #ffcc00;
+            color: #000;
+        }
+        
+        .bead-item.number-2 {
+            background: #3399ff;
+            color: #fff;
+        }
+        
+        .bead-item.number-3 {
+            background: #777777;
+            color: #fff;
+        }
+        
+        .bead-item.number-4 {
+            background: #ff9933;
+            color: #fff;
+        }
+        
+        .bead-item.number-5 {
+            background: #00ccff;
+            color: #fff;
+        }
+        
+        .bead-item.number-6 {
+            background: #9966cc;
+            color: #fff;
+        }
+        
+        .bead-item.number-7 {
+            background: #aaaaaa;
+            color: #fff;
+        }
+        
+        .bead-item.number-8 {
+            background: #ff3333;
+            color: #fff;
+        }
+        
+        .bead-item.number-9 {
+            background: #990000;
+            color: #fff;
+        }
+        
+        .bead-item.number-10 {
+            background: #33cc33;
+            color: #fff;
+        }
+        
+        /* 統計面板 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+        }
+        
+        .stat-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-item .number {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 5px auto;
+            color: white;
+        }
+        
+        /* 統計面板號碼顏色 - 與開獎結果球號一致 */
+        .stat-item .number.stat-number-1 { background: #e74c3c; }
+        .stat-item .number.stat-number-2 { background: #3498db; }
+        .stat-item .number.stat-number-3 { background: #95a5a6; }
+        .stat-item .number.stat-number-4 { background: #f39c12; }
+        .stat-item .number.stat-number-5 { background: #1abc9c; }
+        .stat-item .number.stat-number-6 { background: #9b59b6; }
+        .stat-item .number.stat-number-7 { background: #34495e; }
+        .stat-item .number.stat-number-8 { background: #e67e22; }
+        .stat-item .number.stat-number-9 { background: #2ecc71; }
+        .stat-item .number.stat-number-10 { background: #f1c40f; color: #333; }
+        
+        .stat-item .count {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        
+        .old-colors, .new-colors {
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .old-colors {
+            background: #fff2f2;
+            border: 2px solid #ff6b6b;
+        }
+        
+        .new-colors {
+            background: #f2fff2;
+            border: 2px solid #2ecc71;
+        }
+        
+        .old-colors h3 {
+            color: #c92a2a;
+        }
+        
+        .new-colors h3 {
+            color: #2b8a3e;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 路珠走勢球號顏色升級 - 10種獨特顏色</h1>
+        
+        <div class="section">
+            <div class="section-title">🏆 開獎結果球號顏色（參考標準）</div>
+            <div class="result-balls">
+                <div class="result-ball color-1">1</div>
+                <div class="result-ball color-2">2</div>
+                <div class="result-ball color-3">3</div>
+                <div class="result-ball color-4">4</div>
+                <div class="result-ball color-5">5</div>
+                <div class="result-ball color-6">6</div>
+                <div class="result-ball color-7">7</div>
+                <div class="result-ball color-8">8</div>
+                <div class="result-ball color-9">9</div>
+                <div class="result-ball color-10">10</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📊 今日統計面板 - 新顏色效果</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="number stat-number-1">1</div>
+                    <div class="count">3次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-2">2</div>
+                    <div class="count">1次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-3">3</div>
+                    <div class="count">2次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-4">4</div>
+                    <div class="count">0次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-5">5</div>
+                    <div class="count">2次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-6">6</div>
+                    <div class="count">1次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-7">7</div>
+                    <div class="count">2次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-8">8</div>
+                    <div class="count">1次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-9">9</div>
+                    <div class="count">2次</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number stat-number-10">10</div>
+                    <div class="count">0次</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">🕸️ 路珠走勢棋盤 - 新顏色效果</div>
+            <div class="bead-table">
+                <div class="bead-row">
+                    <div class="bead-cell">
+                        <div class="bead-item number-2">
+                            <div class="period-info">001</div>
+                            <div class="main-value">2</div>
+                            <div class="extra-info">小雙</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-7">
+                            <div class="period-info">007</div>
+                            <div class="main-value">7</div>
+                            <div class="extra-info">大單</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-1">
+                            <div class="period-info">013</div>
+                            <div class="main-value">1</div>
+                            <div class="extra-info">小單</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-10">
+                            <div class="period-info">019</div>
+                            <div class="main-value">10</div>
+                            <div class="extra-info">大雙</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-4">
+                            <div class="period-info">025</div>
+                            <div class="main-value">4</div>
+                            <div class="extra-info">小雙</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-8">
+                            <div class="period-info">031</div>
+                            <div class="main-value">8</div>
+                            <div class="extra-info">大雙</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bead-row">
+                    <div class="bead-cell">
+                        <div class="bead-item number-9">
+                            <div class="period-info">002</div>
+                            <div class="main-value">9</div>
+                            <div class="extra-info">大單</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-8">
+                            <div class="period-info">008</div>
+                            <div class="main-value">8</div>
+                            <div class="extra-info">大雙</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-3">
+                            <div class="period-info">014</div>
+                            <div class="main-value">3</div>
+                            <div class="extra-info">小單</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-6">
+                            <div class="period-info">020</div>
+                            <div class="main-value">6</div>
+                            <div class="extra-info">大雙</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-2">
+                            <div class="period-info">026</div>
+                            <div class="main-value">2</div>
+                            <div class="extra-info">小雙</div>
+                        </div>
+                    </div>
+                    <div class="bead-cell">
+                        <div class="bead-item number-5">
+                            <div class="period-info">032</div>
+                            <div class="main-value">5</div>
+                            <div class="extra-info">小單</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">🎨 顏色對照表</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>1號 - 紅色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>2號 - 藍色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #95a5a6;"></div>
+                    <span>3號 - 灰色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>4號 - 橙色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1abc9c;"></div>
+                    <span>5號 - 青色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9b59b6;"></div>
+                    <span>6號 - 紫色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #34495e;"></div>
+                    <span>7號 - 深灰</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e67e22;"></div>
+                    <span>8號 - 深橙</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <span>9號 - 綠色</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f1c40f;"></div>
+                    <span>10號 - 黃色</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">✅ 修改總結</div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; line-height: 1.6;">
+                <h4>🎯 修改內容：</h4>
+                <ul>
+                    <li><strong>路珠棋盤球號顏色</strong>：從原本的5組顏色（每組2個號碼）改為10種獨特顏色</li>
+                    <li><strong>統計面板號碼顏色</strong>：統一使用與開獎結果球號相同的10種顏色</li>
+                    <li><strong>顏色一致性</strong>：確保路珠走勢、統計面板、開獎結果的球號顏色完全一致</li>
+                    <li><strong>CSS優化</strong>：將號碼樣式從組合樣式改為個別樣式，提高可維護性</li>
+                </ul>
+                
+                <h4>🎨 顏色編碼：</h4>
+                <p>每個號碼都有專屬的色彩標識，讓玩家能夠快速識別和追蹤號碼走勢，提升遊戲體驗。</p>
+                
+                <h4>📱 響應式設計：</h4>
+                <p>所有顏色修改都保持了響應式設計，在不同設備上都能正常顯示。</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

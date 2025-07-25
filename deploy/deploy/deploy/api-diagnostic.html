@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 診斷工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        .diagnostic-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: #333;
+            border-radius: 5px;
+            border-left: 4px solid #666;
+        }
+        .test-item.success {
+            border-left-color: #4CAF50;
+        }
+        .test-item.error {
+            border-left-color: #f44336;
+        }
+        .test-item.pending {
+            border-left-color: #ff9800;
+        }
+        .url-display {
+            font-family: monospace;
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .error-detail {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(244, 67, 54, 0.1);
+            border-radius: 5px;
+        }
+        .success-detail {
+            color: #4CAF50;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #8338ec;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #6a2bc7;
+        }
+        .info-box {
+            background: #1e3a8a;
+            border: 1px solid #3b82f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FS金彩賽車 API 診斷工具</h1>
+        <p>當前網址: <span id="currentUrl"></span></p>
+        <p>診斷時間: <span id="diagnosticTime"></span></p>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>環境資訊</h2>
+        <div id="environmentInfo"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>API 端點測試</h2>
+        <button onclick="runAllTests()">執行所有測試</button>
+        <button onclick="clearResults()">清除結果</button>
+        <div id="apiTests"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>網路診斷</h2>
+        <div id="networkDiagnostic"></div>
+    </div>
+
+    <script>
+        // 顯示當前環境資訊
+        document.getElementById('currentUrl').textContent = window.location.href;
+        document.getElementById('diagnosticTime').textContent = new Date().toLocaleString('zh-CN');
+
+        // 環境資訊
+        const envInfo = document.getElementById('environmentInfo');
+        envInfo.innerHTML = `
+            <div class="info-box">
+                <p><strong>Protocol:</strong> ${window.location.protocol}</p>
+                <p><strong>Hostname:</strong> ${window.location.hostname}</p>
+                <p><strong>Port:</strong> ${window.location.port || '(default)'}</p>
+                <p><strong>Origin:</strong> ${window.location.origin}</p>
+                <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+            </div>
+        `;
+
+        // API 端點列表
+        const apiEndpoints = [
+            { name: 'Health Check', url: '/api/health', method: 'GET' },
+            { name: '遊戲數據', url: '/api/game-data', method: 'GET' },
+            { name: '近期結果', url: '/api/recent-results', method: 'GET' },
+            { name: '熱門投注', url: '/api/hot-bets', method: 'GET' },
+            { name: '歷史記錄', url: '/api/history?limit=1', method: 'GET' },
+            { name: '最新結果', url: '/api/results/latest', method: 'GET' },
+            { name: '長龍排行', url: '/api/dragon-ranking', method: 'GET' }
+        ];
+
+        async function testEndpoint(endpoint) {
+            const testContainer = document.getElementById('apiTests');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-item pending';
+            testDiv.innerHTML = `
+                <h3>${endpoint.name}</h3>
+                <div class="url-display">${endpoint.method} ${endpoint.url}</div>
+                <div class="result">測試中...</div>
+            `;
+            testContainer.appendChild(testDiv);
+
+            const fullUrl = `${window.location.origin}${endpoint.url}`;
+            const startTime = Date.now();
+
+            try {
+                const response = await fetch(fullUrl, {
+                    method: endpoint.method,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors',
+                    credentials: 'same-origin'
+                });
+
+                const responseTime = Date.now() - startTime;
+                let responseData = '';
+                
+                try {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        responseData = await response.json();
+                    } else {
+                        responseData = await response.text();
+                    }
+                } catch (e) {
+                    responseData = '無法解析響應內容';
+                }
+
+                if (response.ok) {
+                    testDiv.className = 'test-item success';
+                    testDiv.querySelector('.result').innerHTML = `
+                        <div class="success-detail">
+                            ✅ 成功 (${response.status} ${response.statusText})
+                            <br>響應時間: ${responseTime}ms
+                            <br>Content-Type: ${response.headers.get('content-type')}
+                            <br>響應預覽:
+                            <pre>${JSON.stringify(responseData, null, 2).substring(0, 500)}...</pre>
+                        </div>
+                    `;
+                } else {
+                    testDiv.className = 'test-item error';
+                    testDiv.querySelector('.result').innerHTML = `
+                        <div class="error-detail">
+                            ❌ 失敗 (${response.status} ${response.statusText})
+                            <br>響應時間: ${responseTime}ms
+                            <br>錯誤詳情:
+                            <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testDiv.className = 'test-item error';
+                testDiv.querySelector('.result').innerHTML = `
+                    <div class="error-detail">
+                        ❌ 網路錯誤
+                        <br>錯誤類型: ${error.name}
+                        <br>錯誤訊息: ${error.message}
+                        <br>完整錯誤:
+                        <pre>${error.stack}</pre>
+                        <br><br>可能的原因:
+                        <ul>
+                            <li>後端服務未啟動或崩潰</li>
+                            <li>CORS 配置問題</li>
+                            <li>SSL/TLS 證書問題</li>
+                            <li>防火牆或安全策略阻擋</li>
+                            <li>DNS 解析問題</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('apiTests').innerHTML = '';
+            
+            // 測試網路連接
+            await testNetworkConnectivity();
+            
+            // 測試每個 API 端點
+            for (const endpoint of apiEndpoints) {
+                await testEndpoint(endpoint);
+                // 延遲以避免過度請求
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        async function testNetworkConnectivity() {
+            const networkDiv = document.getElementById('networkDiagnostic');
+            networkDiv.innerHTML = '<h3>測試基本網路連接...</h3>';
+
+            // 測試根路徑
+            try {
+                const response = await fetch('/', { method: 'HEAD' });
+                networkDiv.innerHTML += `
+                    <div class="test-item success">
+                        <p>✅ 網站根路徑可訪問 (${response.status})</p>
+                    </div>
+                `;
+            } catch (e) {
+                networkDiv.innerHTML += `
+                    <div class="test-item error">
+                        <p>❌ 無法訪問網站根路徑: ${e.message}</p>
+                    </div>
+                `;
+            }
+
+            // 檢查 HTTPS
+            if (window.location.protocol === 'https:') {
+                networkDiv.innerHTML += `
+                    <div class="test-item success">
+                        <p>✅ 使用安全的 HTTPS 連接</p>
+                    </div>
+                `;
+            } else {
+                networkDiv.innerHTML += `
+                    <div class="test-item error">
+                        <p>⚠️ 未使用 HTTPS 連接</p>
+                    </div>
+                `;
+            }
+
+            // 檢查是否在 Render 上
+            if (window.location.hostname.includes('render.com') || window.location.hostname.includes('onrender.com')) {
+                networkDiv.innerHTML += `
+                    <div class="test-item success">
+                        <p>✅ 偵測到 Render 部署環境</p>
+                    </div>
+                `;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('apiTests').innerHTML = '';
+            document.getElementById('networkDiagnostic').innerHTML = '';
+        }
+
+        // 頁面載入時自動執行
+        window.onload = function() {
+            console.log('API 診斷工具已載入');
+        };
+    </script>
+</body>
+</html>
