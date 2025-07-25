@@ -128,6 +128,22 @@
     margin: 0 2px;
 }
 
+/* 開獎號碼顯示樣式 - 與遊戲端一致 */
+.draw-number-badge {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    margin: 0 3px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* 新增開獎號碼球樣式 */
 .number-ball {
     display: inline-flex;
@@ -153,16 +169,18 @@
 }
 
 /* 修改顏色與遊戲端實際顯示一致 */
-.ball-1 { background-color: #ffcc00; color: #000; } /* 金黃色 */
-.ball-2 { background-color: #3399ff; color: #fff; } /* 鮮藍色 */
-.ball-3 { background-color: #777777; color: #fff; } /* 深灰色 */
-.ball-4 { background-color: #ff9933; color: #fff; } /* 橙色 */
-.ball-5 { background-color: #00ccff; color: #fff; } /* 天藍色 */
-.ball-6 { background-color: #9966cc; color: #fff; } /* 紫色 */
-.ball-7 { background-color: #aaaaaa; color: #fff; } /* 灰色 */
-.ball-8 { background-color: #ff3333; color: #fff; } /* 紅色 */
-.ball-9 { background-color: #990000; color: #fff; } /* 深紅色 */
-.ball-10 { background-color: #33cc33; color: #fff; } /* 綠色 */
+/* 與游戏前端一致的顏色 */
+.color-1 { background-color: #ffcc00; color: #000; } /* 金黃色 */
+.color-2 { background-color: #3399ff; color: #fff; } /* 鮮藍色 */
+.color-3 { background-color: #777777; color: #fff; } /* 深灰色 */
+.color-4 { background-color: #ff9933; color: #fff; } /* 橙色 */
+.color-5 { background-color: #00ccff; color: #fff; } /* 天藍色 */
+.color-6 { background-color: #9966cc; color: #fff; } /* 紫色 */
+.color-7 { background-color: #aaaaaa; color: #fff; } /* 灰色 */
+.color-8 { background-color: #ff3333; color: #fff; } /* 紅色 */
+.color-9 { background-color: #990000; color: #fff; } /* 深紅色 */
+.color-10 { background-color: #33cc33; color: #fff; } /* 綠色 */
+.color-0 { background-color: #33cc33; color: #fff; } /* 綠色 (0與10同色) */
 
 /* 投注類型標籤 */
 .bet-type-badge {

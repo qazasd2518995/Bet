@@ -8436,32 +8436,25 @@ const app = createApp({
                 actualRebatePercentage = marketType === 'A' ? 0.011 : 0.041; // A盤1.1%，D盤4.1%
                 console.log('🔍 第二步 - 总代理使用盤口全部退水:', actualRebatePercentage, '(' + marketType + '盤)');
             } else {
-                // 一般代理：使用該代理被分配到的退水比例（rebate_percentage）
+                // 一般代理：使用該代理被分配到的退水比例（rebate_percentage）作為下級的最大值
+                // 這確保了下級代理的退水不會超過上級代理
                 actualRebatePercentage = managingAgent.rebate_percentage;
                 
-                console.log('🔍 第二步 - 一般代理使用 rebate_percentage:', actualRebatePercentage, typeof actualRebatePercentage);
+                console.log('🔍 第二步 - 一般代理使用自己的 rebate_percentage 作為下級最大值:', actualRebatePercentage, typeof actualRebatePercentage);
                 
-                // 確保转換为數字类型
+                // 確保轉換為數字類型
                 if (actualRebatePercentage !== undefined && actualRebatePercentage !== null && actualRebatePercentage !== '') {
                     actualRebatePercentage = parseFloat(actualRebatePercentage);
                     console.log('🔍 第三步 - parseFloat 後:', actualRebatePercentage);
+                    
+                    // 確保值有效
+                    if (isNaN(actualRebatePercentage) || actualRebatePercentage < 0) {
+                        console.log('⚠️ 退水值無效，設為當前代理的退水值');
+                        actualRebatePercentage = 0;
+                    }
                 } else {
-                    actualRebatePercentage = null;
-                    console.log('🔍 第三步 - rebate_percentage 为空或undefined');
-                }
-                
-                // 如果 rebate_percentage 无效，使用 max_rebate_percentage
-                if (actualRebatePercentage === null || isNaN(actualRebatePercentage) || actualRebatePercentage <= 0) {
-                    console.log('🔍 第四步 - rebate_percentage 无效，使用 max_rebate_percentage');
-                    actualRebatePercentage = parseFloat(managingAgent.max_rebate_percentage) || 0;
-                    console.log('🔍 第四步 - 使用 max_rebate_percentage:', actualRebatePercentage);
-                }
-                
-                // 最后的兜底逻辑：如果还是沒有有效值，根据盤口类型使用默认值
-                if (isNaN(actualRebatePercentage) || actualRebatePercentage <= 0) {
-                    const marketType = managingAgent.market_type || this.user.market_type || 'D';
-                    actualRebatePercentage = marketType === 'A' ? 0.011 : 0.041;
-                    console.log('🔍 第五步 - 使用盤口默认值:', actualRebatePercentage);
+                    console.log('⚠️ 第三步 - rebate_percentage 為空，無法為下級設定退水');
+                    actualRebatePercentage = 0;
                 }
             }
             

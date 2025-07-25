@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盈虧記錄UI修復測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        /* 模擬原本的小視窗樣式 */
+        .profit-records-old {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            position: relative;
+            margin: 20px;
+        }
+        
+        /* 新的大視窗樣式 */
+        .profit-records-simple {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            max-width: 700px;
+            width: 95%;
+            /* 移除max-height限制，讓視窗自動調整高度顯示完整一週數據 */
+            overflow: hidden;
+            position: relative;
+            margin: 20px;
+        }
+        
+        /* 簡潔標題欄樣式 */
+        .simple-header {
+            background: #6c5ce7;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .simple-header .title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        /* 簡潔標籤頁樣式 */
+        .simple-tabs {
+            display: flex;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .simple-tabs .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .simple-tabs .tab.active {
+            background-color: white;
+            border-bottom-color: #6c5ce7;
+            color: #6c5ce7;
+        }
+
+        /* 簡潔表格樣式 */
+        .simple-table {
+            background: white;
+        }
+
+        .profit-records-simple .table-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr !important;
+            padding: 12px 15px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .profit-records-simple .table-body {
+            border: 1px solid #e9ecef;
+            border-radius: 0 0 6px 6px;
+            overflow: hidden;
+            /* 移除滾動條，讓表格完整顯示一週數據 */
+        }
+
+        .profit-records-old .table-body {
+            border: 1px solid #e9ecef;
+            border-radius: 0 0 6px 6px;
+            overflow: hidden;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .profit-records-simple .table-row {
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr !important;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .profit-records-simple .table-row:hover {
+            background: #f8f9fa;
+        }
+
+        .profit-records-simple .table-row:last-child {
+            border-bottom: none;
+        }
+
+        .profit-records-simple .table-row .col {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* 盈虧記錄日期欄位樣式 */
+        .profit-records-simple .date-col {
+            flex-direction: column !important;
+            align-items: center !important;
+        }
+
+        .profit-records-simple .date-box {
+            background: #6c5ce7;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .profit-records-simple .weekday {
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* 盈虧顏色樣式 */
+        .profit-records-simple .profit-positive {
+            color: #28a745 !important;
+            font-weight: 600;
+        }
+
+        .profit-records-simple .profit-negative {
+            color: #dc3545 !important;
+            font-weight: 600;
+        }
+
+        .profit-records-simple .profit-zero {
+            color: #6c757d !important;
+        }
+
+        /* 比較標題 */
+        .comparison-title {
+            background: #343a40;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .section {
+            display: inline-block;
+            vertical-align: top;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #333;">盈虧記錄UI修復效果對比</h1>
+    
+    <div class="section">
+        <div class="comparison-title">修復前 (有滾動條，視窗小)</div>
+        <div class="profit-records-old">
+            <div class="simple-header">
+                <div class="title">盈虧記錄</div>
+                <button class="close-btn">×</button>
+            </div>
+            
+            <div class="simple-tabs">
+                <div class="tab active">本週</div>
+                <div class="tab">上週</div>
+            </div>
+            
+            <div class="simple-table">
+                <div class="table-header">
+                    <div class="col">日期</div>
+                    <div class="col">注數</div>
+                    <div class="col">有效金額</div>
+                    <div class="col">輸贏</div>
+                </div>
+                
+                <div class="table-body">
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">02/10</div>
+                            <div class="weekday">週一</div>
+                        </div>
+                        <div class="col">15注</div>
+                        <div class="col">$1,500</div>
+                        <div class="col profit-positive">+$320</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">03/10</div>
+                            <div class="weekday">週二</div>
+                        </div>
+                        <div class="col">22注</div>
+                        <div class="col">$2,200</div>
+                        <div class="col profit-negative">-$180</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">04/10</div>
+                            <div class="weekday">週三</div>
+                        </div>
+                        <div class="col">8注</div>
+                        <div class="col">$800</div>
+                        <div class="col profit-positive">+$90</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">05/10</div>
+                            <div class="weekday">週四</div>
+                        </div>
+                        <div class="col">12注</div>
+                        <div class="col">$1,200</div>
+                        <div class="col profit-negative">-$45</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">06/10</div>
+                            <div class="weekday">週五</div>
+                        </div>
+                        <div class="col">18注</div>
+                        <div class="col">$1,800</div>
+                        <div class="col profit-positive">+$220</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">07/10</div>
+                            <div class="weekday">週六</div>
+                        </div>
+                        <div class="col">25注</div>
+                        <div class="col">$2,500</div>
+                        <div class="col profit-negative">-$95</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">08/10</div>
+                            <div class="weekday">週日</div>
+                        </div>
+                        <div class="col">10注</div>
+                        <div class="col">$1,000</div>
+                        <div class="col profit-positive">+$150</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="comparison-title">修復後 (無滾動條，視窗大，完整顯示)</div>
+        <div class="profit-records-simple">
+            <div class="simple-header">
+                <div class="title">盈虧記錄</div>
+                <button class="close-btn">×</button>
+            </div>
+            
+            <div class="simple-tabs">
+                <div class="tab active">本週</div>
+                <div class="tab">上週</div>
+            </div>
+            
+            <div class="simple-table">
+                <div class="table-header">
+                    <div class="col">日期</div>
+                    <div class="col">注數</div>
+                    <div class="col">有效金額</div>
+                    <div class="col">輸贏</div>
+                </div>
+                
+                <div class="table-body">
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">02/10</div>
+                            <div class="weekday">週一</div>
+                        </div>
+                        <div class="col">15注</div>
+                        <div class="col">$1,500</div>
+                        <div class="col profit-positive">+$320</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">03/10</div>
+                            <div class="weekday">週二</div>
+                        </div>
+                        <div class="col">22注</div>
+                        <div class="col">$2,200</div>
+                        <div class="col profit-negative">-$180</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">04/10</div>
+                            <div class="weekday">週三</div>
+                        </div>
+                        <div class="col">8注</div>
+                        <div class="col">$800</div>
+                        <div class="col profit-positive">+$90</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">05/10</div>
+                            <div class="weekday">週四</div>
+                        </div>
+                        <div class="col">12注</div>
+                        <div class="col">$1,200</div>
+                        <div class="col profit-negative">-$45</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">06/10</div>
+                            <div class="weekday">週五</div>
+                        </div>
+                        <div class="col">18注</div>
+                        <div class="col">$1,800</div>
+                        <div class="col profit-positive">+$220</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">07/10</div>
+                            <div class="weekday">週六</div>
+                        </div>
+                        <div class="col">25注</div>
+                        <div class="col">$2,500</div>
+                        <div class="col profit-negative">-$95</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="col date-col">
+                            <div class="date-box">08/10</div>
+                            <div class="weekday">週日</div>
+                        </div>
+                        <div class="col">10注</div>
+                        <div class="col">$1,000</div>
+                        <div class="col profit-positive">+$150</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="clear: both; text-align: center; margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 8px;">
+        <h2>修復內容總結</h2>
+        <div style="text-align: left; max-width: 800px; margin: 0 auto;">
+            <h3>🔧 視窗大小優化：</h3>
+            <ul>
+                <li>視窗最大寬度從 500px 增加到 700px</li>
+                <li>移除 max-height: 90vh 限制</li>
+                <li>移除表格內容的 max-height: 300px 和 overflow-y: auto</li>
+                <li>現在可以完整顯示一週的盈虧記錄，無需拖移</li>
+            </ul>
+            
+            <h3>📊 數據同步修復：</h3>
+            <ul>
+                <li>統一漢堡選單今日盈虧和盈虧記錄使用相同的API</li>
+                <li>修改 updateDailyProfit() 使用 /api/day-detail API</li>
+                <li>確保數據來源一致，消除同步問題</li>
+                <li>添加備用API機制，確保系統穩定性</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 

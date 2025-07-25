@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Timezone Fix</title>
+</head>
+<body>
+    <h1>Timezone Conversion Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        // Test different formats
+        const testDate = new Date('2025-07-14T06:49:00Z'); // UTC time
+        const results = document.getElementById('results');
+        
+        // Original format (wrong)
+        const wrongFormat = `${testDate.getHours().toString().padStart(2, '0')}:${testDate.getMinutes().toString().padStart(2, '0')}`;
+        
+        // Fixed format with en-US
+        const fixedFormatEnUS = testDate.toLocaleString('en-US', { 
+            timeZone: 'Asia/Taipei',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        
+        // Fixed format with zh-TW
+        const fixedFormatZhTW = testDate.toLocaleString('zh-TW', { 
+            timeZone: 'Asia/Taipei',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        
+        results.innerHTML = `
+            <p><strong>Test UTC time:</strong> 2025-07-14T06:49:00Z</p>
+            <p><strong>Local browser time (wrong):</strong> ${wrongFormat}</p>
+            <p><strong>Fixed with en-US locale:</strong> ${fixedFormatEnUS}</p>
+            <p><strong>Fixed with zh-TW locale:</strong> ${fixedFormatZhTW}</p>
+            <p><strong>Expected Taipei time:</strong> 14:49 (2:49 PM)</p>
+            
+            <hr>
+            <h2>Your Current BetRecords.js formatTime Function Should Return:</h2>
+            <pre>${formatTime('2025-07-14T06:49:00Z')}</pre>
+        `;
+        
+        // The actual function from BetRecords.js
+        function formatTime(time) {
+            if (!time) return '';
+            const date = new Date(time);
+            // Convert to Taipei timezone using en-US locale for consistent format
+            const taipeiTime = date.toLocaleString('en-US', { 
+                timeZone: 'Asia/Taipei',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            // Format as MM/DD HH:mm
+            // en-US format: "MM/DD/YYYY, HH:mm"
+            const [datePart, timePart] = taipeiTime.split(', ');
+            const [month, day] = datePart.split('/');
+            return `${month}/${day} ${timePart}`;
+        }
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FS金彩赛车 - 会员登录</title>
+    <title>FS金彩赛车 - 代理管理系统</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
         }
 
         body {
-            font-family: 'Orbitron', 'Segoe UI', sans-serif;
+            font-family: 'Orbitron', 'Arial', sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -24,9 +24,10 @@
             padding: 20px;
             overflow: hidden;
             position: relative;
+            background: #000;
         }
 
-        /* 背景圖片容器 */
+        /* 背景容器 */
         .background-wrapper {
             position: fixed;
             top: 0;
@@ -34,31 +35,28 @@
             width: 100%;
             height: 100%;
             z-index: -2;
-            background: #000;
         }
 
+        /* F1賽車背景圖片 - 高清版本 */
         .background-image {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            /* 賽車背景圖片 - 賽博朋克風格 - 高清版本 */
             background: 
-                linear-gradient(
-                    rgba(138, 43, 226, 0.15) 0%, 
-                    rgba(0, 0, 0, 0.3) 50%, 
-                    rgba(255, 0, 110, 0.15) 100%
-                ),
-                url('cyberpunk-rainy-car.png') center/cover no-repeat;
-            filter: brightness(0.85) contrast(1.15) saturate(1.2);
-            animation: zoomEffect 30s ease-in-out infinite;
+                radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%),
+                url('f1-racing-ultra-hd.jpg') center/cover no-repeat;
+            filter: brightness(0.8) contrast(1.2);
+            animation: zoomPulse 20s ease-in-out infinite;
             /* 確保高品質渲染 */
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
             transform: translateZ(0);
+            background-size: cover;
+            background-position: center center;
             /* 淡入效果 */
             opacity: 0;
             transition: opacity 1s ease-in-out;
@@ -68,80 +66,100 @@
             opacity: 1;
         }
 
-        @keyframes zoomEffect {
-            0%, 100% { transform: scale(1) translateY(0); }
-            50% { transform: scale(1.1) translateY(-20px); }
+        @keyframes zoomPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.05) rotate(1deg); }
         }
 
-        /* 暗色覆蓋層 */
-        .background-overlay {
+        /* 速度線效果 */
+        .speed-lines {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, 
-                rgba(138, 43, 226, 0.4) 0%, 
-                rgba(0, 0, 0, 0.6) 50%, 
-                rgba(255, 0, 110, 0.4) 100%);
-            mix-blend-mode: multiply;
+            overflow: hidden;
+            opacity: 0.6;
         }
 
-        /* 動態雨滴效果 */
-        .rain-overlay {
+        .speed-line {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: repeating-linear-gradient(
-                90deg,
-                transparent,
-                transparent 2px,
-                rgba(255, 255, 255, 0.03) 2px,
-                rgba(255, 255, 255, 0.03) 3px
-            );
-            animation: rain 0.3s linear infinite;
-            z-index: -1;
-        }
-
-        @keyframes rain {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 10px; }
-        }
-
-        /* 霓虹光暈效果 */
-        .neon-glow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 120%;
-            height: 120%;
-            background: radial-gradient(circle at center, 
+            height: 1px;
+            background: linear-gradient(90deg, 
                 transparent 0%, 
-                rgba(138, 43, 226, 0.2) 40%, 
-                rgba(30, 144, 255, 0.2) 60%, 
+                #ff4444 20%,
+                #ff8844 50%,
+                #ffaa44 80%,
                 transparent 100%);
-            filter: blur(80px);
-            animation: pulse 4s ease-in-out infinite;
-            z-index: -1;
+            box-shadow: 0 0 10px #ff6644;
+            animation: speedRush 2s linear infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 0.8; }
+        .speed-line:nth-child(1) { top: 20%; width: 300px; animation-delay: 0s; }
+        .speed-line:nth-child(2) { top: 35%; width: 250px; animation-delay: 0.4s; }
+        .speed-line:nth-child(3) { top: 50%; width: 350px; animation-delay: 0.8s; }
+        .speed-line:nth-child(4) { top: 65%; width: 280px; animation-delay: 1.2s; }
+        .speed-line:nth-child(5) { top: 80%; width: 320px; animation-delay: 1.6s; }
+
+        @keyframes speedRush {
+            0% {
+                left: -350px;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                opacity: 0;
+            }
+        }
+
+        /* 火花效果 */
+        .sparks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .spark {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffaa00;
+            border-radius: 50%;
+            box-shadow: 
+                0 0 6px #ff8800,
+                0 0 12px #ff6600;
+            animation: sparkFly 3s linear infinite;
+        }
+
+        @keyframes sparkFly {
+            0% {
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-200px) translateY(200px);
+                opacity: 0;
+            }
         }
 
         /* 登入容器 */
         .login-container {
-            background: rgba(20, 20, 30, 0.9);
-            backdrop-filter: blur(20px) saturate(200%);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 24px;
+            background: rgba(20, 20, 30, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
             box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.8),
-                0 0 100px rgba(138, 43, 226, 0.3),
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 100px rgba(255, 68, 68, 0.3),
                 inset 0 0 30px rgba(255, 255, 255, 0.05);
             padding: 50px;
             width: 100%;
@@ -151,24 +169,24 @@
             overflow: hidden;
         }
 
-        /* 静态霓虹边框光效 */
+        /* 紅色霓虹邊框 */
         .login-container::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border-radius: 24px;
-            padding: 2px;
-            background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff, #06ffa5);
-            -webkit-mask: 
-                linear-gradient(#fff 0 0) content-box, 
-                linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            opacity: 0.6;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff0000, #ff4444, #ff8800, #ffaa00);
+            border-radius: 20px;
             z-index: -1;
+            animation: borderGlow 3s linear infinite;
+            filter: blur(3px);
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
         }
 
         /* Logo樣式 */
@@ -183,35 +201,34 @@
             font-weight: 900;
             margin-bottom: 10px;
             text-shadow: 
-                0 0 20px rgba(255, 255, 255, 0.5),
-                0 0 40px rgba(138, 43, 226, 0.8),
-                0 0 60px rgba(138, 43, 226, 0.6);
+                0 0 20px rgba(255, 68, 68, 0.8),
+                0 0 40px rgba(255, 68, 68, 0.6),
+                0 0 60px rgba(255, 68, 68, 0.4);
             letter-spacing: 2px;
         }
 
         .logo h1 .fs-text {
             font-family: 'Allura', cursive;
             font-size: 1.4em;
-            background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: none;
+            color: #444;
+            text-shadow: 
+                0 0 10px rgba(255, 68, 68, 0.5),
+                0 0 20px rgba(255, 68, 68, 0.3);
             display: inline-block;
-            animation: colorShift 3s ease-in-out infinite;
         }
 
-        @keyframes colorShift {
-            0%, 100% { filter: hue-rotate(0deg); }
-            50% { filter: hue-rotate(30deg); }
+        @keyframes textGlow {
+            0%, 100% { filter: brightness(1) hue-rotate(0deg); }
+            50% { filter: brightness(1.2) hue-rotate(10deg); }
         }
 
         .logo p {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-            letter-spacing: 4px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+            letter-spacing: 3px;
             text-transform: uppercase;
-            font-weight: 300;
+            font-weight: 400;
+            margin-top: 10px;
         }
 
         /* 表單樣式 */
@@ -239,9 +256,9 @@
         .form-input {
             width: 100%;
             padding: 16px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 16px;
             color: #fff;
             transition: all 0.3s ease;
@@ -254,11 +271,11 @@
 
         .form-input:focus {
             outline: none;
-            border-color: #8338ec;
+            border-color: #ff4444;
             background: rgba(255, 255, 255, 0.08);
             box-shadow: 
-                0 0 0 3px rgba(131, 56, 236, 0.2),
-                0 0 20px rgba(131, 56, 236, 0.3);
+                0 0 0 3px rgba(255, 68, 68, 0.2),
+                0 0 20px rgba(255, 68, 68, 0.3);
         }
 
         /* 驗證碼組 */
@@ -275,36 +292,37 @@
         .captcha-display {
             width: 120px;
             height: 50px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 68, 68, 0.5);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Courier New', monospace;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
-            color: #06ffa5;
+            color: #ffdd44;
             cursor: pointer;
             transition: all 0.3s ease;
             user-select: none;
-            text-shadow: 0 0 10px rgba(6, 255, 165, 0.5);
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
             letter-spacing: 3px;
         }
 
         .captcha-display:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(30, 30, 40, 0.95);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(6, 255, 165, 0.3);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3);
+            color: #ffee66;
         }
 
         .refresh-btn {
             width: 50px;
             height: 50px;
-            background: rgba(131, 56, 236, 0.2);
-            color: #8338ec;
-            border: 1px solid rgba(131, 56, 236, 0.3);
-            border-radius: 12px;
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff6644;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
@@ -314,10 +332,10 @@
         }
 
         .refresh-btn:hover {
-            background: rgba(131, 56, 236, 0.3);
+            background: rgba(255, 68, 68, 0.3);
             color: #fff;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(131, 56, 236, 0.4);
+            transform: translateY(-2px) rotate(180deg);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
         }
 
         /* 記住我 */
@@ -333,17 +351,17 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
-            accent-color: #8338ec;
+            accent-color: #ff4444;
         }
 
         /* 登入按鈕 */
         .login-btn {
             width: 100%;
             padding: 18px;
-            background: linear-gradient(135deg, #8338ec 0%, #ff006e 100%);
+            background: linear-gradient(135deg, #ff0000 0%, #ff6600 100%);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 700;
             letter-spacing: 1px;
@@ -353,6 +371,7 @@
             margin-top: 10px;
             position: relative;
             overflow: hidden;
+            font-family: 'Racing Sans One', 'Orbitron', sans-serif;
         }
 
         .login-btn::before {
@@ -376,8 +395,8 @@
         .login-btn:hover {
             transform: translateY(-2px);
             box-shadow: 
-                0 10px 30px rgba(131, 56, 236, 0.4),
-                0 0 30px rgba(255, 0, 110, 0.3);
+                0 10px 30px rgba(255, 68, 68, 0.4),
+                0 0 30px rgba(255, 102, 0, 0.3);
         }
 
         .login-btn:active {
@@ -393,13 +412,13 @@
 
         /* 錯誤訊息 */
         .error-message {
-            color: #ff006e;
+            color: #ff4444;
             font-size: 14px;
             margin-top: 15px;
             padding: 12px;
-            background: rgba(255, 0, 110, 0.1);
+            background: rgba(255, 68, 68, 0.1);
             border-radius: 8px;
-            border: 1px solid rgba(255, 0, 110, 0.3);
+            border: 1px solid rgba(255, 68, 68, 0.3);
             text-align: left;
         }
 
@@ -414,7 +433,7 @@
             width: 20px;
             height: 20px;
             border: 2px solid rgba(255, 255, 255, 0.1);
-            border-top: 2px solid #8338ec;
+            border-top: 2px solid #ff4444;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             display: inline-block;
@@ -450,12 +469,12 @@
             left: 0;
             width: 0;
             height: 2px;
-            background: #8338ec;
+            background: #ff4444;
             transition: width 0.3s ease;
         }
 
         .footer-links a:hover {
-            color: #8338ec;
+            color: #ff6644;
         }
 
         .footer-links a:hover::after {
@@ -562,6 +581,11 @@
                 padding: 8px;
                 margin-top: 10px;
             }
+            
+            /* 隱藏儀表板效果在小屏幕上 */
+            .dashboard-effect {
+                display: none;
+            }
         }
         
         /* 更小的手機屏幕 */
@@ -581,129 +605,40 @@
             }
         }
 
-        /* 粒子效果 */
-        .particles {
+        /* 賽車儀表板效果 */
+        .dashboard-effect {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        .particle {
-            position: absolute;
-            bottom: -20px;
-            left: var(--x);
-            width: 4px;
-            height: 4px;
-            background: #06ffa5;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 68, 68, 0.3);
             border-radius: 50%;
-            box-shadow: 
-                0 0 10px #06ffa5,
-                0 0 20px #06ffa5,
-                0 0 30px #06ffa5;
-            animation: 
-                floatUp var(--duration) linear infinite,
-                glow 2s ease-in-out infinite;
-            animation-delay: var(--delay);
-            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: dashboardPulse 2s ease-in-out infinite;
         }
-        
-        @keyframes floatUp {
-            0% {
-                bottom: -20px;
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                bottom: 100%;
-                opacity: 0;
-            }
-        }
-        
-        @keyframes glow {
-            0%, 100% {
-                transform: scale(1);
-                filter: brightness(1);
-            }
-            50% {
-                transform: scale(1.2);
-                filter: brightness(1.5);
-            }
-        }
-        
-        /* 速度線效果 */
-        .speed-lines {
+
+        .dashboard-effect::before {
+            content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            opacity: 0.3;
-        }
-        
-        .speed-line {
-            position: absolute;
-            top: 50%;
-            left: -200px;
-            width: 200px;
+            width: 40px;
             height: 2px;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                #ff006e 50%, 
-                transparent 100%);
-            box-shadow: 0 0 10px #ff006e;
-            animation: speedRush 3s linear infinite;
-            animation-delay: var(--delay);
-            transform: translateY(-50%);
+            background: #ff4444;
+            transform-origin: left center;
+            animation: needleSweep 3s ease-in-out infinite;
         }
-        
-        .speed-line:nth-child(2) {
-            top: 30%;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                #8338ec 50%, 
-                transparent 100%);
-            box-shadow: 0 0 10px #8338ec;
+
+        @keyframes dashboardPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
         }
-        
-        .speed-line:nth-child(3) {
-            top: 70%;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                #3a86ff 50%, 
-                transparent 100%);
-            box-shadow: 0 0 10px #3a86ff;
-        }
-        
-        .speed-line:nth-child(4) {
-            top: 90%;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                #06ffa5 50%, 
-                transparent 100%);
-            box-shadow: 0 0 10px #06ffa5;
-        }
-        
-        @keyframes speedRush {
-            0% {
-                left: -200px;
-                opacity: 0;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                left: 100%;
-                opacity: 0;
-            }
+
+        @keyframes needleSweep {
+            0% { transform: rotate(-45deg); }
+            50% { transform: rotate(45deg); }
+            100% { transform: rotate(-45deg); }
         }
     </style>
 </head>
@@ -711,44 +646,45 @@
     <!-- 背景 -->
     <div class="background-wrapper">
         <div class="background-image"></div>
-        <div class="background-overlay"></div>
-        <div class="rain-overlay"></div>
-        <div class="neon-glow"></div>
         
-        <!-- 動態粒子效果 -->
-        <div class="particles">
-            <div class="particle" style="--delay: 0s; --duration: 15s; --x: 10%;"></div>
-            <div class="particle" style="--delay: 2s; --duration: 20s; --x: 30%;"></div>
-            <div class="particle" style="--delay: 4s; --duration: 18s; --x: 50%;"></div>
-            <div class="particle" style="--delay: 6s; --duration: 22s; --x: 70%;"></div>
-            <div class="particle" style="--delay: 8s; --duration: 16s; --x: 90%;"></div>
+        <!-- 速度線效果 -->
+        <div class="speed-lines">
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
         </div>
         
-        <!-- 賽車光軌效果 -->
-        <div class="speed-lines">
-            <div class="speed-line" style="--delay: 0s;"></div>
-            <div class="speed-line" style="--delay: 0.5s;"></div>
-            <div class="speed-line" style="--delay: 1s;"></div>
-            <div class="speed-line" style="--delay: 1.5s;"></div>
+        <!-- 火花效果 -->
+        <div class="sparks">
+            <div class="spark" style="top: 30%; right: 20%; animation-delay: 0s;"></div>
+            <div class="spark" style="top: 50%; right: 30%; animation-delay: 0.5s;"></div>
+            <div class="spark" style="top: 70%; right: 25%; animation-delay: 1s;"></div>
+            <div class="spark" style="top: 40%; right: 40%; animation-delay: 1.5s;"></div>
+            <div class="spark" style="top: 60%; right: 35%; animation-delay: 2s;"></div>
         </div>
     </div>
 
     <!-- 登入容器 -->
     <div class="login-container">
+        <!-- 賽車儀表板效果 -->
+        <div class="dashboard-effect"></div>
+        
         <div class="logo">
             <h1><span class="fs-text">F<span style="font-size: 0.8em;">S</span></span>金彩赛车</h1>
-            <p>会员登录系统</p>
+            <p>代理管理系统</p>
         </div>
 
         <form class="login-form" id="loginForm">
             <div class="form-group">
-                <label for="username">会员账号</label>
+                <label for="username">代理账号</label>
                 <input 
                     type="text" 
                     id="username" 
                     name="username" 
                     class="form-input" 
-                    placeholder="请输入您的会员账号"
+                    placeholder="请输入您的代理账号"
                     required
                     autocomplete="username"
                 >
@@ -780,7 +716,7 @@
                         maxlength="4"
                     >
                     <div class="captcha-display" id="captchaDisplay" onclick="refreshCaptcha()">
-                        <!-- 验证码將通过JavaScript生成 -->
+                        <!-- 驗證碼將通過JavaScript生成 -->
                     </div>
                     <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理验证码">
                         🔄
@@ -794,7 +730,7 @@
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">
-                立即登录
+                进入系统
             </button>
 
             <div class="loading" id="loading">
@@ -806,13 +742,13 @@
         </form>
 
         <div class="footer-links">
-            <a href="#" onclick="showContactInfo()">联系客服</a>
+            <a href="#" onclick="showContactInfo()">联系管理员</a>
             <a href="#" onclick="showHelp()">使用说明</a>
         </div>
     </div>
 
     <script>
-        // 生成验证码
+        // 生成驗證碼
         let currentCaptcha = '';
 
         function generateCaptcha() {
@@ -829,10 +765,10 @@
             document.getElementById('captchaDisplay').textContent = currentCaptcha;
         }
 
-        // 初始化验证码
+        // 初始化驗證碼
         refreshCaptcha();
 
-        // 表单提交处理
+        // 表單提交處理
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -841,7 +777,7 @@
             const captcha = document.getElementById('captcha').value.toUpperCase();
             const rememberMe = document.getElementById('rememberMe').checked;
 
-            // 验证验证码
+            // 驗證驗證碼
             if (captcha !== currentCaptcha) {
                 showError('验证码错误，请重新输入');
                 refreshCaptcha();
@@ -849,7 +785,7 @@
                 return;
             }
 
-            // 显示加载状态
+            // 顯示加載狀態
             const loginBtn = document.getElementById('loginBtn');
             const loading = document.getElementById('loading');
             loginBtn.disabled = true;
@@ -857,7 +793,7 @@
             hideError();
 
             try {
-                const response = await fetch('/api/member/login', {
+                const response = await fetch('/api/agent/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -872,20 +808,21 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // 登录成功 - 同時保存到 localStorage 和 sessionStorage
-                    const token = data.sessionToken || data.token;
-                    localStorage.setItem('token', token);
-                    localStorage.setItem('username', data.member.username);
+                    // 登入成功 - 保存到 localStorage（與現有系統匹配）
+                    localStorage.setItem('agent_token', data.token);
+                    localStorage.setItem('agent_user', JSON.stringify(data.agent));
                     
-                    // 保存到 sessionStorage 以供主頁面使用
+                    // 保存新的會話token
+                    if (data.sessionToken) {
+                        localStorage.setItem('agent_session_token', data.sessionToken);
+                        console.log('✓ 代理會話token已保存');
+                    }
+                    
+                    // 也保存到 sessionStorage
                     sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('username', data.member.username);
-                    sessionStorage.setItem('memberId', data.member.id);
-                    sessionStorage.setItem('balance', data.member.balance || '0');
-                    sessionStorage.setItem('token', token);
-                    sessionStorage.setItem('sessionToken', token);
+                    sessionStorage.setItem('token', data.token);
                     
-                    // 如果选择了记住我，保存到localStorage
+                    // 如果選擇了記住我，保存到localStorage
                     if (rememberMe) {
                         localStorage.setItem('rememberMe', 'true');
                         localStorage.setItem('rememberedUsername', username);
@@ -894,7 +831,7 @@
                         localStorage.removeItem('rememberedUsername');
                     }
                     
-                    // 跳转到主页
+                    // 跳轉到主頁
                     window.location.href = '/';
                 } else {
                     showError(data.message || '登录失败，请检查您的账号和密码');
@@ -902,7 +839,7 @@
                     document.getElementById('captcha').value = '';
                 }
             } catch (error) {
-                console.error('登录错误:', error);
+                console.error('登入錯誤:', error);
                 showError('网络连接失败，请稍后再试');
             } finally {
                 loginBtn.disabled = false;
@@ -921,7 +858,7 @@
             errorElement.style.display = 'none';
         }
 
-        // 检查记住的用户名
+        // 檢查記住的用戶名
         window.addEventListener('DOMContentLoaded', function() {
             const rememberedUsername = localStorage.getItem('rememberedUsername');
             const rememberMe = localStorage.getItem('rememberMe') === 'true';
@@ -932,22 +869,42 @@
             }
         });
 
-        // 联系客服
+        // 联系管理员
         function showContactInfo() {
-            alert('客服QQ: 888888888\n客服微信: fs_service\n客服电话: 400-888-8888');
+            alert('管理员联系方式：\nEmail: admin@fsracing.com\n电话：+886-2-1234-5678\n工作时间：周一至周五 9:00-18:00');
         }
 
-        // 使用說明
+        // 使用说明
         function showHelp() {
-            alert('1. 输入您的会员账号和密码\n2. 输入显示的验证码\n3. 点击登录按钮即可进入游戏\n\n如遇到问题请联系客服');
+            alert('代理管理系统使用说明：\n1. 输入您的代理账号和密码\n2. 输入显示的验证码\n3. 点击进入系统按钮即可登录\n\n如遇到问题请联系管理员');
         }
 
-        // 回车提交
+        // 回車提交
         document.getElementById('captcha').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
+
+        // 動態生成更多火花
+        function createSpark() {
+            const sparksContainer = document.querySelector('.sparks');
+            const spark = document.createElement('div');
+            spark.className = 'spark';
+            spark.style.top = Math.random() * 100 + '%';
+            spark.style.right = Math.random() * 50 + '%';
+            spark.style.animationDelay = '0s';
+            spark.style.animationDuration = (2 + Math.random() * 2) + 's';
+            sparksContainer.appendChild(spark);
+            
+            // 動畫結束後移除
+            setTimeout(() => {
+                spark.remove();
+            }, 4000);
+        }
+
+        // 每隔一段時間生成新火花
+        setInterval(createSpark, 300);
         
         // 預載入高清背景圖片
         const preloadImage = new Image();
@@ -955,7 +912,7 @@
             // 圖片載入完成後，添加載入完成的類別
             document.querySelector('.background-image').classList.add('loaded');
         };
-        preloadImage.src = 'cyberpunk-rainy-car.png';
+        preloadImage.src = 'f1-racing-ultra-hd.jpg';
     </script>
 </body>
 </html>

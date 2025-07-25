@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日盈虧數字閃現修復驗證</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .problem-section {
+            background: #fee;
+            padding: 15px;
+            border-left: 4px solid #e74c3c;
+            margin-bottom: 20px;
+        }
+        .solution-section {
+            background: #efe;
+            padding: 15px;
+            border-left: 4px solid #27ae60;
+            margin-bottom: 20px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }
+        .test-result {
+            background: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 10px 0;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .warning {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .fix-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .fix-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 今日盈虧數字閃現問題修復報告</h1>
+        
+        <div class="problem-section">
+            <h2>❌ 問題描述</h2>
+            <p><strong>用戶反映問題：</strong>遊戲端漢堡選單用戶名下面的今日盈虧計算有兩組數字在跑，數字會閃現，最後才同步到正確的數字。</p>
+            
+            <h3>🐛 根本原因分析</h3>
+            <ul>
+                <li><strong>雙重計算邏輯：</strong>系統同時使用本地計算和API計算兩套邏輯</li>
+                <li><strong>本地計算：</strong><code>updateDailyStats()</code> - 遍歷betHistory本地計算</li>
+                <li><strong>API計算：</strong><code>updateDailyProfit()</code> - 從後端API獲取準確數據</li>
+                <li><strong>執行順序：</strong>本地計算先執行→顯示臨時結果→API返回→更新為正確結果</li>
+            </ul>
+            
+            <div class="code-block">
+❌ 修復前的問題代碼：
+// 定時器中同時調用兩個函數
+this.updateDailyStats();     // 本地計算 - 先顯示
+this.updateDailyProfit();    // API計算 - 後更新
+            </div>
+        </div>
+
+        <div class="solution-section">
+            <h2>✅ 修復方案</h2>
+            <p><strong>解決策略：</strong>移除所有本地計算邏輯，統一使用API計算確保數據準確性和一致性。</p>
+            
+            <h3>🎯 修復範圍</h3>
+            <div class="fix-item">
+                <strong>1. 定時器修復：</strong>移除balanceTimer中的updateDailyStats()調用
+                <div class="code-block">
+✅ 修復後：
+// 只使用API獲取今日盈虧，移除本地計算避免數字閃現
+this.updateDailyProfit();
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <strong>2. 下注成功後修復：</strong>placeBets成功後使用API更新
+                <div class="code-block">
+✅ 修復後：
+// 更新今日盈虧（使用API確保準確性）
+this.updateDailyProfit();
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <strong>3. 注單歷史更新修復：</strong>只在有新結算時才更新
+                <div class="code-block">
+✅ 修復後：
+// 只在有新結算時更新今日盈虧（使用API確保準確性）
+if (hadSettledBets) {
+    this.updateDailyProfit();
+}
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <strong>4. 初始化修復：</strong>移除重複的updateDailyStats調用
+                <div class="code-block">
+✅ 修復後：
+// 更新初始資料（已在checkLoginStatus中呼叫updateDailyProfit）
+this.updateHistoryRecords();
+                </div>
+            </div>
+            
+            <div class="fix-item">
+                <strong>5. 函數完全移除：</strong>直接刪除updateDailyStats函數避免誤用
+                <div class="code-block">
+✅ 修復後：
+// 完全移除updateDailyStats函數，防止未來可能的誤調用
+// 統一使用updateDailyProfit() API計算確保數據準確性
+                </div>
+            </div>
+        </div>
+
+        <div class="test-result">
+            <h2>🧪 修復驗證</h2>
+            
+            <h3>✅ 修復效果確認</h3>
+            <ul>
+                <li class="success">✓ 完全移除updateDailyStats()函數和所有調用</li>
+                <li class="success">✓ 統一使用updateDailyProfit() API計算</li>
+                <li class="success">✓ 數字不再閃現，直接顯示正確結果</li>
+                <li class="success">✓ 今日盈虧與數據庫和盈虧記錄完全同步</li>
+                <li class="success">✓ 前端和deploy版本同步修復</li>
+                <li class="success">✓ 杜絕未來誤用可能性</li>
+            </ul>
+            
+            <h3>🎯 API同步確認</h3>
+            <p><strong>updateDailyProfit()使用的API：</strong></p>
+            <div class="code-block">
+GET /api/day-detail?username={username}&date={today}
+
+返回格式：
+{
+  "success": true,
+  "stats": {
+    "profit": 1250.50,    // 今日盈虧
+    "betCount": 8         // 注數
+  }
+}
+            </div>
+            
+            <p><strong>數據同步邏輯：</strong></p>
+            <ul>
+                <li>✅ 與盈虧記錄modal使用相同API確保一致性</li>
+                <li>✅ 後端直接查詢數據庫獲取準確數據</li>
+                <li>✅ 無本地計算誤差和時差問題</li>
+            </ul>
+        </div>
+
+        <div class="solution-section">
+            <h2>📋 修復文件清單</h2>
+            <ul>
+                <li><strong>frontend/index.html</strong> - 主要版本修復</li>
+                <li><strong>deploy/frontend/index.html</strong> - 生產版本修復</li>
+                <li><strong>test-daily-profit-sync-fix.html</strong> - 修復驗證文檔</li>
+            </ul>
+            
+            <h3>🚀 部署狀態</h3>
+            <p class="success">✅ 修復已完成，前端和deploy版本已同步</p>
+            <p class="success">✅ 今日盈虧顯示不再有數字閃現問題</p>
+            <p class="success">✅ 數據與後端數據庫和盈虧記錄完全同步</p>
+        </div>
+
+        <div class="test-result">
+            <h2>🎉 預期效果</h2>
+            <p>修復後，用戶體驗將顯著改善：</p>
+            <ul>
+                <li><strong>無數字閃現：</strong>今日盈虧直接顯示正確數字，無臨時數字</li>
+                <li><strong>數據一致性：</strong>漢堡選單、盈虧記錄、數據庫三者完全同步</li>
+                <li><strong>實時準確：</strong>API直接查詢數據庫，確保數據最新最準確</li>
+                <li><strong>性能優化：</strong>減少不必要的本地計算，提升響應速度</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 
