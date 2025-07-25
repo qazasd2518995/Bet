@@ -6325,10 +6325,29 @@ const app = createApp({
                      this.reportFilters.startDate = yesterday.toISOString().split('T')[0];
                      this.reportFilters.endDate = yesterday.toISOString().split('T')[0];
                      break;
+                 case 'lastWeek':
+                     // 上周：从上周一到上周日
+                     const currentDay = today.getDay();
+                     const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1; // 如果是周日，距离周一是6天
+                     
+                     const lastWeekMonday = new Date(today);
+                     lastWeekMonday.setDate(today.getDate() - daysFromMonday - 7); // 上周一
+                     
+                     const lastWeekSunday = new Date(lastWeekMonday);
+                     lastWeekSunday.setDate(lastWeekMonday.getDate() + 6); // 上周日
+                     
+                     this.reportFilters.startDate = lastWeekMonday.toISOString().split('T')[0];
+                     this.reportFilters.endDate = lastWeekSunday.toISOString().split('T')[0];
+                     break;
                  case 'week':
-                     const weekStart = new Date(today);
-                     weekStart.setDate(today.getDate() - today.getDay());
-                     this.reportFilters.startDate = weekStart.toISOString().split('T')[0];
+                     // 本周：从本周一到今天（如果今天是周日，则到周日）
+                     const currentWeekDay = today.getDay();
+                     const daysFromThisMonday = currentWeekDay === 0 ? 6 : currentWeekDay - 1;
+                     
+                     const thisWeekMonday = new Date(today);
+                     thisWeekMonday.setDate(today.getDate() - daysFromThisMonday); // 本周一
+                     
+                     this.reportFilters.startDate = thisWeekMonday.toISOString().split('T')[0];
                      this.reportFilters.endDate = today.toISOString().split('T')[0];
                      break;
                  case 'month':
@@ -6724,9 +6743,14 @@ const app = createApp({
                      this.loginLogFilters.endDate = yesterday.toISOString().split('T')[0];
                      break;
                  case 'week':
-                     const weekStart = new Date(today);
-                     weekStart.setDate(today.getDate() - today.getDay());
-                     this.loginLogFilters.startDate = weekStart.toISOString().split('T')[0];
+                     // 本周：从本周一到今天
+                     const currentWeekDay = today.getDay();
+                     const daysFromThisMonday = currentWeekDay === 0 ? 6 : currentWeekDay - 1;
+                     
+                     const thisWeekMonday = new Date(today);
+                     thisWeekMonday.setDate(today.getDate() - daysFromThisMonday); // 本周一
+                     
+                     this.loginLogFilters.startDate = thisWeekMonday.toISOString().split('T')[0];
                      this.loginLogFilters.endDate = today.toISOString().split('T')[0];
                      break;
                  case '7days':
