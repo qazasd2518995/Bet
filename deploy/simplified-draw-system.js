@@ -352,15 +352,18 @@ class DrawSystemManager {
      */
     async saveDrawResult(period, result) {
         try {
+            // 使用 JavaScript Date 確保儲存正確的時間
+            const drawTime = new Date().toISOString();
+            
             await db.none(`
                 INSERT INTO result_history (period, result, position_1, position_2, position_3, position_4, position_5, position_6, position_7, position_8, position_9, position_10, draw_time)
-                VALUES ($1, $2::json, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+                VALUES ($1, $2::json, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 ON CONFLICT (period) DO UPDATE SET
                 result = $2::json,
                 position_1 = $3, position_2 = $4, position_3 = $5, position_4 = $6, position_5 = $7,
                 position_6 = $8, position_7 = $9, position_8 = $10, position_9 = $11, position_10 = $12,
-                draw_time = NOW()
-            `, [period, JSON.stringify(result), ...result]);
+                draw_time = $13
+            `, [period, JSON.stringify(result), ...result, drawTime]);
             
             console.log(`✅ [結果保存] 期號 ${period} 結果已保存: [${result.join(', ')}]`);
             
