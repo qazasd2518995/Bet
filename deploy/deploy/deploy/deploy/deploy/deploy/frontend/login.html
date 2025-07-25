@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS金彩赛车 - 代理管理系统</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Allura&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        /* 背景容器 */
+        .background-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        /* F1賽車背景圖片 - 高清版本 */
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%),
+                url('f1-racing-ultra-hd.jpg') center/cover no-repeat;
+            filter: brightness(0.8) contrast(1.2);
+            animation: zoomPulse 20s ease-in-out infinite;
+            /* 確保高品質渲染 */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            background-size: cover;
+            background-position: center center;
+            /* 淡入效果 */
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        
+        .background-image.loaded {
+            opacity: 1;
+        }
+
+        @keyframes zoomPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.05) rotate(1deg); }
+        }
+
+        /* 速度線效果 */
+        .speed-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            opacity: 0.6;
+        }
+
+        .speed-line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                #ff4444 20%,
+                #ff8844 50%,
+                #ffaa44 80%,
+                transparent 100%);
+            box-shadow: 0 0 10px #ff6644;
+            animation: speedRush 2s linear infinite;
+        }
+
+        .speed-line:nth-child(1) { top: 20%; width: 300px; animation-delay: 0s; }
+        .speed-line:nth-child(2) { top: 35%; width: 250px; animation-delay: 0.4s; }
+        .speed-line:nth-child(3) { top: 50%; width: 350px; animation-delay: 0.8s; }
+        .speed-line:nth-child(4) { top: 65%; width: 280px; animation-delay: 1.2s; }
+        .speed-line:nth-child(5) { top: 80%; width: 320px; animation-delay: 1.6s; }
+
+        @keyframes speedRush {
+            0% {
+                left: -350px;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                opacity: 0;
+            }
+        }
+
+        /* 火花效果 */
+        .sparks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .spark {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffaa00;
+            border-radius: 50%;
+            box-shadow: 
+                0 0 6px #ff8800,
+                0 0 12px #ff6600;
+            animation: sparkFly 3s linear infinite;
+        }
+
+        @keyframes sparkFly {
+            0% {
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-200px) translateY(200px);
+                opacity: 0;
+            }
+        }
+
+        /* 登入容器 */
+        .login-container {
+            background: rgba(20, 20, 30, 0.95);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 100px rgba(255, 68, 68, 0.3),
+                inset 0 0 30px rgba(255, 255, 255, 0.05);
+            padding: 50px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 紅色霓虹邊框 */
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff0000, #ff4444, #ff8800, #ffaa00);
+            border-radius: 20px;
+            z-index: -1;
+            animation: borderGlow 3s linear infinite;
+            filter: blur(3px);
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* Logo樣式 */
+        .logo {
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .logo h1 {
+            color: #fff;
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-shadow: 
+                0 0 20px rgba(255, 68, 68, 0.8),
+                0 0 40px rgba(255, 68, 68, 0.6),
+                0 0 60px rgba(255, 68, 68, 0.4);
+            letter-spacing: 2px;
+        }
+
+        .logo h1 .fs-text {
+            font-family: 'Allura', cursive;
+            font-size: 1.4em;
+            color: #444;
+            text-shadow: 
+                0 0 10px rgba(255, 68, 68, 0.5),
+                0 0 20px rgba(255, 68, 68, 0.3);
+            display: inline-block;
+        }
+
+        @keyframes textGlow {
+            0%, 100% { filter: brightness(1) hue-rotate(0deg); }
+            50% { filter: brightness(1.2) hue-rotate(10deg); }
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 400;
+            margin-top: 10px;
+        }
+
+        /* 表單樣式 */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .form-group {
+            position: relative;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            font-size: 16px;
+            color: #fff;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #ff4444;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                0 0 0 3px rgba(255, 68, 68, 0.2),
+                0 0 20px rgba(255, 68, 68, 0.3);
+        }
+
+        /* 驗證碼組 */
+        .captcha-group {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .captcha-input {
+            flex: 1;
+        }
+
+        .captcha-display {
+            width: 120px;
+            height: 50px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 68, 68, 0.5);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: bold;
+            color: #ffdd44;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            letter-spacing: 3px;
+        }
+
+        .captcha-display:hover {
+            background: rgba(30, 30, 40, 0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3);
+            color: #ffee66;
+        }
+
+        .refresh-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff6644;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+            color: #fff;
+            transform: translateY(-2px) rotate(180deg);
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
+        }
+
+        /* 記住我 */
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #ff4444;
+        }
+
+        /* 登入按鈕 */
+        .login-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #ff0000 0%, #ff6600 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Racing Sans One', 'Orbitron', sans-serif;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.3), 
+                transparent);
+            transition: left 0.5s ease;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 10px 30px rgba(255, 68, 68, 0.4),
+                0 0 30px rgba(255, 102, 0, 0.3);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 錯誤訊息 */
+        .error-message {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255, 68, 68, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            text-align: left;
+        }
+
+        /* 載入動畫 */
+        .loading {
+            display: none;
+            margin-top: 15px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 2px solid #ff4444;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 底部連結 */
+        .footer-links {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .footer-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #ff4444;
+            transition: width 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: #ff6644;
+        }
+
+        .footer-links a:hover::after {
+            width: 100%;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+                min-height: 100vh;
+                height: 100vh;
+            }
+            
+            .login-container {
+                padding: 20px 15px;
+                margin: 0;
+                max-height: 95vh;
+                overflow-y: auto;
+            }
+            
+            .logo {
+                margin-bottom: 20px;
+            }
+            
+            .logo h1 {
+                font-size: 24px;
+                margin-bottom: 5px;
+            }
+            
+            .logo p {
+                font-size: 12px;
+                margin-bottom: 0;
+            }
+            
+            .login-form {
+                gap: 15px;
+            }
+            
+            .form-group {
+                margin-bottom: 0;
+            }
+            
+            .form-group label {
+                margin-bottom: 5px;
+                font-size: 11px;
+            }
+            
+            .form-input {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .captcha-group {
+                flex-direction: row;
+                gap: 8px;
+            }
+            
+            .captcha-input {
+                flex: 1;
+            }
+            
+            .captcha-display {
+                width: 90px;
+                height: 40px;
+                font-size: 16px;
+                padding: 8px;
+            }
+            
+            .refresh-btn {
+                width: 40px;
+                height: 40px;
+                padding: 8px;
+                font-size: 16px;
+            }
+            
+            .remember-me {
+                margin: 10px 0;
+                font-size: 12px;
+            }
+            
+            .remember-me input[type="checkbox"] {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .login-btn {
+                padding: 12px;
+                font-size: 14px;
+                margin-top: 5px;
+            }
+            
+            .footer-links {
+                margin-top: 15px;
+                gap: 20px;
+            }
+            
+            .footer-links a {
+                font-size: 12px;
+            }
+            
+            .error-message {
+                font-size: 12px;
+                padding: 8px;
+                margin-top: 10px;
+            }
+            
+            /* 隱藏儀表板效果在小屏幕上 */
+            .dashboard-effect {
+                display: none;
+            }
+        }
+        
+        /* 更小的手機屏幕 */
+        @media (max-width: 360px) {
+            .logo h1 {
+                font-size: 22px;
+            }
+            
+            .form-input {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            .captcha-display {
+                width: 80px;
+                font-size: 14px;
+            }
+        }
+
+        /* 賽車儀表板效果 */
+        .dashboard-effect {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 68, 68, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: dashboardPulse 2s ease-in-out infinite;
+        }
+
+        .dashboard-effect::before {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 2px;
+            background: #ff4444;
+            transform-origin: left center;
+            animation: needleSweep 3s ease-in-out infinite;
+        }
+
+        @keyframes dashboardPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes needleSweep {
+            0% { transform: rotate(-45deg); }
+            50% { transform: rotate(45deg); }
+            100% { transform: rotate(-45deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景 -->
+    <div class="background-wrapper">
+        <div class="background-image"></div>
+        
+        <!-- 速度線效果 -->
+        <div class="speed-lines">
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+        </div>
+        
+        <!-- 火花效果 -->
+        <div class="sparks">
+            <div class="spark" style="top: 30%; right: 20%; animation-delay: 0s;"></div>
+            <div class="spark" style="top: 50%; right: 30%; animation-delay: 0.5s;"></div>
+            <div class="spark" style="top: 70%; right: 25%; animation-delay: 1s;"></div>
+            <div class="spark" style="top: 40%; right: 40%; animation-delay: 1.5s;"></div>
+            <div class="spark" style="top: 60%; right: 35%; animation-delay: 2s;"></div>
+        </div>
+    </div>
+
+    <!-- 登入容器 -->
+    <div class="login-container">
+        <!-- 賽車儀表板效果 -->
+        <div class="dashboard-effect"></div>
+        
+        <div class="logo">
+            <h1><span class="fs-text">F<span style="font-size: 0.8em;">S</span></span>金彩赛车</h1>
+            <p>代理管理系统</p>
+        </div>
+
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="username">代理账号</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="请输入您的代理账号"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">登录密码</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="请输入您的密码"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="captcha">验证码</label>
+                <div class="captcha-group">
+                    <input 
+                        type="text" 
+                        id="captcha" 
+                        name="captcha" 
+                        class="form-input captcha-input" 
+                        placeholder="请输入验证码"
+                        required
+                        maxlength="4"
+                    >
+                    <div class="captcha-display" id="captchaDisplay" onclick="refreshCaptcha()">
+                        <!-- 驗證碼將通過JavaScript生成 -->
+                    </div>
+                    <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="重新整理验证码">
+                        🔄
+                    </button>
+                </div>
+            </div>
+
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <label for="rememberMe">记住我的登录状态</label>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                进入系统
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <span>登录中，请稍候...</span>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </form>
+
+        <div class="footer-links">
+            <a href="#" onclick="showContactInfo()">联系管理员</a>
+            <a href="#" onclick="showHelp()">使用说明</a>
+        </div>
+    </div>
+
+    <script>
+        // 生成驗證碼
+        let currentCaptcha = '';
+
+        function generateCaptcha() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let captcha = '';
+            for (let i = 0; i < 4; i++) {
+                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return captcha;
+        }
+
+        function refreshCaptcha() {
+            currentCaptcha = generateCaptcha();
+            document.getElementById('captchaDisplay').textContent = currentCaptcha;
+        }
+
+        // 初始化驗證碼
+        refreshCaptcha();
+
+        // 表單提交處理
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const captcha = document.getElementById('captcha').value.toUpperCase();
+            const rememberMe = document.getElementById('rememberMe').checked;
+
+            // 驗證驗證碼
+            if (captcha !== currentCaptcha) {
+                showError('验证码错误，请重新输入');
+                refreshCaptcha();
+                document.getElementById('captcha').value = '';
+                return;
+            }
+
+            // 顯示加載狀態
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            loginBtn.disabled = true;
+            loading.style.display = 'block';
+            hideError();
+
+            try {
+                const response = await fetch('/api/agent/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password,
+                        rememberMe
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 登入成功 - 保存到 localStorage（與現有系統匹配）
+                    localStorage.setItem('agent_token', data.token);
+                    localStorage.setItem('agent_user', JSON.stringify(data.agent));
+                    
+                    // 保存新的會話token
+                    if (data.sessionToken) {
+                        localStorage.setItem('agent_session_token', data.sessionToken);
+                        console.log('✓ 代理會話token已保存');
+                    }
+                    
+                    // 也保存到 sessionStorage
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('token', data.token);
+                    
+                    // 如果選擇了記住我，保存到localStorage
+                    if (rememberMe) {
+                        localStorage.setItem('rememberMe', 'true');
+                        localStorage.setItem('rememberedUsername', username);
+                    } else {
+                        localStorage.removeItem('rememberMe');
+                        localStorage.removeItem('rememberedUsername');
+                    }
+                    
+                    // 跳轉到主頁
+                    window.location.href = '/';
+                } else {
+                    showError(data.message || '登录失败，请检查您的账号和密码');
+                    refreshCaptcha();
+                    document.getElementById('captcha').value = '';
+                }
+            } catch (error) {
+                console.error('登入錯誤:', error);
+                showError('网络连接失败，请稍后再试');
+            } finally {
+                loginBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.style.display = 'none';
+        }
+
+        // 檢查記住的用戶名
+        window.addEventListener('DOMContentLoaded', function() {
+            const rememberedUsername = localStorage.getItem('rememberedUsername');
+            const rememberMe = localStorage.getItem('rememberMe') === 'true';
+            
+            if (rememberMe && rememberedUsername) {
+                document.getElementById('username').value = rememberedUsername;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+
+        // 联系管理员
+        function showContactInfo() {
+            alert('管理员联系方式：\nEmail: admin@fsracing.com\n电话：+886-2-1234-5678\n工作时间：周一至周五 9:00-18:00');
+        }
+
+        // 使用说明
+        function showHelp() {
+            alert('代理管理系统使用说明：\n1. 输入您的代理账号和密码\n2. 输入显示的验证码\n3. 点击进入系统按钮即可登录\n\n如遇到问题请联系管理员');
+        }
+
+        // 回車提交
+        document.getElementById('captcha').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // 動態生成更多火花
+        function createSpark() {
+            const sparksContainer = document.querySelector('.sparks');
+            const spark = document.createElement('div');
+            spark.className = 'spark';
+            spark.style.top = Math.random() * 100 + '%';
+            spark.style.right = Math.random() * 50 + '%';
+            spark.style.animationDelay = '0s';
+            spark.style.animationDuration = (2 + Math.random() * 2) + 's';
+            sparksContainer.appendChild(spark);
+            
+            // 動畫結束後移除
+            setTimeout(() => {
+                spark.remove();
+            }, 4000);
+        }
+
+        // 每隔一段時間生成新火花
+        setInterval(createSpark, 300);
+        
+        // 預載入高清背景圖片
+        const preloadImage = new Image();
+        preloadImage.onload = function() {
+            // 圖片載入完成後，添加載入完成的類別
+            document.querySelector('.background-image').classList.add('loaded');
+        };
+        preloadImage.src = 'f1-racing-ultra-hd.jpg';
+    </script>
+</body>
+</html>

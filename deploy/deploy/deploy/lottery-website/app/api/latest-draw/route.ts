@@ -18,10 +18,11 @@ export async function GET(request: NextRequest) {
     const drawRecords = await getLatestDrawRecords(1);
     
     if (drawRecords.length === 0) {
+      console.log('No draw results found in database');
       return NextResponse.json({
-        success: false,
-        message: 'No draw results found'
-      }, { status: 404 });
+        success: true,
+        data: null
+      });
     }
     
     const latest = drawRecords[0];
