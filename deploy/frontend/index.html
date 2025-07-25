@@ -7958,11 +7958,13 @@
                     // 检查登录状态
                     this.checkLoginStatus();
                     
-                    // 更新初始资料（已在checkLoginStatus中呼叫updateDailyProfit）
-                    this.updateHistoryRecords();
-                    
-                    // 立即更新一次游戏数据以获取最新状态
+                    // 立即更新一次游戏数据以获取最新状态（包含當前期號）
                     this.updateGameData();
+                    
+                    // 延遲一下再更新歷史記錄，確保 currentPeriod 已經被設置
+                    setTimeout(() => {
+                        this.updateHistoryRecords();
+                    }, 500);
                 },
                 
                 formatMoney(amount) {
@@ -8003,12 +8005,15 @@
                     if (!dateStr) return 'NaN:NaN:NaN';
                     const date = new Date(dateStr);
                     if (isNaN(date.getTime())) return 'NaN:NaN:NaN';
-                    // 转換为台北时區显示 - 手動加8小时
-                    const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                    const hours = taipeiTime.getHours().toString().padStart(2, '0');
-                    const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
-                    const seconds = taipeiTime.getSeconds().toString().padStart(2, '0');
-                    return `${hours}:${minutes}:${seconds}`;
+                    // 使用 toLocaleString 正確處理時區轉換
+                    const timeString = date.toLocaleString('en-US', {
+                        timeZone: 'Asia/Taipei',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    return timeString;
                 },
                 formatOdds(odds) {
                     if (odds === undefined || odds === null) {
@@ -9786,52 +9791,58 @@
                         });
                 },
                 updateHistoryRecords(page = 1, date = '', period = '') {
-                    // 如果不需要筛选，使用优化的 recent-results API
-                    if (!date && !period && page === 1) {
-                        fetch(`${this.API_BASE_URL}/api/recent-results`)
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('获取最近10期开奖记录:', data);
-                                if (data.success && Array.isArray(data.data)) {
-                                    // 直接使用所有數據，API 已經返回了正確的歷史記錄
-                                    this.recentResults = data.data;
-                                    console.log('近期开奖记录更新成功，记录数量:', this.recentResults.length);
+                    // 統一使用 history API，確保數據一致性
+                    const params = new URLSearchParams();
+                    params.append('page', page);
+                    if (date) params.append('date', date);
+                    if (period) params.append('period', period);
+                    
+                    fetch(`${this.API_BASE_URL}/api/history?${params.toString()}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('开奖历史API返回数据:', JSON.stringify(data).substring(0, 200) + '...');
+                            // 更新历史记录 - 修正数据結構处理
+                            if (data.success && Array.isArray(data.records)) {
+                                // 獲取當前期號的數值，用於過濾
+                                const currentPeriodNum = this.currentPeriod ? parseInt(this.currentPeriod) : 0;
+                                const currentPeriodStr = this.currentPeriod ? String(this.currentPeriod) : '';
+                                const currentGameDate = currentPeriodStr.length >= 8 ? currentPeriodStr.substring(0, 8) : '';
+                                
+                                // 如果沒有指定日期或期號（初始載入），過濾掉當天超過當前期號的記錄
+                                if (!date && !period) {
+                                    const filteredRecords = data.records.filter(record => {
+                                        if (!record.period) return false;
+                                        
+                                        const recordPeriodStr = String(record.period);
+                                        const recordGameDate = recordPeriodStr.substring(0, 8);
+                                        
+                                        // 如果是當天的記錄，檢查期號是否小於等於當前期號
+                                        if (recordGameDate === currentGameDate) {
+                                            const recordPeriodNum = parseInt(record.period);
+                                            return recordPeriodNum <= currentPeriodNum;
+                                        }
+                                        
+                                        // 如果不是當天的記錄，則顯示
+                                        return true;
+                                    });
+                                    
+                                    this.recentResults = filteredRecords.slice(0, 10); // 只顯示最近10期
+                                    console.log('开奖历史更新成功（已過濾），记录数量:', this.recentResults.length);
                                 } else {
-                                    console.error('近期开奖API返回异常数据格式:', data);
-                                    this.recentResults = [];
-                                }
-                            })
-                            .catch(error => {
-                                console.error('获取近期开奖记录失败:', error);
-                                this.recentResults = [];
-                            });
-                    } else {
-                        // 需要筛选时使用原有的 history API
-                        const params = new URLSearchParams();
-                        params.append('page', page);
-                        if (date) params.append('date', date);
-                        if (period) params.append('period', period);
-                        
-                        fetch(`${this.API_BASE_URL}/api/history?${params.toString()}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log('开奖历史API返回数据:', JSON.stringify(data).substring(0, 200) + '...');
-                                // 更新历史记录 - 修正数据結構处理
-                                if (data.success && Array.isArray(data.records)) {
-                                    // 直接使用所有數據，API 已經返回了正確的歷史記錄
+                                    // 有指定搜索條件時，直接使用返回的數據
                                     this.recentResults = data.records;
                                     console.log('开奖历史更新成功，记录数量:', this.recentResults.length);
-                                } else {
-                                    // 當 API 返回格式不正确或为空时的处理
-                                    console.error('开奖历史API返回异常数据格式:', data);
-                                    this.recentResults = [];
                                 }
-                            })
-                            .catch(error => {
-                                console.error('获取开奖历史记录失败:', error);
-                                this.recentResults = []; // 确保出錯时也设置为空數組
-                            });
-                    }
+                            } else {
+                                // 當 API 返回格式不正确或为空时的处理
+                                console.error('开奖历史API返回异常数据格式:', data);
+                                this.recentResults = [];
+                            }
+                        })
+                        .catch(error => {
+                            console.error('获取开奖历史记录失败:', error);
+                            this.recentResults = []; // 确保出錯时也设置为空數組
+                        });
                     
                     // 生成结果標籤（1-10名）
                     if (this.resultLabels.length === 0) {
@@ -9923,26 +9934,50 @@
                     console.log('载入最近10期开奖紀錄...');
                     console.log('当前期號:', this.currentPeriod);
                     
-                    // 使用 recent-results API 替代 history，以獲取正確的期號格式
-                    fetch(`${this.API_BASE_URL}/api/recent-results`)
+                    // 获取所有最新的开奖记录（包括今天和之前的）
+                    fetch(`${this.API_BASE_URL}/api/history`)
                         .then(response => response.json())
                         .then(data => {
                             console.log('API返回数据:', data);
                             
-                            if (data.success && Array.isArray(data.data)) {
-                                // recent-results API 使用 data 字段而不是 records
-                                // 获取当前日期 (从当前期号提取)
+                            if (data.success && Array.isArray(data.records)) {
+                                // 获取当前期号的数值，用于过滤
+                                const currentPeriodNum = this.currentPeriod ? parseInt(this.currentPeriod) : 0;
+                                
+                                // 获取当前游戏日期（从当前期号提取）
                                 const currentPeriodStr = this.currentPeriod ? String(this.currentPeriod) : '';
-                                const currentDate = currentPeriodStr.length >= 8 ? currentPeriodStr.substring(0, 8) : '';
-                                console.log('当前期号:', this.currentPeriod, '类型:', typeof this.currentPeriod);
-                                console.log('当前日期:', currentDate);
+                                const currentGameDate = currentPeriodStr.length >= 8 ? currentPeriodStr.substring(0, 8) : '';
                                 
-                                // 显示最近10条有结果的记录
-                                const records = data.data.filter(record => {
-                                    return record.period && record.result && record.result.length > 0;
-                                }).slice(0, 10);
+                                console.log('当前期号数值:', currentPeriodNum);
+                                console.log('当前游戏日期:', currentGameDate);
                                 
-                                console.log('从API获取记录数:', data.data.length);
+                                // 过滤记录：
+                                // 1. 必须有期号和结果
+                                // 2. 如果是当天的记录，期号必须小于等于当前期号
+                                // 3. 如果不是当天的记录，则全部显示
+                                const filteredRecords = data.records.filter(record => {
+                                    if (!record.period || !record.result || record.result.length === 0) {
+                                        return false;
+                                    }
+                                    
+                                    const recordPeriodStr = String(record.period);
+                                    const recordGameDate = recordPeriodStr.substring(0, 8);
+                                    
+                                    // 如果是当天的记录，检查期号是否小于等于当前期号
+                                    if (recordGameDate === currentGameDate) {
+                                        const recordPeriodNum = parseInt(record.period);
+                                        return recordPeriodNum <= currentPeriodNum;
+                                    }
+                                    
+                                    // 如果不是当天的记录，则显示
+                                    return true;
+                                });
+                                
+                                // 获取最近10条记录
+                                const records = filteredRecords.slice(0, 10);
+                                
+                                console.log('从API获取记录数:', data.records.length);
+                                console.log('过滤后记录数:', filteredRecords.length);
                                 console.log('显示记录数:', records.length);
                                 if (records.length > 0) {
                                     console.log('第一条记录示例:', {
@@ -12648,31 +12683,44 @@
                 // 格式化标题日期
                 formatDateTitle(dateString) {
                     const date = new Date(dateString);
-                    // 如果是ISO格式，转换为台北时區
-                    let displayDate = date;
-                    if (dateString.includes('T')) {
-                        displayDate = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                    }
+                    // 使用 toLocaleString 正確處理時區轉換
+                    const dateStr = date.toLocaleString('zh-TW', {
+                        timeZone: 'Asia/Taipei',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        weekday: 'narrow'
+                    });
                     
-                    const year = displayDate.getFullYear();
-                    const month = (displayDate.getMonth() + 1).toString().padStart(2, '0');
-                    const day = displayDate.getDate().toString().padStart(2, '0');
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[displayDate.getDay()];
-                    return `${year}/${month}/${day} (星期${weekday})`;
+                    // 解析日期和星期
+                    const parts = dateStr.split(' ');
+                    const datePart = parts[0]; // YYYY/MM/DD
+                    const weekdayChar = parts[1] || ''; // 週X
+                    
+                    // 將 "週X" 轉換為 "星期X"
+                    const weekday = weekdayChar.replace('週', '');
+                    return `${datePart} (星期${weekday})`;
                 },
                 
                 // 格式化日期时间
                 formatDateTime(dateString) {
                     if (!dateString) return '';
                     const date = new Date(dateString);
-                    // 转換为台北时區显示 - 手動加8小时
-                    const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                    const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
-                    const day = taipeiTime.getDate().toString().padStart(2, '0');
-                    const hours = taipeiTime.getHours().toString().padStart(2, '0');
-                    const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
-                    return `${month}/${day} ${hours}:${minutes}`;
+                    // 使用 toLocaleString 正確處理時區轉換
+                    const dateTime = date.toLocaleString('zh-TW', {
+                        timeZone: 'Asia/Taipei',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    
+                    // 解析並重組格式 (MM/DD HH:mm)
+                    const parts = dateTime.split(' ');
+                    const datePart = parts[0].split('/').slice(1).join('/'); // 移除年份
+                    const timePart = parts[1] || '';
+                    return `${datePart} ${timePart}`;
                 },
                 
                 // 获取星期幾
@@ -13129,8 +13177,8 @@
                 // 初始检查登录状态
                 this.checkLoginStatus();
                 
-                // 更新初始资料（已在checkLoginStatus中呼叫updateDailyProfit）
-                this.updateHistoryRecords();
+                // 移除重複的 updateHistoryRecords 調用，避免畫面閃現
+                // updateHistoryRecords 已經在 mounted 前面被調用過了
             },
             beforeDestroy() {
                 if (this.socket) {

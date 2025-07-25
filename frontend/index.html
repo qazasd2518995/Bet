@@ -8005,12 +8005,15 @@
                     if (!dateStr) return 'NaN:NaN:NaN';
                     const date = new Date(dateStr);
                     if (isNaN(date.getTime())) return 'NaN:NaN:NaN';
-                    // 转換为台北时區显示 - 手動加8小时
-                    const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                    const hours = taipeiTime.getHours().toString().padStart(2, '0');
-                    const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
-                    const seconds = taipeiTime.getSeconds().toString().padStart(2, '0');
-                    return `${hours}:${minutes}:${seconds}`;
+                    // 使用 toLocaleString 正確處理時區轉換
+                    const timeString = date.toLocaleString('en-US', {
+                        timeZone: 'Asia/Taipei',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                    return timeString;
                 },
                 formatOdds(odds) {
                     if (odds === undefined || odds === null) {
@@ -12680,31 +12683,44 @@
                 // 格式化标题日期
                 formatDateTitle(dateString) {
                     const date = new Date(dateString);
-                    // 如果是ISO格式，转换为台北时區
-                    let displayDate = date;
-                    if (dateString.includes('T')) {
-                        displayDate = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                    }
+                    // 使用 toLocaleString 正確處理時區轉換
+                    const dateStr = date.toLocaleString('zh-TW', {
+                        timeZone: 'Asia/Taipei',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        weekday: 'narrow'
+                    });
                     
-                    const year = displayDate.getFullYear();
-                    const month = (displayDate.getMonth() + 1).toString().padStart(2, '0');
-                    const day = displayDate.getDate().toString().padStart(2, '0');
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[displayDate.getDay()];
-                    return `${year}/${month}/${day} (星期${weekday})`;
+                    // 解析日期和星期
+                    const parts = dateStr.split(' ');
+                    const datePart = parts[0]; // YYYY/MM/DD
+                    const weekdayChar = parts[1] || ''; // 週X
+                    
+                    // 將 "週X" 轉換為 "星期X"
+                    const weekday = weekdayChar.replace('週', '');
+                    return `${datePart} (星期${weekday})`;
                 },
                 
                 // 格式化日期时间
                 formatDateTime(dateString) {
                     if (!dateString) return '';
                     const date = new Date(dateString);
-                    // 转換为台北时區显示 - 手動加8小时
-                    const taipeiTime = new Date(date.getTime() + 8 * 60 * 60 * 1000);
-                    const month = (taipeiTime.getMonth() + 1).toString().padStart(2, '0');
-                    const day = taipeiTime.getDate().toString().padStart(2, '0');
-                    const hours = taipeiTime.getHours().toString().padStart(2, '0');
-                    const minutes = taipeiTime.getMinutes().toString().padStart(2, '0');
-                    return `${month}/${day} ${hours}:${minutes}`;
+                    // 使用 toLocaleString 正確處理時區轉換
+                    const dateTime = date.toLocaleString('zh-TW', {
+                        timeZone: 'Asia/Taipei',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    
+                    // 解析並重組格式 (MM/DD HH:mm)
+                    const parts = dateTime.split(' ');
+                    const datePart = parts[0].split('/').slice(1).join('/'); // 移除年份
+                    const timePart = parts[1] || '';
+                    return `${datePart} ${timePart}`;
                 },
                 
                 // 获取星期幾
