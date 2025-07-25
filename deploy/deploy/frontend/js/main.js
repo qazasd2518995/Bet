@@ -49,14 +49,10 @@ const app = createApp({
             // 登录表單
             loginForm: {
                 username: '',
-                password: '',
-                captcha: ''
+                password: ''
             },
             
-            // 验证碼
-            currentCaptcha: '',
-            
-            // 用戶资訊
+            // 用戶资讯
             user: {
                 id: null,
                 username: '',
@@ -130,8 +126,7 @@ const app = createApp({
                 id: null,
                 username: '',
                 level: 0,
-                max_rebate_percentage: 0.041,
-                betting_limit_level: 'level3'
+                max_rebate_percentage: 0.041
             },
             
             // 退水设定相关
@@ -165,7 +160,6 @@ const app = createApp({
             
             // 显示限红调整模態框
             showBettingLimitModal: false,
-            showAgentBettingLimitModal: false,
             editNotesData: {
                 id: null,
                 username: '',
@@ -196,8 +190,7 @@ const app = createApp({
             currentMemberManagingAgent: {
                 id: null,
                 username: '',
-                level: 0,
-                betting_limit_level: 'level3'
+                level: 0
             },
             
             // 新增会员相关
@@ -264,48 +257,6 @@ const app = createApp({
             // 报表层级追蹤
             reportBreadcrumb: [],
 
-            // 会员下注记录視窗相关
-            memberBetRecords: {
-                isVisible: false,
-                loading: false,
-                memberUsername: '',
-                memberInfo: {},
-                records: [],
-                expandedRecords: {}, // 记录哪些记录已展开显示开奖结果
-                statistics: {
-                    totalBets: 0,
-                    totalAmount: 0,
-                    totalWinLoss: 0
-                },
-                filters: {
-                    startDate: new Date().toISOString().split('T')[0],
-                    endDate: new Date().toISOString().split('T')[0]
-                },
-                pagination: {
-                    page: 1,
-                    limit: 10,
-                    total: 0,
-                    totalPages: 0
-                }
-            },
-
-            // 佔成明细視窗相关
-            commissionDetails: {
-                isVisible: false,
-                betRecord: null,
-                details: []
-            },
-
-            // 开奖结果視窗相关
-            drawResultModal: {
-                isVisible: false,
-                loading: false,
-                gameType: '',
-                periodNumber: '',
-                resultNumbers: null,
-                drawTime: ''
-            },
-
             // 登录日誌相关
             loginLogs: [],
             loginLogFilters: {
@@ -350,8 +301,8 @@ const app = createApp({
             betFilters: {
                 member: '',
                 date: '',
-                startDate: new Date().toISOString().split('T')[0], // 预設今天
-                endDate: new Date().toISOString().split('T')[0],   // 预設今天
+                startDate: '',
+                endDate: '',
                 period: '',
                 viewScope: 'own', // 'own', 'downline', 'specific'
                 specificAgent: ''
@@ -370,7 +321,6 @@ const app = createApp({
             // 代理線管理相关
             allDownlineAgents: [], // 所有下級代理
             availableMembers: [], // 当前可用的会员列表
-            lastMembersLoadTime: null, // 会员列表载入时间（緩存用）
             
             // 会员余额修改相关
             modifyBalanceData: {
@@ -430,11 +380,6 @@ const app = createApp({
                 control_mode: 'normal',
                 is_active: false
             },
-            
-            // 跑馬燈相關
-            marqueeMessages: [],
-            newMarqueeMessage: '',
-            newMarqueePriority: 0,
             newWinLossControl: {
                 control_mode: 'normal',
                 target_type: '',
@@ -488,23 +433,6 @@ const app = createApp({
                 reason: ''
             },
             
-            // 代理限红数据
-            agentBettingLimitData: {
-                loading: false,
-                submitting: false,
-                agent: {
-                    id: null,
-                    username: '',
-                    bettingLimitLevel: '',
-                    levelDisplayName: '',
-                    description: ''
-                },
-                configs: [],
-                availableConfigs: [],
-                newLimitLevel: '',
-                reason: ''
-            },
-            
             // 个人资料数据
             profileData: {
                 realName: '',
@@ -543,52 +471,6 @@ const app = createApp({
                 next_period: 0,
                 suggested_start: 0
             },
-            
-            // 会员注單详情相关
-            memberBetDetails: {
-                memberUsername: '',
-                memberId: null,
-                startDate: new Date().toISOString().split('T')[0],
-                endDate: new Date().toISOString().split('T')[0],
-                bets: [],
-                currentPage: 1,
-                totalPages: 1,
-                totalBets: 0,
-                loading: false
-            },
-            
-            // 佔成明细
-            commissionDetails: [],
-            
-            // 开奖结果
-            drawResult: {
-                period: '',
-                numbers: []
-            },
-            
-            // 可用的限红配置（用於新增代理）
-            availableBettingLimitConfigs: [],
-            
-            // 子帳號相关数据
-            subAccounts: [],
-            newSubAccount: {
-                username: '',
-                password: '',
-                confirmPassword: ''
-            },
-            resetPasswordSubAccount: {
-                id: null,
-                username: '',
-                newPassword: '',
-                confirmPassword: ''
-            },
-            changePasswordForm: {
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            },
-            isSubAccount: false, // 標記当前登入的是否为子帳號
-            showCreateSubAccountModal: false, // 显示创建子帳號模態框
         };
     },
     
@@ -638,9 +520,6 @@ const app = createApp({
             });
         });
         
-        // 生成初始验证碼
-        this.refreshCaptcha();
-        
         // 先检查会话有效性，如果会话无效則清除本地存儲
         const sessionValid = await this.checkSession();
         
@@ -657,16 +536,6 @@ const app = createApp({
         
         if (isAuthenticated && sessionValid) {
             console.log('用戶已认证，开始加载初始数据');
-            
-            // 获取当前登入代理的完整信息（包括 betting_limit_level）
-            await this.fetchCurrentAgentInfo();
-            
-            // 再次检查并確保子帳號状态正確
-            if (this.isSubAccount) {
-                console.log('確認子帳號状态，强制切換到报表查询页面');
-                this.activeTab = 'reports';
-            }
-            
             // 检查是否为客服
             this.isCustomerService = this.user.level === 0;
             console.log('是否为客服:', this.isCustomerService);
@@ -717,259 +586,11 @@ const app = createApp({
             setTimeout(() => {
                 this.modalSystemReady = true;
                 console.log('🔓 模態框系统已启用');
-                
-                // 隐藏加载遮罩層
-                const loadingOverlay = document.getElementById('loading-overlay');
-                if (loadingOverlay) {
-                    loadingOverlay.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingOverlay.style.display = 'none';
-                    }, 300); // 0.3秒淡出動畫
-                }
             }, 1000); // 延迟1秒确保一切就緒
         });
     },
     
     methods: {
-        // 統一處理認證標頭
-        getAuthHeaders() {
-            const headers = {};
-            const sessionToken = localStorage.getItem('agent_session_token');
-            const legacyToken = localStorage.getItem('agent_token');
-            
-            if (sessionToken) {
-                headers['x-session-token'] = sessionToken;
-                headers['X-Session-Token'] = sessionToken;
-            }
-            if (legacyToken) {
-                headers['Authorization'] = `Bearer ${legacyToken}`;
-            }
-            
-            return headers;
-        },
-        
-        // ========== 子帳號相关方法 ==========
-        // 载入子帳號列表
-        async loadSubAccounts() {
-            try {
-                console.log('载入子帳號列表...');
-                const response = await axios.get(`${API_BASE_URL}/subaccounts`);
-                
-                if (response.data.success) {
-                    this.subAccounts = response.data.subAccounts || [];
-                    console.log('✅ 载入子帳號成功:', this.subAccounts.length, '个');
-                } else {
-                    console.error('载入子帳號失败:', response.data.message);
-                }
-            } catch (error) {
-                console.error('载入子帳號错误:', error);
-                this.showMessage('载入子帳號失败', 'error');
-            }
-        },
-        
-        // 显示创建子帳號模態框
-        openCreateSubAccountModal() {
-            console.log('显示创建子帳號模態框');
-            
-            if (this.subAccounts.length >= 2) {
-                this.showMessage('每个代理最多只能创建 2 个子帳號', 'error');
-                return;
-            }
-            
-            this.newSubAccount = {
-                username: '',
-                password: '',
-                confirmPassword: ''
-            };
-            
-            this.$nextTick(() => {
-                const modalEl = document.getElementById('createSubAccountModal');
-                if (modalEl) {
-                    const modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-                }
-            });
-        },
-        
-        // 创建子帳號
-        async createSubAccount() {
-            console.log('createSubAccount 方法被調用了！');
-            console.log('表單数据:', this.newSubAccount);
-            
-            // 基本验证
-            if (!this.newSubAccount.username || !this.newSubAccount.password || !this.newSubAccount.confirmPassword) {
-                this.showMessage('请填写所有欄位', 'error');
-                return;
-            }
-            
-            if (this.newSubAccount.password !== this.newSubAccount.confirmPassword) {
-                this.showMessage('两次输入的密码不一致', 'error');
-                return;
-            }
-            
-            if (this.newSubAccount.password.length < 6) {
-                this.showMessage('密码长度至少需要 6 个字符', 'error');
-                return;
-            }
-            
-            try {
-                this.loading = true;
-                console.log('开始创建子帳號，请求 URL:', `${API_BASE_URL}/subaccounts`);
-                console.log('请求数据:', {
-                    username: this.newSubAccount.username,
-                    passwordLength: this.newSubAccount.password.length
-                });
-                console.log('当前 axios headers:', axios.defaults.headers.common);
-                
-                const response = await axios.post(`${API_BASE_URL}/subaccounts`, {
-                    username: this.newSubAccount.username,
-                    password: this.newSubAccount.password
-                });
-                
-                console.log('创建子帳號响应:', response.data);
-                
-                if (response.data.success) {
-                    this.showMessage('子帳號创建成功', 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('createSubAccountModal')).hide();
-                    this.loadSubAccounts();
-                    // 重置表單
-                    this.newSubAccount = {
-                        username: '',
-                        password: '',
-                        confirmPassword: ''
-                    };
-                } else {
-                    this.showMessage(response.data.message || '创建失败', 'error');
-                }
-            } catch (error) {
-                console.error('创建子帳號错误:', error);
-                console.error('错误详情:', {
-                    message: error.message,
-                    response: error.response?.data,
-                    status: error.response?.status
-                });
-                
-                if (error.response?.status === 401) {
-                    this.showMessage('认证失败，请重新登入', 'error');
-                } else if (error.response?.data?.message) {
-                    this.showMessage(error.response.data.message, 'error');
-                } else {
-                    this.showMessage('创建子帳號失败', 'error');
-                }
-            } finally {
-                this.loading = false;
-            }
-        },
-        
-        // 切換子帳號状态
-        async toggleSubAccountStatus(subAccount) {
-            const action = subAccount.status === 1 ? '停用' : '启用';
-            
-            if (!confirm(`确定要${action}子帳號 ${subAccount.username} 嗎？`)) {
-                return;
-            }
-            
-            try {
-                const response = await axios.put(`${API_BASE_URL}/subaccounts/${subAccount.id}/status`, {
-                    status: subAccount.status === 1 ? 0 : 1
-                });
-                
-                if (response.data.success) {
-                    this.showMessage(`子帳號已${action}`, 'success');
-                    this.loadSubAccounts();
-                } else {
-                    this.showMessage(response.data.message || `${action}失败`, 'error');
-                }
-            } catch (error) {
-                console.error(`${action}子帳號错误:`, error);
-                this.showMessage(`${action}子帳號失败`, 'error');
-            }
-        },
-        
-        // 删除子帳號
-        async deleteSubAccount(subAccount) {
-            if (!confirm(`确定要删除子帳號 ${subAccount.username} 嗎？此操作不可恢復！`)) {
-                return;
-            }
-            
-            try {
-                const response = await axios.delete(`${API_BASE_URL}/subaccounts/${subAccount.id}`);
-                
-                if (response.data.success) {
-                    this.showMessage('子帳號已删除', 'success');
-                    this.loadSubAccounts();
-                } else {
-                    this.showMessage(response.data.message || '删除失败', 'error');
-                }
-            } catch (error) {
-                console.error('删除子帳號错误:', error);
-                this.showMessage('删除子帳號失败', 'error');
-            }
-        },
-        
-        // 显示重設密码模態框
-        showResetPasswordModal(subAccount) {
-            this.resetPasswordSubAccount = {
-                id: subAccount.id,
-                username: subAccount.username,
-                newPassword: '',
-                confirmPassword: ''
-            };
-            const modal = new bootstrap.Modal(document.getElementById('resetSubAccountPasswordModal'));
-            modal.show();
-        },
-        
-        // 重設子帳號密码
-        async resetSubAccountPassword() {
-            // 验证输入
-            if (!this.resetPasswordSubAccount.newPassword || !this.resetPasswordSubAccount.confirmPassword) {
-                this.showMessage('请填写所有欄位', 'error');
-                return;
-            }
-            
-            if (this.resetPasswordSubAccount.newPassword.length < 6) {
-                this.showMessage('密码长度至少需要 6 个字符', 'error');
-                return;
-            }
-            
-            if (this.resetPasswordSubAccount.newPassword !== this.resetPasswordSubAccount.confirmPassword) {
-                this.showMessage('两次输入的密码不一致', 'error');
-                return;
-            }
-            
-            try {
-                this.loading = true;
-                const response = await axios.put(
-                    `${API_BASE_URL}/subaccounts/${this.resetPasswordSubAccount.id}/password`,
-                    { newPassword: this.resetPasswordSubAccount.newPassword }
-                );
-                
-                if (response.data.success) {
-                    this.showMessage('密码已成功重設', 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('resetSubAccountPasswordModal')).hide();
-                    // 清空表單
-                    this.resetPasswordSubAccount = {
-                        id: null,
-                        username: '',
-                        newPassword: '',
-                        confirmPassword: ''
-                    };
-                } else {
-                    this.showMessage(response.data.message || '重設密码失败', 'error');
-                }
-            } catch (error) {
-                console.error('重設密码错误:', error);
-                if (error.response?.status === 401) {
-                    this.showMessage('认证失败，请重新登入', 'error');
-                } else {
-                    this.showMessage('重設密码失败', 'error');
-                }
-            } finally {
-                this.loading = false;
-            }
-        },
-        // ========== 子帳號相关方法结束 ==========
-        
         // 初始化 Bootstrap 5 模態框
         initModals() {
             console.log('初始化所有模態框');
@@ -1034,77 +655,52 @@ const app = createApp({
                 console.log('初始化代理备注编辑模態框');
                 this.editAgentNotesModal = new bootstrap.Modal(editAgentNotesModalEl);
             }
-            
-            // 初始化创建子帳號模態框
-            const createSubAccountModalEl = document.getElementById('createSubAccountModal');
-            if (createSubAccountModalEl) {
-                console.log('初始化创建子帳號模態框');
-                this.createSubAccountModal = new bootstrap.Modal(createSubAccountModalEl);
-            }
-            
-            // 初始化重設子帳號密码模態框
-            const resetSubAccountPasswordModalEl = document.getElementById('resetSubAccountPasswordModal');
-            if (resetSubAccountPasswordModalEl) {
-                console.log('初始化重設子帳號密码模態框');
-                this.resetSubAccountPasswordModal = new bootstrap.Modal(resetSubAccountPasswordModalEl);
-            }
-            
-            // 初始化更改密码模態框
-            const changePasswordModalEl = document.getElementById('changePasswordModal');
-            if (changePasswordModalEl) {
-                console.log('初始化更改密码模態框');
-                this.changePasswordModal = new bootstrap.Modal(changePasswordModalEl);
-            }
         },
         
         // 显示创建代理模態框
         showAgentModal() {
             this.showCreateAgentModal = true;
             
-            // 确定使用的管理代理 - 優先使用当前层级管理代理
-            let managingAgent;
-            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
-                managingAgent = this.currentMemberManagingAgent;
+            // 确定盤口类型和选择权限：
+            // 1. 如果是总代理且为自己创建代理(level 0 -> level 1)，可自由选择
+            // 2. 如果是总代理但在代理管理界面为下級代理创建代理，要遵守下級代理的盤口类型
+            // 3. 其他情况都固定繼承
+            let marketType = 'D'; // 默认D盤
+            let canChooseMarket = false;
+            
+            if (this.user.level === 0 && this.currentManagingAgent.id === this.user.id) {
+                // 总代理为自己创建一級代理，可自由选择
+                canChooseMarket = true;
+                marketType = 'D'; // 预設D盤
             } else {
-                managingAgent = this.currentManagingAgent;
+                // 其他情况：固定繼承当前管理代理的盤口类型
+                canChooseMarket = false;
+                marketType = this.currentManagingAgent.market_type || 'D';
             }
             
-            // 確保管理代理有完整信息
-            if (!managingAgent || !managingAgent.id) {
-                managingAgent = this.currentManagingAgent;
-            }
-            
-            // 确定盤口类型 - 必須繼承上級代理的盤口類型
-            const marketType = managingAgent.market_type || this.user.market_type || 'D';
-            const canChooseMarket = false; // 永遠不允許選擇，必須繼承
-            
+            // 根据当前管理代理级别，设置默认的下級代理级别
             // 根据盤口类型设定合适的默认退水比例
             const defaultRebatePercentage = marketType === 'A' ? 0.5 : 2.0; // A盤用0.5%，D盤用2.0%
             
             this.newAgent = {
                 username: '',
                 password: '',
-                level: (managingAgent.level + 1).toString(),
-                parent: managingAgent.id,
+                level: (this.currentManagingAgent.level + 1).toString(),
+                parent: this.currentManagingAgent.id,
                 market_type: marketType,  // 设置盤口繼承
                 rebate_mode: 'percentage',
                 rebate_percentage: defaultRebatePercentage,
-                betting_limit_level: '',  // 限红等级
                 notes: ''
             };
             
             console.log('🔧 创建代理模態框设定:', {
-                activeTab: this.activeTab,
                 currentUserLevel: this.user.level,
-                managingAgentLevel: managingAgent.level,
-                managingAgentMarketType: managingAgent.market_type,
-                isCreatingForSelf: managingAgent.id === this.user.id,
+                currentManagingAgentLevel: this.currentManagingAgent.level,
+                currentManagingAgentMarketType: this.currentManagingAgent.market_type,
+                isCreatingForSelf: this.currentManagingAgent.id === this.user.id,
                 marketType: marketType,
                 canChooseMarket: canChooseMarket
             });
-            
-            // 载入限红配置
-            this.loadAvailableBettingLimitConfigs();
             
             this.$nextTick(() => {
                 // 确保模態框元素已经被渲染到DOM後再初始化和显示
@@ -1127,68 +723,6 @@ const app = createApp({
             this.showCreateAgentModal = false;
         },
         
-        // 载入可用的限红配置（用於新增代理）
-        async loadAvailableBettingLimitConfigs() {
-            try {
-                // 获取所有限红配置
-                const response = await axios.get(`${API_BASE_URL}/betting-limit-configs`);
-                
-                if (response.data.success) {
-                    const allConfigs = response.data.configs;
-                    
-                    // 确定当前管理代理
-                    let managingAgent;
-                    if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
-                        managingAgent = this.currentMemberManagingAgent;
-                    } else {
-                        managingAgent = this.currentManagingAgent;
-                    }
-                    
-                    // 获取管理代理的限红等级（创建代理时需要參考父代理的限红等级）
-                    let managingAgentBettingLevel;
-                    
-                    // 如果当前用戶和管理代理是同一人（即为自己创建下級代理）
-                    if (managingAgent.id === this.user.id) {
-                        // 使用当前登入代理的限红等级（已經在 fetchCurrentAgentInfo 中更新）
-                        managingAgentBettingLevel = this.user.betting_limit_level || 'level3';
-                        console.log('为自己创建下級代理，使用当前登入代理的限红等级:', managingAgentBettingLevel);
-                    } else {
-                        // 为其他代理创建下級，使用該代理的限红等级
-                        managingAgentBettingLevel = managingAgent.betting_limit_level || 'level3';
-                        console.log('为其他代理创建下級，使用管理代理的限红等级:', managingAgentBettingLevel);
-                    }
-                    
-                    // 限红等级排序
-                    const levelOrder = {
-                        'level1': 1,
-                        'level2': 2,
-                        'level3': 3,
-                        'level4': 4,
-                        'level5': 5,
-                        'level6': 6
-                    };
-                    
-                    const managingLevel = levelOrder[managingAgentBettingLevel] || 3;
-                    
-                    // 过滤出不高於管理代理等级的配置
-                    this.availableBettingLimitConfigs = allConfigs.filter(config => {
-                        const configLevel = levelOrder[config.level_name] || 0;
-                        return configLevel <= managingLevel;
-                    });
-                    
-                    console.log('✅ 载入限红配置成功:', {
-                        managingAgent: managingAgent.username,
-                        managingAgentLevel: managingAgentBettingLevel,
-                        availableConfigs: this.availableBettingLimitConfigs.length,
-                        configs: this.availableBettingLimitConfigs.map(c => c.level_name)
-                    });
-                }
-            } catch (error) {
-                console.error('载入限红配置失败:', error);
-                this.showMessage('载入限红配置失败', 'error');
-            }
-        },
-        
         // 显示新增会员模態框 - 重定向到统一函數
         showMemberModal() {
             console.log('showMemberModal 已棄用，重定向到 quickCreateMember');
@@ -1197,17 +731,17 @@ const app = createApp({
         
         // 快速新增会员 - 專为会员管理页面和下級代理管理设计
         quickCreateMember() {
-            // 安全检查：确保已登录且有用戶资訊
+            // 安全检查：确保已登录且有用戶资讯
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资訊不完整，無法新增会员');
+                console.warn('⚠️ 未登录或用戶资讯不完整，無法新增会员');
                 return;
             }
             
             console.log('🚀 快速新增会员啟動');
             console.log('当前状态:');
             console.log('- activeTab:', this.activeTab);
-            console.log('- currentMemberManagingAgent:', this.currentMemberManagingAgent);
             console.log('- currentManagingAgent:', this.currentManagingAgent);
+            console.log('- agentBreadcrumbs:', this.agentBreadcrumbs);
             console.log('- user:', this.user);
             
             // 重置表單
@@ -1220,17 +754,23 @@ const app = createApp({
                 notes: ''
             };
             
-            // 确定目标代理 - 優先使用当前层级管理代理
+            // 根据当前页面和状态确定管理代理
             let targetAgent = null;
             
-            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
-                // 在帳號管理页面，使用当前层级管理代理
-                targetAgent = this.currentMemberManagingAgent;
-                console.log('📋 帳號管理模式：为当前层级代理', targetAgent.username, '新增会员');
-            } else if (this.currentManagingAgent && this.currentManagingAgent.id) {
-                // 使用当前管理代理
+            if (this.activeTab === 'agents' && this.agentBreadcrumbs.length > 0) {
+                // 在下級代理管理页面，为当前查看的代理新增会员
                 targetAgent = this.currentManagingAgent;
-                console.log('📋 管理代理模式：为', targetAgent.username, '新增会员');
+                console.log('📋 下級代理管理模式：为代理', targetAgent?.username, '新增会员');
+            } else if (this.activeTab === 'members') {
+                // 在会员管理页面，为自己新增会员
+                const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
+                targetAgent = {
+                    id: this.user.id,
+                    username: this.user.username,
+                    level: this.user.level,
+                    max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
+                };
+                console.log('👤 会员管理模式：为自己新增会员');
             } else {
                 // 预設情况：为自己新增会员
                 const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
@@ -1278,34 +818,14 @@ const app = createApp({
             console.log('✅ 模態框已关闭，数据已重置');
         },
         
-        // 生成验证碼
-        generateCaptcha() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 4; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        },
-        
-        // 刷新验证碼
-        refreshCaptcha() {
-            this.currentCaptcha = this.generateCaptcha();
-            this.loginForm.captcha = '';
-        },
+
         
         // 设置活動標籤並关闭漢堡选單
         setActiveTab(tab) {
             console.log('🔄 切換页籤到:', tab);
             
-            // 如果是子帳號，只能访问报表查询
-            if (this.isSubAccount && tab !== 'reports') {
-                console.warn('子帳號只能访问报表查询');
-                return;
-            }
-            
-            // 如果不是在帳號管理页面，重置当前管理代理为自己
-            if (tab !== 'accounts') {
+            // 如果不是在代理管理页面，重置当前管理代理为自己
+            if (tab !== 'agents') {
                 if (this.currentManagingAgent.id !== this.user.id) {
                     console.log('📍 重置管理視角：從', this.currentManagingAgent.username, '回到', this.user.username);
                     const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
@@ -1315,15 +835,14 @@ const app = createApp({
                         level: this.user.level,
                         market_type: this.user.market_type,
                         rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
-                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate,
-                        betting_limit_level: this.user.betting_limit_level || 'level3'
+                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate
                     };
                     
                     // 清空代理導航面包屑
                     this.agentBreadcrumbs = [];
                     
-                    // 如果切換到帳號管理，重新载入相关数据
-                    if (tab === 'accounts') {
+                    // 如果切換到会员管理或下注记录，重新载入相关数据
+                    if (tab === 'members') {
                         // 初始化层级会员管理
                         this.currentMemberManagingAgent = {
                             id: this.currentManagingAgent.id,
@@ -1336,79 +855,17 @@ const app = createApp({
                         this.searchBets();
                     }
                 }
-            } else {
-                // 切換到帳號管理时，初始化层级管理
-                this.currentMemberManagingAgent = {
-                    id: this.user.id,
-                    username: this.user.username,
-                    level: this.user.level
-                };
-                this.memberBreadcrumb = [];
-                this.loadHierarchicalMembers();
             }
             
             this.activeTab = tab;
             
-            // 切換到子帳號页面时，载入子帳號列表
-            if (tab === 'subaccounts') {
-                this.loadSubAccounts();
-            }
-            
-            // 关闭漢堡选單
-            const navbarToggler = document.querySelector('.navbar-toggler');
-            const navbarCollapse = document.querySelector('.navbar-collapse');
-            if (navbarToggler && navbarCollapse && navbarCollapse.classList.contains('show')) {
-                const bootstrapCollapse = new bootstrap.Collapse(navbarCollapse, {
+            // 关闭Bootstrap漢堡选單
+            const navbarCollapse = document.getElementById('navbarNav');
+            if (navbarCollapse && navbarCollapse.classList.contains('show')) {
+                const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
                     toggle: false
                 });
-                bootstrapCollapse.hide();
-            }
-            
-            // 关闭所有下拉选單
-            const dropdowns = document.querySelectorAll('.dropdown-menu.show');
-            dropdowns.forEach(dropdown => {
-                dropdown.classList.remove('show');
-            });
-            
-            // 移除所有下拉按钮的 show 類
-            const dropdownToggles = document.querySelectorAll('.dropdown-toggle.show');
-            dropdownToggles.forEach(toggle => {
-                toggle.classList.remove('show');
-                toggle.setAttribute('aria-expanded', 'false');
-            });
-        },
-        
-        // 获取当前登入代理的完整信息
-        async fetchCurrentAgentInfo() {
-            try {
-                // 使用已經在 checkAuth 中设置好的 axios headers
-                const response = await axios.get(`${API_BASE_URL}/agents/${this.user.id}`);
-                
-                if (response.data.success && response.data.agent) {
-                    const agentInfo = response.data.agent;
-                    
-                    // 更新 user 对象，保留 is_sub_account 标志和正确的 level
-                    this.user = {
-                        ...this.user,
-                        betting_limit_level: agentInfo.betting_limit_level,
-                        is_sub_account: this.user.is_sub_account, // 保留子帳號标志
-                        // 如果是子帳號，保留登入时设置的 level，不要用查询结果覆盖
-                        level: this.user.is_sub_account ? this.user.level : agentInfo.level
-                    };
-                    
-                    // 更新 currentManagingAgent
-                    this.currentManagingAgent = {
-                        ...this.currentManagingAgent,
-                        betting_limit_level: agentInfo.betting_limit_level
-                    };
-                    
-                    // 更新 localStorage
-                    localStorage.setItem('agent_user', JSON.stringify(this.user));
-                    
-                    console.log('✅ 已更新当前代理信息，限红等级:', agentInfo.betting_limit_level);
-                }
-            } catch (error) {
-                console.error('获取当前代理信息失败:', error);
+                bsCollapse.hide();
             }
         },
         
@@ -1466,15 +923,6 @@ const app = createApp({
                 console.log('解析後的user对象:', user);
                 
                 if (user && user.id) {
-                    // 如果是子帳號且 level 是 99，需要修正
-                    if (user.is_sub_account && user.level === 99) {
-                        console.log('檢測到子帳號 level 為 99，需要重新獲取正確的級別');
-                        // 子帳號的 level 應該是 0（總代理），因為 ti2025A 是總代理
-                        user.level = 0;
-                        // 更新 localStorage
-                        localStorage.setItem('agent_user', JSON.stringify(user));
-                    }
-                    
                     this.isLoggedIn = true;
                     this.user = user;
                     console.log('设置user对象成功:', this.user);
@@ -1486,34 +934,12 @@ const app = createApp({
                         level: this.user.level,
                         market_type: this.user.market_type,
                         rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                        max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041),
-                        betting_limit_level: this.user.betting_limit_level || 'level3'
+                        max_rebate_percentage: this.user.max_rebate_percentage || (this.user.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
                     // 检查是否为客服（总代理）
                     this.isCustomerService = this.user.level === 0;
                     console.log('checkAuth设定客服权限:', this.isCustomerService, '用戶级别:', this.user.level);
-                    
-                    // 初始化 currentManagingAgent 為當前用戶
-                    const defaultMaxRebate = this.user.market_type === 'A' ? 0.011 : 0.041;
-                    this.currentManagingAgent = {
-                        id: this.user.id,
-                        username: this.user.username,
-                        level: this.user.level,
-                        market_type: this.user.market_type,
-                        rebate_percentage: this.user.rebate_percentage || this.user.max_rebate_percentage || defaultMaxRebate,
-                        max_rebate_percentage: this.user.max_rebate_percentage || defaultMaxRebate,
-                        betting_limit_level: this.user.betting_limit_level || 'level3'
-                    };
-                    console.log('初始化 currentManagingAgent:', this.currentManagingAgent);
-                    
-                    // 检查是否为子帳號
-                    this.isSubAccount = user.is_sub_account || false;
-                    if (this.isSubAccount) {
-                        console.log('当前登入的是子帳號，限制功能');
-                        // 如果是子帳號，强制切換到报表查询页面
-                        this.activeTab = 'reports';
-                    }
                     
                     // 设置 axios 身份验证头
                     axios.defaults.headers.common['Authorization'] = token;
@@ -1541,15 +967,8 @@ const app = createApp({
         
         // 登录方法
         async login() {
-            if (!this.loginForm.username || !this.loginForm.password || !this.loginForm.captcha) {
-                return this.showMessage('请填写完整的登录资讯', 'error');
-            }
-            
-            // 验证验证碼
-            if (this.loginForm.captcha.toUpperCase() !== this.currentCaptcha) {
-                this.showMessage('验证碼输入错误，请重新输入', 'error');
-                this.refreshCaptcha();
-                return;
+            if (!this.loginForm.username || !this.loginForm.password) {
+                return this.showMessage('请输入用戶名和密码', 'error');
             }
             
             this.loading = true;
@@ -1588,21 +1007,10 @@ const app = createApp({
                         level: agent.level,
                         market_type: agent.market_type,
                         rebate_percentage: agent.rebate_percentage || agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041),
-                        max_rebate_percentage: agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041),
-                        betting_limit_level: agent.betting_limit_level || 'level3'
+                        max_rebate_percentage: agent.max_rebate_percentage || (agent.market_type === 'A' ? 0.011 : 0.041)
                     };
                     
                     console.log('✅ 登录成功，设置当前管理代理:', this.currentManagingAgent);
-                    
-                    // 检查是否为子帳號
-                    this.isSubAccount = agent.is_sub_account || false;
-                    console.log('是否为子帳號:', this.isSubAccount);
-                    
-                    // 如果是子帳號，强制设置activeTab为reports
-                    if (this.isSubAccount) {
-                        this.activeTab = 'reports';
-                        console.log('子帳號登入，限制只能访问报表查询');
-                    }
                     
                     // 检查是否为客服
                     this.isCustomerService = this.user.level === 0;
@@ -1624,16 +1032,13 @@ const app = createApp({
                 // 初始化可用会员列表
                 this.availableMembers = this.members;
                     
-                    // 移除登入成功讯息視窗
-                    // this.showMessage('登录成功', 'success');
+                    this.showMessage('登录成功', 'success');
                 } else {
                     this.showMessage(response.data.message || '登录失败', 'error');
-                    this.refreshCaptcha();
                 }
             } catch (error) {
                 console.error('登录错误:', error);
                 this.showMessage(error.response?.data?.message || '登录失败，请稍後再試', 'error');
-                this.refreshCaptcha();
             } finally {
                 this.loading = false;
             }
@@ -1805,38 +1210,32 @@ const app = createApp({
             });
         },
         
-        // 格式化日期显示 - 使用台北时间 (UTC+8)
+        // 格式化日期显示
         formatDate(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            // 使用 toLocaleString 自動处理时區转換
-            return date.toLocaleString('zh-TW', {
+            return date.toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Taipei'
-            }).replace(/\//g, '/');
+                second: '2-digit'
+            });
         },
         
         // 格式化日期时间（与 formatDate 相同，为了模板兼容性）
         formatDateTime(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            // 使用 toLocaleString 自動处理时區转換
-            return date.toLocaleString('zh-TW', {
+            return date.toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Taipei'
-            }).replace(/\//g, '/');
+                second: '2-digit'
+            });
         },
         
         // 客服交易记录分页 - 上一页
@@ -2066,8 +1465,6 @@ const app = createApp({
                     this.agents = data.data.list || [];
                     this.agentPagination.totalPages = Math.ceil(data.data.total / this.agentPagination.limit);
                     this.agentPagination.currentPage = data.data.page || 1;
-                    
-                    // ✅ 簡化逻辑：後端已返回正確的數字级别，無需额外转換
                 } else {
                     console.error('代理数据格式错误:', data);
                     this.agents = [];
@@ -2119,60 +1516,7 @@ const app = createApp({
                 if (response.data.success) {
                     this.hierarchicalMembers = response.data.data || [];
                     this.memberHierarchyStats = response.data.stats || { agentCount: 0, memberCount: 0 };
-                    
-                    // 🔧 防禦性修復：强制將所有代理的level转換为數字
-                    this.hierarchicalMembers.forEach(item => {
-                        if (item.userType === 'agent') {
-                            let numLevel = parseInt(item.level);
-                            
-                            // 如果parseInt失败，嘗試從字符串级别名称转換
-                            if (isNaN(numLevel)) {
-                                const levelMap = {
-                                    '总代理': 0,
-                                    '一級代理': 1,
-                                    '二級代理': 2,
-                                    '三級代理': 3,
-                                    '四級代理': 4,
-                                    '五級代理': 5,
-                                    '六級代理': 6,
-                                    '七級代理': 7,
-                                    '八級代理': 8,
-                                    '九級代理': 9,
-                                    '十級代理': 10,
-                                    '十一級代理': 11,
-                                    '十二級代理': 12,
-                                    '十三級代理': 13,
-                                    '十四級代理': 14,
-                                    '十五級代理': 15
-                                };
-                                
-                                numLevel = levelMap[item.level];
-                                if (numLevel === undefined) {
-                                    console.warn('⚠️ 代理 level 无效:', item.level, '使用预設值 0');
-                                    numLevel = 0;
-                                } else {
-                                    console.log('✅ 成功转換字符串级别:', item.level, '->', numLevel);
-                                }
-                            }
-                            
-                            item.level = numLevel;
-                        }
-                    });
-                    
                     console.log('✅ 层级会员管理数据载入成功:', this.hierarchicalMembers.length, '项');
-                    
-                    // 调试：输出代理的退水设定
-                    const agents = this.hierarchicalMembers.filter(m => m.userType === 'agent');
-                    if (agents.length > 0) {
-                        console.log('🔍 代理退水设定数据:', agents.map(agent => ({
-                            id: agent.id,
-                            username: agent.username,
-                            level: agent.level,
-                            rebate_mode: agent.rebate_mode,
-                            rebate_percentage: agent.rebate_percentage,
-                            max_rebate_percentage: agent.max_rebate_percentage
-                        })));
-                    }
                 } else {
                     console.error('❌ 载入层级会员管理数据失败:', response.data.message);
                     this.hierarchicalMembers = [];
@@ -2198,71 +1542,15 @@ const app = createApp({
             this.memberBreadcrumb.push({
                 id: this.currentMemberManagingAgent.id || this.currentManagingAgent.id,
                 username: this.currentMemberManagingAgent.username || this.currentManagingAgent.username,
-                level: this.currentMemberManagingAgent.level || this.currentManagingAgent.level,
-                levelName: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
+                level: this.getLevelName(this.currentMemberManagingAgent.level || this.currentManagingAgent.level)
             });
             
-            // 確保 level 是數字
-            let agentLevel = parseInt(agent.level, 10);
-            if (isNaN(agentLevel) || agentLevel < 0) {
-                console.warn('⚠️ 代理 level 无效:', agent.level, '使用预設值');
-                agentLevel = 0;
-            }
-            
-            // 從後端获取代理的最新资料，確保限红等级是最新的
-            try {
-                const response = await axios.get(`${API_BASE_URL}/agents/${agent.id}`);
-                if (response.data.success && response.data.agent) {
-                    const latestAgent = response.data.agent;
-                    
-                    // 保留完整的代理数据，特別是退水设定和限红等级相关资讯
-                    this.currentMemberManagingAgent = {
-                        id: latestAgent.id,
-                        username: latestAgent.username,
-                        level: parseInt(latestAgent.level, 10) || agentLevel,
-                        rebate_percentage: latestAgent.rebate_percentage,
-                        max_rebate_percentage: latestAgent.max_rebate_percentage,
-                        rebate_mode: latestAgent.rebate_mode,
-                        market_type: latestAgent.market_type,
-                        balance: latestAgent.balance,
-                        status: latestAgent.status,
-                        betting_limit_level: latestAgent.betting_limit_level || 'level3'
-                    };
-                    
-                    console.log('✅ 從後端获取最新代理资料:', this.currentMemberManagingAgent);
-                } else {
-                    // 如果获取失败，使用傳入的资料
-                    this.currentMemberManagingAgent = {
-                        id: agent.id,
-                        username: agent.username,
-                        level: agentLevel,
-                        rebate_percentage: agent.rebate_percentage,
-                        max_rebate_percentage: agent.max_rebate_percentage,
-                        rebate_mode: agent.rebate_mode,
-                        market_type: agent.market_type,
-                        balance: agent.balance,
-                        status: agent.status,
-                        betting_limit_level: agent.betting_limit_level || 'level3'
-                    };
-                }
-            } catch (error) {
-                console.error('❌ 获取代理最新资料失败:', error);
-                // 使用傳入的资料作为後備
-                this.currentMemberManagingAgent = {
-                    id: agent.id,
-                    username: agent.username,
-                    level: agentLevel,
-                    rebate_percentage: agent.rebate_percentage,
-                    max_rebate_percentage: agent.max_rebate_percentage,
-                    rebate_mode: agent.rebate_mode,
-                    market_type: agent.market_type,
-                    balance: agent.balance,
-                    status: agent.status,
-                    betting_limit_level: agent.betting_limit_level || 'level3'
-                };
-            }
-            
-            console.log('✅ 设定当前会员管理代理:', this.currentMemberManagingAgent);
+            // 设定新的管理代理
+            this.currentMemberManagingAgent = {
+                id: agent.id,
+                username: agent.username,
+                level: agent.level
+            };
             
             // 载入新代理的会员
             await this.loadHierarchicalMembers();
@@ -2271,68 +1559,46 @@ const app = createApp({
         async goBackToParentMember() {
             if (this.memberBreadcrumb.length > 0) {
                 const parent = this.memberBreadcrumb.pop();
-                
-                // 嘗試從 agents 數組中找到完整的代理资料
-                const fullAgentData = this.agents.find(a => a.id === parent.id);
-                
-                if (fullAgentData) {
-                    // 使用完整的代理资料
-                    this.currentMemberManagingAgent = {
-                        id: fullAgentData.id,
-                        username: fullAgentData.username,
-                        level: fullAgentData.level,
-                        rebate_percentage: fullAgentData.rebate_percentage,
-                        max_rebate_percentage: fullAgentData.max_rebate_percentage,
-                        rebate_mode: fullAgentData.rebate_mode,
-                        market_type: fullAgentData.market_type,
-                        balance: fullAgentData.balance,
-                        status: fullAgentData.status
-                    };
-                } else {
-                    // 如果找不到，使用基本资料（向下兼容）
-                    this.currentMemberManagingAgent = {
-                        id: parent.id,
-                        username: parent.username,
-                        level: 0 // 预設为总代理
-                    };
-                }
-                
-                console.log('🔙 返回上級代理:', this.currentMemberManagingAgent);
+                this.currentMemberManagingAgent = {
+                    id: parent.id,
+                    username: parent.username,
+                    level: this.getLevelFromName(parent.level)
+                };
                 await this.loadHierarchicalMembers();
             }
         },
 
         async goBackToMemberLevel(targetItem) {
-            // 嘗試從 agents 數組中找到完整的代理资料
-            const fullAgentData = this.agents.find(a => a.id === targetItem.id);
-            
-            if (fullAgentData) {
-                // 使用完整的代理资料
-                this.currentMemberManagingAgent = {
-                    id: fullAgentData.id,
-                    username: fullAgentData.username,
-                    level: fullAgentData.level,
-                    rebate_percentage: fullAgentData.rebate_percentage,
-                    max_rebate_percentage: fullAgentData.max_rebate_percentage,
-                    rebate_mode: fullAgentData.rebate_mode,
-                    market_type: fullAgentData.market_type,
-                    balance: fullAgentData.balance,
-                    status: fullAgentData.status
-                };
-            } else {
-                // 如果找不到，使用基本资料（向下兼容）
-                this.currentMemberManagingAgent = {
-                    id: targetItem.id,
-                    username: targetItem.username,
-                    level: 0 // 预設为总代理
-                };
-            }
-            
-            console.log('🎯 跳转到指定代理层级:', this.currentMemberManagingAgent);
+            this.currentMemberManagingAgent = {
+                id: targetItem.id,
+                username: targetItem.username,
+                level: this.getLevelFromName(targetItem.level)
+            };
             await this.loadHierarchicalMembers();
         },
 
-
+        getLevelFromName(levelName) {
+            // 將级别名称转換回级别數字
+            const levelMap = {
+                '总代理': 0,
+                '一級代理': 1,
+                '二級代理': 2,
+                '三級代理': 3,
+                '四級代理': 4,
+                '五級代理': 5,
+                '六級代理': 6,
+                '七級代理': 7,
+                '八級代理': 8,
+                '九級代理': 9,
+                '十級代理': 10,
+                '十一級代理': 11,
+                '十二級代理': 12,
+                '十三級代理': 13,
+                '十四級代理': 14,
+                '十五級代理': 15
+            };
+            return levelMap[levelName] || 0;
+        },
         
         // 载入直屬会员
         async loadDirectMembers() {
@@ -2448,11 +1714,10 @@ const app = createApp({
         formatTime(dateString) {
             if (!dateString) return '';
             const date = new Date(dateString);
-            return date.toLocaleTimeString('zh-TW', { 
+            return date.toLocaleTimeString('zh-CN', { 
                 hour: '2-digit', 
                 minute: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Taipei'
+                hour12: false
             });
         },
         
@@ -2488,7 +1753,7 @@ const app = createApp({
             return this.getMarketInfo('D'); // 默认D盤
         },
         
-        // 处理查看范围变更（优化性能）
+        // 处理查看范围变更
         async handleViewScopeChange() {
             console.log('🔄 查看范围变更:', this.betFilters.viewScope);
             
@@ -2496,21 +1761,17 @@ const app = createApp({
             this.betFilters.member = '';
             this.betFilters.specificAgent = '';
             
-            // 延迟载入会员列表，只在真正需要时载入
             if (this.betFilters.viewScope === 'own') {
-                // 僅本代理下級会员 - 快速载入直屬会员
-                this.loadDirectMembersForBets();
+                // 僅本代理下級会员 - 總是载入直屬会员
+                await this.loadDirectMembersForBets();
             } else if (this.betFilters.viewScope === 'downline') {
-                // 整條代理線 - 使用緩存优化
-                this.loadDownlineAgentsAndMembers();
+                // 整條代理線
+                await this.loadDownlineAgentsAndMembers();
             } else if (this.betFilters.viewScope === 'specific') {
-                // 指定代理/会员 - 延迟载入
+                // 指定代理/会员
+                await this.loadAllDownlineAgents();
                 this.availableMembers = [];
-                this.loadAllDownlineAgents();
             }
-            
-            // 不自動搜索，等用戶操作後再搜索
-            console.log('✅ 查看范围已切換，等待用戶进一步操作');
         },
         
         // 载入直屬会员用於下注记录
@@ -2560,37 +1821,25 @@ const app = createApp({
             }
         },
         
-        // 载入整條代理線的代理和会员（优化緩存版本）
+        // 载入整條代理線的代理和会员
         async loadDownlineAgentsAndMembers() {
             try {
-                // 如果已有緩存且不超过5分钟，直接使用
-                if (this.availableMembers.length > 0 && 
-                    this.lastMembersLoadTime && 
-                    Date.now() - this.lastMembersLoadTime < 5 * 60 * 1000) {
-                    console.log('🚀 使用緩存的代理線会员数据:', this.availableMembers.length, '个');
-                    return;
-                }
-                
                 console.log('📡 载入整條代理線的会员...');
-                
                 const response = await axios.get(`${API_BASE_URL}/downline-members`, {
                     params: { 
-                        rootAgentId: this.currentManagingAgent.id,
-                        limit: 500  // 限制数量提升性能
+                        rootAgentId: this.currentManagingAgent.id 
                     }
                 });
                 
                 if (response.data.success) {
                     this.availableMembers = response.data.members || [];
-                    this.lastMembersLoadTime = Date.now(); // 记录载入时间
                     console.log('✅ 载入整條代理線会员成功:', this.availableMembers.length, '个');
                 } else {
                     console.error('❌ 载入整條代理線会员失败:', response.data.message);
-                    this.availableMembers = [];
                 }
             } catch (error) {
                 console.error('❌ 载入整條代理線会员错误:', error);
-                this.availableMembers = [];
+                this.showMessage('载入会员列表失败', 'error');
             }
         },
         
@@ -2672,20 +1921,7 @@ const app = createApp({
                 const url = `${API_BASE_URL}/bets?${params.toString()}`;
                 console.log('📡 请求URL:', url);
                 
-                // 確保认证標头正確设置
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.get(url, { headers });
+                const response = await axios.get(url);
                 
                 if (!response.data.success) {
                     console.error('❌ 搜索下注记录失败:', response.data.message);
@@ -3001,10 +2237,10 @@ const app = createApp({
             }
         },
         
-        // 获取级别名称 - 簡化逻辑，直接处理數字级别
+        // 获取级别名称
         getLevelName(level) {
             const levels = {
-                0: '总代理',
+                0: '客服',
                 1: '一級代理', 
                 2: '二級代理',
                 3: '三級代理',
@@ -3021,55 +2257,7 @@ const app = createApp({
                 14: '十四級代理',
                 15: '十五級代理'
             };
-            
-            // 確保 level 是數字
-            const n = parseInt(level, 10);
-            
-            // 如果转換失败，返回预設值
-            if (isNaN(n) || n < 0) {
-                console.warn('⚠️ getLevelName 收到无效 level:', level, '使用预設值');
-                return '未知级别';
-            }
-            
-            return levels[n] || `${n}級代理`;
-        },
-
-        // 获取级别簡短名称（用於帳號管理表格）
-        getLevelShortName(level) {
-            // 確保 level 是數字
-            const n = parseInt(level, 10);
-            if (isNaN(n) || n < 0) return '未知';
-            
-            if (n === 0) return '总代理';
-            const chinese = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五'];
-            return `${chinese[n] || n}級`;
-        },
-
-        // 获取下一級级别名称（用於新增代理）
-        getNextLevelName() {
-            let currentLevel = 0;
-            
-            // 确定当前管理代理的级别
-            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.level !== undefined) {
-                currentLevel = this.currentMemberManagingAgent.level;
-            } else if (this.currentManagingAgent && this.currentManagingAgent.level !== undefined) {
-                currentLevel = this.currentManagingAgent.level;
-            } else {
-                currentLevel = this.user.level || 0;
-            }
-            
-            // 確保 currentLevel 是數字
-            const n = parseInt(currentLevel, 10);
-            if (isNaN(n) || n < 0) {
-                console.warn('⚠️ getNextLevelName 收到无效 level:', currentLevel, '使用预設值');
-                currentLevel = 0;
-            } else {
-                currentLevel = n;
-            }
-            
-            // 返回下一級的级别名称
-            const nextLevel = currentLevel + 1;
-            return this.getLevelName(nextLevel);
+            return levels[level] || `${level}級代理`;
         },
         
         // 提交余额调整
@@ -3150,8 +2338,10 @@ const app = createApp({
                 if (response.data.success) {
                     const agentName = this.currentManagingAgent.username;
                     const isCurrentUser = this.currentManagingAgent.id === this.user.id;
-                    const memberUsername = this.newMember.username;
-                    
+                    const message = isCurrentUser ? 
+                        `会员 ${this.newMember.username} 创建成功!` : 
+                        `已为代理 ${agentName} 创建会员 ${this.newMember.username}`;
+                    this.showMessage(message, 'success');
                     this.hideCreateMemberModal();
                     // 重置新增会员表單
                     this.newMember = {
@@ -3162,22 +2352,7 @@ const app = createApp({
                         status: 1,
                         notes: ''
                     };
-                    
-                    // 統一处理：创建会员成功後显示讯息並刷新列表，不进行跳转
-                    const message = isCurrentUser 
-                        ? `会员 ${memberUsername} 创建成功!`
-                        : `已为代理 ${agentName} 创建会员 ${memberUsername}，请根据需求调整点數及限红`;
-                    
-                    this.showMessage(message, 'success');
-                    
-                    // 根据当前標籤页决定刷新方式
-                    if (this.activeTab === 'accounts') {
-                        // 在帳號管理介面时刷新层级会员数据
-                        await this.refreshHierarchicalMembers();
-                    } else {
-                        // 在其他介面时刷新会员列表
-                        await this.searchMembers();
-                    }
+                    await this.searchMembers(); // 刷新会员列表
                 } else {
                     this.showMessage(response.data.message || '会员创建失败', 'error');
                 }
@@ -3218,22 +2393,6 @@ const app = createApp({
         },
         async createAgent() {
             console.log('createAgent 方法被調用', this.newAgent);
-            
-            // 检查15級代理限制
-            let currentLevel = 0;
-            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.level !== undefined) {
-                currentLevel = this.currentMemberManagingAgent.level;
-            } else if (this.currentManagingAgent && this.currentManagingAgent.level !== undefined) {
-                currentLevel = this.currentManagingAgent.level;
-            } else {
-                currentLevel = this.user.level || 0;
-            }
-            
-            if (currentLevel >= 15) {
-                this.showMessage('15級代理已达最大层级限制，只能创建会员，不能创建下級代理', 'error');
-                return;
-            }
-            
             if (!this.newAgent.username || !this.newAgent.password) {
                 this.showMessage('请填写所有必填欄位', 'error');
                 return;
@@ -3255,46 +2414,14 @@ const app = createApp({
                             // 验证退水设定
             if (this.newAgent.rebate_mode === 'percentage') {
                 const rebatePercentage = parseFloat(this.newAgent.rebate_percentage);
-                // 修復：使用当前管理代理的實际退水比例作为最大限制
-                const managingAgent = this.currentMemberManagingAgent || this.currentManagingAgent;
+                // 修復：使用当前管理代理的實际退水比例作为最大限制，根据盤口类型设定默认值
+                const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
+                const maxRebate = (this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate) * 100;
                 
-                // 使用管理代理的實際退水比例作為最大值
-                let maxRebateValue;
-                if (managingAgent.level === 0) {
-                    // 總代理：使用盤口的全部退水
-                    const agentMarketType = managingAgent.market_type || this.user.market_type || 'D';
-                    maxRebateValue = agentMarketType === 'A' ? 0.011 : 0.041;
-                } else {
-                    // 一般代理：使用管理代理的退水比例
-                    maxRebateValue = managingAgent.rebate_percentage || managingAgent.max_rebate_percentage || 0.041;
-                }
-                const maxRebate = maxRebateValue * 100;
-                
-                console.log('🔍 退水比例驗證詳情:', {
-                    輸入值: this.newAgent.rebate_percentage,
-                    解析後: rebatePercentage,
-                    最大值: maxRebate,
-                    maxRebateValue: maxRebateValue,
-                    比較結果: rebatePercentage > maxRebate,
-                    差值: rebatePercentage - maxRebate,
-                    管理代理: managingAgent.username,
-                    管理代理級別: managingAgent.level,
-                    新代理盤口: this.newAgent.market_type,
-                    管理代理盤口: managingAgent.market_type
-                });
-                
-                // 使用更寬鬆的精度容忍度
-                const tolerance = 0.001; // 允許 0.001% 的誤差
-                if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > (maxRebate + tolerance)) {
+                if (isNaN(rebatePercentage) || rebatePercentage < 0 || rebatePercentage > maxRebate) {
                     this.showMessage(`退水比例必须在 0% - ${maxRebate.toFixed(1)}% 之间`, 'error');
                     return;
                 }
-            }
-            
-            // 验证限红等级
-            if (!this.newAgent.betting_limit_level) {
-                this.showMessage('请选择限红等级', 'error');
-                return;
             }
             
             this.loading = true;
@@ -3306,7 +2433,6 @@ const app = createApp({
                     parent: this.newAgent.parent,
                     market_type: this.newAgent.market_type,
                     rebate_mode: this.newAgent.rebate_mode,
-                    betting_limit_level: this.newAgent.betting_limit_level,
                     notes: this.newAgent.notes || ''
                 };
                 
@@ -3334,14 +2460,7 @@ const app = createApp({
                         notes: ''
                     };
                     
-                    // 根据当前標籤页决定刷新方式
-                    if (this.activeTab === 'accounts') {
-                        // 在帳號管理介面时刷新层级数据
-                        await this.refreshHierarchicalMembers();
-                    } else {
-                        // 在其他介面时刷新代理列表
-                        await this.searchAgents();
-                    }
+                    this.searchAgents(); // 刷新代理列表
                 } else {
                     this.showMessage(response.data.message || '代理创建失败', 'error');
                 }
@@ -3525,7 +2644,7 @@ const app = createApp({
                     // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
                     // 需要重新获取会员列表或更新特定会员的余额
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -3649,61 +2768,22 @@ const app = createApp({
         
         // 显示退水设定模態框
         showRebateSettingsModal(agent) {
-            // 修復：根据当前页面选择正確的数据源，確保获取最新数据
-            let latestAgent;
-            if (this.activeTab === 'accounts') {
-                // 帳號管理页面：從 hierarchicalMembers 中查找最新数据
-                latestAgent = this.hierarchicalMembers.find(a => a.id === agent.id);
-                if (!latestAgent) {
-                    // 如果在层级会员中找不到，可能是代理，從 agents 中查找
-                    latestAgent = this.agents.find(a => a.id === agent.id) || agent;
-                }
-            } else {
-                // 其他页面：從 agents 中查找最新数据
-                latestAgent = this.agents.find(a => a.id === agent.id) || agent;
-            }
-            
-            console.log('🔍 查找最新代理数据:', {
-                activeTab: this.activeTab,
-                searchId: agent.id,
-                foundAgent: latestAgent,
-                originalAgent: agent,
-                agentsCount: this.agents.length,
-                hierarchicalMembersCount: this.hierarchicalMembers.length
-            });
-            
-            // 修復：正確取得上級代理的盤口类型和退水限制
-            const marketType = this.currentManagingAgent.market_type || this.user.market_type || 'D';
-            const defaultMaxRebate = marketType === 'A' ? 0.011 : 0.041;
+            // 修復：需要從上級代理获取退水限制，根据盤口类型设定默认值
+            const defaultMaxRebate = this.currentManagingAgent.market_type === 'A' ? 0.011 : 0.041;
             const maxRebate = this.currentManagingAgent.rebate_percentage || this.currentManagingAgent.max_rebate_percentage || defaultMaxRebate;
             
             this.rebateAgent = {
-                id: latestAgent.id,
-                username: latestAgent.username,
-                rebate_mode: latestAgent.rebate_mode || 'percentage',
-                rebate_percentage: latestAgent.rebate_percentage || 0, // 使用代理本身的退水比例，而非上級限制
-                max_rebate_percentage: maxRebate // 使用上級代理的退水限制作为最大值
+                id: agent.id,
+                username: agent.username,
+                rebate_mode: agent.rebate_mode || 'percentage',
+                rebate_percentage: maxRebate, // 使用上級代理的退水限制
+                max_rebate_percentage: agent.max_rebate_percentage || defaultMaxRebate
             };
-            
-            // 確保正確处理退水比例的格式转換
-            const agentRebatePercentage = parseFloat(latestAgent.rebate_percentage || 0);
             
             this.rebateSettings = {
-                rebate_mode: latestAgent.rebate_mode || 'percentage',
-                rebate_percentage: (agentRebatePercentage * 100).toFixed(1)
+                rebate_mode: agent.rebate_mode || 'percentage',
+                rebate_percentage: ((agent.rebate_percentage || 0) * 100).toFixed(1)
             };
-            
-            console.log('📋 显示退水设定 - 使用最新代理资料:', {
-                activeTab: this.activeTab,
-                agentId: latestAgent.id,
-                username: latestAgent.username,
-                rebate_mode: latestAgent.rebate_mode,
-                rebate_percentage: latestAgent.rebate_percentage,
-                parsedRebatePercentage: agentRebatePercentage,
-                displayPercentage: this.rebateSettings.rebate_percentage + '%',
-                rebateAgent: this.rebateAgent,
-                rebateSettings: this.rebateSettings
-            });
             
             this.showRebateModal = true;
             this.$nextTick(() => {
@@ -3735,50 +2815,12 @@ const app = createApp({
                     payload.rebate_percentage = parseFloat(this.rebateSettings.rebate_percentage) / 100;
                 }
                 
-                console.log('🚀 发送退水设定更新请求:', {
-                    agentId: this.rebateAgent.id,
-                    payload,
-                    originalPercentage: this.rebateSettings.rebate_percentage,
-                    convertedPercentage: payload.rebate_percentage
-                });
-                
                 const response = await axios.put(`${API_BASE_URL}/update-rebate-settings/${this.rebateAgent.id}`, payload);
-                
-                console.log('📨 退水设定更新回应:', response.data);
                 
                 if (response.data.success) {
                     this.showMessage('退水设定更新成功', 'success');
                     this.hideRebateSettingsModal();
-                    
-                    // 强制刷新所有相关数据
-                    console.log('🔄 强制刷新所有相关数据...');
-                    
-                    // 如果更新的是当前管理代理自己，更新 currentManagingAgent
-                    if (this.rebateAgent.id === this.currentManagingAgent.id) {
-                        console.log('🔄 更新当前管理代理的退水资料...');
-                        this.currentManagingAgent.rebate_mode = response.data.agent.rebate_mode;
-                        this.currentManagingAgent.rebate_percentage = response.data.agent.rebate_percentage;
-                    }
-                    
-                    // 如果更新的是用戶自己，也更新 user 对象
-                    if (this.rebateAgent.id === this.user.id) {
-                        console.log('🔄 更新用戶的退水资料...');
-                        this.user.rebate_mode = response.data.agent.rebate_mode;
-                        this.user.rebate_percentage = response.data.agent.rebate_percentage;
-                    }
-                    
-                    if (this.activeTab === 'accounts') {
-                        // 帳號管理页面：刷新层级会员数据
-                        await this.loadHierarchicalMembers();
-                    } else {
-                        // 其他页面：刷新代理数据
-                        await this.searchAgents();
-                    }
-                    
-                    // 强制觸發 Vue 响应性更新
-                    this.$forceUpdate();
-                    
-                    console.log('✅ 数据刷新完成');
+                    await this.searchAgents(); // 刷新代理列表
                 } else {
                     this.showMessage(response.data.message || '更新退水设定失败', 'error');
                 }
@@ -3829,28 +2871,15 @@ const app = createApp({
                 const response = await axios.post(`${API_BASE_URL}/toggle-member-status`, { memberId, status: newStatus });
                 if (response.data.success) {
                     this.showMessage(`会员已${actionText}`, 'success');
-                    
-                    // 立即更新本地会员列表中的状态
+                    // 更新本地会员列表中的状态
                     const member = this.members.find(m => m.id === memberId);
                     if (member) {
                         member.status = newStatus;
                     }
-                    
-                    // 如果在帳號管理页面，也更新层级管理中的会员状态
-                    if (this.activeTab === 'accounts' && this.hierarchicalMembers) {
-                        const hierarchicalMember = this.hierarchicalMembers.find(m => m.id === memberId);
-                        if (hierarchicalMember) {
-                            hierarchicalMember.status = newStatus;
-                        }
-                    }
-                    
                     // 重新载入会员列表以確保状态同步
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
-                    } else if (this.activeTab === 'accounts') {
-                        // 在帳號管理页面时，重新载入当前层级的数据
-                        await this.loadHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新会员列表
                         await this.searchMembers();
@@ -3991,7 +3020,7 @@ const app = createApp({
                     this.showMessage('会员额度修改成功', 'success');
                     this.hideModifyMemberBalanceModal();
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -4023,7 +3052,7 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('会员删除成功', 'success');
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
@@ -4153,12 +3182,12 @@ const app = createApp({
                         agentInList.status = newStatus;
                     }
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新代理列表
-                        await this.searchAgents();
+                        this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || `${actionText}代理失败`, 'error');
@@ -4189,31 +3218,18 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`代理已设为${actionText}`, 'success');
-                    
-                    // 立即更新本地代理列表中的状态
+                    // 更新本地代理列表中的状态
                     const agentInList = this.agents.find(a => a.id === agent.id);
                     if (agentInList) {
                         agentInList.status = newStatus;
                     }
-                    
-                    // 如果在帳號管理页面，也更新层级管理中的代理状态
-                    if (this.activeTab === 'accounts' && this.hierarchicalMembers) {
-                        const hierarchicalAgent = this.hierarchicalMembers.find(a => a.id === agent.id);
-                        if (hierarchicalAgent) {
-                            hierarchicalAgent.status = newStatus;
-                        }
-                    }
-                    
-                    // 根据当前介面决定是否需要重新载入数据
-                    if (this.activeTab === 'accounts') {
+                    // 根据当前介面决定刷新方式
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
-                    } else if (this.activeTab === 'accounts') {
-                        // 在帳號管理页面时，重新载入当前层级的数据
-                        await this.loadHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新代理列表
-                        await this.searchAgents();
+                        this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || `设置代理状态失败`, 'error');
@@ -4244,28 +3260,15 @@ const app = createApp({
                 
                 if (response.data.success) {
                     this.showMessage(`会员已设为${actionText}`, 'success');
-                    
-                    // 立即更新本地会员列表中的状态
+                    // 更新本地会员列表中的状态
                     const memberInList = this.members.find(m => m.id === member.id);
                     if (memberInList) {
                         memberInList.status = newStatus;
                     }
-                    
-                    // 如果在帳號管理页面，也更新层级管理中的会员状态
-                    if (this.activeTab === 'accounts' && this.hierarchicalMembers) {
-                        const hierarchicalMember = this.hierarchicalMembers.find(m => m.id === member.id);
-                        if (hierarchicalMember) {
-                            hierarchicalMember.status = newStatus;
-                        }
-                    }
-                    
-                    // 根据当前介面决定是否需要重新载入数据
-                    if (this.activeTab === 'accounts') {
+                    // 根据当前介面决定刷新方式
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
-                    } else if (this.activeTab === 'accounts') {
-                        // 在帳號管理页面时，重新载入当前层级的数据
-                        await this.loadHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新会员列表
                         await this.searchMembers();
@@ -4359,12 +3362,12 @@ const app = createApp({
                     
                     this.hideEditAgentNotesModal();
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新代理列表
-                        await this.searchAgents();
+                        this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || '更新代理备注失败', 'error');
@@ -4467,8 +3470,8 @@ const app = createApp({
                     this.hideEditMemberNotesModal();
                     
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
-                        // 在帳號管理介面时刷新层级会员数据
+                    if (this.activeTab === 'members') {
+                        // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新会员列表
@@ -4562,12 +3565,12 @@ const app = createApp({
                     // 同时更新localStorage中的用戶资讯
                     localStorage.setItem('agent_user', JSON.stringify(this.user));
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新代理列表
-                        await this.searchAgents();
+                        this.searchAgents();
                     }
                     this.hideAdjustAgentBalanceModal(); // 关闭模態框
                     await this.fetchDashboardData(); // 更新儀表板数据
@@ -4596,12 +3599,12 @@ const app = createApp({
                 if (response.data.success) {
                     this.showMessage('代理删除成功', 'success');
                     // 根据当前介面决定刷新方式
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         // 在层级会员管理介面时刷新层级会员数据
                         await this.refreshHierarchicalMembers();
                     } else {
                         // 在其他介面时刷新代理列表
-                        await this.searchAgents();
+                        this.searchAgents();
                     }
                 } else {
                     this.showMessage(response.data.message || '代理删除失败', 'error');
@@ -4949,8 +3952,7 @@ const app = createApp({
                 this.loading = true;
                 console.log('创建输赢控制:', this.newWinLossControl);
                 
-                const headers = this.getAuthHeaders();
-                const response = await axios.post(`${API_BASE_URL}/win-loss-control`, this.newWinLossControl, { headers });
+                const response = await axios.post(`${API_BASE_URL}/win-loss-control`, this.newWinLossControl);
                 
                 if (response.data.success) {
                     this.showMessage('输赢控制设定成功', 'success');
@@ -4973,12 +3975,7 @@ const app = createApp({
                 }
             } catch (error) {
                 console.error('创建输赢控制错误:', error);
-                // 显示具体的错误讯息
-                if (error.response && error.response.data && error.response.data.message) {
-                    this.showMessage(error.response.data.message, 'error');
-                } else {
-                    this.showMessage('设定时發生错误', 'error');
-                }
+                this.showMessage('设定时發生错误', 'error');
             } finally {
                 this.loading = false;
             }
@@ -4989,8 +3986,9 @@ const app = createApp({
             try {
                 console.log('启用输赢控制:', controlId);
                 
-                const headers = this.getAuthHeaders();
-                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/activate`, null, { headers });
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
+                    is_active: true
+                });
                 
                 if (response.data.success) {
                     this.showMessage('控制已启用', 'success');
@@ -5009,8 +4007,9 @@ const app = createApp({
             try {
                 console.log('停用输赢控制:', controlId);
                 
-                const headers = this.getAuthHeaders();
-                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}/deactivate`, null, { headers });
+                const response = await axios.put(`${API_BASE_URL}/win-loss-control/${controlId}`, {
+                    is_active: false
+                });
                 
                 if (response.data.success) {
                     this.showMessage('控制已停用', 'success');
@@ -5033,8 +4032,7 @@ const app = createApp({
                 
                 console.log('删除输赢控制:', controlId);
                 
-                const headers = this.getAuthHeaders();
-                const response = await axios.delete(`${API_BASE_URL}/win-loss-control/${controlId}`, { headers });
+                const response = await axios.delete(`${API_BASE_URL}/win-loss-control/${controlId}`);
                 
                 if (response.data.success) {
                     this.showMessage('控制设定已删除', 'success');
@@ -5045,151 +4043,6 @@ const app = createApp({
             } catch (error) {
                 console.error('删除输赢控制错误:', error);
                 this.showMessage('删除时發生错误', 'error');
-            }
-        },
-        
-        // 跑馬燈相關方法
-        // 載入跑馬燈訊息
-        async loadMarqueeMessages() {
-            try {
-                console.log('載入跑馬燈訊息...');
-                
-                // 設置認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.get(`${API_BASE_URL}/marquee-messages`, { headers });
-                
-                if (response.data.success) {
-                    this.marqueeMessages = response.data.messages || [];
-                    console.log('跑馬燈訊息載入成功:', this.marqueeMessages.length, '項');
-                } else {
-                    console.error('載入跑馬燈訊息失敗:', response.data.message);
-                }
-            } catch (error) {
-                console.error('載入跑馬燈訊息錯誤:', error);
-                this.showMessage('載入跑馬燈訊息失敗', 'error');
-            }
-        },
-        
-        // 新增跑馬燈訊息
-        async addMarqueeMessage() {
-            try {
-                if (!this.newMarqueeMessage.trim()) {
-                    this.showMessage('請輸入訊息內容', 'error');
-                    return;
-                }
-                
-                console.log('新增跑馬燈訊息:', this.newMarqueeMessage);
-                
-                // 設置認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.post(`${API_BASE_URL}/marquee-messages`, {
-                    message: this.newMarqueeMessage,
-                    priority: this.newMarqueePriority || 0
-                }, { headers });
-                
-                if (response.data.success) {
-                    this.showMessage('跑馬燈訊息已新增', 'success');
-                    this.newMarqueeMessage = '';
-                    this.newMarqueePriority = 0;
-                    await this.loadMarqueeMessages();
-                } else {
-                    this.showMessage('新增失敗: ' + response.data.message, 'error');
-                }
-            } catch (error) {
-                console.error('新增跑馬燈訊息錯誤:', error);
-                this.showMessage('新增時發生錯誤', 'error');
-            }
-        },
-        
-        // 切換跑馬燈訊息狀態
-        async toggleMarqueeMessage(messageId, isActive) {
-            try {
-                console.log('切換跑馬燈狀態:', messageId, isActive);
-                
-                // 設置認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.put(`${API_BASE_URL}/marquee-messages/${messageId}`, {
-                    is_active: isActive
-                }, { headers });
-                
-                if (response.data.success) {
-                    this.showMessage(`跑馬燈訊息已${isActive ? '啟用' : '停用'}`, 'success');
-                    await this.loadMarqueeMessages();
-                } else {
-                    this.showMessage('更新失敗: ' + response.data.message, 'error');
-                }
-            } catch (error) {
-                console.error('切換跑馬燈狀態錯誤:', error);
-                this.showMessage('更新時發生錯誤', 'error');
-            }
-        },
-        
-        // 刪除跑馬燈訊息
-        async deleteMarqueeMessage(messageId) {
-            try {
-                if (!confirm('確定要刪除此跑馬燈訊息嗎？')) {
-                    return;
-                }
-                
-                console.log('刪除跑馬燈訊息:', messageId);
-                
-                // 設置認證標頭
-                const headers = {};
-                const sessionToken = localStorage.getItem('agent_session_token');
-                const legacyToken = localStorage.getItem('agent_token');
-                
-                if (sessionToken) {
-                    headers['x-session-token'] = sessionToken;
-                    headers['X-Session-Token'] = sessionToken;
-                }
-                if (legacyToken) {
-                    headers['Authorization'] = legacyToken;
-                }
-                
-                const response = await axios.delete(`${API_BASE_URL}/marquee-messages/${messageId}`, { headers });
-                
-                if (response.data.success) {
-                    this.showMessage('跑馬燈訊息已刪除', 'success');
-                    await this.loadMarqueeMessages();
-                } else {
-                    this.showMessage('刪除失敗: ' + response.data.message, 'error');
-                }
-            } catch (error) {
-                console.error('刪除跑馬燈訊息錯誤:', error);
-                this.showMessage('刪除時發生錯誤', 'error');
             }
         },
         
@@ -5805,7 +4658,7 @@ const app = createApp({
                     }
                     
                     // 如果当前在会员页面，刷新会员列表
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         refreshPromises.push(this.searchMembers());
                     }
                     
@@ -6036,9 +4889,9 @@ const app = createApp({
         
         // 显示个人资料模態框
         async showProfileModal() {
-            // 安全检查：确保已登录且有用戶资訊
+            // 安全检查：确保已登录且有用戶资讯
             if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录或用戶资訊不完整，無法显示个人资料');
+                console.warn('⚠️ 未登录或用戶资讯不完整，無法显示个人资料');
                 return;
             }
             
@@ -6052,93 +4905,6 @@ const app = createApp({
         // 隐藏个人资料模態框
         hideProfileModal() {
             this.isProfileModalVisible = false;
-        },
-        
-        // 显示更改密码模態框
-        showChangePasswordModal() {
-            // 安全检查：确保已登录
-            if (!this.isLoggedIn || !this.user || !this.user.id) {
-                console.warn('⚠️ 未登录，無法更改密码');
-                return;
-            }
-            
-            // 清空表單
-            this.changePasswordForm = {
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            };
-            
-            const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
-            modal.show();
-        },
-        
-        // 更改密码
-        async changePassword() {
-            // 验证输入
-            if (!this.changePasswordForm.currentPassword || 
-                !this.changePasswordForm.newPassword || 
-                !this.changePasswordForm.confirmPassword) {
-                this.showMessage('请填写所有欄位', 'error');
-                return;
-            }
-            
-            if (this.changePasswordForm.newPassword.length < 6) {
-                this.showMessage('新密码长度至少需要 6 个字符', 'error');
-                return;
-            }
-            
-            if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmPassword) {
-                this.showMessage('两次输入的新密码不一致', 'error');
-                return;
-            }
-            
-            if (this.changePasswordForm.currentPassword === this.changePasswordForm.newPassword) {
-                this.showMessage('新密码不能与当前密码相同', 'error');
-                return;
-            }
-            
-            try {
-                this.loading = true;
-                const response = await axios.put(
-                    `${API_BASE_URL}/change-password`,
-                    {
-                        currentPassword: this.changePasswordForm.currentPassword,
-                        newPassword: this.changePasswordForm.newPassword
-                    }
-                );
-                
-                if (response.data.success) {
-                    this.showMessage('密码已成功更改', 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
-                    
-                    // 清空表單
-                    this.changePasswordForm = {
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: ''
-                    };
-                    
-                    // 可选：3秒後自動登出，让用戶用新密码重新登入
-                    setTimeout(() => {
-                        this.showMessage('请使用新密码重新登入', 'info');
-                        this.logout();
-                    }, 3000);
-                } else {
-                    this.showMessage(response.data.message || '更改密码失败', 'error');
-                }
-            } catch (error) {
-                console.error('更改密码错误:', error);
-                if (error.response?.status === 401) {
-                    this.showMessage('当前密码错误', 'error');
-                } else if (error.response?.data?.message) {
-                    this.showMessage(error.response.data.message, 'error');
-                } else {
-                    this.showMessage('更改密码失败', 'error');
-                }
-            } finally {
-                this.loading = false;
-            }
         },
         
         // 载入个人资料数据
@@ -6286,42 +5052,39 @@ const app = createApp({
 
 
          async searchReports() {
-             this.loading = true;
-             
              try {
-                 // 检查 currentManagingAgent.id 是否存在
-                 if (!this.currentManagingAgent || !this.currentManagingAgent.id) {
-                     console.error('❌ currentManagingAgent.id 未设置:', this.currentManagingAgent);
-                     throw new Error('代理ID未设置，请重新登录');
-                 }
+                 this.loading = true;
                  
+                 // 准备筛选参数
                  const params = new URLSearchParams();
-                 if (this.reportFilters.startDate) params.append('startDate', this.reportFilters.startDate);
-                 if (this.reportFilters.endDate) params.append('endDate', this.reportFilters.endDate);
-                 if (this.reportFilters.username) params.append('username', this.reportFilters.username);
                  
-                 console.log('📡 报表查询参数:', this.reportFilters);
-                 console.log('📍 使用代理ID:', this.currentManagingAgent.id);
-                 
-                 const url = `${this.API_BASE_URL}/agent-hierarchical-analysis?${params.toString()}&agentId=${this.currentManagingAgent.id}`;
-                 console.log('📡 完整请求URL:', url);
-                 
-                 const response = await fetch(url, {
-                     method: 'GET',
-                     headers: {
-                         'Content-Type': 'application/json',
-                         'Authorization': localStorage.getItem('agent_token') || '',
-                         'x-session-token': localStorage.getItem('agent_session_token') || ''
-                     }
-                 });
-                 
-                 if (!response.ok) {
-                     throw new Error(`HTTP error! status: ${response.status}`);
+                 // 日期参数
+                 if (this.reportFilters.startDate) {
+                     params.append('startDate', this.reportFilters.startDate);
+                 }
+                 if (this.reportFilters.endDate) {
+                     params.append('endDate', this.reportFilters.endDate);
                  }
                  
-                 const data = await response.json();
+                 // 结算状态
+                 if (this.reportFilters.settlementStatus) {
+                     params.append('settlementStatus', this.reportFilters.settlementStatus);
+                 }
                  
-                 console.log('📊 代理层级分析数据:', data);
+                 // 用戶名筛选
+                 if (this.reportFilters.username && this.reportFilters.username.trim()) {
+                     params.append('username', this.reportFilters.username.trim());
+                 }
+                 
+                 // 遊戲类型：只支援FS金彩赛车
+                 params.append('gameTypes', 'pk10');
+
+                 console.log('📊 前端: 調用代理层级分析API');
+                 
+                 const response = await axios.get(`${API_BASE_URL}/reports/agent-analysis?${params.toString()}`);
+                 const data = response.data;
+                 
+                 console.log('📊 前端: 接收到报表数据', data);
                  
                  // 新的簡化数据結構
                  this.reportData = {
@@ -6343,8 +5106,13 @@ const app = createApp({
                      message: data.message
                  };
                  
+                 if (!data.hasData) {
+                     this.showMessage(data.message || '查询期间內没有数据', 'info');
+                 }
+                 
              } catch (error) {
                  console.error('查询报表失败:', error);
+                 this.showMessage('查询报表失败: ' + error.message, 'error');
                  
                  // 设置空的报表数据結構
                  this.reportData = {
@@ -6389,7 +5157,7 @@ const app = createApp({
                      viewType: 'agents'
                  });
                  
-                 console.log('🔍 进入代理报表:', agent.username, '层级:', agent.level, 'ID:', agent.id);
+                 console.log('🔍 进入代理报表:', agent.username, '层级:', agent.level);
                  
                  // 准备参数
                  const params = new URLSearchParams();
@@ -6408,10 +5176,11 @@ const app = createApp({
                      params.append('username', this.reportFilters.username.trim());
                  }
                  
-                 // 指定查看該代理 - 使用正確的参数名称和值
-                 params.append('agentId', agent.id || agent.username);
+                 // 指定查看該代理
+                 params.append('targetAgent', agent.username);
+                 params.append('gameTypes', 'pk10');
                  
-                 const response = await fetch(`${this.API_BASE_URL}/agent-hierarchical-analysis?${params.toString()}`, {
+                 const response = await fetch(`${this.API_BASE_URL}/reports/agent-analysis?${params.toString()}`, {
                      method: 'GET',
                      headers: {
                          'Content-Type': 'application/json',
@@ -6573,6 +5342,67 @@ const app = createApp({
              this.enterAgentReport(targetItem);
          },
 
+         async exportReport() {
+             try {
+                 this.loading = true;
+                 
+                 // 准备筛选参数
+                 const params = new URLSearchParams({
+                     startDate: this.reportFilters.startDate,
+                     endDate: this.reportFilters.endDate,
+                     settlementStatus: this.reportFilters.settlementStatus,
+                     betType: this.reportFilters.betType,
+                     username: this.reportFilters.username,
+                     minAmount: this.reportFilters.minAmount,
+                     maxAmount: this.reportFilters.maxAmount,
+                     export: 'true'
+                 });
+
+                 // 处理遊戲类型筛选
+                 const selectedGameTypes = [];
+                 if (!this.reportFilters.gameTypes.all) {
+                     if (this.reportFilters.gameTypes.pk10) selectedGameTypes.push('pk10');
+                     if (this.reportFilters.gameTypes.ssc) selectedGameTypes.push('ssc');
+                     if (this.reportFilters.gameTypes.lottery539) selectedGameTypes.push('lottery539');
+                     if (this.reportFilters.gameTypes.lottery) selectedGameTypes.push('lottery');
+                     if (this.reportFilters.gameTypes.other) selectedGameTypes.push('other');
+                 }
+                 
+                 if (selectedGameTypes.length > 0) {
+                     params.append('gameTypes', selectedGameTypes.join(','));
+                 }
+
+                 const response = await fetch(`${this.API_BASE_URL}/reports/export?${params.toString()}`, {
+                     method: 'GET',
+                     headers: {
+                         'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
+                     }
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                 }
+
+                 // 处理檔案下载
+                 const blob = await response.blob();
+                 const url = window.URL.createObjectURL(blob);
+                 const a = document.createElement('a');
+                 a.href = url;
+                 a.download = `报表_${this.reportFilters.startDate}_${this.reportFilters.endDate}.xlsx`;
+                 document.body.appendChild(a);
+                 a.click();
+                 window.URL.revokeObjectURL(url);
+                 document.body.removeChild(a);
+                 
+                 this.showMessage('报表匯出完成', 'success');
+                 
+             } catch (error) {
+                 console.error('匯出报表失败:', error);
+                 this.showMessage('匯出报表失败: ' + error.message, 'error');
+             } finally {
+                 this.loading = false;
+             }
+         },
 
 
 
@@ -6799,554 +5629,6 @@ const app = createApp({
               }
           },
 
-          // 显示会员注單详情Modal
-          async showMemberBetDetails(member) {
-              try {
-                  console.log('🔍 显示会员注單详情:', member);
-                  
-                  this.memberBetDetails.memberUsername = member.username;
-                  this.memberBetDetails.memberId = member.id;
-                  this.memberBetDetails.currentPage = 1;
-                  
-                  // 重置数据
-                  this.memberBetDetails.bets = [];
-                  this.memberBetDetails.totalPages = 1;
-                  this.memberBetDetails.totalBets = 0;
-                  
-                  // 显示Modal
-                  const modal = new bootstrap.Modal(document.getElementById('memberBetDetailsModal'));
-                  modal.show();
-                  
-                  // 载入注單数据
-                  await this.loadMemberBetDetails();
-                  
-              } catch (error) {
-                  console.error('显示会员注單详情失败:', error);
-                  this.showMessage('显示会员注單详情失败: ' + error.message, 'error');
-              }
-          },
-
-          // 载入会员注單详情
-          async loadMemberBetDetails() {
-              if (!this.memberBetDetails.memberUsername) return;
-              
-              try {
-                  this.memberBetDetails.loading = true;
-                  
-                  const params = {
-                      username: this.memberBetDetails.memberUsername,
-                      startDate: this.memberBetDetails.startDate,
-                      endDate: this.memberBetDetails.endDate,
-                      page: this.memberBetDetails.currentPage,
-                      limit: 20
-                  };
-                  
-                  console.log('🔄 载入会员注單详情:', params);
-                  
-                  const response = await axios.get(`${API_BASE_URL}/member-bet-details`, {
-                      params,
-                      headers: {
-                          'Authorization': `Bearer ${this.sessionToken}`,
-                          'X-Session-Token': this.sessionToken
-                      }
-                  });
-                  
-                  if (response.data.success) {
-                      this.memberBetDetails.bets = response.data.bets || [];
-                      this.memberBetDetails.totalPages = response.data.totalPages || 1;
-                      this.memberBetDetails.totalBets = response.data.total || 0;
-                      
-                      console.log('✅ 注單详情载入成功:', response.data);
-                  } else {
-                      throw new Error(response.data.message || '载入注單详情失败');
-                  }
-                  
-              } catch (error) {
-                  console.error('载入会员注單详情失败:', error);
-                  this.showMessage('载入注單详情失败: ' + error.message, 'error');
-              } finally {
-                  this.memberBetDetails.loading = false;
-              }
-          },
-
-          // 刷新会员注單详情
-          async refreshMemberBetDetails() {
-              this.memberBetDetails.currentPage = 1;
-              await this.loadMemberBetDetails();
-          },
-
-          // 切換会员注單页面
-          async changeMemberBetPage(page) {
-              if (page < 1 || page > this.memberBetDetails.totalPages) return;
-              this.memberBetDetails.currentPage = page;
-              await this.loadMemberBetDetails();
-          },
-
-          // 获取会员注單分页范围
-          getMemberBetPageRange() {
-              const current = this.memberBetDetails.currentPage;
-              const total = this.memberBetDetails.totalPages;
-              const range = [];
-              
-              const start = Math.max(1, current - 2);
-              const end = Math.min(total, current + 2);
-              
-              for (let i = start; i <= end; i++) {
-                  range.push(i);
-              }
-              
-              return range;
-          },
-
-          // 显示佔成明细
-          async showCommissionDetails(bet) {
-              try {
-                  console.log('🔍 显示佔成明细:', bet);
-                  
-                  const response = await axios.get(`${API_BASE_URL}/bet-commission-details/${bet.id}`, {
-                      headers: {
-                          'Authorization': `Bearer ${this.sessionToken}`,
-                          'X-Session-Token': this.sessionToken
-                      }
-                  });
-                  
-                  if (response.data.success) {
-                      this.commissionDetails = response.data.details || [];
-                      
-                      // 显示Modal
-                      const modal = new bootstrap.Modal(document.getElementById('commissionDetailsModal'));
-                      modal.show();
-                  } else {
-                      throw new Error(response.data.message || '载入佔成明细失败');
-                  }
-                  
-              } catch (error) {
-                  console.error('显示佔成明细失败:', error);
-                  this.showMessage('显示佔成明细失败: ' + error.message, 'error');
-              }
-          },
-
-          // 显示开奖结果
-          async showDrawResult(period) {
-              try {
-                  console.log('🔍 显示开奖结果:', period);
-                  
-                  const response = await axios.get(`${API_BASE_URL}/draw-result/${period}`, {
-                      headers: {
-                          'Authorization': `Bearer ${this.sessionToken}`,
-                          'X-Session-Token': this.sessionToken
-                      }
-                  });
-                  
-                  if (response.data.success) {
-                      this.drawResult.period = period;
-                      this.drawResult.numbers = response.data.result || [];
-                      
-                      // 显示Modal
-                      const modal = new bootstrap.Modal(document.getElementById('drawResultModal'));
-                      modal.show();
-                  } else {
-                      throw new Error(response.data.message || '载入开奖结果失败');
-                  }
-                  
-              } catch (error) {
-                  console.error('显示开奖结果失败:', error);
-                  this.showMessage('显示开奖结果失败: ' + error.message, 'error');
-              }
-          },
-
-          // 格式化投注时间
-          formatBetTime(dateString) {
-              const date = new Date(dateString);
-              return date.toLocaleString('zh-TW', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false,
-                  timeZone: 'Asia/Taipei'
-              });
-          },
-
-          // 格式化投注时间 - 详细格式
-          formatBetTimeDetailed(dateString) {
-              if (!dateString) return '-';
-              const date = new Date(dateString);
-              // 使用 toLocaleString 自動处理时區转換
-              return date.toLocaleString('zh-TW', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false,
-                  timeZone: 'Asia/Taipei'
-              }).replace(/\//g, '-').replace(/, /, ' ');
-          },
-
-          // 格式化投注内容 - 详细格式
-          formatBetContentDetailed(record) {
-              if (!record) return '-';
-              
-              // 使用正確的投注内容格式化逻辑
-              let content = '';
-              
-              if (record.bet_type === 'number') {
-                  const positionNames = {
-                      1: '冠军', 2: '亚军', 3: '第三名', 4: '第四名', 5: '第五名',
-                      6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
-                  };
-                  const position = positionNames[record.position] || `第${record.position}名`;
-                  content = `${position} ${record.bet_value}`;
-              } else if (record.bet_type === 'combined') {
-                  const positionNames = {
-                      'champion': '冠军', 'runnerup': '亚军', 'third': '第三名', 
-                      'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                      'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                  };
-                  const position = positionNames[record.position] || record.position;
-                  const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                  const value = valueMap[record.bet_value] || record.bet_value;
-                  content = `${position} ${value}`;
-              } else if (record.bet_type === 'dragonTiger') {
-                  const valueMap = { 'dragon': '龙', 'tiger': '虎' };
-                  const value = valueMap[record.bet_value] || record.bet_value;
-                  content = `龙虎 ${value}`;
-              } else if (record.bet_type === 'sumValue') {
-                  if (['big', 'small', 'odd', 'even'].includes(record.bet_value)) {
-                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                      const value = valueMap[record.bet_value] || record.bet_value;
-                      content = `冠亞和 ${value}`;
-                  } else {
-                      content = `冠亞和 ${record.bet_value}`;
-                  }
-              } else {
-                  content = `${record.bet_type} ${record.bet_value}`;
-              }
-              
-              const odds = record.odds || '1.98';
-              return `${content} @ ${odds}`;
-          },
-
-          // 格式化下注结果 - 详细格式
-          formatBetResultDetailed(record) {
-              if (!record) return '-';
-              
-              // 首先检查是否为未结算注單
-              if (record.settled === false || record.result === '未结算') {
-                  return '未结算';
-              }
-              
-              // 根据记录计算實际输赢金额
-              let winLossAmount = 0;
-              
-              if (record.result === 'win' || record.result === '赢') {
-                  // 中奖：计算赢得的金额（投注金额 * 赔率 - 投注金额）
-                  const odds = parseFloat(record.odds) || 9.59;
-                  winLossAmount = (parseFloat(record.bet_amount) || 0) * odds - (parseFloat(record.bet_amount) || 0);
-              } else if (record.result === 'lose' || record.result === '输') {
-                  // 未中奖：损失投注金额
-                  winLossAmount = -(parseFloat(record.bet_amount) || 0);
-              } else if (record.result === 'pending') {
-                  return '待开奖';
-              } else if (record.win_loss !== undefined && record.win_loss !== null) {
-                  // 如果有直接的输赢数据，使用它
-                  winLossAmount = parseFloat(record.win_loss) || 0;
-              } else if (record.profit_loss !== undefined && record.profit_loss !== null) {
-                  // 使用 profit_loss 作为输赢金额
-                  winLossAmount = parseFloat(record.profit_loss) || 0;
-              }
-              
-              // 格式化显示
-              if (winLossAmount >= 0) {
-                  return winLossAmount.toFixed(1);
-              } else {
-                  return winLossAmount.toFixed(1);
-              }
-          },
-
-          // 获取下注结果详细樣式
-          getBetResultDetailedClass(record) {
-              if (!record) return 'text-muted';
-              
-              // 检查是否为未结算注單
-              if (record.settled === false || record.result === '未结算') {
-                  return 'text-warning fw-bold';
-              }
-              
-              let winLossAmount = 0;
-              
-              if (record.result === 'win' || record.result === '赢') {
-                  const odds = parseFloat(record.odds) || 9.59;
-                  winLossAmount = (parseFloat(record.bet_amount) || 0) * odds - (parseFloat(record.bet_amount) || 0);
-              } else if (record.result === 'lose' || record.result === '输') {
-                  winLossAmount = -(parseFloat(record.bet_amount) || 0);
-              } else if (record.result === 'pending') {
-                  return 'text-warning fw-bold';
-              } else if (record.win_loss !== undefined && record.win_loss !== null) {
-                  winLossAmount = parseFloat(record.win_loss) || 0;
-              } else if (record.profit_loss !== undefined && record.profit_loss !== null) {
-                  winLossAmount = parseFloat(record.profit_loss) || 0;
-              }
-              
-              return winLossAmount >= 0 ? 'text-dark fw-bold' : 'text-danger fw-bold';
-          },
-
-          // 格式化本級结果（上級代理获得的退水）
-          // 格式化本級结果（上級代理获得的退水和佣金）
-          formatAgentRebate(record) {
-              if (!record) return '0.00';
-              
-              // 检查是否为未结算注單
-              if (record.settled === false || record.result === '未结算') {
-                  return '未结算';
-              }
-              
-              console.log('计算本級结果:', record); // 调试用
-              
-              // 如果有直接的佣金数据，使用它
-              if (record.agent_commission !== undefined && record.agent_commission !== null) {
-                  return parseFloat(record.agent_commission).toFixed(2);
-              }
-              
-              // 计算上級代理從这筆投注获得的退水
-              const betAmount = parseFloat(record.bet_amount) || 0;
-              const rebatePercentage = parseFloat(record.rebate_percentage) || 2.0; // 预設2%
-              
-              // 只有投注金额大於0才计算退水
-              if (betAmount > 0 && rebatePercentage > 0) {
-                  const agentRebate = betAmount * (rebatePercentage / 100);
-                  return agentRebate.toFixed(2);
-              }
-              
-              return '0.00';
-          },
-
-          // 格式化投注位置和内容
-          formatBetPosition(record) {
-              if (!record) return '-';
-              
-              console.log('🔍 格式化投注位置，record数据:', record);
-              
-              // 获取投注类型和内容（兼容新舊欄位名称）
-              const betType = record.bet_type || record.game_type;
-              const betContent = record.bet_value || record.bet_content;
-              const position = record.position;
-              
-              console.log('🔍 解析欄位:', { betType, betContent, position });
-              
-              if (!betType || betContent === undefined || betContent === null) {
-                  console.warn('❌ 投注数据不完整:', { betType, betContent, position });
-                  return '-';
-              }
-              
-              // 定义位置名称映射
-              const positionMap = {
-                  'champion': '冠军', 'runnerup': '亚军', 'third': '第三名',
-                  'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                  'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-              };
-              
-              // 值映射
-              const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-              
-              // 处理 bet_type 直接是位置名称的情况（如 bet_type="eighth", bet_content="odd"）
-              if (positionMap[betType] && typeof betContent === 'string') {
-                  const positionText = positionMap[betType];
-                  const valueText = valueMap[betContent] || betContent;
-                  console.log('✅ bet_type是位置名称，转換:', { betType, betContent, positionText, valueText });
-                  return `${positionText} ${valueText}`;
-              }
-              
-              // 处理空格分隔的格式（如 "eighth odd", "champion big"）
-              if (typeof betContent === 'string' && betContent.includes(' ')) {
-                  console.log('✅ 发现空格分隔格式:', betContent);
-                  const parts = betContent.split(' ');
-                  console.log('✅ 分割结果:', parts);
-                  if (parts.length === 2) {
-                      const [positionEng, valueEng] = parts;
-                      
-                      const positionText = positionMap[positionEng] || positionEng;
-                      const valueText = valueMap[valueEng] || valueEng;
-                      
-                      console.log('空格格式转換:', { positionEng, valueEng, positionText, valueText });
-                      
-                      return `${positionText} ${valueText}`;
-                  }
-              }
-              
-              // 处理下劃線分隔的龙虎格式（如 "dragon_1_10"）
-              if (typeof betContent === 'string' && betContent.includes('_')) {
-                  const parts = betContent.split('_');
-                  if (parts.length === 3) {
-                      const [dragonTiger, pos1, pos2] = parts;
-                      const positionNames = {
-                          1: '第1名', 2: '第2名', 3: '第3名', 4: '第4名', 5: '第5名',
-                          6: '第6名', 7: '第7名', 8: '第8名', 9: '第9名', 10: '第10名'
-                      };
-                      const position1 = positionNames[parseInt(pos1)] || `第${pos1}名`;
-                      const position2 = positionNames[parseInt(pos2)] || `第${pos2}名`;
-                      const dragonTigerText = dragonTiger === 'dragon' ? '龙' : '虎';
-                      return `${position1}vs${position2} ${dragonTigerText}`;
-                  }
-              }
-              
-              // 根据真實数据格式化投注内容
-              if (betType === 'number') {
-                  const positionNames = {
-                      1: '冠军', 2: '亚军', 3: '第三名', 4: '第四名', 5: '第五名',
-                      6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
-                  };
-                  const positionName = positionNames[position] || `第${position}名`;
-                  return `${positionName} ${betContent}`;
-              } else if (betType === 'combined') {
-                  // 处理大小單双投注格式：可能是 "fourth even" 或分离的 position/betContent
-                  if (betContent.includes(' ')) {
-                      // 格式：position_name value (如 "fourth even")
-                      const parts = betContent.split(' ');
-                      if (parts.length === 2) {
-                          const [positionKey, valueKey] = parts;
-                          const positionNames = {
-                              'champion': '冠军', 'runnerup': '亚军', 'third': '第三名', 
-                              'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                              'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                          };
-                          const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                          const positionName = positionNames[positionKey] || positionKey;
-                          const value = valueMap[valueKey] || valueKey;
-                          return `${positionName} ${value}`;
-                      }
-                  } else {
-                      // 分离格式：使用 position 和 betContent
-                      const positionNames = {
-                          'champion': '冠军', 'runnerup': '亚军', 'third': '第三名', 
-                          'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                          'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                      };
-                      const positionName = positionNames[position] || position;
-                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                      const value = valueMap[betContent] || betContent;
-                      return `${positionName} ${value}`;
-                  }
-              } else if (betType === 'dragonTiger') {
-                  // 处理龙虎投注格式：dragon_1_10 或 tiger_3_8
-                  if (betContent.includes('_')) {
-                      const parts = betContent.split('_');
-                      if (parts.length === 3) {
-                          const [dragonTiger, pos1, pos2] = parts;
-                          const positionNames = {
-                              1: '第1名', 2: '第2名', 3: '第3名', 4: '第4名', 5: '第5名',
-                              6: '第6名', 7: '第7名', 8: '第8名', 9: '第9名', 10: '第10名'
-                          };
-                          const position1 = positionNames[parseInt(pos1)] || `第${pos1}名`;
-                          const position2 = positionNames[parseInt(pos2)] || `第${pos2}名`;
-                          const dragonTigerText = dragonTiger === 'dragon' ? '龙' : '虎';
-                          return `${position1}vs${position2} ${dragonTigerText}`;
-                      }
-                  }
-                  // fallback处理
-                  const valueMap = { 'dragon': '龙', 'tiger': '虎' };
-                  const value = valueMap[betContent] || betContent;
-                  return `龙虎 ${value}`;
-              } else if (betType === 'sumValue') {
-                  if (['big', 'small', 'odd', 'even'].includes(betContent)) {
-                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                      const value = valueMap[betContent] || betContent;
-                      return `冠亞和 ${value}`;
-                  } else {
-                      return `冠亞和 ${betContent}`;
-                  }
-              } else {
-                  // 如果有位置信息，加上位置名称
-                  if (position && typeof position === 'number') {
-                      const positionNames = {
-                          1: '冠军', 2: '亚军', 3: '第三名', 4: '第四名', 5: '第五名',
-                          6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
-                      };
-                      const positionName = positionNames[position] || `第${position}名`;
-                      return `${positionName} ${betContent}`;
-                  }
-                  return `${betType} ${betContent}`;
-              }
-          },
-
-          // 根据盤口类型格式化赔率
-          formatOddsByMarket(record) {
-              if (!record) return '9.59';
-              
-              const marketType = record.market_type || 'D';
-              
-              // 如果记录中有實际赔率，使用它
-              if (record.odds && record.odds > 0) {
-                  return parseFloat(record.odds).toFixed(2);
-              }
-              
-              // 根据盤口类型设定预設赔率
-              if (marketType === 'A') {
-                  // A盤通常赔率较低，例如數字玩法可能是1.98左右
-                  return '1.98';
-              } else {
-                  // D盤赔率较高
-                  return '9.59';
-              }
-          },
-
-          // 格式化投注内容
-          formatBetContent(bet) {
-              // 支援两種数据結構：bet_type/bet_value 和 game_type/bet_content
-              const betType = bet.bet_type || bet.game_type;
-              const betValue = bet.bet_value || bet.bet_content;
-              const position = bet.position;
-              
-              if (!betType || betValue === undefined) {
-                  console.warn('投注内容数据不完整:', bet);
-                  return '数据不完整';
-              }
-              
-              if (betType === 'number') {
-                  const positionNames = {
-                      1: '冠军', 2: '亚军', 3: '第三名', 4: '第四名', 5: '第五名',
-                      6: '第六名', 7: '第七名', 8: '第八名', 9: '第九名', 10: '第十名'
-                  };
-                  const positionName = positionNames[position] || `第${position}名`;
-                  return `${positionName} ${betValue}`;
-              } else if (betType === 'combined') {
-                  const positionNames = {
-                      'champion': '冠军', 'runnerup': '亚军', 'third': '第三名', 
-                      'fourth': '第四名', 'fifth': '第五名', 'sixth': '第六名',
-                      'seventh': '第七名', 'eighth': '第八名', 'ninth': '第九名', 'tenth': '第十名'
-                  };
-                  const positionName = positionNames[position] || position;
-                  const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                  const value = valueMap[betValue] || betValue;
-                  return `${positionName} ${value}`;
-              } else if (betType === 'dragonTiger') {
-                  const valueMap = { 'dragon': '龙', 'tiger': '虎' };
-                  const value = valueMap[betValue] || betValue;
-                  return `龙虎 ${value}`;
-              } else if (betType === 'sumValue') {
-                  if (['big', 'small', 'odd', 'even'].includes(betValue)) {
-                      const valueMap = { 'big': '大', 'small': '小', 'odd': '單', 'even': '双' };
-                      const value = valueMap[betValue] || betValue;
-                      return `冠亞和 ${value}`;
-                  } else {
-                      return `冠亞和 ${betValue}`;
-                  }
-              }
-              
-              // 如果都不匹配，返回原始值
-              return `${betType} ${betValue}`;
-          },
-
-          // 获取位置名称
-          getPositionName(position) {
-              const positions = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-              return positions[position - 1] || position;
-          },
-
           // 设置下注记录期间查询
           setBetDateRange(type) {
               const today = new Date();
@@ -7366,14 +5648,6 @@ const app = createApp({
                       firstDay.setDate(today.getDate() - today.getDay());
                       startDate = firstDay.toISOString().split('T')[0];
                       endDate = today.toISOString().split('T')[0];
-                      break;
-                  case 'lastWeek':
-                      const lastWeekEnd = new Date(today);
-                      lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
-                      const lastWeekStart = new Date(lastWeekEnd);
-                      lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
-                      startDate = lastWeekStart.toISOString().split('T')[0];
-                      endDate = lastWeekEnd.toISOString().split('T')[0];
                       break;
                   case 'thisMonth':
                       startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
@@ -7399,9 +5673,6 @@ const app = createApp({
               this.betFilters.date = ''; // 清空單日查询
               
               console.log('📅 设置下注记录期间查询:', type, startDate, '至', endDate);
-              
-              // 自動执行搜索
-              this.searchBets();
           },
 
         // 调整会员限红 - 使用v-if控制显示
@@ -7445,35 +5716,7 @@ const app = createApp({
                 }
                 
                 if (configsResponse.data.success) {
-                    const allConfigs = configsResponse.data.configs;
-                    
-                    // 获取会员所屬代理的限红等级（從後端返回的数据中获取）
-                    const agentBettingLevel = memberResponse.data.member.agentBettingLimitLevel || 'level3';
-                    
-                    // 限红等级排序
-                    const levelOrder = {
-                        'level1': 1,
-                        'level2': 2,
-                        'level3': 3,
-                        'level4': 4,
-                        'level5': 5,
-                        'level6': 6
-                    };
-                    
-                    const agentLevel = levelOrder[agentBettingLevel] || 3;
-                    
-                    // 过滤出不高於会员所屬代理等级的配置
-                    this.bettingLimitData.configs = allConfigs.filter(config => {
-                        const configLevel = levelOrder[config.level_name] || 0;
-                        return configLevel <= agentLevel;
-                    });
-                    
-                    console.log('✅ 会员限红配置过滤完成:', {
-                        memberAgentLevel: agentBettingLevel,
-                        memberAgentUsername: memberResponse.data.member.agentUsername,
-                        availableConfigs: this.bettingLimitData.configs.length,
-                        configs: this.bettingLimitData.configs.map(c => c.level_name)
-                    });
+                    this.bettingLimitData.configs = configsResponse.data.configs;
                 }
                 
                 this.bettingLimitData.loading = false;
@@ -7510,7 +5753,7 @@ const app = createApp({
                     this.showBettingLimitModal = false;
                     
                     // 刷新会员列表
-                    if (this.activeTab === 'accounts') {
+                    if (this.activeTab === 'members') {
                         await this.searchMembers();
                     } else if (this.activeTab === 'hierarchical') {
                         await this.refreshHierarchicalMembers();
@@ -7526,615 +5769,6 @@ const app = createApp({
                 this.bettingLimitData.submitting = false;
             }
         },
-        
-        // 调整代理限红设定
-        async adjustAgentBettingLimit(agent) {
-            try {
-                console.log('🔧 调整代理限红设定:', agent);
-                
-                // 初始化资料
-                this.agentBettingLimitData = {
-                    loading: true,
-                    submitting: false,
-                    agent: {
-                        id: agent.id,
-                        username: agent.username,
-                        bettingLimitLevel: '',
-                        levelDisplayName: '',
-                        description: ''
-                    },
-                    configs: [],
-                    availableConfigs: [],
-                    newLimitLevel: '',
-                    reason: ''
-                };
-                
-                // 显示Modal
-                this.showAgentBettingLimitModal = true;
-                console.log('✅ 代理限红调整Modal已显示！');
-                
-                // 並行载入数据
-                const [agentResponse, configsResponse] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/agent-betting-limit/${agent.id}`),
-                    axios.get(`${API_BASE_URL}/betting-limit-configs`)
-                ]);
-                
-                if (agentResponse.data.success) {
-                    this.agentBettingLimitData.agent = {
-                        ...this.agentBettingLimitData.agent,
-                        bettingLimitLevel: agentResponse.data.agent.bettingLimitLevel,
-                        levelDisplayName: agentResponse.data.agent.levelDisplayName,
-                        description: agentResponse.data.agent.description
-                    };
-                }
-                
-                if (configsResponse.data.success) {
-                    this.agentBettingLimitData.configs = configsResponse.data.configs;
-                    
-                    // 根据代理的父代理限红等级，过滤可用的配置
-                    const operatorLevelOrder = {
-                        'level1': 1,
-                        'level2': 2,
-                        'level3': 3,
-                        'level4': 4,
-                        'level5': 5,
-                        'level6': 6
-                    };
-                    
-                    // 获取目标代理的父代理限红等级
-                    // 如果是在层级会员管理中，使用当前管理代理的限红等级
-                    let parentBettingLevel = 'level6';
-                    if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.betting_limit_level) {
-                        parentBettingLevel = this.currentMemberManagingAgent.betting_limit_level;
-                        console.log('使用当前管理代理的限红等级:', parentBettingLevel);
-                    } else {
-                        // 否則使用操作者的限红等级
-                        parentBettingLevel = this.user.betting_limit_level || 'level6';
-                        console.log('使用操作者的限红等级:', parentBettingLevel);
-                    }
-                    
-                    const parentLevel = operatorLevelOrder[parentBettingLevel] || 6;
-                    
-                    // 过滤出不高於父代理等级的配置
-                    this.agentBettingLimitData.availableConfigs = configsResponse.data.configs.filter(config => {
-                        const configLevel = operatorLevelOrder[config.level_name] || 0;
-                        return configLevel <= parentLevel;
-                    });
-                    
-                    console.log('可用的限红配置:', this.agentBettingLimitData.availableConfigs.map(c => c.level_name));
-                }
-                
-                this.agentBettingLimitData.loading = false;
-                
-            } catch (error) {
-                console.error('载入代理限红设定失败:', error);
-                this.showMessage('载入代理限红设定失败，请稍後再試', 'error');
-                this.agentBettingLimitData.loading = false;
-                this.showAgentBettingLimitModal = false;
-            }
-        },
-        
-        // 隐藏代理限红调整Modal
-        hideAgentBettingLimitModal() {
-            this.showAgentBettingLimitModal = false;
-        },
-
-        // 提交代理限红调整
-        async submitAgentBettingLimitAdjustment() {
-            try {
-                // 检查是否为調降操作
-                const levelOrder = {
-                    'level1': 1, 'level2': 2, 'level3': 3,
-                    'level4': 4, 'level5': 5, 'level6': 6
-                };
-                
-                const currentLevel = levelOrder[this.agentBettingLimitData.agent.betting_limit_level] || 3;
-                const newLevel = levelOrder[this.agentBettingLimitData.newLimitLevel] || 3;
-                
-                // 如果是調降，显示确认对话框
-                if (newLevel < currentLevel) {
-                    const confirmMessage = `⚠️ 注意：調降限红等级將会连鎖调整所有下級代理和会员的限红等级。\n\n` +
-                        `所有超过新限制 (${this.agentBettingLimitData.configs.find(c => c.level_name === this.agentBettingLimitData.newLimitLevel)?.level_display_name}) 的下級都会被自動调整。\n\n` +
-                        `确定要繼續嗎？`;
-                    
-                    if (!confirm(confirmMessage)) {
-                        return;
-                    }
-                }
-                
-                this.agentBettingLimitData.submitting = true;
-                
-                const response = await axios.post(`${API_BASE_URL}/update-agent-betting-limit`, {
-                    operatorId: this.user.id,
-                    agentId: this.agentBettingLimitData.agent.id,
-                    newLimitLevel: this.agentBettingLimitData.newLimitLevel,
-                    reason: this.agentBettingLimitData.reason
-                });
-                
-                if (response.data.success) {
-                    this.showMessage('代理限红设定调整成功', 'success');
-                    
-                    // 关闭Modal
-                    this.showAgentBettingLimitModal = false;
-                    
-                    // 更新被调整代理的限红等级
-                    const updatedAgent = response.data.updatedAgent;
-                    if (updatedAgent) {
-                        // 如果这个代理是当前的会员管理代理，更新其限红等级
-                        if (this.currentMemberManagingAgent && this.currentMemberManagingAgent.id === updatedAgent.id) {
-                            this.currentMemberManagingAgent.betting_limit_level = updatedAgent.betting_limit_level;
-                            console.log('✅ 更新当前会员管理代理的限红等级:', this.currentMemberManagingAgent);
-                        }
-                        
-                        // 更新代理列表中的资料
-                        const agentIndex = this.agents.findIndex(a => a.id === updatedAgent.id);
-                        if (agentIndex > -1) {
-                            this.agents[agentIndex].betting_limit_level = updatedAgent.betting_limit_level;
-                        }
-                        
-                        // 更新层级会员列表中的资料
-                        if (this.hierarchicalMembers && this.hierarchicalMembers.agents) {
-                            const hierAgentIndex = this.hierarchicalMembers.agents.findIndex(a => a.id === updatedAgent.id);
-                            if (hierAgentIndex > -1) {
-                                this.hierarchicalMembers.agents[hierAgentIndex].betting_limit_level = updatedAgent.betting_limit_level;
-                            }
-                        }
-                    }
-                    
-                    // 刷新代理列表
-                    if (this.activeTab === 'accounts') {
-                        await this.searchAgents();
-                    } else if (this.activeTab === 'hierarchical') {
-                        await this.refreshHierarchicalMembers();
-                    }
-                } else {
-                    this.showMessage(response.data.message || '调整代理限红失败', 'error');
-                }
-                
-            } catch (error) {
-                console.error('调整代理限红失败:', error);
-                this.showMessage('调整代理限红失败，请稍後再試', 'error');
-            } finally {
-                this.agentBettingLimitData.submitting = false;
-            }
-        },
-
-        // 显示会员下注记录視窗
-        async showMemberBetRecords(memberUsername) {
-            try {
-                console.log('🔍 显示会员下注记录:', memberUsername);
-                
-                // 设置会员下注记录数据
-                this.memberBetRecords.memberUsername = memberUsername;
-                this.memberBetRecords.pagination.page = 1;
-                
-                // 使用当前报表的查询條件作为预設條件
-                this.memberBetRecords.filters.startDate = this.reportFilters.startDate;
-                this.memberBetRecords.filters.endDate = this.reportFilters.endDate;
-                
-                // 重置数据
-                this.memberBetRecords.records = [];
-                this.memberBetRecords.pagination.total = 0;
-                this.memberBetRecords.pagination.totalPages = 0;
-                
-                // 显示視窗
-                this.memberBetRecords.isVisible = true;
-                
-                // 载入下注记录数据
-                await this.loadMemberBetRecords();
-                
-            } catch (error) {
-                console.error('显示会员下注记录失败:', error);
-                this.showMessage('显示会员下注记录失败: ' + error.message, 'error');
-            }
-        },
-        
-        // 载入会员下注记录
-        async loadMemberBetRecords() {
-            if (!this.memberBetRecords.memberUsername) return;
-            
-            try {
-                this.memberBetRecords.loading = true;
-                
-                const params = new URLSearchParams();
-                params.append('memberUsername', this.memberBetRecords.memberUsername);
-                params.append('page', this.memberBetRecords.pagination.page);
-                params.append('limit', this.memberBetRecords.pagination.limit);
-                
-                if (this.memberBetRecords.filters.startDate) {
-                    params.append('startDate', this.memberBetRecords.filters.startDate);
-                }
-                if (this.memberBetRecords.filters.endDate) {
-                    params.append('endDate', this.memberBetRecords.filters.endDate);
-                }
-                
-                // 传递结算状态筛选
-                if (this.reportFilters.settlementStatus) {
-                    params.append('settlementStatus', this.reportFilters.settlementStatus);
-                }
-                
-                console.log('📡 查询会员下注记录参数:', params.toString());
-                
-                const response = await fetch(`${this.API_BASE_URL}/member-bet-records?${params.toString()}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // 修正：API 直接返回 data 阵列，memberInfo、statistics、pagination 在同一层级
-                    this.memberBetRecords.memberInfo = data.memberInfo || {};
-                    this.memberBetRecords.records = data.data || [];
-                    this.memberBetRecords.pagination = data.pagination || {};
-                    this.memberBetRecords.statistics = data.statistics || {};
-                    
-                    console.log('✅ 会员下注记录载入成功:', this.memberBetRecords.records.length, '筆');
-                } else {
-                    throw new Error(data.message || '查询失败');
-                }
-                
-            } catch (error) {
-                console.error('载入会员下注记录失败:', error);
-                this.showMessage('载入会员下注记录失败: ' + error.message, 'error');
-            } finally {
-                this.memberBetRecords.loading = false;
-            }
-        },
-        
-        // 关闭会员下注记录視窗
-        closeMemberBetRecords() {
-            this.memberBetRecords.isVisible = false;
-            this.memberBetRecords.memberUsername = '';
-            this.memberBetRecords.records = [];
-            this.memberBetRecords.memberInfo = {};
-            this.memberBetRecords.expandedRecords = {}; // 清空展开状态
-        },
-        
-        // 刷新会员下注记录
-        async refreshMemberBetRecords() {
-            this.memberBetRecords.pagination.page = 1;
-            await this.loadMemberBetRecords();
-        },
-        
-        // 切換会员下注记录页面
-        async changeMemberBetPage(page) {
-            if (page < 1 || page > this.memberBetRecords.pagination.totalPages) return;
-            this.memberBetRecords.pagination.page = page;
-            await this.loadMemberBetRecords();
-        },
-        
-        // 设置会员下注记录查询日期范围
-        setMemberBetDateRange(type) {
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            
-            switch(type) {
-                case 'today':
-                    this.memberBetRecords.filters.startDate = today.toISOString().split('T')[0];
-                    this.memberBetRecords.filters.endDate = today.toISOString().split('T')[0];
-                    break;
-                case 'yesterday':
-                    this.memberBetRecords.filters.startDate = yesterday.toISOString().split('T')[0];
-                    this.memberBetRecords.filters.endDate = yesterday.toISOString().split('T')[0];
-                    break;
-                case 'week':
-                    const weekStart = new Date(today);
-                    weekStart.setDate(today.getDate() - today.getDay());
-                    this.memberBetRecords.filters.startDate = weekStart.toISOString().split('T')[0];
-                    this.memberBetRecords.filters.endDate = today.toISOString().split('T')[0];
-                    break;
-                case 'month':
-                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-                    this.memberBetRecords.filters.startDate = monthStart.toISOString().split('T')[0];
-                    this.memberBetRecords.filters.endDate = today.toISOString().split('T')[0];
-                    break;
-            }
-            // 设定日期范围後自動查询
-            this.refreshMemberBetRecords();
-        },
-        
-        // 显示佔成明细 - 增強错误处理与调试
-        showCommissionDetails(record) {
-            this.commissionDetails.isVisible = true;
-            this.commissionDetails.betRecord = record;
-            
-            console.log('调试 - 完整记录数据:', record);
-            console.log('调试 - commission_details 存在嗎:', !!record.commission_details);
-            console.log('调试 - commission_details 内容:', record.commission_details);
-            console.log('调试 - 记录用戶名:', record.username);
-            console.log('调试 - 记录ID:', record.id);
-            
-            // 检查是否有佔成明细数据
-            if (record.commission_details && Array.isArray(record.commission_details) && record.commission_details.length > 0) {
-                this.commissionDetails.details = record.commission_details.map(detail => ({
-                    id: detail.id || Math.random(),
-                    agent_type: detail.agent_type || '代理',
-                    username: detail.username || '未知用戶',
-                    commission_rate: detail.commission_rate || 0,
-                    rebate_rate: detail.rebate_rate || 0,
-                    level: detail.level || 0
-                }));
-                console.log('调试 - 成功映射佔成明细:', this.commissionDetails.details);
-            } else {
-                console.log('调试 - 無佔成明细数据，可能原因:');
-                console.log('  - commission_details 不存在:', !record.commission_details);
-                console.log('  - 不是阵列:', !Array.isArray(record.commission_details));
-                console.log('  - 阵列为空:', record.commission_details && Array.isArray(record.commission_details) && record.commission_details.length === 0);
-                
-                // 如果是空阵列，可能会员沒有代理，这是正常情况
-                this.commissionDetails.details = [];
-            }
-            
-            console.log('调试 - 最終显示的明细长度:', this.commissionDetails.details.length);
-            console.log('调试 - 最終显示的明细:', this.commissionDetails.details);
-        },
-        
-        // 关闭佔成明细
-        closeCommissionDetails() {
-            this.commissionDetails.isVisible = false;
-            this.commissionDetails.betRecord = null;
-            this.commissionDetails.details = [];
-        },
-        
-        // 切換开奖结果展开/收縮 - 修正 Vue 3 响应式
-        async toggleDrawResult(record) {
-            try {
-                // 防护性检查
-                if (!record || !record.id || !record.period_number) {
-                    console.error('toggleDrawResult: 缺少必要的记录资料', record);
-                    this.showMessage('無法显示开奖结果：记录资料不完整', 'error');
-                    return;
-                }
-                
-                const recordKey = `${record.id}_${record.period_number}`;
-                
-                // 如果已經展开，則收縮 - 修正 Vue 3 响应式
-                if (this.memberBetRecords.expandedRecords[recordKey]) {
-                    this.memberBetRecords.expandedRecords[recordKey] = null;
-                    return;
-                }
-                
-                console.log('🎲 查询开奖结果:', record.game_type, record.period_number);
-                
-                // 设置加载状态 - 修正 Vue 3 响应式
-                this.memberBetRecords.expandedRecords[recordKey] = { loading: true };
-                
-                try {
-                    // 安全检查：防止期數作为URL路徑
-                    const gameType = record.game_type || 'pkc';
-                    const periodNumber = record.period_number;
-                    
-                    // 验证期數格式，防止URL注入
-                    if (!/^\d{11}$/.test(periodNumber)) {
-                        throw new Error('期數格式不正確');
-                    }
-                    
-                    // 構建安全的API URL - 修正路徑问题
-                    const apiUrl = `${this.API_BASE_URL}/draw-result/${encodeURIComponent(gameType)}/${encodeURIComponent(periodNumber)}`;
-                    console.log('🔒 安全的开奖结果API请求:', apiUrl);
-                    
-                    // 嘗試從後端获取真實开奖结果
-                    const response = await fetch(apiUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('agent_token')}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.drawResult) {
-                            // 使用真實的开奖结果 - 修正 Vue 3 响应式
-                            this.memberBetRecords.expandedRecords[recordKey] = {
-                                loading: false,
-                                period: data.drawResult.period,
-                                numbers: data.drawResult.numbers || [3, 7, 1, 9, 5, 2, 8, 4, 6, 10],
-                                drawTime: data.drawResult.drawTime
-                            };
-                        } else {
-                            throw new Error('無法获取开奖结果');
-                        }
-                    } else {
-                        throw new Error('API请求失败');
-                    }
-                } catch (apiError) {
-                    console.log('API获取失败，使用预設提示:', apiError.message);
-                    // 如果API失败，显示查询失败信息，不使用模擬数据
-                    this.memberBetRecords.expandedRecords[recordKey] = {
-                        loading: false,
-                        error: true,
-                        message: '未开奖，请稍後再試'
-                    };
-                }
-                
-            } catch (error) {
-                console.error('切換开奖结果失败:', error);
-                this.showMessage('获取开奖结果失败: ' + error.message, 'error');
-            }
-        },
-
-        // 已棄用的 showDrawResult 方法 - 请使用 toggleDrawResult
-        async showDrawResult(gameType, periodNumber) {
-            console.log('⚠️ showDrawResult 方法已棄用，请使用 toggleDrawResult 方法');
-            // 不再使用彈窗和成功讯息
-        },
-
-        // 验证期數访问，防止期數被當作静態资源请求
-        validatePeriodAccess(periodStr) {
-            try {
-                // 检查期數格式 (應該是數字，通常10-11位)
-                if (!periodStr || typeof periodStr !== 'string' && typeof periodStr !== 'number') {
-                    return false;
-                }
-
-                const period = String(periodStr);
-                
-                // 期數應該是純數字
-                if (!/^\d+$/.test(period)) {
-                    return false;
-                }
-
-                // 期數长度检查 (通常是10-11位: YYYYMMDDHHMM 格式)
-                if (period.length < 8 || period.length > 12) {
-                    return false;
-                }
-
-                console.log('✅ 期數格式验证通过:', period);
-                return true;
-
-            } catch (error) {
-                console.error('期數验证失败:', error);
-                return false;
-            }
-        },
-
-        // 安全的开奖结果切換函數 - 防止期數被當作静態资源请求
-        async safeToggleDrawResult(record) {
-            try {
-                // 防护性检查
-                if (!record || !record.id || !record.period_number) {
-                    console.error('safeToggleDrawResult: 缺少必要的记录资料', record);
-                    this.showMessage('無法显示开奖结果：记录资料不完整', 'error');
-                    return;
-                }
-
-                // 验证期數格式，防止被當作静態资源请求
-                const periodStr = String(record.period_number);
-                if (!this.validatePeriodAccess(periodStr)) {
-                    console.error('safeToggleDrawResult: 无效的期數格式', periodStr);
-                    this.showMessage('无效的期數格式', 'error');
-                    return;
-                }
-
-                console.log('🔒 安全开奖结果查询:', {
-                    gameType: record.game_type,
-                    period: record.period_number,
-                    recordId: record.id
-                });
-
-                // 調用原始的 toggleDrawResult 函數
-                await this.toggleDrawResult(record);
-
-            } catch (error) {
-                console.error('安全开奖结果切換失败:', error);
-                this.showMessage('获取开奖结果失败: ' + error.message, 'error');
-            }
-        },
-        
-        // 关闭开奖结果視窗
-        closeDrawResult() {
-            this.drawResultModal.isVisible = false;
-            this.drawResultModal.gameType = '';
-            this.drawResultModal.periodNumber = '';
-            this.drawResultModal.resultNumbers = null;
-            this.drawResultModal.drawTime = '';
-        },
-
-        // 格式化遊戲类型显示
-        formatGameTypeDisplay(gameType) {
-            const gameMap = {
-                'pk10': '波場赛车(1分)',
-                'ssc': 'AR 时时彩',
-                'lottery539': 'AR 539',
-                'lottery': 'AR 六合彩'
-            };
-            return gameMap[gameType] || gameType;
-        },
-
-        // 格式化投注内容显示
-        formatBetContentDisplay(record) {
-            try {
-                if (!record.bet_content) return '-';
-                
-                let content = record.bet_content;
-                if (typeof content === 'string') {
-                    content = JSON.parse(content);
-                }
-                
-                if (content.position && content.value) {
-                    const positionMap = {
-                        '1': '冠军',
-                        '2': '亚军', 
-                        '3': '第三名',
-                        '4': '第四名',
-                        '5': '第五名',
-                        '6': '第六名',
-                        '7': '第七名',
-                        '8': '第八名',
-                        '9': '第九名',
-                        '10': '第十名'
-                    };
-                    
-                    const position = positionMap[content.position] || `第${content.position}名`;
-                    
-                    // 显示赔率
-                    const odds = content.odds ? ` @ ${content.odds}` : '';
-                    
-                    return `${position} ${content.value}${odds}`;
-                }
-                
-                return JSON.stringify(content);
-            } catch (e) {
-                return record.bet_content || '-';
-            }
-        },
-
-        // 格式化下注结果
-        formatBetResult(result) {
-            const resultMap = {
-                'win': '中奖',
-                'lose': '未中奖',
-                'pending': '待开奖'
-            };
-            return resultMap[result] || result;
-        },
-
-        // 获取下注结果樣式
-        getBetResultClass(result) {
-            const classMap = {
-                'win': 'text-success fw-bold',
-                'lose': 'text-danger fw-bold',
-                'pending': 'text-warning fw-bold'
-            };
-            return classMap[result] || 'text-muted';
-        },
-
-        // 格式化盤口类型
-        formatMarketType(marketType) {
-            const marketMap = {
-                'A': 'A盤',
-                'B': 'B盤', 
-                'C': 'C盤',
-                'D': 'D盤'
-            };
-            return marketMap[marketType] || marketType;
-        },
-
-        // 获取会员下注记录分页范围
-        getMemberBetPageRange() {
-            const current = this.memberBetRecords.pagination.page;
-            const total = this.memberBetRecords.pagination.totalPages;
-            const range = [];
-            
-            const start = Math.max(1, current - 2);
-            const end = Math.min(total, current + 2);
-            
-            for (let i = start; i <= end; i++) {
-                range.push(i);
-            }
-            
-            return range;
-        },
 
         // 格式化投注类型名称
         formatBetTypeName(key) {
@@ -8147,14 +5781,6 @@ const app = createApp({
                 'dragonTiger': '龙虎'
             };
             return names[key] || key;
-        },
-
-        // 获取开奖号码球的樣式類別 - 与遊戲端一致
-        getNumberBadgeClass(number, index) {
-            // 使用与遊戲端一致的球號颜色樣式
-            // 更新为根据号码值来决定球的颜色，而不是根据位置
-            // 確保球號樣式与遊戲端一致，使用color-1到color-10
-            return `draw-number-badge color-${number}`;
         }
     },
 
@@ -8394,88 +6020,6 @@ const app = createApp({
             );
             
             return selectedConfig ? selectedConfig.config : {};
-        },
-        
-        // 计算选中的代理限红配置
-        selectedAgentLimitConfig() {
-            if (!this.agentBettingLimitData.newLimitLevel || !this.agentBettingLimitData.configs.length) {
-                return {};
-            }
-            
-            const selectedConfig = this.agentBettingLimitData.configs.find(
-                config => config.level_name === this.agentBettingLimitData.newLimitLevel
-            );
-            
-            return selectedConfig ? selectedConfig.config : {};
-        },
-        
-        // 计算可用的最大退水比例（用於新增代理时的限制）
-        availableMaxRebatePercentage() {
-            // 如果沒有登入，返回 0
-            if (!this.user || !this.user.id) {
-                return 0;
-            }
-            
-            // 直接使用當前登入用戶的資料
-            const managingAgent = this.user;
-            
-            console.log('🔍 第一步 - 确定管理代理:', {
-                managingAgent: managingAgent.username,
-                level: managingAgent.level,
-                rebate_percentage: managingAgent.rebate_percentage,
-                max_rebate_percentage: managingAgent.max_rebate_percentage,
-                market_type: managingAgent.market_type
-            });
-            
-            // 修復：區分总代理和一般代理的逻辑
-            let actualRebatePercentage;
-            
-            // 如果是总代理（level 0），應該使用盤口的全部退水限制
-            if (managingAgent.level === 0) {
-                const marketType = managingAgent.market_type || this.user.market_type || 'D';
-                actualRebatePercentage = marketType === 'A' ? 0.011 : 0.041; // A盤1.1%，D盤4.1%
-                console.log('🔍 第二步 - 总代理使用盤口全部退水:', actualRebatePercentage, '(' + marketType + '盤)');
-            } else {
-                // 一般代理：使用該代理被分配到的退水比例（rebate_percentage）
-                actualRebatePercentage = managingAgent.rebate_percentage;
-                
-                console.log('🔍 第二步 - 一般代理使用 rebate_percentage:', actualRebatePercentage, typeof actualRebatePercentage);
-                
-                // 確保转換为數字类型
-                if (actualRebatePercentage !== undefined && actualRebatePercentage !== null && actualRebatePercentage !== '') {
-                    actualRebatePercentage = parseFloat(actualRebatePercentage);
-                    console.log('🔍 第三步 - parseFloat 後:', actualRebatePercentage);
-                } else {
-                    actualRebatePercentage = null;
-                    console.log('🔍 第三步 - rebate_percentage 为空或undefined');
-                }
-                
-                // 如果 rebate_percentage 无效，使用 max_rebate_percentage
-                if (actualRebatePercentage === null || isNaN(actualRebatePercentage) || actualRebatePercentage <= 0) {
-                    console.log('🔍 第四步 - rebate_percentage 无效，使用 max_rebate_percentage');
-                    actualRebatePercentage = parseFloat(managingAgent.max_rebate_percentage) || 0;
-                    console.log('🔍 第四步 - 使用 max_rebate_percentage:', actualRebatePercentage);
-                }
-                
-                // 最后的兜底逻辑：如果还是沒有有效值，根据盤口类型使用默认值
-                if (isNaN(actualRebatePercentage) || actualRebatePercentage <= 0) {
-                    const marketType = managingAgent.market_type || this.user.market_type || 'D';
-                    actualRebatePercentage = marketType === 'A' ? 0.011 : 0.041;
-                    console.log('🔍 第五步 - 使用盤口默认值:', actualRebatePercentage);
-                }
-            }
-            
-            console.log('💡 计算 availableMaxRebatePercentage 最終结果:', {
-                managingAgent: managingAgent.username,
-                level: managingAgent.level,
-                isTotalAgent: managingAgent.level === 0,
-                原始_rebate_percentage: managingAgent.rebate_percentage,
-                原始_max_rebate_percentage: managingAgent.max_rebate_percentage,
-                最終使用值: actualRebatePercentage,
-                显示百分比: (actualRebatePercentage * 100).toFixed(1) + '%'
-            });
-            
-            return actualRebatePercentage;
         }
     },
 

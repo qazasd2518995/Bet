@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表格修正測試 v2.1</title>
+    <style>
+        /* 強制重置表格Grid布局 v2.1 */
+        .weekly-table-header {
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr !important;
+            background: #f8f9fa !important;
+            border-bottom: 2px solid #dee2e6 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .weekly-table-body {
+            background: white !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .table-row {
+            display: grid !important;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr !important;
+            border-bottom: 1px solid #eee !important;
+            cursor: pointer !important;
+            transition: background-color 0.2s ease !important;
+            align-items: center !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .header-cell {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .row-cell {
+            padding: 12px 8px;
+            text-align: center;
+            border-right: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .date-cell {
+            flex-direction: column;
+            padding: 8px;
+            min-width: 60px;
+        }
+
+        .date-number {
+            font-size: 16px;
+            font-weight: 600;
+            background: #ff6600;
+            color: white;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-bottom: 4px;
+            min-width: 40px;
+            white-space: nowrap;
+        }
+
+        .weekday-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .bet-count-cell {
+            min-width: 50px;
+            white-space: nowrap;
+        }
+
+        .amount-cell {
+            min-width: 60px;
+            white-space: nowrap;
+        }
+
+        .profit-cell {
+            min-width: 70px;
+            white-space: nowrap;
+        }
+
+        .profit-cell.profit-positive {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .profit-cell.profit-negative {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        /* 週報表響應式設計 - 修正版本 v2.1 強制刷新 */
+        @media (max-width: 768px) {
+            .weekly-table-header, .table-row {
+                grid-template-columns: 1.2fr 0.8fr 1fr 1fr !important;
+                font-size: 12px !important;
+                min-width: 0 !important;
+                width: 100% !important;
+                display: grid !important;
+            }
+
+            .header-cell, .row-cell {
+                padding: 8px 3px;
+                font-size: 11px;
+                min-width: 0;
+                overflow: visible;
+                text-align: center;
+                word-wrap: break-word;
+            }
+
+            /* 輸贏欄位 - 關鍵修正 v2.1 */
+            .row-cell:nth-child(4),
+            .profit-cell {
+                min-width: 55px !important;
+                max-width: none !important;
+                text-align: center !important;
+                font-size: 11px !important;
+                font-weight: 600 !important;
+                padding: 8px 3px !important;
+                word-break: keep-all !important;
+                white-space: nowrap !important;
+                overflow: visible !important;
+                grid-column: 4 !important;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .title {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .test-info {
+            padding: 15px;
+            background: #e7f3ff;
+            border-bottom: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">盈虧記錄表格測試 v2.1</div>
+        
+        <div class="test-info">
+            <strong>測試內容：</strong>檢查4欄表格是否正確顯示<br>
+            <strong>預期結果：</strong>日期 | 注數 | 有效金額 | 輸贏<br>
+            <strong>版本：</strong>v2.1 強制刷新 + !important
+        </div>
+        
+        <div class="weekly-profit-content">
+            <!-- 表格頭部 -->
+            <div class="weekly-table-header">
+                <div class="header-cell">日期</div>
+                <div class="header-cell">注數</div>
+                <div class="header-cell">有效金额</div>
+                <div class="header-cell">輸贏</div>
+            </div>
+            
+            <!-- 週報表數據 -->
+            <div class="weekly-table-body">
+                <div class="table-row">
+                    <div class="row-cell date-cell">
+                        <div class="date-number">25</div>
+                        <div class="weekday-label">今日</div>
+                    </div>
+                    <div class="row-cell bet-count-cell">5注</div>
+                    <div class="row-cell amount-cell">1,000</div>
+                    <div class="row-cell profit-cell profit-positive">+150</div>
+                </div>
+                <div class="table-row">
+                    <div class="row-cell date-cell">
+                        <div class="date-number">24</div>
+                        <div class="weekday-label">昨日</div>
+                    </div>
+                    <div class="row-cell bet-count-cell">3注</div>
+                    <div class="row-cell amount-cell">500</div>
+                    <div class="row-cell profit-cell profit-negative">-200</div>
+                </div>
+                <div class="table-row">
+                    <div class="row-cell date-cell">
+                        <div class="date-number">23</div>
+                        <div class="weekday-label">前日</div>
+                    </div>
+                    <div class="row-cell bet-count-cell">8注</div>
+                    <div class="row-cell amount-cell">2,000</div>
+                    <div class="row-cell profit-cell profit-positive">+75</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 檢查CSS是否正確載入
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstRow = document.querySelector('.table-row');
+            const computedStyle = window.getComputedStyle(firstRow);
+            
+            console.log('Grid Template Columns:', computedStyle.gridTemplateColumns);
+            console.log('Display:', computedStyle.display);
+            console.log('Width:', computedStyle.width);
+            
+            // 檢查第4個欄位
+            const fourthCell = firstRow.querySelector('.row-cell:nth-child(4)');
+            if (fourthCell) {
+                const cellStyle = window.getComputedStyle(fourthCell);
+                console.log('第4欄位 Grid Column:', cellStyle.gridColumn);
+                console.log('第4欄位 Width:', cellStyle.width);
+                console.log('第4欄位內容:', fourthCell.textContent);
+            }
+            
+            // 視覺檢查
+            setTimeout(() => {
+                alert('請檢查表格是否正確顯示4欄：\n日期 | 注數 | 有效金額 | 輸贏\n\n如果第4欄(輸贏)顯示正常，修正成功！');
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

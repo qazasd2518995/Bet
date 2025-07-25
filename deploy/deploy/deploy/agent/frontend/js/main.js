@@ -731,6 +731,18 @@ const app = createApp({
     },
     
     methods: {
+        // 格式化退水百分比顯示，處理浮點數精度問題
+        formatRebatePercentage(percentage) {
+            // 確保輸入是數字
+            const num = parseFloat(percentage);
+            if (isNaN(num)) return percentage;
+            
+            // 處理 JavaScript 浮點數精度問題
+            // 例如：1.0999999999999999 -> 1.1
+            // 使用 parseFloat 和 toFixed 來消除多餘的小數位
+            return parseFloat(num.toFixed(10));
+        },
+        
         // 統一處理認證標頭
         getAuthHeaders() {
             const headers = {};
@@ -3648,20 +3660,32 @@ const app = createApp({
         },
         
         // 显示退水设定模態框
-        showRebateSettingsModal(agent) {
-            // 修復：根据当前页面选择正確的数据源，確保获取最新数据
-            let latestAgent;
-            if (this.activeTab === 'accounts') {
-                // 帳號管理页面：從 hierarchicalMembers 中查找最新数据
-                latestAgent = this.hierarchicalMembers.find(a => a.id === agent.id);
-                if (!latestAgent) {
-                    // 如果在层级会员中找不到，可能是代理，從 agents 中查找
-                    latestAgent = this.agents.find(a => a.id === agent.id) || agent;
+        async showRebateSettingsModal(agent) {
+            this.loading = true;
+            try {
+                // 從伺服器獲取最新的代理資料
+                console.log('🔄 從伺服器獲取最新代理資料...', agent.id);
+                const response = await axios.get(`${API_BASE_URL}/agents/${agent.id}`);
+                
+                let latestAgent;
+                if (response.data.success && response.data.agent) {
+                    latestAgent = response.data.agent;
+                    console.log('✅ 獲取到最新代理資料:', latestAgent);
+                } else {
+                    // 如果無法從伺服器獲取，使用本地資料
+                    console.log('⚠️ 無法從伺服器獲取資料，使用本地資料');
+                    if (this.activeTab === 'accounts') {
+                        // 帳號管理页面：從 hierarchicalMembers 中查找最新数据
+                        latestAgent = this.hierarchicalMembers.find(a => a.id === agent.id);
+                        if (!latestAgent) {
+                            // 如果在层级会员中找不到，可能是代理，從 agents 中查找
+                            latestAgent = this.agents.find(a => a.id === agent.id) || agent;
+                        }
+                    } else {
+                        // 其他页面：從 agents 中查找最新数据
+                        latestAgent = this.agents.find(a => a.id === agent.id) || agent;
+                    }
                 }
-            } else {
-                // 其他页面：從 agents 中查找最新数据
-                latestAgent = this.agents.find(a => a.id === agent.id) || agent;
-            }
             
             console.log('🔍 查找最新代理数据:', {
                 activeTab: this.activeTab,
@@ -3688,9 +3712,20 @@ const app = createApp({
             // 確保正確处理退水比例的格式转換
             const agentRebatePercentage = parseFloat(latestAgent.rebate_percentage || 0);
             
+            // 詳細記錄轉換過程
+            const rawPercentage = agentRebatePercentage * 100;
+            const processedPercentage = parseFloat(rawPercentage.toFixed(10));
+            
+            console.log('🔍 退水百分比轉換詳情:', {
+                原始值: latestAgent.rebate_percentage,
+                解析後: agentRebatePercentage,
+                乘以100: rawPercentage,
+                處理後: processedPercentage
+            });
+            
             this.rebateSettings = {
                 rebate_mode: latestAgent.rebate_mode || 'percentage',
-                rebate_percentage: (agentRebatePercentage * 100).toFixed(1)
+                rebate_percentage: processedPercentage  // 處理浮點數精度
             };
             
             console.log('📋 显示退水设定 - 使用最新代理资料:', {
@@ -3713,6 +3748,12 @@ const app = createApp({
                     this.rebateSettingsModal.show();
                 }
             });
+            } catch (error) {
+                console.error('獲取代理資料錯誤:', error);
+                this.showMessage('獲取代理資料失敗', 'error');
+            } finally {
+                this.loading = false;
+            }
         },
         
         // 隐藏退水设定模態框
@@ -3732,7 +3773,10 @@ const app = createApp({
                 };
                 
                 if (this.rebateSettings.rebate_mode === 'percentage') {
-                    payload.rebate_percentage = parseFloat(this.rebateSettings.rebate_percentage) / 100;
+                    // 處理浮點數精度問題
+                    const percentage = parseFloat(this.rebateSettings.rebate_percentage) / 100;
+                    // 使用 parseFloat(toFixed(10)) 來消除浮點數誤差
+                    payload.rebate_percentage = parseFloat(percentage.toFixed(10));
                 }
                 
                 console.log('🚀 发送退水设定更新请求:', {
@@ -3770,6 +3814,18 @@ const app = createApp({
                     if (this.activeTab === 'accounts') {
                         // 帳號管理页面：刷新层级会员数据
                         await this.loadHierarchicalMembers();
+                        
+                        // 重要：更新 hierarchicalMembers 中對應代理的資料
+                        const updatedIndex = this.hierarchicalMembers.findIndex(
+                            item => item.userType === 'agent' && item.id === this.rebateAgent.id
+                        );
+                        if (updatedIndex !== -1) {
+                            // 更新列表中的代理資料
+                            this.hierarchicalMembers[updatedIndex].rebate_percentage = response.data.agent.rebate_percentage;
+                            this.hierarchicalMembers[updatedIndex].rebate_mode = response.data.agent.rebate_mode;
+                            this.hierarchicalMembers[updatedIndex].max_rebate_percentage = response.data.agent.max_rebate_percentage;
+                            console.log('✅ 已更新列表中的代理退水資料');
+                        }
                     } else {
                         // 其他页面：刷新代理数据
                         await this.searchAgents();
@@ -8416,8 +8472,15 @@ const app = createApp({
                 return 0;
             }
             
-            // 確定要使用哪個代理的資料：如果有 currentManagingAgent 則使用它，否則使用登入用戶
-            const managingAgent = this.currentManagingAgent || this.user;
+            // 確定要使用哪個代理的資料
+            let managingAgent;
+            if (this.activeTab === 'accounts' && this.currentMemberManagingAgent && this.currentMemberManagingAgent.id) {
+                // 在帳號管理頁面，使用 currentMemberManagingAgent
+                managingAgent = this.currentMemberManagingAgent;
+            } else {
+                // 否則使用 currentManagingAgent 或登入用戶
+                managingAgent = this.currentManagingAgent || this.user;
+            }
             
             console.log('🔍 第一步 - 确定管理代理:', {
                 isUsingCurrentManaging: !!this.currentManagingAgent,

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Display Debugger</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        .debug-section {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .success { color: #0f0; }
+        .info { color: #0ff; }
+        pre { 
+            background: #000; 
+            padding: 10px; 
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0a0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Frontend Display Debugger</h1>
+    
+    <div class="debug-section">
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Open your betting game in another tab</li>
+            <li>Open browser console (F12)</li>
+            <li>Copy the debug script below and paste it in the console</li>
+            <li>Review the output to identify the issue</li>
+        </ol>
+    </div>
+
+    <div class="debug-section">
+        <h2>Debug Script:</h2>
+        <button onclick="copyScript()">Copy Debug Script</button>
+        <pre id="debugScript">
+// FS金彩賽車 Frontend Display Debugger v1.0
+// This script will help identify why only 4 numbers are showing
+
+(function() {
+    console.clear();
+    console.log('%c🔍 FS金彩賽車 Display Debugger Started', 'color: #0f0; font-size: 16px; font-weight: bold;');
+    console.log('=====================================\n');
+    
+    // Get Vue instance
+    const app = document.querySelector('#app').__vue__;
+    if (!app) {
+        console.error('❌ Vue app not found!');
+        return;
+    }
+    
+    // 1. Check Vue Data
+    console.log('%c📊 Vue Data State:', 'color: #0ff; font-size: 14px; font-weight: bold;');
+    console.log('Current Period:', app.currentPeriod);
+    console.log('Game Status:', app.gameStatus);
+    console.log('Show Washing Animation:', app.showWashingAnimation);
+    console.log('Is Drawing In Progress:', app.isDrawingInProgress);
+    console.log('\n');
+    
+    // 2. Check Results Arrays
+    console.log('%c🎲 Results Data:', 'color: #0ff; font-size: 14px; font-weight: bold;');
+    console.log('lastResults array:', app.lastResults);
+    console.log('lastResults length:', app.lastResults?.length);
+    console.log('lastResult (cached):', app.lastResult);
+    console.log('lastResult length:', app.lastResult?.length);
+    
+    // Check if results are truncated
+    if (app.lastResults && app.lastResults.length < 10) {
+        console.warn('⚠️ WARNING: lastResults has only', app.lastResults.length, 'numbers! Should have 10.');
+    }
+    console.log('\n');
+    
+    // 3. Check DOM Elements
+    console.log('%c🖥️ DOM Analysis:', 'color: #0ff; font-size: 14px; font-weight: bold;');
+    
+    // Check results container
+    const resultsContainer = document.querySelector('.results-container-new');
+    if (resultsContainer) {
+        console.log('Results container found ✓');
+        const computedStyle = window.getComputedStyle(resultsContainer);
+        console.log('Container styles:');
+        console.log('- Display:', computedStyle.display);
+        console.log('- Width:', computedStyle.width);
+        console.log('- Max-width:', computedStyle.maxWidth);
+        console.log('- Overflow:', computedStyle.overflow);
+    } else {
+        console.error('❌ Results container not found!');
+    }
+    
+    // Count result balls
+    const resultBalls = document.querySelectorAll('.result-slot-new');
+    console.log('\nResult slots found:', resultBalls.length);
+    
+    if (resultBalls.length > 0) {
+        console.log('Ball values:');
+        resultBalls.forEach((slot, index) => {
+            const ball = slot.querySelector('.number-ball');
+            const value = ball ? ball.textContent.trim() : 'N/A';
+            const isVisible = slot.offsetParent !== null;
+            console.log(`  Ball ${index + 1}: ${value} ${isVisible ? '(visible)' : '(hidden)'}`);
+        });
+    }
+    console.log('\n');
+    
+    // 4. Check History Data
+    console.log('%c📜 History Data:', 'color: #0ff; font-size: 14px; font-weight: bold;');
+    if (app.historyRecords && app.historyRecords.length > 0) {
+        const latest = app.historyRecords[0];
+        console.log('Latest history period:', latest.period);
+        console.log('Latest history result:', latest.result);
+        console.log('Latest result length:', latest.result?.length);
+    } else {
+        console.log('No history records available');
+    }
+    console.log('\n');
+    
+    // 5. Diagnostic Summary
+    console.log('%c🔧 Diagnostic Summary:', 'color: #ff0; font-size: 14px; font-weight: bold;');
+    
+    // Check for common issues
+    const issues = [];
+    
+    if (app.lastResults && app.lastResults.length < 10) {
+        issues.push('❌ lastResults array is incomplete (only ' + app.lastResults.length + ' numbers)');
+    }
+    
+    if (resultBalls.length < 10) {
+        issues.push('❌ DOM is only rendering ' + resultBalls.length + ' balls');
+    }
+    
+    if (app.showWashingAnimation) {
+        issues.push('⚠️ Washing animation is active - numbers may show as "?"');
+    }
+    
+    const hiddenBalls = Array.from(resultBalls).filter(slot => slot.offsetParent === null);
+    if (hiddenBalls.length > 0) {
+        issues.push('❌ ' + hiddenBalls.length + ' balls are hidden by CSS');
+    }
+    
+    if (issues.length === 0) {
+        console.log('✅ No obvious issues detected');
+    } else {
+        issues.forEach(issue => console.log(issue));
+    }
+    console.log('\n');
+    
+    // 6. Suggested Fixes
+    console.log('%c💡 Suggested Actions:', 'color: #0f0; font-size: 14px; font-weight: bold;');
+    console.log('1. Force update with full results:');
+    console.log('   Run: forceFullResults()');
+    console.log('\n2. Check for array slicing in code:');
+    console.log('   Search for: .slice(0, 4) or .splice()');
+    console.log('\n3. Inspect Vue template:');
+    console.log('   Look for v-for with :key or v-if conditions');
+    
+    // Provide fix function
+    window.forceFullResults = function() {
+        if (app.historyRecords && app.historyRecords.length > 0) {
+            const fullResult = app.historyRecords[0].result;
+            console.log('Forcing full results:', fullResult);
+            app.lastResults = fullResult;
+            app.lastResult = fullResult;
+            app.$forceUpdate();
+            console.log('✅ Display updated! Check if all 10 numbers show now.');
+        } else {
+            console.error('No history records to use for update');
+        }
+    };
+    
+    console.log('\n=====================================');
+    console.log('%c🔍 Debug Complete', 'color: #0f0; font-size: 16px; font-weight: bold;');
+})();
+        </pre>
+    </div>
+
+    <div class="debug-section">
+        <h2>Common Issues Found:</h2>
+        <ul>
+            <li class="error">Main display shows only 4 numbers (3,9,1,7) instead of 10</li>
+            <li class="warning">History shows different result: 5,9,7,8,10,6,3,4,2,1</li>
+            <li class="info">Possible causes:
+                <ul>
+                    <li>Vue's lastResults array is being sliced or truncated</li>
+                    <li>CSS is hiding elements after the 4th position</li>
+                    <li>The v-for loop has a limit condition</li>
+                    <li>Animation state is interfering with display</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="debug-section">
+        <h2>Quick Fix Attempt:</h2>
+        <button onclick="copyQuickFix()">Copy Quick Fix</button>
+        <pre id="quickFix">
+// Quick fix to force display all 10 numbers
+// Run this after the debug script
+
+(function quickFix() {
+    const app = document.querySelector('#app').__vue__;
+    
+    // Get the full result from history
+    if (app.historyRecords && app.historyRecords.length > 0) {
+        const fullResult = app.historyRecords[0].result;
+        
+        // Force update the display
+        app.lastResults = [...fullResult];
+        app.showWashingAnimation = false;
+        app.isDrawingInProgress = false;
+        
+        // Force Vue to re-render
+        app.$forceUpdate();
+        
+        // Also update DOM directly as backup
+        setTimeout(() => {
+            const slots = document.querySelectorAll('.result-slot-new');
+            slots.forEach((slot, index) => {
+                if (index < fullResult.length) {
+                    const ball = slot.querySelector('.number-ball');
+                    if (ball) {
+                        ball.textContent = fullResult[index];
+                        ball.className = 'number-ball color-' + fullResult[index];
+                    }
+                }
+            });
+            console.log('✅ Quick fix applied! All 10 numbers should now be visible.');
+        }, 100);
+    }
+})();
+        </pre>
+    </div>
+
+    <script>
+        function copyScript() {
+            const script = document.getElementById('debugScript').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('Debug script copied to clipboard!');
+            });
+        }
+        
+        function copyQuickFix() {
+            const script = document.getElementById('quickFix').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('Quick fix script copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>

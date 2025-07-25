@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: bet-game
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://bet_game_user:Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy@dpg-d0e2imc9c44c73che3kg-a/bet_game
+      - key: DB_HOST
+        value: dpg-d0e2imc9c44c73che3kg-a
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: bet_game
+      - key: DB_USER
+        value: bet_game_user
+      - key: DB_PASSWORD
+        value: Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy
+      - key: PORT
+        value: "3002"
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    region: singapore
+    
+  - type: web
+    name: bet-agent
+    env: node
+    buildCommand: npm install
+    startCommand: npm run start:agent
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://bet_game_user:Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy@dpg-d0e2imc9c44c73che3kg-a/bet_game
+      - key: DB_HOST
+        value: dpg-d0e2imc9c44c73che3kg-a
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: bet_game
+      - key: DB_USER
+        value: bet_game_user
+      - key: DB_PASSWORD
+        value: Vm4J5g1gymwPfBNcgYfGCe4GEZqCjoIy
+      - key: PORT
+        value: "3003"
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    region: singapore 

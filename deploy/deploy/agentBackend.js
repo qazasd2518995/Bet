@@ -2854,10 +2854,12 @@ app.post(`${API_PREFIX}/create-agent`, async (req, res) => {
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
       // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
+      
+      // 不使用四捨五入，直接比較精確值
       if (isNaN(parsedRebatePercentage) || parsedRebatePercentage < 0 || parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
           success: false,
-          message: `退水比例必須在 0% - ${(maxRebatePercentage * 100).toFixed(1)}% 之間`
+          message: `退水比例必須在 0% - ${parseFloat((maxRebatePercentage * 100).toFixed(2))}% 之間`
         });
       }
       finalRebatePercentage = parsedRebatePercentage;
@@ -2990,10 +2992,12 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
     } else if (rebate_mode === 'percentage' && rebate_percentage !== undefined) {
       // 按比例分配：下級代理拿設定的比例，其餘歸上級代理
       const parsedRebatePercentage = parseFloat(rebate_percentage);
+      
+      // 不使用四捨五入，直接比較精確值
       if (isNaN(parsedRebatePercentage) || parsedRebatePercentage < 0 || parsedRebatePercentage > maxRebatePercentage) {
         return res.json({
           success: false,
-          message: `退水比例必須在 0% - ${(maxRebatePercentage * 100).toFixed(1)}% 之間`
+          message: `退水比例必須在 0% - ${parseFloat((maxRebatePercentage * 100).toFixed(2))}% 之間`
         });
       }
       finalRebatePercentage = parsedRebatePercentage;
@@ -3036,18 +3040,38 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
         const currentRebate = parseFloat(childAgent.rebate_percentage);
         const currentMaxRebate = parseFloat(childAgent.max_rebate_percentage);
         
-        // 如果下級代理的退水超過上級的新限制，則調整為上級的限制
-        if (currentRebate > maxRebatePercentage || currentMaxRebate > maxRebatePercentage) {
-          const newRebate = Math.min(currentRebate, maxRebatePercentage);
-          const newMaxRebate = maxRebatePercentage;
-          
+        // 處理兩種情況：
+        // 1. 如果下級的退水超過上級的新限制，需要調降
+        // 2. 如果下級的最大退水不等於上級的新限制，需要更新（允許調高或調低）
+        let needUpdate = false;
+        let newRebate = currentRebate;
+        let updateDescription = '';
+        
+        // 情況1：退水超過新限制，需要調降
+        if (currentRebate > maxRebatePercentage) {
+          newRebate = maxRebatePercentage;
+          needUpdate = true;
+          updateDescription = `退水調降: ${currentRebate * 100}% -> ${newRebate * 100}%`;
+        }
+        
+        // 情況2：最大退水需要更新（不論上調或下調）
+        if (currentMaxRebate !== maxRebatePercentage) {
+          needUpdate = true;
+          if (updateDescription) {
+            updateDescription += `，最大退水更新: ${currentMaxRebate * 100}% -> ${maxRebatePercentage * 100}%`;
+          } else {
+            updateDescription = `最大退水更新: ${currentMaxRebate * 100}% -> ${maxRebatePercentage * 100}%`;
+          }
+        }
+        
+        if (needUpdate) {
           await db.none(`
             UPDATE agents 
             SET rebate_percentage = $1, max_rebate_percentage = $2, updated_at = CURRENT_TIMESTAMP 
             WHERE id = $3
-          `, [newRebate, newMaxRebate, childAgent.id]);
+          `, [newRebate, maxRebatePercentage, childAgent.id]);
           
-          console.log(`  - 調整下級代理 ${childAgent.username} 的退水: ${(currentRebate * 100).toFixed(1)}% -> ${(newRebate * 100).toFixed(1)}%`);
+          console.log(`  - 調整下級代理 ${childAgent.username}: ${updateDescription}`);
           
           // 記錄調整日誌
           await db.none(`
@@ -3061,7 +3085,7 @@ app.put(`${API_PREFIX}/update-rebate-settings/:agentId`, async (req, res) => {
             0, 
             0, 
             0, 
-            `退水設定連鎖調整: ${(currentRebate * 100).toFixed(1)}% -> ${(newRebate * 100).toFixed(1)}% (因上級代理 ${agent.username} 退水調整)`
+            `退水設定連鎖調整: ${updateDescription} (因上級代理 ${agent.username} 退水調整)`
           ]);
         }
         

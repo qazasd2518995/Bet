@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清除快取工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .primary:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            background-color: #28a745;
+            color: white;
+        }
+        .success:hover {
+            background-color: #218838;
+        }
+        .warning {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .warning:hover {
+            background-color: #e0a800;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 清除快取工具</h1>
+        
+        <p style="text-align: center; color: #666;">
+            這個工具可以幫助您清除瀏覽器快取，確保載入最新版本的網站。
+        </p>
+        
+        <div class="button-group">
+            <button class="primary" onclick="clearCache()">清除快取</button>
+            <button class="success" onclick="hardReload()">強制重新載入</button>
+            <button class="warning" onclick="clearAndReload()">清除並重新載入</button>
+        </div>
+        
+        <div id="log" class="log">
+            <div class="log-entry">等待操作...</div>
+        </div>
+        
+        <hr style="margin: 30px 0;">
+        
+        <h3>快速連結</h3>
+        <div class="button-group">
+            <button class="primary" onclick="window.open('https://bet-game-vcje.onrender.com', '_blank')">
+                開啟遊戲端
+            </button>
+            <button class="success" onclick="window.open('https://bet-agent.onrender.com', '_blank')">
+                開啟代理端
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.borderLeftColor = type === 'success' ? '#28a745' : 
+                                         type === 'error' ? '#dc3545' : '#007bff';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearCache() {
+            addLog('開始清除快取...', 'info');
+            
+            // 清除localStorage
+            try {
+                localStorage.clear();
+                addLog('✅ localStorage 已清除', 'success');
+            } catch (e) {
+                addLog('❌ 清除 localStorage 失敗: ' + e.message, 'error');
+            }
+            
+            // 清除sessionStorage
+            try {
+                sessionStorage.clear();
+                addLog('✅ sessionStorage 已清除', 'success');
+            } catch (e) {
+                addLog('❌ 清除 sessionStorage 失敗: ' + e.message, 'error');
+            }
+            
+            // 清除cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            addLog('✅ Cookies 已清除', 'success');
+            
+            // 清除Service Worker快取
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(name) {
+                        caches.delete(name);
+                    });
+                    addLog('✅ Service Worker 快取已清除', 'success');
+                });
+            }
+            
+            addLog('快取清除完成！', 'success');
+        }
+        
+        function hardReload() {
+            addLog('執行強制重新載入...', 'info');
+            location.reload(true);
+        }
+        
+        function clearAndReload() {
+            clearCache();
+            setTimeout(() => {
+                addLog('3秒後將重新載入頁面...', 'info');
+                setTimeout(() => {
+                    location.reload(true);
+                }, 3000);
+            }, 1000);
+        }
+        
+        // 顯示當前環境信息
+        addLog('瀏覽器: ' + navigator.userAgent);
+        addLog('當前URL: ' + window.location.href);
+    </script>
+</body>
+</html>

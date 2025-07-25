@@ -19,7 +19,7 @@ const dbConfig = {
   },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased timeout to handle Render's cold starts
 };
 
 // Create connection pool

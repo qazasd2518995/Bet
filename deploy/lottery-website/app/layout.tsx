@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientBody from "./ClientBody";
-import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FS Racing - Official Draw Results",
-  description: "Check the latest FS Racing lottery draw results and winning numbers online. Live countdown timer and historical results. Available 24/7.",
-  keywords: "FS Racing, lottery, draw results, winning numbers, online lottery, 24/7",
+  title: "FS金彩赛车 - 官方开奖结果",
+  description: "在线查看最新FS金彩赛车彩票开奖结果和中奖号码。实时倒计时和历史开奖记录。全天候24/7开放。",
+  keywords: "FS金彩赛车, 彩票, 开奖结果, 中奖号码, 在线彩票, 24/7",
 };
 
 export default function RootLayout({
@@ -26,12 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Allura&display=swap" rel="stylesheet" />
+      </head>
       <body suppressHydrationWarning className="antialiased">
-        <Script
-          crossOrigin="anonymous"
-          src="//unpkg.com/same-runtime/dist/index.global.js"
-        />
         <ClientBody>{children}</ClientBody>
       </body>
     </html>

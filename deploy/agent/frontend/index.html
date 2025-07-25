@@ -1198,7 +1198,7 @@
                                                     <input type="number" class="form-control" v-model="newAgent.rebate_percentage" 
                                                            step="0.01" min="0" required>
                                                     <small class="form-text text-muted">
-                                                        可设定范围：0% - {{ (availableMaxRebatePercentage * 100).toFixed(1) }}% (直屬上級代理分配额度)
+                                                        可设定范围：0% - {{ formatRebatePercentage(availableMaxRebatePercentage * 100) }}% (直屬上級代理分配额度)
                                                     </small>
                                                 </div>
                                                 <div class="mb-3">
@@ -1259,14 +1259,14 @@
                                             <input type="number" class="form-control" v-model="rebateSettings.rebate_percentage" 
                                                    step="0.01" min="0" required>
                                             <small class="form-text text-muted">
-                                                可设定范围：0% - {{ (availableMaxRebatePercentage * 100).toFixed(1) }}% (直屬上級代理分配额度)
+                                                可设定范围：0% - {{ formatRebatePercentage(availableMaxRebatePercentage * 100) }}% (直屬上級代理分配额度)
                                             </small>
                                         </div>
                                         <div class="alert alert-info">
                                             <h6>目前设定：</h6>
                                             <p class="mb-0">
                                                 {{ getRebateModeText(rebateSettings.rebate_mode) }}
-                                                {{ rebateSettings.rebate_mode === 'percentage' ? ` ${rebateSettings.rebate_percentage}%` : '' }}
+                                                {{ rebateSettings.rebate_mode === 'percentage' ? ` ${formatRebatePercentage(rebateSettings.rebate_percentage)}%` : '' }}
                                             </p>
                                         </div>
                                         <div class="text-end">
