@@ -1501,9 +1501,15 @@ function isMaintenanceTime() {
 
 // 检查当前时间是否可以开始新的一期
 function canStartNewPeriod() {
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+  // 获取台北时间
+  const taipeiTime = new Date().toLocaleString('en-US', { 
+    timeZone: 'Asia/Taipei',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  const [hour, minute] = taipeiTime.split(':').map(num => parseInt(num));
   
   // 如果是早上6点之后，不能开始新期
   if (hour === 6 || (hour === 5 && minute >= 58)) {
